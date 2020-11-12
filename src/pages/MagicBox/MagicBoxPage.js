@@ -2,7 +2,7 @@
 import React, { } from 'react'
 import { injectIntl } from 'react-intl'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles'
-import { Container, Grid, TextField } from '@material-ui/core'
+import { Container, Grid, TextField, AppBar, Toolbar, Typography } from '@material-ui/core'
 import MagicBox from './magicBox'
 
 
@@ -19,10 +19,25 @@ const theme = createMuiTheme({
 const MagicBoxPage = ({intl}) => {
   const [magicIn, setMagicIn] = React.useState('')
 
+  // style="height: 50px; padding-right: 10px" 
   return (
     <MuiThemeProvider theme={theme}>
-      <Container >
 
+      <AppBar position="static" style={{
+          color: theme.palette.text.secondary,
+          backgroundColor: 'white',
+          borderBottom: '1px solid #cdc9c3',
+       }}>
+        <Toolbar>
+          <img src="/images/cat-64.png" style={{
+            height: "50px",
+            paddingRight: "10px",
+          }} />
+          <Typography variant="h6"> Magic Box </Typography>
+        </Toolbar>
+      </AppBar>
+
+      <Container >
         <Grid container spacing={2}
             style={{ marginTop: "30px", padding: "30px" }}>
 
@@ -45,6 +60,20 @@ const MagicBoxPage = ({intl}) => {
 
         </Grid>
       </Container>
+
+
+      <AppBar position="fixed" style={{
+          top: 'auto',
+          bottom: 0,
+          color: theme.palette.text.secondary,
+          backgroundColor: 'white',
+          borderBottom: '1px solid #cdc9c3',
+          padding: "0.2rem",
+        }}
+      >
+        {`© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`}
+      </AppBar>
+      
     </MuiThemeProvider>
     
   )

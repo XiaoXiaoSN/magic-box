@@ -3,12 +3,12 @@
   "name": "MagicBox",
   "icons": [
     {
-      "src": "/images/camera-128.png",
+      "src": "/images/cat-128.png",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "/images/camera-512.png",
+      "src": "/images/cat-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

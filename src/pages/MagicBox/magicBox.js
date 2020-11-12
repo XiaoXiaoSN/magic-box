@@ -2,6 +2,8 @@
 import React, { } from 'react'
 import { Grid, Paper, Typography } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
+import { evaluate } from 'mathjs'
+import jwt_decode from "jwt-decode";
 import CustomizedSnackbars from './snackbar'
 import copyTextToClipboard from './functions/clipboard'
 import Base64 from './functions/base64'
@@ -31,11 +33,17 @@ const MagicBox = (props) => {
     checkCommand,
     checkTimestamp,
     checkTimeFormat,
+    checkJWT,
+    checkMathExpressions,
     checkBase64,
     checkCanBeBase64,
   ]
 
   React.useEffect(() => {
+    if (trim(props.in) === "") {
+      return 
+    }
+
     let resp = []
     for (let f of funcs) {
       let box = f(props.in)
@@ -195,6 +203,41 @@ let checkTimeFormat = (input) => {
   } catch {
     return null
   }
+  return null
+}
+
+let checkJWT = (input) => {
+  input = trim(input)
+
+  try {
+    let jwtHeader = jwt_decode(input, { header: true })
+    let jwtBody = jwt_decode(input)
+    let jwtStr = JSON.stringify({ 'header': jwtHeader, 'body': jwtBody }, null, "\t")
+
+    return {
+      'name': 'JWT Decode',
+      'stdout': jwtStr,
+    }
+  } catch {}
+
+  return null
+}
+
+let checkMathExpressions = (input) => {
+  input = trim(input)
+
+  try {
+    let ans = evaluate(input)
+    if (ans === null || typeof(ans) === 'object' || typeof(ans) === 'function') {
+      return null
+    }
+
+    return {
+      'name': 'Math Expressions',
+      'stdout': ans,
+    }
+  } catch {}
+
   return null
 }
 

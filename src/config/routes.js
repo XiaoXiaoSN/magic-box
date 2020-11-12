@@ -11,11 +11,9 @@ const MyLoadable = (opts, preloadComponents) =>
     // preloadComponents
   )
 const AsyncMagicBox = MyLoadable({ loader: () => import('../pages/MagicBox') })
-// const AsyncHome = MyLoadable({ loader: () => import('../pagesDemo/Dashboard') })
 
 const routes = [
   <RestrictedRoute type="public" path="/" exact component={AsyncMagicBox} />,
-  // <RestrictedRoute type="public" path="/demo" exact component={AsyncHome} />,
 ]
 
 export default routes
