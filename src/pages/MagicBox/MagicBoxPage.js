@@ -37,7 +37,7 @@ const MagicBoxPage = ({intl}) => {
         </Toolbar>
       </AppBar>
 
-      <Container >
+      <Container maxWidth="xl">
         <Grid container spacing={2}
             style={{ marginTop: "30px", padding: "30px" }}>
 

@@ -1,27 +1,19 @@
 /* eslint-disable */
 import React, { } from 'react'
-import { Grid, Paper, Typography } from '@material-ui/core'
+import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import { evaluate } from 'mathjs'
 import jwt_decode from "jwt-decode";
+import { NotingMatchBox, DefaultBox, CodeBox } from './boxes'
 import CustomizedSnackbars from './snackbar'
 import copyTextToClipboard from './functions/clipboard'
 import Base64 from './functions/base64'
+
 
 const useStyles = makeStyles((theme) => ({
   grid: {
     marginBottom: '.45rem',
   },
-  paper: {
-    padding: theme.spacing(2),
-    color: theme.palette.text.secondary,
-    border: '1px solid #cdc9c3',
-    borderRadius: '5px',
-  },
-  paperTypography: {
-    textAlign: 'center',
-    overflow: 'auto',
-  }
 }));
 
 const MagicBox = (props) => {
@@ -60,8 +52,8 @@ const MagicBox = (props) => {
 
     resp = resp.filter(x => x !== undefined).filter(x => x !== null)
     setSource(resp)
-
     console.log('input:', props.in, 'source:', resp)
+
   }, [props.in])
 
   const copyText = (text) => {
@@ -73,31 +65,14 @@ const MagicBox = (props) => {
     <Grid container item xs={12} sm={12} md={6}
             style={{ background: "#f5f5f5", overflow: "scroll", maxHeight: "calc(100vh - 100px)" }} >
 
-      {source.length > 0 ? 
-        source.map( (src, idx) => {
-          return (
-            <Grid item xs={12} sm={12} key={idx} 
-                className={classes.grid}
-                zeroMinWidth 
-                onClick={(e) => copyText(src.stdout)} >
-              <Paper elevation={3} className={classes.paper}>
-                <h3 style={{ margin: 0 }}> 
-                  { src.name } 
-                </h3>
-                <Typography className={classes.paperTypography}> 
-                  { src.stdout } 
-                </Typography>
-              </Paper>
-            </Grid>
-          )
-        }) :
-        <Grid item xs={12} sm={12}>
-          <Paper elevation={3} className={classes.paper}>
-            <Typography className={classes.paperTypography}> 
-              { "nothing match" }
-            </Typography>
-          </Paper>
-        </Grid>
+      {
+        source.length > 0 ? 
+          source.map( (src, idx) => {
+            if ('component' in src) {
+              return <src.component src={src} clickHook={copyText} key={idx} />
+            }
+            return <DefaultBox src={src} clickHook={copyText} key={idx} />
+          }) : ( <NotingMatchBox/> )
       }
 
       <CustomizedSnackbars notify={notify} />
@@ -212,11 +187,12 @@ let checkJWT = (input) => {
   try {
     let jwtHeader = jwt_decode(input, { header: true })
     let jwtBody = jwt_decode(input)
-    let jwtStr = JSON.stringify({ 'header': jwtHeader, 'body': jwtBody }, null, "\t")
+    let jwtStr = JSON.stringify({ 'header': jwtHeader, 'body': jwtBody }, null, "    ")
 
     return {
       'name': 'JWT Decode',
       'stdout': jwtStr,
+      'component': CodeBox,
     }
   } catch {}
 
@@ -252,11 +228,16 @@ let checkBase64 = (input) => {
   }
 
   try {
+      let decodeText = Base64.decode(input)
+
       return {
         'name': 'Base64 decode',
-        'stdout': Base64.decode(input)
+        'stdout': decodeText,
+        'component': CodeBox,
       }
-  } catch {}
+  } catch (e) {
+    console.error('checkBase64', e)
+  }
 
   return null
 }
