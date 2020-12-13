@@ -44,6 +44,7 @@
     "moment": "^2.29.0",
     "muishift": "^1.1.4",
     "prop-types": "^15.7.2",
+    "qrcode.react": "^1.0.0",
     "react": "^16.13.1",
     "react-chartjs-2": "^2.10.0",
     "react-countup": "^4.3.3",

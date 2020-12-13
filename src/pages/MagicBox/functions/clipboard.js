@@ -24,13 +24,12 @@ function fallbackCopyTextToClipboard(text) {
   document.body.removeChild(textArea);
 }
 
-function copyTextToClipboard(text) {
+function copyTextToClipboard(content) {
   if (!navigator.clipboard) {
-    fallbackCopyTextToClipboard(text);
+    fallbackCopyTextToClipboard(content);
     return;
   }
-  navigator.clipboard.writeText(text).then(function() {
-    // console.log('Async: Copying to clipboard was successful!');
+  navigator.clipboard.writeText(content).then(function() {
   }, function(err) {
     console.error('Async: Could not copy text: ', err);
   });

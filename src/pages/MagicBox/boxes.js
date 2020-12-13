@@ -4,6 +4,7 @@ import { Grid, Paper, Typography } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import QRCode from 'qrcode.react';
 
 
 const boxStyles = makeStyles((theme) => ({
@@ -19,7 +20,11 @@ const boxStyles = makeStyles((theme) => ({
   paperTypography: {
     textAlign: 'center',
     overflow: 'auto',
-  }
+  },
+  alignCenter: {
+    textAlign: 'center',
+    overflow: 'auto',
+  },
 }));
 
 const NotingMatchBox = ({props}) => {
@@ -59,6 +64,11 @@ const DefaultBox = ({src, clickHook}) => {
 const CodeBox = ({src, clickHook}) => {
   const classes = boxStyles();
 
+  let language = 'yaml'
+  if (('options' in src) && ('language' in src.options)) {
+    language = src.options['language']
+  }
+
   return (
     <Grid item xs={12} sm={12} 
         className={classes.grid}
@@ -69,9 +79,31 @@ const CodeBox = ({src, clickHook}) => {
           { src.name } 
         </h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
-        <SyntaxHighlighter language="yaml" style={atelierCaveLight} customStyle={{ maxHeight: '250px' }}>
+        <SyntaxHighlighter language={language} style={atelierCaveLight} customStyle={{ maxHeight: '250px' }}>
           { src.stdout }
         </SyntaxHighlighter>
+      </Paper>
+    </Grid>
+  );
+}
+
+
+const QRCodeBox = ({src, clickHook}) => {
+  const classes = boxStyles();
+
+  return (
+    <Grid item xs={12} sm={12} 
+        className={classes.grid}
+        zeroMinWidth 
+        onClick={(e) => clickHook(src.stdout)} >
+      <Paper elevation={3} className={classes.paper}>
+        <h3 style={{ margin: 0 }}> 
+          { src.name } 
+        </h3>
+        {/* https://github.com/zpao/qrcode.react */}
+        <div className={classes.alignCenter} id="qrcode-box" >
+          <QRCode value={ src.stdout } size={256} includeMargin={true} />
+        </div>
       </Paper>
     </Grid>
   );
@@ -81,4 +113,5 @@ export {
   NotingMatchBox,
   DefaultBox,
   CodeBox,
+  QRCodeBox,
 }

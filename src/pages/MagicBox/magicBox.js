@@ -4,7 +4,7 @@ import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import { evaluate } from 'mathjs'
 import jwt_decode from "jwt-decode";
-import { NotingMatchBox, DefaultBox, CodeBox } from './boxes'
+import { NotingMatchBox, DefaultBox, CodeBox, QRCodeBox } from './boxes'
 import CustomizedSnackbars from './snackbar'
 import copyTextToClipboard from './functions/clipboard'
 import Base64 from './functions/base64'
@@ -21,7 +21,7 @@ const MagicBox = (props) => {
   
   const [notify, setNotify] = React.useState([0]);
   const [source, setSource] = React.useState([])
-  const funcs = [
+  const defaultFuncs = [
     checkCommand,
     checkTimestamp,
     checkTimeFormat,
@@ -35,10 +35,11 @@ const MagicBox = (props) => {
     if (trim(props.in) === "") {
       return 
     }
+    let [input, options] = inputParser(props.in)
 
     let resp = []
-    for (let f of funcs) {
-      let box = f(props.in)
+    for (let f of funcPreparer(defaultFuncs, options)) {
+      let box = f(input, options)
       if (box === null) {
         continue
       }
@@ -52,7 +53,7 @@ const MagicBox = (props) => {
 
     resp = resp.filter(x => x !== undefined).filter(x => x !== null)
     setSource(resp)
-    console.log('input:', props.in, 'source:', resp)
+    console.log('input:', input, 'source:', resp, 'options:', options)
 
   }, [props.in])
 
@@ -80,6 +81,45 @@ const MagicBox = (props) => {
   )
 }
 
+// ************************************************************ 
+// *  Start to prepare MagicBox Functions 
+// ************************************************************
+
+let inputParser = (input) => {
+  const regex = /\n::([\w=]+)/gm;
+  const matches = Array.from(input.matchAll(regex), m => m[1]);
+  
+  var options = {}
+  matches.map(k => options[k] = true)
+
+  input = input.replaceAll(regex, '')
+
+  return [input, options]
+}
+
+let isOptionKey = (options, key) => {
+  key = key.toLowerCase()
+
+  try {
+    if (options[key] === true) {
+      return true
+    }
+  } catch {}
+
+  return false
+}
+
+let funcPreparer = (defaultFuncs, options) => {
+  let funcs = [];
+
+  if (isOptionKey(options, 'qrcode')) {
+    funcs.push(takeQRCode)
+  }
+
+  funcs.push(...defaultFuncs)
+
+  return funcs
+}
 
 // ************************************************************ 
 // *  Start to Define MagicBox Functions 
@@ -193,6 +233,7 @@ let checkJWT = (input) => {
       'name': 'JWT Decode',
       'stdout': jwtStr,
       'component': CodeBox,
+      'options': {'language': 'json'},
     }
   } catch {}
 
@@ -200,6 +241,13 @@ let checkJWT = (input) => {
 }
 
 let checkMathExpressions = (input) => {
+  if (!isString(input)) {
+    return null
+  }
+  if (input === '' || trim(input) === '') {
+    return null 
+  }
+
   input = trim(input)
 
   try {
@@ -217,7 +265,7 @@ let checkMathExpressions = (input) => {
   return null
 }
 
-let checkBase64 = (input) => {
+let checkBase64 = (input, options) => {
   if (!isString(input)) {
     return null
   }
@@ -230,10 +278,28 @@ let checkBase64 = (input) => {
   try {
       let decodeText = Base64.decode(input)
 
+      let _options = {}
+      optionTaking: try {
+        if (!isObject(options)) {
+          break optionTaking
+        }
+
+        // check for language setting
+        const langKeys = ['l', 'lang', 'language']
+        for (const option in options) {
+          for (const langKey of langKeys) {
+            if (option.indexOf(langKey+'=') === 0) {
+              _options.language = option.substr((langKey+'=').length)
+            }
+          }
+        }
+      } catch (e) { console.error('checkBase64 optionTaking failed', e) }
+
       return {
         'name': 'Base64 decode',
         'stdout': decodeText,
         'component': CodeBox,
+        'options': _options,
       }
   } catch (e) {
     console.error('checkBase64', e)
@@ -260,6 +326,25 @@ let checkCanBeBase64 = (input) => {
   return null
 }
 
+let takeQRCode = (input) => {
+  if (!isString(input)) {
+    return null
+  }
+  if (input === '' || trim(input) === '') {
+    return null 
+  }
+
+  try {
+      return {
+        'name': 'QRCode',
+        'stdout': input,
+        'component': QRCodeBox,
+      }
+  } catch {}
+
+  return null
+}
+
 
 // ************************************************************ 
 // *  Util Function
@@ -275,6 +360,10 @@ const isString = (str) => {
 
 const isArray = (foo) => {
   return Array.isArray(foo)
+}
+
+const isObject = (foo) => {
+  return typeof foo === 'object' && foo !== null
 }
 
 const trim = (str) => {
@@ -298,5 +387,6 @@ const isBase64 = (str) => {
   }
   return str.match(re) ? true : false 
 }
+
 
 export default MagicBox
