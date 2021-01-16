@@ -4,7 +4,7 @@ import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import { evaluate } from 'mathjs'
 import jwt_decode from "jwt-decode";
-import { NotingMatchBox, DefaultBox, CodeBox, QRCodeBox } from './boxes'
+import { NotingMatchBox, DefaultBox, CodeBox, QRCodeBox, ShortenURLBox } from './boxes'
 import CustomizedSnackbars from './snackbar'
 import copyTextToClipboard from './functions/clipboard'
 import Base64 from './functions/base64'
@@ -33,8 +33,10 @@ const MagicBox = (props) => {
 
   React.useEffect(() => {
     if (trim(props.in) === "") {
+      setSource([])
       return 
     }
+
     let [input, options] = inputParser(props.in)
 
     let resp = []
@@ -97,12 +99,14 @@ let inputParser = (input) => {
   return [input, options]
 }
 
-let isOptionKey = (options, key) => {
-  key = key.toLowerCase()
+let isOptionKeys = (options, ...keys) => {
+  keys = keys.map(k => k.toLowerCase())
 
   try {
-    if (options[key] === true) {
-      return true
+    for (let key of keys) {
+      if (options[key] === true) {
+        return true
+      }
     }
   } catch {}
 
@@ -112,12 +116,16 @@ let isOptionKey = (options, key) => {
 let funcPreparer = (defaultFuncs, options) => {
   let funcs = [];
 
-  if (isOptionKey(options, 'qrcode')) {
+  if (isOptionKeys(options, 'qrcode', 'qr')) {
     funcs.push(takeQRCode)
+  }
+  if (isOptionKeys(options, 'surl', 'shorten')) {
+    // TODO: 他壞壞
+    // funcs.push(takeShortenURL)
   }
 
   funcs.push(...defaultFuncs)
-
+ㄑ
   return funcs
 }
 
@@ -256,6 +264,10 @@ let checkMathExpressions = (input) => {
       return null
     }
 
+    if (typeof(ans) === 'boolean') {
+      ans = ans.toString()
+    }
+
     return {
       'name': 'Math Expressions',
       'stdout': ans,
@@ -313,7 +325,7 @@ let checkCanBeBase64 = (input) => {
     return null
   }
   if (input === '' || trim(input) === '') {
-    return null 
+    return null
   }
 
   try {
@@ -339,6 +351,25 @@ let takeQRCode = (input) => {
         'name': 'QRCode',
         'stdout': input,
         'component': QRCodeBox,
+      }
+  } catch {}
+
+  return null
+}
+
+let takeShortenURL = (input) => {
+  if (!isString(input)) {
+    return null
+  }
+  if (input === '' || trim(input) === '') {
+    return null
+  }
+
+  try {
+      return {
+        'name': 'Shorten URL',
+        'stdout': input,
+        'component': ShortenURLBox,
       }
   } catch {}
 

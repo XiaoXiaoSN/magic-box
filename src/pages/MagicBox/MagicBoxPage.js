@@ -17,7 +17,13 @@ const theme = createMuiTheme({
 })
 
 const MagicBoxPage = ({intl}) => {
+  const [userInput, setUserInput] = React.useState('')
   const [magicIn, setMagicIn] = React.useState('')
+
+  React.useEffect(() => {
+    const timeOutID = setTimeout(() => setMagicIn(userInput), 500);
+    return () => { clearTimeout(timeOutID) }
+  }, [userInput]);
 
   // style="height: 50px; padding-right: 10px" 
   return (
@@ -27,9 +33,10 @@ const MagicBoxPage = ({intl}) => {
           color: theme.palette.text.secondary,
           backgroundColor: 'white',
           borderBottom: '1px solid #cdc9c3',
+          height: "65px",
        }}>
         <Toolbar>
-          <img src="/images/cat-64.png" style={{
+          <img src="/images/cat-50.png" alt="icon" style={{
             height: "50px",
             paddingRight: "10px",
           }} />
@@ -49,7 +56,7 @@ const MagicBoxPage = ({intl}) => {
               autoFocus={true}
               fullWidth={true}
               rows={7}
-              onChange={(e) => { setMagicIn(e.target.value) }}
+              onChange={(e) => { setUserInput(e.target.value) }}
               style={{ fontSize: "1.25rem" }} // this style attr not work
               variant={"outlined"}
             />
