@@ -113,7 +113,8 @@ const QRCodeBox = ({src, clickHook}) => {
 const ShortenURLBox = ({src, clickHook}) => {
   const classes = boxStyles();
 
-  var sURL = ''
+  const [status, setStatus] = React.useState(0);
+  const [sURL, setSURL] = React.useState('');
 
   const getShortenURL = async (input) => {
     // TODO: don't hard code host
@@ -121,43 +122,50 @@ const ShortenURLBox = ({src, clickHook}) => {
     let payload = {
       "url": input,
     }
-    return fetch(`${host}/api/v1/surl`, {
+    await fetch(`${host}/api/v1/surl`, {
       method: 'POST',
       body: JSON.stringify(payload),
     })
-      .then(d => d.json())
+      .then(resp => {
+        if (resp.status !== 200) {
+          setStatus(resp.status)
+          return
+        }
+        return resp.json()
+      })
       .then(result => {
-        sURL = `${host}/${result['shorten']}`
-        console.log('in then:', sURL)
-        return sURL
-      });
-  }
+        if (result == null || !isString(result['shorten']) || result['shorten'] === '') {
+          setStatus(400001)
+          return
+        }
 
-  // const waitShortenURL = async (input) => {
-  //   sURL = await getShortenURL(input)
-  //   return sURL
-  // }
+        setStatus(200)
+        setSURL(`${host}/${result['shorten']}`)
+      })
+      .catch(() => {});
+  }
 
   // call toolbox api to get short url
-  getShortenURL(src.stdout)
-  if (!isString(sURL) || sURL === '') {
-    return null
-  }
+  React.useEffect(() => { getShortenURL(src.stdout) }, [src.stdout]) 
 
   return (
-    <Grid item xs={12} sm={12} 
-        className={classes.grid}
-        zeroMinWidth 
-        onClick={(e) => clickHook(sURL)} >
-      <Paper elevation={3} className={classes.paper}>
-        <h3 style={{ margin: 0 }}> 
-          { src.name }
-        </h3>
-        <Typography className={classes.paperTypography}> 
-          { sURL }
-        </Typography>
-      </Paper>
-    </Grid>
+    <>
+    { status == 200 &&
+        <Grid item xs={12} sm={12} 
+            className={classes.grid}
+            zeroMinWidth 
+            onClick={(e) => clickHook(sURL)} >
+          <Paper elevation={3} className={classes.paper}>
+            <h3 style={{ margin: 0 }}> 
+              { src.name }
+            </h3>
+            <Typography className={classes.paperTypography}> 
+              { sURL }
+            </Typography>
+          </Paper>
+        </Grid>
+    }
+    </>
   );
 }
 

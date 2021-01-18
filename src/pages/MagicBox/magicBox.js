@@ -120,12 +120,11 @@ let funcPreparer = (defaultFuncs, options) => {
     funcs.push(takeQRCode)
   }
   if (isOptionKeys(options, 'surl', 'shorten')) {
-    // TODO: 他壞壞
-    // funcs.push(takeShortenURL)
+    funcs.push(takeShortenURL)
   }
 
   funcs.push(...defaultFuncs)
-ㄑ
+
   return funcs
 }
 
