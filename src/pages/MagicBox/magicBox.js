@@ -29,6 +29,7 @@ const MagicBox = (props) => {
     checkMathExpressions,
     checkBase64,
     checkCanBeBase64,
+    checkURLDecode,
   ]
 
   React.useEffect(() => {
@@ -349,6 +350,30 @@ let checkCanBeBase64 = (input) => {
         'stdout': Base64.encode(input),
       }
   } catch {}
+
+  return null
+}
+
+let checkURLDecode = (input, options) => {
+  if (!isString(input)) {
+    return null
+  }
+  input = trim(input)
+
+  try {
+      let decodeText = decodeURIComponent(input)
+      if (decodeText == input) {
+        return null
+      }
+
+      return {
+        'name': 'URLEncode decode',
+        'stdout': decodeText,
+        'priority': 10,
+      }
+  } catch (e) {
+    console.error('checkURLDecode', e)
+  }
 
   return null
 }
