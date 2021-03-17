@@ -92,7 +92,9 @@ let inputParser = (input) => {
   const matches = Array.from(input.matchAll(regex), m => m[1]);
   
   var options = {}
-  matches.map(k => options[k] = true)
+  matches
+    .map(k => k.toLowerCase())
+    .map(k => options[k] = true)
 
   input = input.replaceAll(regex, '')
 
@@ -171,11 +173,25 @@ let checkTimestamp = (input) => {
   if (!isNumeric(input)) {
     return null
   }
-
+  
   try {
-    let date = new Date(parseInt(input) * 1000)
+    let date = new Date(parseFloat(input) * 1000)
     let tzOffset = (8 * 60 * 60) * 1000
-    let twDate = new Date(parseInt(input) * 1000 + tzOffset)
+    let twDate = new Date(parseFloat(input) * 1000 + tzOffset)
+
+    // check max and min timestamp
+    const minTimestamp = new Date(1600, 1, 1, 0, 0, 0, 0)
+    const maxTimestamp = new Date(2050, 12, 31, 23, 59, 59, 0)
+    if (date.getTime() < minTimestamp) {
+      return []
+    } else if (date.getTime() > maxTimestamp) {
+      // guess the big number is a timestamp in ms, convert ms to sec
+      date = new Date(parseFloat(input))
+      twDate = new Date(parseFloat(input) + tzOffset)
+      if (date.getTime() > maxTimestamp || date.getTime() < minTimestamp) {
+        return []
+      }
+    }
 
     let resp = [] 
     if (date.getTime() > 0) {
