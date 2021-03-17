@@ -16,6 +16,12 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+/*
+ * Define box priorities
+ */
+const PriorityRFC3339 = 9
+const PriorityURLEncode = 10
+
 const MagicBox = (props) => {
   const classes = useStyles();
   
@@ -54,7 +60,25 @@ const MagicBox = (props) => {
       }
     }
 
-    resp = resp.filter(x => x !== undefined).filter(x => x !== null)
+    resp = resp.
+      filter(x => x !== undefined).
+      filter(x => x !== null).
+      sort((a, b) => {
+        let priorityA = 0, priorityB = 0
+        if ('priority' in a) {
+          priorityA = a['priority']
+        }
+        if ('priority' in b) {
+          priorityB = b['priority']
+        }
+        return priorityB - priorityA
+      }).
+      map(x => {
+        let p = 0
+        if ('priority' in x) { p = x['priority'] }
+        console.log(p, x)
+        return x
+      })
     setSource(resp)
     console.log('input:', input, 'source:', resp, 'options:', options)
 
@@ -150,7 +174,7 @@ let checkCommand = (input) => {
         {
           'name': 'RFC 3339 (UTC+8)',
           'stdout': twDate.toISOString().replace("Z", "+08:00"),
-          'priority': 10,
+          'priority': PriorityRFC3339,
         },
         {
           'name': 'timestamp (s)',
@@ -205,7 +229,7 @@ let checkTimestamp = (input) => {
       resp.push({
         'name': 'RFC 3339 (UTC+8)',
         'stdout': twDate.toISOString().replace("Z", "+08:00"),
-        'priority': 10,
+        'priority': PriorityRFC3339,
       })
     }
     return resp
@@ -369,7 +393,7 @@ let checkURLDecode = (input, options) => {
       return {
         'name': 'URLEncode decode',
         'stdout': decodeText,
-        'priority': 10,
+        'priority': PriorityURLEncode,
       }
   } catch (e) {
     console.error('checkURLDecode', e)
