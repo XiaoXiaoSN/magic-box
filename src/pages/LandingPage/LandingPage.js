@@ -30,7 +30,7 @@ const theme = createMuiTheme({
 })
 
 const isAuthorised = () => {
-  // just ignore all of auth
+  // NOTE: just ignore all of auth
   return true
 
   // try {
