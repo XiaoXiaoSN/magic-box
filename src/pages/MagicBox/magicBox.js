@@ -508,8 +508,19 @@ const isRFC3339 = (str) => {
 }
 
 const isBase64 = (str) => {
-  const re = /^[A-Za-z0-9+/=]+$/m
-
+  // https://stackoverflow.com/a/7874175/6695274
+  /*
+   *   ^                          # Start of input
+   *   ([0-9a-zA-Z+/]{4})*        # Groups of 4 valid characters decode
+   *                             # to 24 bits of data for each group
+   *   (                          # Either ending with:
+   *       ([0-9a-zA-Z+/]{2}==)   # two valid characters followed by ==
+   *       |                      # , or
+   *       ([0-9a-zA-Z+/]{3}=)    # three valid characters followed by =
+   *   )?                         # , or nothing
+   *   $                          # End of input
+  */
+  const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/m
   if (str === '' || str.trim() === '') { 
     return false; 
   }

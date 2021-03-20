@@ -70,6 +70,14 @@
       as="style"
       onload="this.rel = 'stylesheet'"
     />
+
+    <!-- for logo.svg -->
+    <style scoped>
+      @keyframes rotate-logo {
+        0% { transform:rotate(0deg); }
+        100% { transform:rotate(720deg); }
+      }
+    </style>
   </head>
 
   <body class="body" style="  margin: 0; padding: 0; height: 100vh">
@@ -83,10 +91,10 @@
         >
           <div>
             <img
-              src="%PUBLIC_URL%/images/cat-loading.gif"
+              src="%PUBLIC_URL%/images/logo.svg"
               class="loader"
               alt=""
-              style="height: 80px;"
+              style="height: 80px; animation:rotate-logo 20s infinite;"
             />
           </div>
         </div>

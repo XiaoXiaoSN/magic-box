@@ -38,6 +38,8 @@ const getMenuItems = props => {
     handleSignOut,
   } = props
 
+  // temporarily stop supporting menu 
+  // PS: if u enable the code below, you can find them on the not found page XDD
   return []
   const isAuthorised = auth.isAuthorised
 

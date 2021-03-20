@@ -11,9 +11,11 @@ const MyLoadable = (opts, preloadComponents) =>
     // preloadComponents
   )
 const AsyncMagicBox = MyLoadable({ loader: () => import('../pages/MagicBox') })
+const AsyncPasteBox = MyLoadable({ loader: () => import('../pages/PasteBox') })
 
 const routes = [
   <RestrictedRoute type="public" path="/" exact component={AsyncMagicBox} />,
+  <Route path="/pb" exact component={AsyncPasteBox} />,
 ]
 
 export default routes

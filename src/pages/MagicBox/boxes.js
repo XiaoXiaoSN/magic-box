@@ -109,7 +109,6 @@ const QRCodeBox = ({src, clickHook}) => {
   );
 }
 
-// TODO: 他壞壞
 const ShortenURLBox = ({src, clickHook}) => {
   const classes = boxStyles();
 
@@ -117,8 +116,7 @@ const ShortenURLBox = ({src, clickHook}) => {
   const [sURL, setSURL] = React.useState('');
 
   const getShortenURL = async (input) => {
-    // TODO: don't hard code host
-    const host = 'https://tool.10oz.tw'
+    const host = process.env.TOOLBOX ?? 'https://tool.10oz.tw'
     let payload = {
       "url": input,
     }
