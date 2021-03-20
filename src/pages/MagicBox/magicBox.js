@@ -23,9 +23,9 @@ const PriorityRFC3339 = 9
 const PriorityURLEncode = 10
 
 const MagicBox = (props) => {
-  const classes = useStyles();
+  const classes = useStyles()
   
-  const [notify, setNotify] = React.useState([0]);
+  const [notify, setNotify] = React.useState([0])
   const [source, setSource] = React.useState([])
   const defaultFuncs = [
     checkCommand,
@@ -36,6 +36,7 @@ const MagicBox = (props) => {
     checkBase64,
     checkCanBeBase64,
     checkURLDecode,
+    checkNeedPrettyJSON,
   ]
 
   React.useEffect(() => {
@@ -75,8 +76,9 @@ const MagicBox = (props) => {
       }).
       map(x => {
         let p = 0
-        if ('priority' in x) { p = x['priority'] }
-        console.log(p, x)
+        if ('priority' in x) {
+          p = x['priority']
+        }
         return x
       })
     setSource(resp)
@@ -402,6 +404,37 @@ let checkURLDecode = (input, options) => {
   return null
 }
 
+let checkNeedPrettyJSON = (input, options) => {
+  if (!isString(input)) {
+    return null
+  }
+  if (input === '' || trim(input) === '') {
+    return null
+  }
+  if (!isJSON(input)) {
+    return null
+  }
+  
+  try {
+    let jsonStr = JSON.stringify(JSON.parse(input), null, "    ")
+    if (jsonStr === null) {
+      return null
+    }
+    if (jsonStr == input) {
+      return null
+    }
+
+    return {
+      'name': 'Pretty JSON',
+      'stdout': jsonStr,
+      'component': CodeBox,
+      'options': {'language': 'json'},
+    }
+  } catch {}
+
+  return null
+}
+
 let takeQRCode = (input) => {
   if (!isString(input)) {
     return null
@@ -483,5 +516,14 @@ const isBase64 = (str) => {
   return str.match(re) ? true : false 
 }
 
+const isJSON = (str) => {
+  // https://stackoverflow.com/a/3710506/6695274
+  if (/^[\],:{}\s]*$/.test(str.replace(/\\["\\\/bfnrtu]/g, '@').
+    replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').
+    replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+      return true
+  }
+  return false
+}
 
 export default MagicBox
