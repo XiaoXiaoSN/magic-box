@@ -1,6 +1,6 @@
 {
   "name": "magic-box",
-  "version": "0.1.1",
+  "version": "v1.22.10",
   "private": true,
   "dependencies": {
     "@date-io/moment": "^2.10.6",
