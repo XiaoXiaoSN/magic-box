@@ -2,6 +2,7 @@
 import React, { } from 'react'
 import { injectIntl } from 'react-intl'
 import { MuiThemeProvider, createMuiTheme } from '@material-ui/core/styles'
+import { Activity } from 'rmw-shell'
 import { Container, Grid, TextField, AppBar, Toolbar, Typography } from '@material-ui/core'
 import MagicBox from './magicBox'
 
@@ -17,6 +18,7 @@ const theme = createMuiTheme({
 })
 
 const MagicBoxPage = ({intl}) => {
+  const MagicBoxTitle = 'Magic Box'
   const [userInput, setUserInput] = React.useState('')
   const [magicIn, setMagicIn] = React.useState('')
 
@@ -40,7 +42,7 @@ const MagicBoxPage = ({intl}) => {
             height: "50px",
             paddingRight: "10px",
           }} />
-          <Typography variant="h6"> Magic Box </Typography>
+          <Typography variant="h6"> {MagicBoxTitle} </Typography>
         </Toolbar>
       </AppBar>
 

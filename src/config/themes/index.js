@@ -41,7 +41,7 @@ const themes = [
         error: red
       }
     }
-  }
+  },
 ]
 
 export default themes

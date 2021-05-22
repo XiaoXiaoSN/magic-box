@@ -1,5 +1,5 @@
 {
-  "short_name": "RMW",
+  "short_name": "MB",
   "name": "MagicBox",
   "icons": [
     {
@@ -16,5 +16,12 @@
   "start_url": "./",
   "display": "standalone",
   "background_color": "#222222",
-  "gcm_sender_id": "103953800507"
+  "gcm_sender_id": "103953800507",
+
+  "scope_url": "https://mb.10oz.tw",
+  "intent_filters": {
+    "scope_url_scheme": "https",
+    "scope_url_host": "mb.10oz.tw",
+    "scope_url_path": "/"
+  }
 }
