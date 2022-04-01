@@ -33,7 +33,7 @@ const NotingMatchBox = ({props}) => {
   return (
     <Grid item xs={12} sm={12}>
       <Paper elevation={3} className={classes.paper}>
-        <Typography className={classes.paperTypography}> 
+        <Typography className={classes.paperTypography}>
           { "nothing match" }
         </Typography>
       </Paper>
@@ -45,16 +45,16 @@ const DefaultBox = ({src, clickHook}) => {
   const classes = boxStyles();
 
   return (
-    <Grid item xs={12} sm={12} 
+    <Grid item xs={12} sm={12}
         className={classes.grid}
-        zeroMinWidth 
+        zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
       <Paper elevation={3} className={classes.paper}>
-        <h3 style={{ margin: 0 }}> 
-          { src.name } 
+        <h3 style={{ margin: 0 }}>
+          { src.name }
         </h3>
-        <Typography className={classes.paperTypography}> 
-          { src.stdout } 
+        <Typography className={classes.paperTypography}>
+          { src.stdout }
         </Typography>
       </Paper>
     </Grid>
@@ -70,13 +70,13 @@ const CodeBox = ({src, clickHook}) => {
   }
 
   return (
-    <Grid item xs={12} sm={12} 
+    <Grid item xs={12} sm={12}
         className={classes.grid}
-        zeroMinWidth 
+        zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
       <Paper elevation={3} className={classes.paper}>
-        <h3 style={{ margin: 0 }}> 
-          { src.name } 
+        <h3 style={{ margin: 0 }}>
+          { src.name }
         </h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter language={language} style={atelierCaveLight} customStyle={{ maxHeight: '250px' }}>
@@ -92,13 +92,13 @@ const QRCodeBox = ({src, clickHook}) => {
   const classes = boxStyles();
 
   return (
-    <Grid item xs={12} sm={12} 
+    <Grid item xs={12} sm={12}
         className={classes.grid}
-        zeroMinWidth 
+        zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
       <Paper elevation={3} className={classes.paper}>
-        <h3 style={{ margin: 0 }}> 
-          { src.name } 
+        <h3 style={{ margin: 0 }}>
+          { src.name }
         </h3>
         {/* https://github.com/zpao/qrcode.react */}
         <div className={classes.alignCenter} id="qrcode-box" >
@@ -144,20 +144,20 @@ const ShortenURLBox = ({src, clickHook}) => {
   }
 
   // call toolbox api to get short url
-  React.useEffect(() => { getShortenURL(src.stdout) }, [src.stdout]) 
+  React.useEffect(() => { getShortenURL(src.stdout) }, [src.stdout])
 
   return (
     <>
     { status == 200 &&
-        <Grid item xs={12} sm={12} 
+        <Grid item xs={12} sm={12}
             className={classes.grid}
-            zeroMinWidth 
+            zeroMinWidth
             onClick={(e) => clickHook(sURL)} >
           <Paper elevation={3} className={classes.paper}>
-            <h3 style={{ margin: 0 }}> 
+            <h3 style={{ margin: 0 }}>
               { src.name }
             </h3>
-            <Typography className={classes.paperTypography}> 
+            <Typography className={classes.paperTypography}>
               { sURL }
             </Typography>
           </Paper>

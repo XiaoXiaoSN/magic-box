@@ -27,7 +27,7 @@ const MagicBoxPage = ({intl}) => {
     return () => { clearTimeout(timeOutID) }
   }, [userInput]);
 
-  // style="height: 50px; padding-right: 10px" 
+  // style="height: 50px; padding-right: 10px"
   return (
     <MuiThemeProvider theme={theme}>
 
@@ -82,9 +82,8 @@ const MagicBoxPage = ({intl}) => {
       >
         {`© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`}
       </AppBar>
-      
+
     </MuiThemeProvider>
-    
   )
 }
 

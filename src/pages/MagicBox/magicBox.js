@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { } from 'react'
+import React from 'react'
 import { Grid } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import { evaluate } from 'mathjs'
@@ -24,7 +24,7 @@ const PriorityURLEncode = 10
 
 const MagicBox = (props) => {
   const classes = useStyles()
-  
+
   const [notify, setNotify] = React.useState([0])
   const [source, setSource] = React.useState([])
   const defaultFuncs = [
@@ -42,7 +42,7 @@ const MagicBox = (props) => {
   React.useEffect(() => {
     if (trim(props.in) === "") {
       setSource([])
-      return 
+      return
     }
 
     let [input, options] = inputParser(props.in)
@@ -96,7 +96,7 @@ const MagicBox = (props) => {
             style={{ background: "#f5f5f5", overflow: "scroll", maxHeight: "calc(100vh - 100px)" }} >
 
       {
-        source.length > 0 ? 
+        source.length > 0 ?
           source.map( (src, idx) => {
             if ('component' in src) {
               return <src.component src={src} clickHook={copyText} key={idx} />
@@ -110,14 +110,14 @@ const MagicBox = (props) => {
   )
 }
 
-// ************************************************************ 
-// *  Start to prepare MagicBox Functions 
+// ************************************************************
+// *  Start to prepare MagicBox Functions
 // ************************************************************
 
 let inputParser = (input) => {
   const regex = /\n::([\w=]+)/gm;
   const matches = Array.from(input.matchAll(regex), m => m[1]);
-  
+
   var options = {}
   matches
     .map(k => k.toLowerCase())
@@ -157,8 +157,8 @@ let funcPreparer = (defaultFuncs, options) => {
   return funcs
 }
 
-// ************************************************************ 
-// *  Start to Define MagicBox Functions 
+// ************************************************************
+// *  Start to Define MagicBox Functions
 // ************************************************************
 
 let checkCommand = (input) => {
@@ -189,7 +189,6 @@ let checkCommand = (input) => {
       let found = input.match(randomRegex)
       if (found && found.length > 0) {
         let len = 8
-        
       }
 
       return null
@@ -200,7 +199,7 @@ let checkTimestamp = (input) => {
   if (!isNumeric(input)) {
     return null
   }
-  
+
   try {
     let date = new Date(parseFloat(input) * 1000)
     let tzOffset = (8 * 60 * 60) * 1000
@@ -220,7 +219,7 @@ let checkTimestamp = (input) => {
       }
     }
 
-    let resp = [] 
+    let resp = []
     if (date.getTime() > 0) {
       resp.push({
         'name': 'RFC 3339',
@@ -295,7 +294,7 @@ let checkMathExpressions = (input) => {
     return null
   }
   if (input === '' || trim(input) === '') {
-    return null 
+    return null
   }
 
   input = trim(input)
@@ -414,7 +413,7 @@ let checkNeedPrettyJSON = (input, options) => {
   if (!isJSON(input)) {
     return null
   }
-  
+
   try {
     let jsonStr = JSON.stringify(JSON.parse(input), null, "    ")
     if (jsonStr === null) {
@@ -440,7 +439,7 @@ let takeQRCode = (input) => {
     return null
   }
   if (input === '' || trim(input) === '') {
-    return null 
+    return null
   }
 
   try {
@@ -474,12 +473,12 @@ let takeShortenURL = (input) => {
 }
 
 
-// ************************************************************ 
-// *  Util Function
+// ************************************************************
+// *  Util Functions
 // ************************************************************
 
 const isNumeric = (num) => {
-  return (typeof(num) === 'number' || typeof(num) === 'string' && num.trim() !== '') && !isNaN(num);
+  return (typeof(num) === 'number' || typeof(num) === 'string' && num.trim() !== '') && !isNaN(num)
 }
 
 const isString = (str) => {
@@ -495,7 +494,7 @@ const isObject = (foo) => {
 }
 
 const trim = (str) => {
-  return str.replace(/^\s+|\s+$/g, '');
+  return str.replace(/^\s+|\s+$/g, '')
 }
 
 const isRFC3339 = (str) => {
@@ -521,10 +520,10 @@ const isBase64 = (str) => {
    *   $                          # End of input
   */
   const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/m
-  if (str === '' || str.trim() === '') { 
-    return false; 
+  if (str === '' || str.trim() === '') {
+    return false
   }
-  return str.match(re) ? true : false 
+  return str.match(re) ? true : false
 }
 
 const isJSON = (str) => {
