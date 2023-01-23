@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Run ESLint
+      - name: Build
         run: yarn build
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
