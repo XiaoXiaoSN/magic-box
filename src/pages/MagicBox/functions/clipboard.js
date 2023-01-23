@@ -1,13 +1,11 @@
-export default copyTextToClipboard
-
 function fallbackCopyTextToClipboard(text) {
-  var textArea = document.createElement("textarea");
+  const textArea = document.createElement('textarea');
   textArea.value = text;
 
   // Avoid scrolling to bottom
-  textArea.style.top = "0";
-  textArea.style.left = "0";
-  textArea.style.position = "fixed";
+  textArea.style.top = '0';
+  textArea.style.left = '0';
+  textArea.style.position = 'fixed';
 
   document.body.appendChild(textArea);
   textArea.focus();
@@ -18,6 +16,7 @@ function fallbackCopyTextToClipboard(text) {
     // var msg = successful ? 'successful' : 'unsuccessful';
     // console.log('Fallback: Copying text command was ' + msg);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('Fallback: Oops, unable to copy', err);
   }
 
@@ -29,8 +28,10 @@ function copyTextToClipboard(content) {
     fallbackCopyTextToClipboard(content);
     return;
   }
-  navigator.clipboard.writeText(content).then(function() {
-  }, function(err) {
+  navigator.clipboard.writeText(content).then(() => {}, (err) => {
+    // eslint-disable-next-line no-console
     console.error('Async: Could not copy text: ', err);
   });
 }
+
+export default copyTextToClipboard;

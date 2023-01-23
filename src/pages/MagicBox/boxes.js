@@ -1,22 +1,21 @@
 /* eslint-disable */
-import React, { } from 'react'
-import { Grid, Paper, Typography } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles';
+import React, { useEffect, useState } from 'react'
+import { Grid, Paper, Typography } from '@mui/material'
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import QRCode from 'qrcode.react';
 
 
-const boxStyles = makeStyles((theme) => ({
+const boxStyles = {
   grid: {
     marginBottom: '.45rem',
   },
-  paper: {
+  paper: (theme) => ({
     padding: theme.spacing(2),
     color: theme.palette.text.secondary,
     border: '1px solid #cdc9c3',
     borderRadius: '5px',
-  },
+  }),
   paperTypography: {
     textAlign: 'center',
     overflow: 'auto',
@@ -25,35 +24,33 @@ const boxStyles = makeStyles((theme) => ({
     textAlign: 'center',
     overflow: 'auto',
   },
-}));
+};
 
-const NotingMatchBox = ({props}) => {
-  const classes = boxStyles();
-
-  return (
-    <Grid item xs={12} sm={12}>
-      <Paper elevation={3} className={classes.paper}>
-        <Typography className={classes.paperTypography}>
-          { "nothing match" }
+const NotingMatchBox = () => {
+  return (    
+    <Grid item xs={12} sm={12} 
+        sx={boxStyles.grid}
+        zeroMinWidth>
+      <Paper elevation={3} sx={boxStyles.paper}>
+        <Typography sx={boxStyles.paperTypography}>
+          { 'nothing match' }
         </Typography>
       </Paper>
     </Grid>
   );
 }
 
-const DefaultBox = ({src, clickHook}) => {
-  const classes = boxStyles();
-
+const DefaultBox = ({ src, clickHook }) => {
   return (
     <Grid item xs={12} sm={12}
-        className={classes.grid}
+        sx={boxStyles.grid}
         zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
-      <Paper elevation={3} className={classes.paper}>
+      <Paper elevation={3} sx={boxStyles.paper}>
         <h3 style={{ margin: 0 }}>
           { src.name }
         </h3>
-        <Typography className={classes.paperTypography}>
+        <Typography sx={boxStyles.paperTypography}>
           { src.stdout }
         </Typography>
       </Paper>
@@ -61,25 +58,24 @@ const DefaultBox = ({src, clickHook}) => {
   );
 }
 
-const CodeBox = ({src, clickHook}) => {
-  const classes = boxStyles();
-
+const CodeBox = ({ src, clickHook }) => {
   let language = 'yaml'
   if (('options' in src) && ('language' in src.options)) {
     language = src.options['language']
   }
 
   return (
-    <Grid item xs={12} sm={12}
-        className={classes.grid}
+    <Grid item
+        xs={12} sm={12}
+        sx={boxStyles.grid}
         zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
-      <Paper elevation={3} className={classes.paper}>
+      <Paper elevation={3} sx={boxStyles.paper}>
         <h3 style={{ margin: 0 }}>
           { src.name }
         </h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
-        <SyntaxHighlighter language={language} style={atelierCaveLight} customStyle={{ maxHeight: '250px' }}>
+        <SyntaxHighlighter language={language} sx={atelierCaveLight} customStyle={{ maxHeight: '250px' }}>
           { src.stdout }
         </SyntaxHighlighter>
       </Paper>
@@ -87,21 +83,18 @@ const CodeBox = ({src, clickHook}) => {
   );
 }
 
-
-const QRCodeBox = ({src, clickHook}) => {
-  const classes = boxStyles();
-
+const QRCodeBox = ({ src, clickHook }) => {
   return (
     <Grid item xs={12} sm={12}
-        className={classes.grid}
+        sx={boxStyles.grid}
         zeroMinWidth
         onClick={(e) => clickHook(src.stdout)} >
-      <Paper elevation={3} className={classes.paper}>
+      <Paper elevation={3} sx={boxStyles.paper}>
         <h3 style={{ margin: 0 }}>
           { src.name }
         </h3>
         {/* https://github.com/zpao/qrcode.react */}
-        <div className={classes.alignCenter} id="qrcode-box" >
+        <div sx={boxStyles.alignCenter} id="qrcode-box" >
           <QRCode value={ src.stdout } size={256} includeMargin={true} />
         </div>
       </Paper>
@@ -109,11 +102,9 @@ const QRCodeBox = ({src, clickHook}) => {
   );
 }
 
-const ShortenURLBox = ({src, clickHook}) => {
-  const classes = boxStyles();
-
-  const [status, setStatus] = React.useState(0);
-  const [sURL, setSURL] = React.useState('');
+const ShortenURLBox = ({ src, clickHook }) => {
+  const [status, setStatus] = useState(0);
+  const [shortURL, setShortURL] = useState('');
 
   const getShortenURL = async (input) => {
     const host = process.env.TOOLBOX ?? 'https://tool.10oz.tw'
@@ -138,27 +129,27 @@ const ShortenURLBox = ({src, clickHook}) => {
         }
 
         setStatus(200)
-        setSURL(`${host}/${result['shorten']}`)
+        setShortURL(`${host}/${result['shorten']}`)
       })
       .catch(() => {});
   }
 
   // call toolbox api to get short url
-  React.useEffect(() => { getShortenURL(src.stdout) }, [src.stdout])
+  useEffect(() => { getShortenURL(src.stdout) }, [src.stdout])
 
   return (
     <>
     { status == 200 &&
         <Grid item xs={12} sm={12}
-            className={classes.grid}
+            sx={boxStyles.grid}
             zeroMinWidth
-            onClick={(e) => clickHook(sURL)} >
-          <Paper elevation={3} className={classes.paper}>
+            onClick={(e) => clickHook(shortURL)} >
+          <Paper elevation={3} sx={boxStyles.paper}>
             <h3 style={{ margin: 0 }}>
               { src.name }
             </h3>
-            <Typography className={classes.paperTypography}>
-              { sURL }
+            <Typography sx={boxStyles.paperTypography}>
+              { shortURL }
             </Typography>
           </Paper>
         </Grid>

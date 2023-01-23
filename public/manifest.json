@@ -3,12 +3,22 @@
   "name": "MagicBox",
   "icons": [
     {
-      "src": "/images/cat-128.png",
+      "src": "/images/logo-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/logo-128.png",
       "sizes": "128x128",
       "type": "image/png"
     },
     {
-      "src": "/images/cat-512.png",
+      "src": "/images/logo-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }

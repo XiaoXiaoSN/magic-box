@@ -1,20 +1,11 @@
 /* eslint-disable */
-import React from 'react'
-import { Grid } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core/styles';
+import React, { useEffect, useState } from 'react'
+import { Grid } from '@mui/material';
 import { evaluate } from 'mathjs'
 import jwt_decode from "jwt-decode";
 import { NotingMatchBox, DefaultBox, CodeBox, QRCodeBox, ShortenURLBox } from './boxes'
-import CustomizedSnackbars from './snackbar'
-import copyTextToClipboard from './functions/clipboard'
-import Base64 from './functions/base64'
-
-
-const useStyles = makeStyles((theme) => ({
-  grid: {
-    marginBottom: '.45rem',
-  },
-}));
+import CustomizedSnackbar from './snackbar'
+import { copyTextToClipboard, Base64 } from './functions'
 
 /*
  * Define box priorities
@@ -23,10 +14,8 @@ const PriorityRFC3339 = 9
 const PriorityURLEncode = 10
 
 const MagicBox = (props) => {
-  const classes = useStyles()
-
-  const [notify, setNotify] = React.useState([0])
-  const [source, setSource] = React.useState([])
+  const [notify, setNotify] = useState([0])
+  const [source, setSource] = useState([])
   const defaultFuncs = [
     checkCommand,
     checkTimestamp,
@@ -39,7 +28,7 @@ const MagicBox = (props) => {
     checkNeedPrettyJSON,
   ]
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (trim(props.in) === "") {
       setSource([])
       return
@@ -62,8 +51,7 @@ const MagicBox = (props) => {
     }
 
     resp = resp.
-      filter(x => x !== undefined).
-      filter(x => x !== null).
+      filter(x => (x !== undefined && x !== null)).
       sort((a, b) => {
         let priorityA = 0, priorityB = 0
         if ('priority' in a) {
@@ -77,7 +65,7 @@ const MagicBox = (props) => {
       map(x => {
         let p = 0
         if ('priority' in x) {
-          p = x['priority']
+          p = x.priority
         }
         return x
       })
@@ -92,21 +80,19 @@ const MagicBox = (props) => {
   }
 
   return (
-    <Grid container item xs={12} sm={12} md={6}
-            style={{ background: "#f5f5f5", overflow: "scroll", maxHeight: "calc(100vh - 100px)" }} >
-
+    <>
       {
         source.length > 0 ?
-          source.map( (src, idx) => {
+          source.map((src, idx) => {
             if ('component' in src) {
-              return <src.component src={src} clickHook={copyText} key={idx} />
+              return <src.component src={src} clickHook={copyText} key={src?.name || idx} />
             }
-            return <DefaultBox src={src} clickHook={copyText} key={idx} />
-          }) : ( <NotingMatchBox/> )
+            return <DefaultBox src={src} clickHook={copyText} key='default' />
+          })
+          : <NotingMatchBox/>
       }
-
-      <CustomizedSnackbars notify={notify} />
-    </Grid>
+      <CustomizedSnackbar notify={notify} />
+    </>
   )
 }
 
@@ -511,7 +497,7 @@ const isBase64 = (str) => {
   /*
    *   ^                          # Start of input
    *   ([0-9a-zA-Z+/]{4})*        # Groups of 4 valid characters decode
-   *                             # to 24 bits of data for each group
+   *                              # to 24 bits of data for each group
    *   (                          # Either ending with:
    *       ([0-9a-zA-Z+/]{2}==)   # two valid characters followed by ==
    *       |                      # , or
