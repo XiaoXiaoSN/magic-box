@@ -9,7 +9,7 @@ on:
       - main
 
 concurrency:
-  group: rust-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

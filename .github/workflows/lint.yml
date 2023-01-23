@@ -10,7 +10,7 @@ on:
   pull_request:
 
 concurrency:
-  group: rust-${{ github.ref }}
+  group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
