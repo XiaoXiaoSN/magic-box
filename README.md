@@ -15,5 +15,13 @@ List defined Commands
 - `surl`, `shorten` create a shorten URL
 - `qr`, `qrcode` show QRCode
 
-## Development                                                    
+## Development                    
 
+Prepare deployment (first time)
+
+```bash                                
+npm install -g firebase-tools
+
+firebase login
+firebase init
+```
