@@ -23,10 +23,12 @@
     "paths": {
       "@components/*": ["./components/*"],
       "@functions/*": ["./functions/*"],
+      "@modules/*": ["./modules/*"],
       "@pages/*": ["./pages/*"],
     }
   },
   "include": [
+    "craco.config.ts",
     "src"
   ]
 }
