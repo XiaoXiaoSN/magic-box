@@ -1,9 +1,11 @@
-import * as React from 'react';
-
-import MagicBox from './pages/MagicBox';
+import BaseLayout from '@components/BaseLayout';
+import MagicBoxPage from '@pages/MagicBox';
+import React from 'react';
 
 const App = () => (
-  <MagicBox />
+  <BaseLayout>
+    <MagicBoxPage />
+  </BaseLayout>
 );
 
 export default App;

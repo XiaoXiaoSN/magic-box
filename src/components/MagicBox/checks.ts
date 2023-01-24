@@ -53,11 +53,11 @@ const checkCommand = (input: string): BoxSource[] => {
 
     default: {
       // TODO: add random command
-      const randomRegex = /^random(\d*)$/i;
-      const found = input.match(randomRegex);
-      if (found && found.length > 0) {
-        const len = 8;
-      }
+      // const randomRegex = /^random(\d*)$/i;
+      // const found = input.match(randomRegex);
+      // if (found && found.length > 0) {
+      //   const len = 8;
+      // }
 
       return [];
     }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-
 import {
   DefaultBox, NotingMatchBox,
 } from '@components/Boxes';
