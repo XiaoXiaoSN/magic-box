@@ -5,7 +5,8 @@ import { evaluate } from 'mathjs'
 import jwt_decode from "jwt-decode";
 import { NotingMatchBox, DefaultBox, CodeBox, QRCodeBox, ShortenURLBox } from './boxes'
 import CustomizedSnackbar from './snackbar'
-import { copyTextToClipboard, Base64 } from './functions'
+import Base64 from '@functions/base64'
+import cyTextToClipboard from '@functions/clipboard'
 
 /*
  * Define box priorities
