@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { AppBar, Container, Grid, TextField, Toolbar, Typography } from '@mui/material'
 import { createTheme } from '@mui/material/styles';
 import { ThemeProvider } from '@mui/styles'
-import MagicBox from './MagicBox'
+import MagicBox from '@components/MagicBox'
 
 
 const MagicBoxTitle = 'Magic Box'

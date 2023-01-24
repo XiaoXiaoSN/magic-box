@@ -1,11 +1,13 @@
+import './index.css';
+import './firebaseConfig';
+
+import CssBaseline from '@mui/material/CssBaseline';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import CssBaseline from '@mui/material/CssBaseline';
-import './index.css';
+
 import App from './App';
-import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import reportWebVitals from './reportWebVitals';
-import './firebaseConfig';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement,

@@ -1,0 +1,141 @@
+import { isString } from '@functions/helper';
+import { BoxSourceProps } from '@modules/box';
+import {
+  Box, Grid, Paper, Typography,
+} from '@mui/material';
+import QRCode from 'qrcode.react';
+import React, { useEffect, useState } from 'react';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+
+import boxStyles from './styles';
+
+const NotingMatchBox = () => (
+  <Grid item xs={12} sm={12} sx={boxStyles.grid} zeroMinWidth>
+    <Paper elevation={3} sx={boxStyles.paper}>
+      <Typography sx={boxStyles.paperTypography}>nothing match</Typography>
+    </Paper>
+  </Grid>
+);
+
+const DefaultBox = ({ src, clickHook }: BoxSourceProps) => (
+  <Grid
+    item
+    xs={12}
+    sm={12}
+    sx={boxStyles.grid}
+    zeroMinWidth
+    onClick={() => clickHook(src.stdout)}
+  >
+    <Paper elevation={3} sx={boxStyles.paper}>
+      <h3 style={{ margin: 0 }}>{src.name}</h3>
+      <Typography sx={boxStyles.paperTypography}>{src.stdout}</Typography>
+    </Paper>
+  </Grid>
+);
+
+const CodeBox = ({ src, clickHook }: BoxSourceProps) => {
+  let language = 'yaml';
+  if (src.options && 'language' in src.options) {
+    language = src.options.language;
+  }
+
+  return (
+    <Grid
+      item
+      xs={12}
+      sm={12}
+      sx={boxStyles.grid}
+      zeroMinWidth
+      onClick={() => clickHook(src.stdout)}
+    >
+      <Paper elevation={3} sx={boxStyles.paper}>
+        <h3 style={{ margin: 0 }}>{src.name}</h3>
+        {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
+        <SyntaxHighlighter
+          language={language}
+          sx={atelierCaveLight}
+          customStyle={{ maxHeight: '250px' }}
+        >
+          {src.stdout}
+        </SyntaxHighlighter>
+      </Paper>
+    </Grid>
+  );
+};
+
+const QRCodeBox = ({ src, clickHook }: BoxSourceProps) => (
+  <Grid
+    item
+    xs={12}
+    sm={12}
+    sx={boxStyles.grid}
+    zeroMinWidth
+    onClick={() => clickHook(src.stdout)}
+  >
+    <Paper elevation={3} sx={boxStyles.paper}>
+      <h3 style={{ margin: 0 }}>{src.name}</h3>
+      {/* https://github.com/zpao/qrcode.react */}
+      <Box sx={boxStyles.alignCenter} id="qrcode-box">
+        <QRCode value={src.stdout} size={256} includeMargin />
+      </Box>
+    </Paper>
+  </Grid>
+);
+
+const ShortenURLBox = ({ src, clickHook }: BoxSourceProps) => {
+  const [shortURL, setShortURL] = useState('');
+
+  const getShortenURL = async (input: any) => {
+    const toolBoxHost = process.env.TOOLBOX ?? 'https://tool.10oz.tw';
+
+    await fetch(`${toolBoxHost}/api/v1/surl`, {
+      method: 'POST',
+      body: JSON.stringify({
+        url: input,
+      }),
+    })
+      .then((resp) => {
+        if (resp.status !== 200) {
+          throw Error('The "Shorten URL" request is not success');
+        }
+        return resp.json();
+      })
+      .then((result) => {
+        if (
+          result == null
+          || !isString(result.shorten)
+          || result.shorten === ''
+        ) {
+          throw Error('The "Shorten URL" not response as expected');
+        }
+
+        setShortURL(`${toolBoxHost}/${result.shorten}`);
+      });
+  };
+
+  // call Toolbox API to get short url
+  useEffect(() => {
+    getShortenURL(src.stdout);
+  }, [src.stdout]);
+
+  return (
+    <Grid
+      item
+      xs={12}
+      sm={12}
+      sx={boxStyles.grid}
+      zeroMinWidth
+      onClick={() => clickHook(shortURL)}
+    >
+      <Paper elevation={3} sx={boxStyles.paper}>
+        <h3 style={{ margin: 0 }}>{src.name}</h3>
+        <Typography sx={boxStyles.paperTypography}>{shortURL}</Typography>
+      </Paper>
+    </Grid>
+  );
+};
+
+export {
+  CodeBox, DefaultBox, NotingMatchBox, QRCodeBox, ShortenURLBox,
+};
