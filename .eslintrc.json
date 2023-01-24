@@ -4,11 +4,13 @@
     "es2021": true
   },
   "extends": [
-    "plugin:react/recommended",
     "airbnb",
     "airbnb-typescript",
-    "airbnb/hooks"
+    "airbnb/hooks",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended"
   ],
+  "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "project": ["tsconfig.json"],
     "ecmaFeatures": {
@@ -17,13 +19,23 @@
     "ecmaVersion": "latest",
     "sourceType": "module"
   },
-  "plugins": ["react"],
+  "plugins": ["react", "@typescript-eslint", "react-hooks", "simple-import-sort"],
   "rules": {
     "import/no-extraneous-dependencies": [
       "error",
       {
         "devDependencies": true
       }
-    ]
+    ],
+    "react/function-component-definition": [
+      2,
+      {
+        "namedComponents": "arrow-function",
+        "unnamedComponents": "arrow-function"
+      }
+    ],
+    "@typescript-eslint/no-use-before-define": "warn",
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error"
   }
 }
