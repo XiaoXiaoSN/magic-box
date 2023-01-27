@@ -22,13 +22,13 @@ const MagicBoxPage = () => {
 
   // style="height: 50px; padding-right: 10px"
   return (
-
     <Container maxWidth={containerMaxWidth}>
       <Grid container spacing={2} sx={{ marginTop: '30px', padding: '30px' }}>
 
         {/* Magic Box Input */}
         <Grid item xs={12} sm={12} md={6}>
           <TextField
+            id="magicInput"
             name="magicInput"
             multiline
             autoFocus

@@ -22,18 +22,27 @@ const BaseLayout = ({ children }: Props) => (
         backgroundColor: 'white',
         borderBottom: '1px solid #cdc9c3',
         height: '65px',
+        justifyContent: 'center',
       }}
     >
       <Toolbar>
+        {/* NOTE: I used a larger size logo
+              since lighthouse say Serves images with low resolution */}
         <img
-          src="/images/logo-50.png"
+          src="/images/logo-128.png"
           alt="icon"
-          style={{
-            height: '50px',
-            paddingRight: '10px',
-          }}
+          crossOrigin="use-credentials"
+          loading="lazy"
+          height="50px"
+          width="50px"
         />
-        <Typography variant="h6">
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 'bold',
+            marginLeft: '10px',
+          }}
+        >
           {MagicBoxTitle}
         </Typography>
       </Toolbar>
