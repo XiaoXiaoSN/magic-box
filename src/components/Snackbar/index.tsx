@@ -20,6 +20,7 @@ const CustomizedSnackbar = ({ notify, text } : Props) => {
       open={open}
       autoHideDuration={1500}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      onClose={() => setOpen(false)}
     >
       <Alert
         onClose={() => setOpen(false)}
