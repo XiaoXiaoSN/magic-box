@@ -12,6 +12,7 @@ export default {
     },
     plugins: [
       new BundleAnalyzerPlugin({
+        analyzerMode: 'static',
         openAnalyzer: false,
       }),
     ],
