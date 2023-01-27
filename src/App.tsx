@@ -1,10 +1,15 @@
 import BaseLayout from '@components/BaseLayout';
-import MagicBoxPage from '@pages/MagicBox';
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
+
+const MagicBoxPage = lazy(() => import('@pages/MagicBox'));
+
+const renderLoader = () => (<div className="loader" />);
 
 const App = () => (
   <BaseLayout>
-    <MagicBoxPage />
+    <Suspense fallback={renderLoader()}>
+      <MagicBoxPage />
+    </Suspense>
   </BaseLayout>
 );
 
