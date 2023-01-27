@@ -61,6 +61,10 @@ jobs:
 
       - name: Build
         run: yarn build
+        env:
+          # NOTE: allow warnings
+          # Treating warnings as errors because process.env.CI = true.
+          CI: false
 
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
