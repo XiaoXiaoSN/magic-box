@@ -1,4 +1,6 @@
 import * as path from 'path';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 
 export default {
   webpack: {
@@ -8,5 +10,10 @@ export default {
       '@modules': path.resolve(__dirname, 'src/modules'),
       '@pages': path.resolve(__dirname, 'src/pages'),
     },
+    plugins: [
+      new BundleAnalyzerPlugin({
+        openAnalyzer: false,
+      }),
+    ],
   },
 };
