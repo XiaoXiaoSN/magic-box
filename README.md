@@ -17,6 +17,14 @@ List defined Commands
 
 ## Development                    
 
+Recommend use Node.js version 18
+
+```bash
+yarn install
+yarn start
+```
+
+### Prepare deploy
 Prepare deployment (first time)
 
 ```bash                                
