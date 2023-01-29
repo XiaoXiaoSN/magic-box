@@ -12,8 +12,8 @@ const MagicBoxPage = () => {
   const [magicIn, setMagicIn] = useState('');
 
   useEffect(() => {
-    const timeOutID = setTimeout(() => setMagicIn(userInput), 500);
-    return () => { clearTimeout(timeOutID); };
+    const timeoutID = setTimeout(() => setMagicIn(userInput), 500);
+    return () => { clearTimeout(timeoutID); };
   }, [userInput]);
 
   // NOTE: material typed defined only support `xs`, `sm`...
@@ -49,7 +49,7 @@ const MagicBoxPage = () => {
           md={6}
           sx={{ background: '#f5f5f5', overflow: 'scroll', maxHeight: 'calc(100vh - 100px)' }}
         >
-          <MagicBox in={magicIn} />
+          <MagicBox input={magicIn} />
         </Grid>
 
       </Grid>

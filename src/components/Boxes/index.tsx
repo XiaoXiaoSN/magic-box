@@ -1,5 +1,5 @@
 import { isString } from '@functions/helper';
-import { BoxSourceProps } from '@modules/box';
+import { BoxProps } from '@modules/Box';
 import {
   Box, Grid, Paper, Typography,
 } from '@mui/material';
@@ -18,26 +18,28 @@ const NotingMatchBox = () => (
   </Grid>
 );
 
-const DefaultBox = ({ src, clickHook }: BoxSourceProps) => (
+const DefaultBox = ({ name, stdout, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => clickHook(src.stdout)}
+    onClick={() => onClick(stdout)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 style={{ margin: 0 }}>{src.name}</h3>
-      <Typography sx={boxStyles.paperTypography}>{src.stdout}</Typography>
+      <h3 style={{ margin: 0 }}>{ name }</h3>
+      <Typography sx={boxStyles.paperTypography}>{ stdout }</Typography>
     </Paper>
   </Grid>
 );
 
-const CodeBox = ({ src, clickHook }: BoxSourceProps) => {
+const CodeBox = ({
+  name, stdout, options, onClick,
+}: BoxProps) => {
   let language = 'yaml';
-  if (src.options && 'language' in src.options) {
-    language = src.options.language;
+  if (options && 'language' in options) {
+    language = options.language;
   }
 
   return (
@@ -47,52 +49,52 @@ const CodeBox = ({ src, clickHook }: BoxSourceProps) => {
       sm={12}
       sx={boxStyles.grid}
       zeroMinWidth
-      onClick={() => clickHook(src.stdout)}
+      onClick={() => onClick(stdout)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 style={{ margin: 0 }}>{src.name}</h3>
+        <h3 style={{ margin: 0 }}>{ name }</h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter
           language={language}
           sx={atelierCaveLight}
           customStyle={{ maxHeight: '250px' }}
         >
-          {src.stdout}
+          { stdout }
         </SyntaxHighlighter>
       </Paper>
     </Grid>
   );
 };
 
-const QRCodeBox = ({ src, clickHook }: BoxSourceProps) => (
+const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => clickHook(src.stdout)}
+    onClick={() => onClick(stdout)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 style={{ margin: 0 }}>{src.name}</h3>
+      <h3 style={{ margin: 0 }}>{ name }</h3>
       {/* https://github.com/zpao/qrcode.react */}
       <Box sx={boxStyles.alignCenter} id="qrcode-box">
-        <QRCode value={src.stdout} size={256} includeMargin />
+        <QRCode value={stdout} size={256} includeMargin />
       </Box>
     </Paper>
   </Grid>
 );
 
-const ShortenURLBox = ({ src, clickHook }: BoxSourceProps) => {
+const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
   const [shortURL, setShortURL] = useState('');
 
-  const getShortenURL = async (input: any) => {
+  const getShortenURL = async (inputURL: string) => {
     const toolBoxHost = process.env.TOOLBOX ?? 'https://tool.10oz.tw';
 
     await fetch(`${toolBoxHost}/api/v1/surl`, {
       method: 'POST',
       body: JSON.stringify({
-        url: input,
+        url: inputURL,
       }),
     })
       .then((resp) => {
@@ -116,8 +118,8 @@ const ShortenURLBox = ({ src, clickHook }: BoxSourceProps) => {
 
   // call Toolbox API to get short url
   useEffect(() => {
-    getShortenURL(src.stdout);
-  }, [src.stdout]);
+    getShortenURL(stdout);
+  }, [stdout]);
 
   return (
     <Grid
@@ -126,11 +128,11 @@ const ShortenURLBox = ({ src, clickHook }: BoxSourceProps) => {
       sm={12}
       sx={boxStyles.grid}
       zeroMinWidth
-      onClick={() => clickHook(shortURL)}
+      onClick={() => onClick(shortURL)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 style={{ margin: 0 }}>{src.name}</h3>
-        <Typography sx={boxStyles.paperTypography}>{shortURL}</Typography>
+        <h3 style={{ margin: 0 }}>{ name }</h3>
+        <Typography sx={boxStyles.paperTypography}>{ shortURL }</Typography>
       </Paper>
     </Grid>
   );
