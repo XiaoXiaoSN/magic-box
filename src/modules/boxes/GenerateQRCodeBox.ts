@@ -9,7 +9,7 @@ export const GenerateQRCodeBoxSource = {
     if (options === null) {
       return false;
     }
-    if (!isOptionKeys(options, 'surl', 'shorten')) {
+    if (!isOptionKeys(options, 'qr', 'qrcode')) {
       return false;
     }
 
