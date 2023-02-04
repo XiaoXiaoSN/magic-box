@@ -62,7 +62,7 @@ export const TimestampBoxSource = {
     }
     if (twDate.getTime() > 0) {
       resp.push(
-        new BoxBuilder('RFC 3339 (UTC+8)', date.toISOString())
+        new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString())
           .setPriority(PriorityRFC3339)
           .setComponent(DefaultBox)
           .build(),
