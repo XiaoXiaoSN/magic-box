@@ -3,7 +3,7 @@ export function isNumeric(num: any): boolean {
   if (typeof num === 'number') {
     return true;
   }
-  if (typeof num === 'string' && num.trim() !== '') {
+  if (typeof num === 'string' && num.trim() !== '' && /^[+-]?\d+(\.\d*)?$/.test(num)) {
     return !Number.isNaN(num)
     && !Number.isNaN(parseFloat(num));
   }
