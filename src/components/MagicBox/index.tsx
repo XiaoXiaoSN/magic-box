@@ -43,15 +43,26 @@ const MagicBox = ({ input: magicIn }: Props) => {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as Box[]);
 
-  const inputParser = (input: string): [string, BoxOptions] => {
-    const regex = /\n::([\w=]+)/gm;
-    const matches = Array.from(input.matchAll(regex), (m) => m[1]);
+  // This parses input text to extract the input and options.
+  //
+  // Example:
+  //   Hello World
+  //   ::option1
+  //   ::option2=
+  //   ::Option3=value
+  //
+  // Will be parsed to:
+  //   input: Hello World (string)
+  //   options: { option1: true, option2: true, option3: 'value' } (object)
+  const parseInput = (input: string): [string, BoxOptions] => {
+    const regex = /\n::(\w+)=?(.*)/gm;
+    const matches = Array.from(input.matchAll(regex), (match) => [match[1], match[2]]);
 
     const initOptions: BoxOptions = {};
     const options = matches
-      .reduce((opts, m) => {
+      .reduce((opts, [key, value]) => {
         const updatedOpts = opts;
-        updatedOpts[m.toLowerCase()] = true;
+        updatedOpts[key.toLowerCase()] = value || true;
         return updatedOpts;
       }, initOptions);
 
@@ -71,7 +82,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
       return;
     }
 
-    const [input, options] = inputParser(magicIn);
+    const [input, options] = parseInput(magicIn);
 
     const promises = defaultBoxSources.map((boxSource) => boxSource.generateBoxes(input, options));
     Promise.all(promises).then((resultBoxes) => {

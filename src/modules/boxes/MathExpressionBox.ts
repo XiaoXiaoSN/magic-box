@@ -19,17 +19,13 @@ export const MathExpressionBoxSource = {
     const regularInput = trim(input);
 
     try {
-      let answer = evaluate(regularInput)?.toString();
+      const answer = evaluate(regularInput)?.toString();
       if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
         return undefined;
       }
 
       if (answer === regularInput) {
         return undefined;
-      }
-
-      if (typeof answer === 'boolean') {
-        answer = answer.toString();
       }
 
       return { answer };
@@ -46,7 +42,7 @@ export const MathExpressionBoxSource = {
 
     const { answer } = match;
     return [
-      new BoxBuilder('Math Expressions', answer)
+      new BoxBuilder('Math Expression', answer)
         .setComponent(DefaultBox)
         .build(),
     ];

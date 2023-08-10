@@ -1,12 +1,22 @@
 import { DefaultBox } from '@components/Boxes';
 
-// eslint-disable-next-line
-export type BoxOptions = Record<string, any>;
+export type BoxOptions = Record<string, BoxOptionValues>;
+export type BoxOptionValues = string | boolean;
 
-export const isOptionKeys = (options: BoxOptions, ...keys: string[]) => {
+// Checks whether any of the given keys are exist in the BoxOptions
+export const hasOptionKeys = (options: BoxOptions, ...keys: string[]): boolean => {
   const regularKeys = keys.map((k) => k.toLowerCase());
 
-  return regularKeys.some((key) => options[key] === true);
+  return regularKeys.some((key) => options[key] !== undefined);
+};
+
+// Extracts the value of the first key that is exist in the BoxOptions
+export const extractOptionKeys = (
+  options: BoxOptions,
+  ...keys: string[]
+): BoxOptionValues | null => {
+  const foundKey = keys.find((key) => options[key.toLowerCase()] !== undefined);
+  return foundKey ? options[foundKey.toLowerCase()] : null;
 };
 
 export type BoxOnClickFn = (out: string) => void;

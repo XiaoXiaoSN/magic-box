@@ -12,6 +12,14 @@ export function isNumeric(num: any): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function toNumeric(num: any): number | null {
+  if (isNumeric(num)) {
+    return parseFloat(num);
+  }
+  return null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isString(variable: any) {
   return typeof variable === 'string' || variable instanceof String;
 }
@@ -72,6 +80,7 @@ export function isJSON(str: string): boolean {
 
 export default {
   isNumeric,
+  toNumeric,
   isString,
   isArray,
   isObject,

@@ -1,7 +1,7 @@
 import { QRCodeBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import {
-  Box, BoxBuilder, BoxOptions, isOptionKeys,
+  Box, BoxBuilder, BoxOptions, hasOptionKeys,
 } from '@modules/Box';
 
 export const GenerateQRCodeBoxSource = {
@@ -9,7 +9,7 @@ export const GenerateQRCodeBoxSource = {
     if (options === null) {
       return false;
     }
-    if (!isOptionKeys(options, 'qr', 'qrcode')) {
+    if (!hasOptionKeys(options, 'qr', 'qrcode')) {
       return false;
     }
 

@@ -1,7 +1,7 @@
 import { DefaultBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import {
-  Box, BoxBuilder, BoxOptions, isOptionKeys,
+  Box, BoxBuilder, BoxOptions, hasOptionKeys,
 } from '@modules/Box';
 
 interface Match {
@@ -42,7 +42,7 @@ export const ShortenURLBoxSource = {
     if (options === null) {
       return undefined;
     }
-    if (!isOptionKeys(options, 'surl', 'shorten')) {
+    if (!hasOptionKeys(options, 'surl', 'shorten')) {
       return undefined;
     }
 
