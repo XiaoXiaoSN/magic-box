@@ -3,13 +3,20 @@ import { isString, toNumeric, trim } from '@functions/helper';
 import {
   Box, BoxBuilder, BoxOptions, extractOptionKeys,
 } from '@modules/Box';
-import cronstrue from 'cronstrue';
+import cronstrue from 'cronstrue/i18n';
 
 const PriorityCronExpression = 10;
 
 interface Match {
   answer: string,
 }
+
+const localeMap = new Map([
+  ['zh', 'zh_TW'],
+  ['tw', 'zh_TW'],
+  ['zh_tw', 'zh_TW'],
+  ['jp', 'ja'],
+]);
 
 export const CronExpressionBoxSource = {
   checkMatch(input: string, options: BoxOptions | null): Match | undefined {
@@ -23,6 +30,14 @@ export const CronExpressionBoxSource = {
     const regularInput = trim(input);
 
     try {
+      let locale = 'en';
+      if (options !== null) {
+        const lang = extractOptionKeys(options, 'l', 'lang', 'locale');
+        if (lang !== null && typeof lang === 'string') {
+          locale = localeMap.get(lang.toLowerCase()) ?? lang;
+        }
+      }
+
       let tzOffset = 0;
       if (options !== null) {
         const tzOption = extractOptionKeys(options, 'tz', 'timezone', 'tzOffset');
@@ -32,7 +47,10 @@ export const CronExpressionBoxSource = {
         }
       }
 
-      const answer = cronstrue.toString(regularInput, { use24HourTimeFormat: true, tzOffset });
+      const answer = cronstrue.toString(
+        regularInput,
+        { use24HourTimeFormat: true, locale, tzOffset },
+      );
       if (answer === regularInput) {
         return undefined;
       }
