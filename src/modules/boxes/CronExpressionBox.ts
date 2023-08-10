@@ -1,13 +1,15 @@
 import { DefaultBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
-import { evaluate } from 'mathjs';
+import cronstrue from 'cronstrue';
+
+const PriorityCronExpression = 10;
 
 interface Match {
   answer: string,
 }
 
-export const MathExpressionBoxSource = {
+export const CronExpressionBoxSource = {
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;
@@ -19,17 +21,9 @@ export const MathExpressionBoxSource = {
     const regularInput = trim(input);
 
     try {
-      let answer = evaluate(regularInput)?.toString();
-      if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
-        return undefined;
-      }
-
+      const answer = cronstrue.toString(regularInput);
       if (answer === regularInput) {
         return undefined;
-      }
-
-      if (typeof answer === 'boolean') {
-        answer = answer.toString();
       }
 
       return { answer };
@@ -46,11 +40,12 @@ export const MathExpressionBoxSource = {
 
     const { answer } = match;
     return [
-      new BoxBuilder('Math Expressions', answer)
+      new BoxBuilder('Cron Expressions', answer)
+        .setPriority(PriorityCronExpression)
         .setComponent(DefaultBox)
         .build(),
     ];
   },
 };
 
-export default MathExpressionBoxSource;
+export default CronExpressionBoxSource;

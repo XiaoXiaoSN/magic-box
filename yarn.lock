@@ -4225,6 +4225,11 @@ create-require@^1.1.0:
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
+cronstrue@^2.29.0:
+  version "2.29.0"
+  resolved "https://registry.yarnpkg.com/cronstrue/-/cronstrue-2.29.0.tgz#3ca54214cdff21d8b5f3c9836b0448eb45bf4c16"
+  integrity sha512-R9KiYuxyofnyMzSBki/X9QpkUJh7bfwKSqxzzj3UYrQ7Dw9c+QPqjWMNlW4DX3J7YdDqb/ANlk2+McxKuPZizA==
+
 cross-spawn@^7.0.2, cross-spawn@^7.0.3:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-7.0.3.tgz#f73a85b9d5d41d045551c177e2882d4ac85728a6"
@@ -7420,12 +7425,12 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mathjs@^11.5.0:
-  version "11.8.0"
-  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-11.8.0.tgz#b02e66461ec068fadf1e90c221121704dc14d8f5"
-  integrity sha512-I7r8HCoqUGyEiHQdeOCF2m2k9N+tcOHO3cZQ3tyJkMMBQMFqMR7dMQEboBMJAiFW2Um3PEItGPwcOc4P6KRqwg==
+mathjs@^11.9.1:
+  version "11.9.1"
+  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-11.9.1.tgz#b3bb1f710f63b2f0e504df3abaf6b38bbf92f653"
+  integrity sha512-VdB9ELZ6Dwda13j5d1eCBETmPO8m9qIJETUdfZmTA9cPnXUiIk7UuoAmvxFqtfAe32XYuRugAec2Ndv0/RfRhg==
   dependencies:
-    "@babel/runtime" "^7.21.0"
+    "@babel/runtime" "^7.22.6"
     complex.js "^2.1.1"
     decimal.js "^10.4.3"
     escape-latex "^1.2.0"

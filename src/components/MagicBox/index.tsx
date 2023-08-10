@@ -6,6 +6,7 @@ import { Box, BoxOptions } from '@modules/Box';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
+  CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
   MathExpressionBoxSource,
@@ -22,6 +23,7 @@ import React, { useEffect, useState } from 'react';
 const defaultBoxSources: BoxSource[] = [
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
+  CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
   MathExpressionBoxSource,

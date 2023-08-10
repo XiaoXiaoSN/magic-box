@@ -1,5 +1,6 @@
 import { DefaultBox } from '@components/Boxes';
 
+// eslint-disable-next-line
 export type BoxOptions = Record<string, any>;
 
 export const isOptionKeys = (options: BoxOptions, ...keys: string[]) => {
