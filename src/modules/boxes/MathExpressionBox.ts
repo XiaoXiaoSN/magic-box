@@ -24,6 +24,10 @@ export const MathExpressionBoxSource = {
         return undefined;
       }
 
+      if (answer === regularInput) {
+        return undefined;
+      }
+
       if (typeof answer === 'boolean') {
         answer = answer.toString();
       }
