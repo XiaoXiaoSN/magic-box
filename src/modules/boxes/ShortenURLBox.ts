@@ -38,7 +38,7 @@ export const ShortenURLBoxSource = {
       });
   },
 
-  async checkMatch(input: string, options: BoxOptions | null): Promise<Match | void> {
+  async checkMatch(input: string, options: BoxOptions): Promise<Match | void> {
     if (options === null) {
       return undefined;
     }
@@ -63,7 +63,7 @@ export const ShortenURLBoxSource = {
     return undefined;
   },
 
-  async generateBoxes(input: string, options: BoxOptions | null): Promise<Box[]> {
+  async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];

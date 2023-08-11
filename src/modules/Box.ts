@@ -1,10 +1,14 @@
 import { DefaultBox } from '@components/Boxes';
 
-export type BoxOptions = Record<string, BoxOptionValues>;
+export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
 
 // Checks whether any of the given keys are exist in the BoxOptions
 export const hasOptionKeys = (options: BoxOptions, ...keys: string[]): boolean => {
+  if (options === null) {
+    return false;
+  }
+
   const regularKeys = keys.map((k) => k.toLowerCase());
 
   return regularKeys.some((key) => options[key] !== undefined);
@@ -15,6 +19,10 @@ export const extractOptionKeys = (
   options: BoxOptions,
   ...keys: string[]
 ): BoxOptionValues | null => {
+  if (options === null) {
+    return false;
+  }
+
   const foundKey = keys.find((key) => options[key.toLowerCase()] !== undefined);
   return foundKey ? options[foundKey.toLowerCase()] : null;
 };

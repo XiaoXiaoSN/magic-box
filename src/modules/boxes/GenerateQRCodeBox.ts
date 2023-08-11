@@ -5,7 +5,7 @@ import {
 } from '@modules/Box';
 
 export const GenerateQRCodeBoxSource = {
-  checkMatch(input: string, options: BoxOptions | null): boolean {
+  checkMatch(input: string, options: BoxOptions): boolean {
     if (options === null) {
       return false;
     }
@@ -23,7 +23,7 @@ export const GenerateQRCodeBoxSource = {
     return true;
   },
 
-  async generateBoxes(input: string, options: BoxOptions | null): Promise<Box[]> {
+  async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     const match = this.checkMatch(input, options);
     if (!match) {
       return [];

@@ -11,7 +11,7 @@ interface Match {
 }
 
 export const Base64DecodeBoxSource = {
-  checkMatch(input: string, options: BoxOptions | null): Match | undefined {
+  checkMatch(input: string, options: BoxOptions): Match | undefined {
     if (!isString(input)) {
       return undefined;
     }
@@ -45,7 +45,7 @@ export const Base64DecodeBoxSource = {
     return undefined;
   },
 
-  async generateBoxes(input: string, options: BoxOptions | null): Promise<Box[]> {
+  async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     const match = this.checkMatch(input, options);
     if (!match) {
       return [];
