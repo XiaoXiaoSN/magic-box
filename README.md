@@ -17,7 +17,7 @@ List defined Commands
 
 ## Development                    
 
-Recommend use Node.js version 18
+Recommend use Node.js version 20
 
 ```bash
 yarn install
