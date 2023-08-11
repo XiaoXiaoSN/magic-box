@@ -1,7 +1,7 @@
 import { DefaultBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import {
-  Box, BoxBuilder, BoxOptions, hasOptionKeys,
+  Box, BoxBuilder, BoxOptions, extractOptionKeys,
 } from '@modules/Box';
 
 interface Match {
@@ -9,7 +9,7 @@ interface Match {
 }
 
 export const ShortenURLBoxSource = {
-  async getShortenURL(inputURL: string): Promise<string> {
+  async getShortenURL(inputURL: string, shorten: string | null): Promise<string> {
     const toolBoxHost = process.env.TOOLBOX ?? 'https://tool.10oz.tw';
     const shortenURLHost = process.env.SHORTEN_URL ?? 'https://10oz.tw';
 
@@ -17,6 +17,7 @@ export const ShortenURLBoxSource = {
       method: 'POST',
       body: JSON.stringify({
         url: inputURL,
+        shorten,
       }),
     })
       .then((resp) => {
@@ -42,8 +43,14 @@ export const ShortenURLBoxSource = {
     if (options === null) {
       return undefined;
     }
-    if (!hasOptionKeys(options, 'surl', 'shorten')) {
+
+    let shortenOption = extractOptionKeys(options, 'surl', 'shorten');
+    if (shortenOption === null) {
       return undefined;
+    }
+    // contains the option key, but the value is empty
+    if (typeof shortenOption === 'boolean') {
+      shortenOption = null;
     }
 
     if (!isString(input)) {
@@ -56,7 +63,7 @@ export const ShortenURLBoxSource = {
     const regularInput = trim(input);
 
     try {
-      const shortenURL = await this.getShortenURL(regularInput);
+      const shortenURL = await this.getShortenURL(regularInput, shortenOption);
       return { shortenURL };
     } catch { /* */ }
 

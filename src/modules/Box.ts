@@ -20,7 +20,7 @@ export const extractOptionKeys = (
   ...keys: string[]
 ): BoxOptionValues | null => {
   if (options === null) {
-    return false;
+    return null;
   }
 
   const foundKey = keys.find((key) => options[key.toLowerCase()] !== undefined);
