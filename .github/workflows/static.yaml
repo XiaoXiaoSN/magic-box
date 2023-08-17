@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 
 env:
+  NODE_VERSION: 20
   PUBLIC_URL: https://magic-box.10oz.tw/
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
