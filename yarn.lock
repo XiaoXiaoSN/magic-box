@@ -4240,9 +4240,9 @@ create-require@^1.1.0:
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
 cronstrue@^2.29.0:
-  version "2.29.0"
-  resolved "https://registry.yarnpkg.com/cronstrue/-/cronstrue-2.29.0.tgz#3ca54214cdff21d8b5f3c9836b0448eb45bf4c16"
-  integrity sha512-R9KiYuxyofnyMzSBki/X9QpkUJh7bfwKSqxzzj3UYrQ7Dw9c+QPqjWMNlW4DX3J7YdDqb/ANlk2+McxKuPZizA==
+  version "2.32.0"
+  resolved "https://registry.yarnpkg.com/cronstrue/-/cronstrue-2.32.0.tgz#cb705bdd9ba76d5fd64be4e1df1f2eee7165dad9"
+  integrity sha512-dmNflOCNJL6lZEj0dp2YhGIPY83VTjFue6d9feFhnNtrER6mAjBrUvSgK95j3IB/xNGpLjaZDIDG6ACKTZr9Yw==
 
 cross-spawn@^7.0.2, cross-spawn@^7.0.3:
   version "7.0.3"
