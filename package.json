@@ -32,7 +32,8 @@
     "workbox-range-requests": "^6.5.4",
     "workbox-routing": "^7.0.0",
     "workbox-strategies": "^6.5.4",
-    "workbox-streams": "^7.0.0"
+    "workbox-streams": "^7.0.0",
+    "base64-box": "file:wasmModules/base64-box/pkg"
   },
   "devDependencies": {
     "@craco/craco": "^7.0.0",
@@ -57,7 +58,9 @@
     "test": "craco test",
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --fix --ext .js,.jsx,.ts,.tsx"
+    "lint:fix": "eslint src --fix --ext .js,.jsx,.ts,.tsx",
+    "build:wasm": "cd wasmModules/base64-box && wasm-pack build --target web --out-dir pkg",
+    "reload": "yarn install --check-files"
   },
   "eslintConfig": {
     "extends": [

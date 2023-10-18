@@ -1,9 +1,18 @@
 import { CodeBox } from '@components/Boxes';
-import Base64 from '@functions/base64';
 import {
   isBase64, isObject, isString, trim,
 } from '@functions/helper';
 import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
+import init, * as Base64 from 'base64-box';
+
+let isInitialized = false;
+
+async function initBas64Box() {
+  if (!isInitialized) {
+    await init();
+    isInitialized = true;
+  }
+}
 
 interface Match {
   decodedText: string,
@@ -11,7 +20,7 @@ interface Match {
 }
 
 export const Base64DecodeBoxSource = {
-  checkMatch(input: string, options: BoxOptions): Match | undefined {
+  async checkMatch(input: string, options: BoxOptions): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -22,6 +31,7 @@ export const Base64DecodeBoxSource = {
     }
 
     try {
+      await initBas64Box();
       const decodedText = Base64.decode(regularInput);
 
       const languageOpts: BoxOptions = {};
@@ -46,7 +56,7 @@ export const Base64DecodeBoxSource = {
   },
 
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
-    const match = this.checkMatch(input, options);
+    const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
     }
@@ -66,7 +76,7 @@ interface EncodeMatch {
 }
 
 export const Base64EncodeBoxSource = {
-  checkMatch(input: string): EncodeMatch | undefined {
+  async checkMatch(input: string): Promise<EncodeMatch | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -74,13 +84,14 @@ export const Base64EncodeBoxSource = {
       return undefined;
     }
 
+    await initBas64Box();
     const encodedText = Base64.encode(input);
 
     return { encodedText };
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const match = this.checkMatch(input);
+    const match = await this.checkMatch(input);
     if (!match) {
       return [];
     }

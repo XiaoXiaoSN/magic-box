@@ -29,6 +29,7 @@
   },
   "include": [
     "craco.config.ts",
-    "src"
+    "src",
+    "wasmModules"
   ]
 }
