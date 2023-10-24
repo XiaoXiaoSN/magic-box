@@ -20,6 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # build WASM modules
+      - name: Insatll wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build WASM
+        run: |
+          find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -35,6 +43,13 @@ jobs:
       - name: Run ESLint
         run: yarn lint
 
+      # Upload built wasm modules
+      - uses: actions/upload-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          name: wasm-modules
+          path: wasmModules/*/pkg
+
   build-and-deploy:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
@@ -42,6 +57,13 @@ jobs:
       - lint
     steps:
       - uses: actions/checkout@v4
+
+      # Download built wasm modules
+      - uses: actions/download-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          name: wasm-modules
+          path: wasmModules/*/pkg
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
