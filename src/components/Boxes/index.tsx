@@ -38,7 +38,7 @@ const CodeBox = ({
   name, stdout, options, onClick,
 }: BoxProps) => {
   let language = 'yaml';
-  if (options && 'language' in options) {
+  if (options && 'language' in options && typeof options.language === 'string') {
     language = options.language;
   }
 

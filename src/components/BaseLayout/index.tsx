@@ -1,8 +1,7 @@
 import {
   AppBar, Toolbar, Typography,
 } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
-import { ThemeProvider } from '@mui/styles';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
 const MagicBoxTitle = 'Magic Box';
