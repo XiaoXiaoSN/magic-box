@@ -48,7 +48,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           name: wasm-modules
-          path: wasmModules/**/pkg
+          path: wasmModules/*/pkg
 
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -63,9 +63,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           name: wasm-modules
-
-      - name: List wasm modules
-        run: find wasmModules/*/pkg
+          path: wasmModules
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
