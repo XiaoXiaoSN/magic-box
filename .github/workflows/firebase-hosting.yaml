@@ -65,6 +65,9 @@ jobs:
           name: wasm-modules
           path: wasmModules/*/pkg
 
+      - name: List wasm modules
+        run: find wasmModules/*/pkg
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
