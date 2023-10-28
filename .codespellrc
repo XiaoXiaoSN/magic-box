@@ -1,0 +1,4 @@
+[codespell]
+skip = .git,.vscode,node_modules,build,target,yarn.lock
+check-filenames =
+check-hidden =

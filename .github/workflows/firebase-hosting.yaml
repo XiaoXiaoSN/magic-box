@@ -15,7 +15,24 @@ env:
   GCP_PROJECT_ID: magic-box-b8bdc
 
 jobs:
-  lint:
+  codespell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get git commit message
+        if: github.event_name == 'pull_request'
+        run: |
+          git log --oneline origin/$GITHUB_BASE_REF..HEAD | tee commit-message
+
+      - uses: codespell-project/codespell-problem-matcher@v1
+
+      - name: Codespell
+        uses: codespell-project/actions-codespell@master
+
+  eslint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +71,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     needs:
-      - lint
+      - codespell
+      - eslint
     steps:
       - uses: actions/checkout@v4
 
