@@ -6,6 +6,7 @@ const PriorityRFC3339 = 9;
 
 interface Match {
   timestamp: number,
+  date: Date,
   twDate: Date,
 }
 
@@ -19,9 +20,10 @@ export const NowBoxSource = {
     if (regularInput === 'now') {
       const timestamp = Date.now();
       const tzOffset = (8 * 60 * 60) * 1000;
+      const date = new Date(timestamp);
       const twDate = new Date(timestamp + tzOffset);
 
-      return { timestamp, twDate };
+      return { timestamp, date, twDate };
     }
 
     return undefined;
@@ -33,8 +35,12 @@ export const NowBoxSource = {
       return [];
     }
 
-    const { timestamp, twDate } = match;
+    const { timestamp, date, twDate } = match;
     return [
+      new BoxBuilder('RFC 3339', date.toISOString())
+        .setPriority(PriorityRFC3339)
+        .setComponent(DefaultBox)
+        .build(),
       new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
         .setPriority(PriorityRFC3339)
         .setComponent(DefaultBox)
