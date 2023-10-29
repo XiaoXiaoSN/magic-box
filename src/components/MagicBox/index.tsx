@@ -36,7 +36,7 @@ const defaultBoxSources: BoxSource[] = [
 ];
 
 interface Props {
-  input: string,
+  input: string;
 }
 
 const MagicBox = ({ input: magicIn }: Props) => {
@@ -56,15 +56,17 @@ const MagicBox = ({ input: magicIn }: Props) => {
   //   options: { option1: true, option2: true, option3: 'value' } (object)
   const parseInput = (input: string): [string, BoxOptions] => {
     const regex = /\n::(\w+)=?(.*)/gm;
-    const matches = Array.from(input.matchAll(regex), (match) => [match[1], match[2]]);
+    const matches = Array.from(input.matchAll(regex), (match) => [
+      match[1],
+      match[2],
+    ]);
 
     const initOptions: BoxOptions = {};
-    const options = matches
-      .reduce((opts, [key, value]) => {
-        const updatedOpts = opts;
-        updatedOpts[key.toLowerCase()] = value || true;
-        return updatedOpts;
-      }, initOptions);
+    const options = matches.reduce((opts, [key, value]) => {
+      const updatedOpts = opts;
+      updatedOpts[key.toLowerCase()] = value || true;
+      return updatedOpts;
+    }, initOptions);
 
     const replacedInput = input.replaceAll(regex, '');
 
@@ -109,31 +111,31 @@ const MagicBox = ({ input: magicIn }: Props) => {
 
   return (
     <>
-      {
-        boxes.length > 0
-          ? boxes.map((src, idx) => {
-            const {
-              name, stdout, options, onClick, priority,
-            } = src.props;
+      {boxes.length > 0 ? (
+        boxes.map((src, idx) => {
+          const {
+            name, stdout, options, onClick, priority,
+          } = src.props;
 
-            const onClickWithCopy = (output: string) => {
-              copyText(output);
-              onClick(output);
-            };
+          const onClickWithCopy = (output: string) => {
+            copyText(output);
+            onClick(output);
+          };
 
-            return (
-              <src.component
-                name={name}
-                stdout={stdout}
-                options={options}
-                onClick={onClickWithCopy}
-                priority={priority}
-                key={src?.props.name || idx}
-              />
-            );
-          })
-          : <NotingMatchBox />
-      }
+          return (
+            <src.component
+              name={name}
+              stdout={stdout}
+              options={options}
+              onClick={onClickWithCopy}
+              priority={priority}
+              key={src?.props.name || idx}
+            />
+          );
+        })
+      ) : (
+        <NotingMatchBox />
+      )}
       <CustomizedSnackbar notify={notify} />
     </>
   );
