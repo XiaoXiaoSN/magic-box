@@ -60,7 +60,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --fix --ext .js,.jsx,.ts,.tsx",
-    "build:wasm": "cd wasmModules/base64-box && wasm-pack build --target web --out-dir pkg",
+    "build:wasm": "find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +",
     "reload": "yarn install --check-files"
   },
   "eslintConfig": {
