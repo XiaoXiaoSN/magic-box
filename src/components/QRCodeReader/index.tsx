@@ -9,12 +9,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { OnResultFunction, QrReader } from 'react-qr-reader';
 
 interface CloseButtonProps {
-  setShowRender: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CloseButton = ({ setShowRender }: CloseButtonProps) => (
+const CloseButton = ({ setShowReader }: CloseButtonProps) => (
   <CloseIcon
-    onClick={() => setShowRender(false)}
+    onClick={() => setShowReader(false)}
     sx={{
       position: 'absolute',
       top: 0,
@@ -29,12 +29,12 @@ const CloseButton = ({ setShowRender }: CloseButtonProps) => (
 
 interface QRCodeReaderWrapperProps {
   setResult: React.Dispatch<React.SetStateAction<string>>;
-  setShowRender: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const QRCodeReaderWrapper = ({
   setResult,
-  setShowRender,
+  setShowReader,
 }: QRCodeReaderWrapperProps) => {
   const lastResult = useRef<string>();
 
@@ -66,7 +66,7 @@ const QRCodeReaderWrapper = ({
         background: '#646464',
         border: '.2rem solid #c7c7c7',
       }}
-      ViewFinder={() => CloseButton({ setShowRender })}
+      ViewFinder={() => CloseButton({ setShowReader })}
     />
   );
 };
@@ -99,6 +99,7 @@ const QRCodeReader = ({
     <>
       {showReader && (
         <Box
+          onClick={() => setShowReader(false)}
           sx={{
             position: 'fixed',
             top: '0',
@@ -115,7 +116,7 @@ const QRCodeReader = ({
         >
           <QRCodeReaderWrapper
             setResult={setResult}
-            setShowRender={setShowReader}
+            setShowReader={setShowReader}
           />
         </Box>
       )}
