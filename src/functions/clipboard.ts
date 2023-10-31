@@ -1,6 +1,6 @@
-function fallbackCopyTextToClipboard(text) {
+function fallbackCopyTextToClipboard(content: string) {
   const textArea = document.createElement('textarea');
-  textArea.value = text;
+  textArea.value = content;
 
   // Avoid scrolling to bottom
   textArea.style.top = '0';
@@ -23,7 +23,7 @@ function fallbackCopyTextToClipboard(text) {
   document.body.removeChild(textArea);
 }
 
-function copyTextToClipboard(content) {
+function copyTextToClipboard(content: string) {
   if (!navigator.clipboard) {
     fallbackCopyTextToClipboard(content);
     return;
