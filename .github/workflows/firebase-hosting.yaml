@@ -46,7 +46,7 @@ jobs:
           find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
@@ -84,7 +84,7 @@ jobs:
           path: wasmModules
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
