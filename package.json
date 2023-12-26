@@ -13,7 +13,7 @@
     "base64-box": "file:wasmModules/base64-box/pkg",
     "cronstrue": "^2.41.0",
     "firebase": "^10.5.0",
-    "jwt-decode": "^3.1.2",
+    "jwt-decode": "^4.0.0",
     "mathjs": "^12.1.0",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
