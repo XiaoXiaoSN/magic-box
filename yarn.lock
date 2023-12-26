@@ -7625,12 +7625,12 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-mathjs@^11.11.2:
-  version "11.11.2"
-  resolved "https://registry.npmjs.org/mathjs/-/mathjs-11.11.2.tgz"
-  integrity sha512-SL4/0Fxm9X4sgovUpJTeyVeZ2Ifnk4tzLPTYWDyR3AIx9SabnXYqtCkyJtmoF3vZrDPKGkLvrhbIL4YN2YbXLQ==
+mathjs@^12.1.0:
+  version "12.1.0"
+  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-12.1.0.tgz#0b8af34aba7acb4ed9555ac5ec8703211c2fae76"
+  integrity sha512-x5wUkWo3CfXMl4mf/jHsbVNuMcUwN2m4qbj+tR/jYr9fdiIrlsexQbKYav8Uwfe+E5he30CyVaABNLmAlTFO3w==
   dependencies:
-    "@babel/runtime" "^7.23.1"
+    "@babel/runtime" "^7.23.2"
     complex.js "^2.1.1"
     decimal.js "^10.4.3"
     escape-latex "^1.2.0"
