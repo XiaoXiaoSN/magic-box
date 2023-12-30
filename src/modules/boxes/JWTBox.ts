@@ -1,7 +1,7 @@
 import { CodeBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 interface Match {
   jwtStr: string,
@@ -15,8 +15,8 @@ export const JWTBoxSource = {
     const regularInput = trim(input);
 
     try {
-      const jwtHeader = jwt_decode(regularInput, { header: true });
-      const jwtBody = jwt_decode(regularInput);
+      const jwtHeader = jwtDecode(regularInput, { header: true });
+      const jwtBody = jwtDecode(regularInput);
       const jwtStr = JSON.stringify({ header: jwtHeader, body: jwtBody }, null, '    ');
 
       return { jwtStr };
