@@ -5,6 +5,9 @@ import {
 import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
 import init, * as Base64 from 'base64-box';
 
+// Base64 Encode can match almost all cases, so we need to set a lower priority
+const PriorityBase64Encode = 0;
+
 let isInitialized = false;
 
 async function initBas64Box() {
@@ -98,7 +101,9 @@ export const Base64EncodeBoxSource = {
 
     const { encodedText } = match;
     return [
-      new BoxBuilder('Base64 encode', encodedText).build(),
+      new BoxBuilder('Base64 encode', encodedText)
+        .setPriority(PriorityBase64Encode)
+        .build(),
     ];
   },
 };

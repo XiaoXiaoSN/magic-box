@@ -4,6 +4,8 @@ import {
   Box, BoxBuilder, BoxOptions, hasOptionKeys,
 } from '@modules/Box';
 
+const PriorityGenerateQRCode = 10;
+
 export const GenerateQRCodeBoxSource = {
   checkMatch(input: string, options: BoxOptions): boolean {
     if (options === null) {
@@ -32,6 +34,7 @@ export const GenerateQRCodeBoxSource = {
     return [
       new BoxBuilder('QRCode', input)
         .setComponent(QRCodeBox)
+        .setPriority(PriorityGenerateQRCode)
         .build(),
     ];
   },

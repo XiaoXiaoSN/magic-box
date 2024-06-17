@@ -4,6 +4,8 @@ import {
   Box, BoxBuilder, BoxOptions, extractOptionKeys,
 } from '@modules/Box';
 
+const PriorityShortenURL = 10;
+
 interface Match {
   shortenURL: string,
 }
@@ -80,6 +82,7 @@ export const ShortenURLBoxSource = {
     return [
       new BoxBuilder('Shorten URL', shortenURL)
         .setComponent(DefaultBox)
+        .setPriority(PriorityShortenURL)
         .build(),
     ];
   },
