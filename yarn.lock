@@ -11101,12 +11101,19 @@ workbox-routing@6.6.1:
   dependencies:
     workbox-core "6.6.1"
 
-workbox-routing@7.0.0, workbox-routing@^7.0.0:
+workbox-routing@7.0.0:
   version "7.0.0"
   resolved "https://registry.npmjs.org/workbox-routing/-/workbox-routing-7.0.0.tgz"
   integrity sha512-8YxLr3xvqidnbVeGyRGkaV4YdlKkn5qZ1LfEePW3dq+ydE73hUUJJuLmGEykW3fMX8x8mNdL0XrWgotcuZjIvA==
   dependencies:
     workbox-core "7.0.0"
+
+workbox-routing@7.3.0, workbox-routing@^7.0.0:
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/workbox-routing/-/workbox-routing-7.3.0.tgz#fc86296bc1155c112ee2c16b3180853586c30208"
+  integrity sha512-ZUlysUVn5ZUzMOmQN3bqu+gK98vNfgX/gSTZ127izJg/pMMy4LryAthnYtjuqcjkN4HEAx1mdgxNiKJMZQM76A==
+  dependencies:
+    workbox-core "7.3.0"
 
 workbox-strategies@6.6.1:
   version "6.6.1"
@@ -11131,12 +11138,12 @@ workbox-streams@6.6.1:
     workbox-routing "6.6.1"
 
 workbox-streams@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.npmjs.org/workbox-streams/-/workbox-streams-7.0.0.tgz"
-  integrity sha512-moVsh+5to//l6IERWceYKGiftc+prNnqOp2sgALJJFbnNVpTXzKISlTIsrWY+ogMqt+x1oMazIdHj25kBSq/HQ==
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/workbox-streams/-/workbox-streams-7.3.0.tgz#a4c0ae51b66121a2aa6f89229e237aca6dc27eb5"
+  integrity sha512-SZnXucyg8x2Y61VGtDjKPO5EgPUG5NDn/v86WYHX+9ZqvAsGOytP0Jxp1bl663YUuMoXSAtsGLL+byHzEuMRpw==
   dependencies:
-    workbox-core "7.0.0"
-    workbox-routing "7.0.0"
+    workbox-core "7.3.0"
+    workbox-routing "7.3.0"
 
 workbox-sw@6.6.1:
   version "6.6.1"
