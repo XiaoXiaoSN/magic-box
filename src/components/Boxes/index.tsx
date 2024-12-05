@@ -3,7 +3,7 @@ import { BoxProps } from '@modules/Box';
 import {
   Box, Grid, Paper, Typography,
 } from '@mui/material';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import React, { useEffect, useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -79,7 +79,7 @@ const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
       <h3 style={{ margin: 0 }}>{ name }</h3>
       {/* https://github.com/zpao/qrcode.react */}
       <Box sx={boxStyles.alignCenter} id="qrcode-box">
-        <QRCode value={stdout} size={256} includeMargin />
+        <QRCodeCanvas value={stdout} size={256} includeMargin />
       </Box>
     </Paper>
   </Grid>
