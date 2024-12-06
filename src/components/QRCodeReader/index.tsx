@@ -14,6 +14,7 @@ interface CloseButtonProps {
 
 const CloseButton = ({ setShowReader }: CloseButtonProps) => (
   <CloseIcon
+    data-testid="qr-reader-close-button"
     onClick={() => setShowReader(false)}
     sx={{
       position: 'absolute',
@@ -99,6 +100,7 @@ const QRCodeReader = ({
     <>
       {showReader && (
         <Box
+          data-testid="qr-reader-modal"
           onClick={() => setShowReader(false)}
           sx={{
             position: 'fixed',
@@ -114,13 +116,16 @@ const QRCodeReader = ({
             ...sxReader,
           }}
         >
-          <QRCodeReaderWrapper
-            setResult={setResult}
-            setShowReader={setShowReader}
-          />
+          <Box data-testid="qr-reader-container">
+            <QRCodeReaderWrapper
+              setResult={setResult}
+              setShowReader={setShowReader}
+            />
+          </Box>
         </Box>
       )}
       <QrCodeScannerIcon
+        data-testid="qr-reader-open-button"
         sx={sxIcon}
         onClick={() => {
           setShowReader(true);
