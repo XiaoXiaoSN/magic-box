@@ -3,6 +3,8 @@ import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 import { jwtDecode } from 'jwt-decode';
 
+const PriorityJWT = 10;
+
 interface Match {
   jwtStr: string,
 }
@@ -36,6 +38,7 @@ export const JWTBoxSource = {
       new BoxBuilder('JWT Decode', jwtStr)
         .setOptions({ language: 'json' })
         .setComponent(CodeBox)
+        .setPriority(PriorityJWT)
         .build(),
     ];
   },

@@ -2,6 +2,8 @@ import { DefaultBox } from '@components/Boxes';
 import { isRFC3339, isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
+const PriorityTimeFormat = 10;
+
 interface Match {
   timestamp: number,
 }
@@ -36,9 +38,11 @@ export const TimeFormatBoxSource = {
     const { timestamp } = match;
     return [
       new BoxBuilder('timestamp (s)', (timestamp / 1000).toString())
+        .setPriority(PriorityTimeFormat)
         .setComponent(DefaultBox)
         .build(),
       new BoxBuilder('timestamp (ms)', timestamp.toString())
+        .setPriority(PriorityTimeFormat)
         .setComponent(DefaultBox)
         .build(),
     ];

@@ -3,6 +3,8 @@ import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 import { evaluate } from 'mathjs';
 
+const PriorityMathExpression = 10;
+
 interface Match {
   answer: string,
 }
@@ -21,6 +23,10 @@ export const MathExpressionBoxSource = {
     try {
       const answer = evaluate(regularInput)?.toString();
       if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
+        return undefined;
+      }
+      // FIXME: when input is a JSON
+      if (answer === '[object Object]') {
         return undefined;
       }
 
@@ -44,6 +50,7 @@ export const MathExpressionBoxSource = {
     return [
       new BoxBuilder('Math Expression', answer)
         .setComponent(DefaultBox)
+        .setPriority(PriorityMathExpression)
         .build(),
     ];
   },

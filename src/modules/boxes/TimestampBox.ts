@@ -2,7 +2,7 @@ import { DefaultBox } from '@components/Boxes';
 import { isNumeric } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
-const PriorityRFC3339 = 9;
+const PriorityRFC3339 = 10;
 
 interface Match {
   date: Date,

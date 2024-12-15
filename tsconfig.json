@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2015",
     "lib": [
       "dom",
       "dom.iterable",
@@ -24,12 +24,17 @@
       "@components/*": ["./components/*"],
       "@functions/*": ["./functions/*"],
       "@modules/*": ["./modules/*"],
-      "@pages/*": ["./pages/*"],
+      "@pages/*": ["./pages/*"]
     }
   },
   "include": [
     "craco.config.ts",
     "src",
     "wasmModules"
+  ],
+  "exclude": [
+    "cypress",
+    "**/*.cy.ts",
+    "node_modules"
   ]
 }

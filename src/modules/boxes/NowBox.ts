@@ -2,7 +2,7 @@ import { DefaultBox } from '@components/Boxes';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
-const PriorityRFC3339 = 9;
+const PriorityRFC3339 = 10;
 
 interface Match {
   timestamp: number,

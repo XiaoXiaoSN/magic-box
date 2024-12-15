@@ -1,0 +1,42 @@
+name: End-to-end Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  cypress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # build WASM modules
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Build WASM
+        run: |
+          find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+
+      - name: Setup yarn
+        run: npm install -g yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v6
+        with:
+          start: yarn start
+          wait-on: http://localhost:3000
