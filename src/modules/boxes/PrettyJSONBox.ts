@@ -2,6 +2,8 @@ import { CodeBox } from '@components/Boxes';
 import { isJSON, isString, trim } from '@functions/helper';
 import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
 
+const PriorityPrettyJSON = 10;
+
 interface Match {
   jsonStr: string,
   options: BoxOptions,
@@ -45,6 +47,7 @@ export const PrettyJSONBoxSource = {
       new BoxBuilder('Pretty JSON', jsonStr)
         .setOptions(options)
         .setComponent(CodeBox)
+        .setPriority(PriorityPrettyJSON)
         .build(),
     ];
   },

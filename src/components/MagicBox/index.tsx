@@ -123,14 +123,22 @@ const MagicBox = ({ input: magicIn }: Props) => {
           };
 
           return (
-            <src.component
-              name={name}
-              stdout={stdout}
-              options={options}
-              onClick={onClickWithCopy}
-              priority={priority}
+            <div
+              data-testid="magic-box-result"
               key={src?.props.name || idx}
-            />
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
+            >
+              <src.component
+                name={name}
+                stdout={stdout}
+                options={options}
+                onClick={onClickWithCopy}
+                priority={priority}
+              />
+            </div>
           );
         })
       ) : (

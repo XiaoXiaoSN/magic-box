@@ -28,8 +28,8 @@ const DefaultBox = ({ name, stdout, onClick }: BoxProps) => (
     onClick={() => onClick(stdout)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 style={{ margin: 0 }}>{ name }</h3>
-      <Typography sx={boxStyles.paperTypography}>{ stdout }</Typography>
+      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
+      <Typography data-testid="magic-box-result-text" sx={boxStyles.paperTypography}>{ stdout }</Typography>
     </Paper>
   </Grid>
 );
@@ -52,9 +52,10 @@ const CodeBox = ({
       onClick={() => onClick(stdout)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 style={{ margin: 0 }}>{ name }</h3>
+        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter
+          data-testid="magic-box-result-text"
           language={language}
           sx={atelierCaveLight}
           customStyle={{ maxHeight: '250px' }}
@@ -76,7 +77,7 @@ const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
     onClick={() => onClick(stdout)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 style={{ margin: 0 }}>{ name }</h3>
+      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
       {/* https://github.com/zpao/qrcode.react */}
       <Box sx={boxStyles.alignCenter} id="qrcode-box">
         <QRCodeCanvas value={stdout} size={256} includeMargin />
@@ -131,8 +132,13 @@ const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
       onClick={() => onClick(shortURL)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 style={{ margin: 0 }}>{ name }</h3>
-        <Typography sx={boxStyles.paperTypography}>{ shortURL }</Typography>
+        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
+        <Typography
+          data-testid="magic-box-result-text"
+          sx={boxStyles.paperTypography}
+        >
+          { shortURL }
+        </Typography>
       </Paper>
     </Grid>
   );
