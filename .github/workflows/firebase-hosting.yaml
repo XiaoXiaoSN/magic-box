@@ -73,6 +73,7 @@ jobs:
     needs:
       - codespell
       - eslint
+      - cypress
     steps:
       - uses: actions/checkout@v4
 
