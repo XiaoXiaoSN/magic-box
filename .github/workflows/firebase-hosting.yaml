@@ -37,25 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # build WASM modules
-      - name: Install wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-
-      - name: Build WASM
-        run: |
-          find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-
-      - name: Setup yarn
-        run: npm install -g yarn
-
-      - name: Install dependencies
-        run: yarn install --immutable
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
 
       - name: Run ESLint
         run: yarn lint

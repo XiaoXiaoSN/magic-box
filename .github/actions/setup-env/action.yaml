@@ -1,0 +1,27 @@
+name: Setup Environment
+description: Setup Magic Box environment for GitHub Actions
+
+runs:
+  using: composite
+  steps:
+    - name: Install wasm-pack
+      uses: jetli/wasm-pack-action@v0.4.0
+
+    - name: Build WASM
+      shell: bash
+      run: |
+        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: yarn
+
+    - name: Setup yarn
+      shell: bash
+      run: npm install -g yarn
+
+    - name: Install dependencies
+      shell: bash
+      run: yarn install --immutable
