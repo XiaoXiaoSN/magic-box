@@ -29,6 +29,8 @@
   },
   "include": [
     "craco.config.ts",
+    "cypress.config.ts",
+    "webpack.config.ts",
     "src",
     "wasmModules"
   ],

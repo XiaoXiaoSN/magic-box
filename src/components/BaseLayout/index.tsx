@@ -23,6 +23,7 @@ const BaseLayout = ({ children }: Props) => (
         height: '65px',
         justifyContent: 'center',
       }}
+      data-testid="header"
     >
       <Toolbar>
         {/* NOTE: I used a larger size logo
@@ -59,6 +60,7 @@ const BaseLayout = ({ children }: Props) => (
         borderBottom: '1px solid #cdc9c3',
         padding: '0.2rem',
       }}
+      data-testid="footer"
     >
       {`© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`}
     </AppBar>

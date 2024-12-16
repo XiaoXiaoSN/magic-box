@@ -3,4 +3,4 @@
   "parserOptions": {
     "project": ["./cypress/tsconfig.json"]
   }
-} 
+}
