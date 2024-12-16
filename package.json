@@ -37,6 +37,8 @@
   },
   "devDependencies": {
     "@craco/craco": "^7.1.0",
+    "@cypress/react": "^8.0.2",
+    "@cypress/webpack-preprocessor": "^6.0.2",
     "@testing-library/cypress": "^10.0.2",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.3.0",
