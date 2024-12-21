@@ -15,13 +15,17 @@ export const TimestampBoxSource = {
       return undefined;
     }
 
-    const tzOffset = (8 * 60 * 60) * 1000;
-    const minTimestamp = new Date(1600, 1, 1, 0, 0, 0, 0);
-    const maxTimestamp = new Date(2050, 12, 31, 23, 59, 59, 0);
+    const twTimezoneOffset = (8 * 60 * 60) * 1000;
+    const minTimestamp = new Date('1600-01-01T00:00:00');
+    const maxTimestamp = new Date('2099-12-31T23:59:59');
 
     try {
-      let date = new Date(parseFloat(input) * 1000);
-      let twDate = new Date(parseFloat(input) * 1000 + tzOffset);
+      const inputNumber = parseFloat(input);
+      if (Number.isNaN(inputNumber) || inputNumber < 0) {
+        return undefined;
+      }
+
+      let date = new Date(inputNumber * 1000);
 
       // check max and min timestamp
       if (date < minTimestamp) {
@@ -29,15 +33,15 @@ export const TimestampBoxSource = {
       }
       if (date > maxTimestamp) {
         // guess the big number is a timestamp in ms, convert ms to sec
-        date = new Date(parseFloat(input));
-        twDate = new Date(parseFloat(input) + tzOffset);
-        if (date > maxTimestamp || date < minTimestamp) {
-          return undefined;
+        date = new Date(inputNumber);
+        if (maxTimestamp >= date && date >= minTimestamp) {
+          return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
         }
+        return undefined;
       }
 
       // eslint-disable-next-line consistent-return
-      return { date, twDate };
+      return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
     } catch { /* */ }
 
     return undefined;

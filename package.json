@@ -39,6 +39,7 @@
     "@craco/craco": "^7.1.0",
     "@cypress/react": "^8.0.2",
     "@cypress/webpack-preprocessor": "^6.0.2",
+    "@jest/globals": "^29.7.0",
     "@testing-library/cypress": "^10.0.2",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.3.0",
@@ -54,7 +55,7 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-airbnb-typescript": "^17.1.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
-    "webpack-bundle-analyzer": "^4.9.1"
+    "webpack-bundle-analyzer": "^4.10.2"
   },
   "scripts": {
     "start": "craco start",
@@ -87,5 +88,8 @@
       "last 1 safari version"
     ]
   },
-  "cracoConfig": "craco.config.ts"
+  "cracoConfig": "craco.config.ts",
+  "jest": {
+    "transformIgnorePatterns": []
+  }
 }
