@@ -10,6 +10,17 @@ env:
   NODE_VERSION: 20
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run tests
+        run: yarn test
+
   cypress:
     runs-on: ubuntu-latest
     steps:
