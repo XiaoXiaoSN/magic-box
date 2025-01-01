@@ -7,7 +7,7 @@
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.16.9",
     "@mui/material": "^5.16.9",
-    "@types/node": "^20.17.9",
+    "@types/node": "^22.10.3",
     "@types/react": "^18.2.31",
     "@types/react-dom": "^18.2.14",
     "base64-box": "file:wasmModules/base64-box/pkg",
