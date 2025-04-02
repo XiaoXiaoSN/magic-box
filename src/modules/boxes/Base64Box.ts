@@ -35,7 +35,7 @@ export const Base64DecodeBoxSource = {
 
     try {
       await initBas64Box();
-      const decodedText = Base64.decode(regularInput);
+      const decodedText = Base64.decode_to_string(regularInput);
 
       const languageOpts: BoxOptions = {};
       if (options && isObject(options)) {
