@@ -43,8 +43,8 @@ describe('UuidBoxSource', () => {
 
       const box = boxes[0];
       expect(box.props.name).toBe('UUID');
-      expect(box.props.stdout).toMatch(validUUIDv4Regex);
-      expect(box.props.stdout.length).toBe(36);
+      expect(box.props.plaintextOutput).toMatch(validUUIDv4Regex);
+      expect(box.props.plaintextOutput.length).toBe(36);
       expect(box.component).toBe(DefaultBox);
     });
 
@@ -52,18 +52,18 @@ describe('UuidBoxSource', () => {
       const boxes1 = await UuidBoxSource.generateBoxes('uuid');
       const boxes2 = await UuidBoxSource.generateBoxes('uuid');
 
-      expect(boxes1[0].props.stdout).not.toBe(boxes2[0].props.stdout);
+      expect(boxes1[0].props.plaintextOutput).not.toBe(boxes2[0].props.plaintextOutput);
     });
 
     describe('case sensitivity', () => {
       it('should generate lowercase UUID for lowercase input', async () => {
         const boxes = await UuidBoxSource.generateBoxes('uuid');
-        expect(boxes[0].props.stdout).toMatch(/^[0-9a-f-]+$/);
+        expect(boxes[0].props.plaintextOutput).toMatch(/^[0-9a-f-]+$/);
       });
 
       it('should generate uppercase UUID for uppercase input', async () => {
         const boxes = await UuidBoxSource.generateBoxes('UUID', { uppercase: true });
-        expect(boxes[0].props.stdout).toMatch(/^[0-9A-F-]+$/);
+        expect(boxes[0].props.plaintextOutput).toMatch(/^[0-9A-F-]+$/);
       });
     });
   });

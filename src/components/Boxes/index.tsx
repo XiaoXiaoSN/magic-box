@@ -18,14 +18,14 @@ const NotingMatchBox = () => (
   </Grid>
 );
 
-const DefaultBox = ({ name, stdout, onClick }: BoxProps) => (
+const DefaultBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => onClick(stdout)}
+    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
       <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -35,14 +35,14 @@ const DefaultBox = ({ name, stdout, onClick }: BoxProps) => (
         data-testid="magic-box-result-text"
         sx={boxStyles.paperTypography}
       >
-        {stdout}
+        {plaintextOutput}
       </Typography>
     </Paper>
   </Grid>
 );
 
 const CodeBox = ({
-  name, stdout, options, onClick,
+  name, plaintextOutput, options, onClick,
 }: BoxProps) => {
   let language = 'yaml';
   if (
@@ -60,7 +60,7 @@ const CodeBox = ({
       sm={12}
       sx={boxStyles.grid}
       zeroMinWidth
-      onClick={() => onClick(stdout)}
+      onClick={() => onClick(plaintextOutput)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
         <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -73,21 +73,21 @@ const CodeBox = ({
           sx={atelierCaveLight}
           customStyle={{ maxHeight: '250px' }}
         >
-          {stdout}
+          {plaintextOutput}
         </SyntaxHighlighter>
       </Paper>
     </Grid>
   );
 };
 
-const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
+const QRCodeBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => onClick(stdout)}
+    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
       <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -95,13 +95,13 @@ const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
       </h3>
       {/* https://github.com/zpao/qrcode.react */}
       <Box sx={boxStyles.alignCenter} id="qrcode-box">
-        <QRCodeCanvas value={stdout} size={256} includeMargin />
+        <QRCodeCanvas value={plaintextOutput} size={256} includeMargin />
       </Box>
     </Paper>
   </Grid>
 );
 
-const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
+const ShortenURLBox = ({ name, plaintextOutput, onClick }: BoxProps) => {
   const [shortURL, setShortURL] = useState('');
 
   const getShortenURL = async (inputURL: string) => {
@@ -134,8 +134,8 @@ const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
 
   // call Toolbox API to get short url
   useEffect(() => {
-    getShortenURL(stdout);
-  }, [stdout]);
+    getShortenURL(plaintextOutput);
+  }, [plaintextOutput]);
 
   return (
     <Grid
@@ -161,8 +161,24 @@ const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
   );
 };
 
-const KeyValueBox = ({ name, stdout, onClick }: BoxProps) => {
-  const data = typeof stdout === 'string' ? JSON.parse(stdout) : stdout;
+const KeyValueBox = ({
+  name, plaintextOutput, options, onClick,
+}: BoxProps) => {
+  const data: Record<string, string> = {};
+
+  if (options) {
+    Object.entries(options).forEach(([key, value]) => {
+      data[key] = value as string;
+    });
+  }
+  if (plaintextOutput) {
+    try {
+      const parsedOutput = JSON.parse(plaintextOutput);
+      Object.entries(parsedOutput).forEach(([key, value]) => {
+        data[key] = value as string;
+      });
+    } catch { /* */ }
+  }
 
   const handleTableClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).classList.contains('value-cell')) {
@@ -213,11 +229,15 @@ const KeyValueBox = ({ name, stdout, onClick }: BoxProps) => {
                   <Typography
                     variant="subtitle2"
                     sx={{
-                      width: '30%',
+                      minWidth: '30%',
+                      maxWidth: '50%',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
                       fontWeight: 'bold',
                       color: 'text.secondary',
                       pr: 2,
                     }}
+                    title={key}
                   >
                     {key}
                   </Typography>

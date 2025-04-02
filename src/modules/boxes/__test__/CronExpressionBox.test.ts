@@ -61,7 +61,7 @@ describe('CronExpressionBoxSource', () => {
       const boxes = await CronExpressionBoxSource.generateBoxes('* * * * *');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Cron Expression');
-      expect(boxes[0].props.stdout).toBe('Every minute');
+      expect(boxes[0].props.plaintextOutput).toBe('Every minute');
       expect(boxes[0].component).toBe(DefaultBox);
     });
   });

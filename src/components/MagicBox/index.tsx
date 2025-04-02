@@ -9,6 +9,7 @@ import {
   CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
+  K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
@@ -29,6 +30,7 @@ const defaultBoxSources: BoxSource[] = [
   CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
+  K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
@@ -120,7 +122,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
       {boxes.length > 0 ? (
         boxes.map((src, idx) => {
           const {
-            name, stdout, options, onClick, priority,
+            name, plaintextOutput: stdout, options, onClick, priority,
           } = src.props;
 
           const onClickWithCopy = (output: string) => {
@@ -139,7 +141,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
             >
               <src.component
                 name={name}
-                stdout={stdout}
+                plaintextOutput={stdout}
                 options={options}
                 onClick={onClickWithCopy}
                 priority={priority}

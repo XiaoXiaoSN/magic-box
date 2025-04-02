@@ -10,7 +10,7 @@ describe('<ShortenURLBox />', () => {
     mount(
       <ShortenURLBox
         name="TITLE"
-        stdout="https://example.com"
+        plaintextOutput="https://example.com"
         options={null}
         onClick={stubOnClick}
       />,

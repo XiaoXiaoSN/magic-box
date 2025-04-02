@@ -32,7 +32,7 @@ describe('GenerateQRCodeBoxSource', () => {
       const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, { qr: true });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
-      expect(boxes[0].props.stdout).toBe(input);
+      expect(boxes[0].props.plaintextOutput).toBe(input);
       expect(boxes[0].props.priority).toBe(10); // PriorityGenerateQRCode value
     });
 
@@ -41,7 +41,7 @@ describe('GenerateQRCodeBoxSource', () => {
       const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, { qrcode: true });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
-      expect(boxes[0].props.stdout).toBe(input);
+      expect(boxes[0].props.plaintextOutput).toBe(input);
       expect(boxes[0].component).toBe(QRCodeBox);
     });
   });

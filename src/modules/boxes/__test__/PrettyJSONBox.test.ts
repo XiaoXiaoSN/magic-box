@@ -68,7 +68,7 @@ describe('PrettyJSONBoxSource', () => {
         "value": 123
     }
 }`;
-      expect(boxes[0].props.stdout).toBe(expectedOutput);
+      expect(boxes[0].props.plaintextOutput).toBe(expectedOutput);
       expect(boxes[0].component).toBe(CodeBox);
     });
   });

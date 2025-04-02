@@ -46,7 +46,7 @@ describe('JWTBoxSource', () => {
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toEqual({ language: 'json' });
 
-      const parsed = JSON.parse(boxes[0].props.stdout);
+      const parsed = JSON.parse(boxes[0].props.plaintextOutput);
       expect(parsed.header.alg).toBe('HS256');
       expect(parsed.body.name).toBe('John Doe');
 
