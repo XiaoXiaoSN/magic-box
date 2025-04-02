@@ -3,6 +3,7 @@ export * from './CronExpressionBox';
 export * from './GenerateQRCodeBox';
 export * from './JWTBox';
 export * from './MathExpressionBox';
+export * from './MyIPBox';
 export * from './NowBox';
 export * from './PrettyJSONBox';
 export * from './ShortenURLBox';
