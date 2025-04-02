@@ -11,3 +11,4 @@ export * from './ShortenURLBox';
 export * from './TimeFormatBox';
 export * from './TimestampBox';
 export * from './URLDecodeBox';
+export * from './UuidBox';

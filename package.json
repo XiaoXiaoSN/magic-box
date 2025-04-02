@@ -57,6 +57,9 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "webpack-bundle-analyzer": "^4.10.2"
   },
+  "browser": {
+    "crypto": false
+  },
   "scripts": {
     "start": "craco start",
     "start:debug": "craco start --verbose",

@@ -18,6 +18,7 @@ import {
   TimeFormatBoxSource,
   TimestampBoxSource,
   URLDecodeBoxSource,
+  UuidBoxSource,
 } from '@modules/boxes';
 import { BoxSource } from '@modules/BoxSource';
 import React, { useEffect, useState } from 'react';
@@ -37,6 +38,7 @@ const defaultBoxSources: BoxSource[] = [
   TimeFormatBoxSource,
   TimestampBoxSource,
   URLDecodeBoxSource,
+  UuidBoxSource,
 ];
 
 interface Props {

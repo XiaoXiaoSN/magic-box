@@ -1,4 +1,5 @@
 import { DefaultBox } from '@components/Boxes';
+import crypto from '@functions/crypto';
 import { Box, BoxBuilder } from '@modules/Box';
 
 const PriorityRandomBox = 10;
@@ -11,7 +12,7 @@ interface Match {
 export const RandomIntegerBoxSource = {
   checkMatch(input: string): Match | undefined {
     // Match pattern like "random 1-100" or "random 1~100" or just "random"
-    const match = input.match(/^random(?:\s+(\d+)\s*[-~]*\s*(\d+))?$/i);
+    const match = input.match(/^random(?:\s+(\d+)\s*[-~]?\s*(\d+))?$/i);
     if (!match) {
       return undefined;
     }
@@ -46,6 +47,10 @@ export const RandomIntegerBoxSource = {
       new BoxBuilder('Random Number', randomInRange.toString())
         .setComponent(DefaultBox)
         .setPriority(PriorityRandomBox)
+        .setOptions({
+          min: match.min.toString(),
+          max: match.max.toString(),
+        })
         .build(),
     ];
   },

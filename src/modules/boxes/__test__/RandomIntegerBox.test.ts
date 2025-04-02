@@ -55,6 +55,7 @@ describe('RandomIntegerBoxSource', () => {
       const value = parseInt(box.props.stdout, 10);
       expect(value).toBeGreaterThanOrEqual(1);
       expect(value).toBeLessThanOrEqual(100);
+      expect(box.component).toBe(DefaultBox);
     });
 
     it('should generate box with custom range', async () => {
@@ -80,10 +81,9 @@ describe('RandomIntegerBoxSource', () => {
 
       const box = boxes[0];
       expect(box.props.options).toEqual({
-        min: 20,
-        max: 30,
+        min: '20',
+        max: '30',
       });
-      expect(box.component).toBe(DefaultBox);
     });
   });
 });
