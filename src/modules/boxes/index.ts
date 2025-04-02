@@ -6,6 +6,7 @@ export * from './MathExpressionBox';
 export * from './MyIPBox';
 export * from './NowBox';
 export * from './PrettyJSONBox';
+export * from './RandomIntegerBox';
 export * from './ShortenURLBox';
 export * from './TimeFormatBox';
 export * from './TimestampBox';

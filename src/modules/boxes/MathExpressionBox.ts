@@ -20,6 +20,11 @@ export const MathExpressionBoxSource = {
 
     const regularInput = trim(input);
 
+    // prevent `mathjs` built-in functions
+    if (regularInput === 'random') {
+      return undefined;
+    }
+
     try {
       const answer = evaluate(regularInput)?.toString();
       if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
