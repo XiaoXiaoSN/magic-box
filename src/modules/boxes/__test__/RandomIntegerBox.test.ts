@@ -8,7 +8,19 @@ describe('RandomIntegerBoxSource', () => {
     it('should match "random" command', () => {
       const match = RandomIntegerBoxSource.checkMatch('random');
       expect(match).toBeDefined();
-      expect(match).toEqual({ min: 1, max: 100 });
+      expect(match).toEqual({ min: 0, max: 100 });
+    });
+
+    it('should match "random" with single number', () => {
+      const match = RandomIntegerBoxSource.checkMatch('random 100');
+      expect(match).toBeDefined();
+      expect(match).toEqual({ min: 0, max: 100 });
+    });
+
+    it('should not match when single number is invalid', () => {
+      expect(RandomIntegerBoxSource.checkMatch('random 0')).toBeUndefined();
+      expect(RandomIntegerBoxSource.checkMatch('random 1')).toBeUndefined();
+      expect(RandomIntegerBoxSource.checkMatch('random -1')).toBeUndefined();
     });
 
     it('should match "random" with custom range', () => {
@@ -68,6 +80,22 @@ describe('RandomIntegerBoxSource', () => {
       const value = parseInt(box.props.plaintextOutput, 10);
       expect(value).toBeGreaterThanOrEqual(5);
       expect(value).toBeLessThanOrEqual(10);
+    });
+
+    it('should generate box with single number', async () => {
+      const boxes = await RandomIntegerBoxSource.generateBoxes('random 50');
+      expect(boxes).toHaveLength(1);
+
+      const box = boxes[0];
+      expect(box.props.name).toBe('Random Number');
+
+      const value = parseInt(box.props.plaintextOutput, 10);
+      expect(value).toBeGreaterThanOrEqual(0);
+      expect(value).toBeLessThanOrEqual(50);
+      expect(box.props.options).toEqual({
+        min: '0',
+        max: '50',
+      });
     });
 
     it('should return empty array for non-matching input', async () => {
