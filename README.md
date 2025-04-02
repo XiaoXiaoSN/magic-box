@@ -53,10 +53,10 @@ Based on matching methods, we can roughly classify Boxes into two types:
 | --------------------- | ------------------------- | ------------------------- |
 | valid cron expression | convert to human language | ![](docs/CronExpress.png) |
 
-| options                      | description                 | example     |
-| ---------------------------- | --------------------------- | ----------- |
-| `l`, `lang`, `locate`        | select while human language | ::locale=tw |
-| `tz`, `timezone`, `tzOffset` | shift to the base timezone  | ::tz=8      |
+| options                          | description                             | example     |
+| -------------------------------- | --------------------------------------- | ----------- |
+| `l`, `lang`, `locate`            | select while human language             | ::locale=tw |
+| ~~`tz`, `timezone`, `tzOffset`~~ | (deprecated) shift to the base timezone | ::tz=8      |
 
 </details>
 

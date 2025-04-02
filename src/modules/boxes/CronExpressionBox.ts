@@ -1,5 +1,5 @@
 import { DefaultBox } from '@components/Boxes';
-import { isString, toNumeric, trim } from '@functions/helper';
+import { isString, trim } from '@functions/helper';
 import {
   Box, BoxBuilder, BoxOptions, extractOptionKeys,
 } from '@modules/Box';
@@ -38,18 +38,9 @@ export const CronExpressionBoxSource = {
         }
       }
 
-      let tzOffset = 0;
-      if (options !== null) {
-        const tzOption = extractOptionKeys(options, 'tz', 'timezone', 'tzOffset');
-        const tz = toNumeric(tzOption);
-        if (tz !== null && (tz >= -12 && tz <= 14)) {
-          tzOffset = tz;
-        }
-      }
-
       const answer = cronstrue.toString(
         regularInput,
-        { use24HourTimeFormat: true, locale, tzOffset },
+        { use24HourTimeFormat: true, locale },
       );
       if (answer === regularInput) {
         return undefined;

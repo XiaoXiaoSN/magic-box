@@ -31,7 +31,7 @@ export type BoxOnClickFn = (out: string) => void;
 
 export interface BoxProps {
   name: string,
-  stdout: string,
+  plaintextOutput: string,
   options: BoxOptions,
   onClick: BoxOnClickFn,
   priority?: number,
@@ -47,7 +47,7 @@ export interface Box {
 export class BoxBuilder {
   constructor(
     public name: string,
-    public stdout: string,
+    public plaintextOutput: string,
     public options = {} as BoxOptions,
     public onClick = (() => {}) as BoxOnClickFn,
     public priority?: number,
@@ -78,7 +78,7 @@ export class BoxBuilder {
     return {
       props: {
         name: this.name,
-        stdout: this.stdout,
+        plaintextOutput: this.plaintextOutput,
         priority: this.priority,
         options: this.options,
         onClick: this.onClick,

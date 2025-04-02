@@ -47,14 +47,14 @@ describe('MathExpressionBoxSource', () => {
       const boxes = await MathExpressionBoxSource.generateBoxes('2 + 2^10 + log(10, 10000)');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Math Expression');
-      expect(boxes[0].props.stdout).toBe('1026.25');
+      expect(boxes[0].props.plaintextOutput).toBe('1026.25');
     });
 
     it('should set correct priority and component', async () => {
       const boxes = await MathExpressionBoxSource.generateBoxes('2 + 2');
       expect(boxes[0].props.priority).toBe(10); // PriorityMathExpression value
       expect(boxes[0].props.name).toBe('Math Expression');
-      expect(boxes[0].props.stdout).toBe('4');
+      expect(boxes[0].props.plaintextOutput).toBe('4');
       expect(boxes[0].component).toBe(DefaultBox);
     });
   });

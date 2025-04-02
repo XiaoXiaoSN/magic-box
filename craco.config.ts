@@ -10,6 +10,8 @@ export default {
         '^@modules(.*)$': '<rootDir>/src/modules$1',
         '^@pages(.*)$': '<rootDir>/src/pages$1',
       },
+      setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
+      testEnvironment: 'jsdom',
       transformIgnorePatterns: [
         'node_modules/(?!(react-syntax-highlighter)/)',
       ],

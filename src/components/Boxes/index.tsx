@@ -18,27 +18,38 @@ const NotingMatchBox = () => (
   </Grid>
 );
 
-const DefaultBox = ({ name, stdout, onClick }: BoxProps) => (
+const DefaultBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => onClick(stdout)}
+    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
-      <Typography data-testid="magic-box-result-text" sx={boxStyles.paperTypography}>{ stdout }</Typography>
+      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
+        {name}
+      </h3>
+      <Typography
+        data-testid="magic-box-result-text"
+        sx={boxStyles.paperTypography}
+      >
+        {plaintextOutput}
+      </Typography>
     </Paper>
   </Grid>
 );
 
 const CodeBox = ({
-  name, stdout, options, onClick,
+  name, plaintextOutput, options, onClick,
 }: BoxProps) => {
   let language = 'yaml';
-  if (options && 'language' in options && typeof options.language === 'string') {
+  if (
+    options
+    && 'language' in options
+    && typeof options.language === 'string'
+  ) {
     language = options.language;
   }
 
@@ -49,10 +60,12 @@ const CodeBox = ({
       sm={12}
       sx={boxStyles.grid}
       zeroMinWidth
-      onClick={() => onClick(stdout)}
+      onClick={() => onClick(plaintextOutput)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
+        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
+          {name}
+        </h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter
           data-testid="magic-box-result-text"
@@ -60,33 +73,35 @@ const CodeBox = ({
           sx={atelierCaveLight}
           customStyle={{ maxHeight: '250px' }}
         >
-          { stdout }
+          {plaintextOutput}
         </SyntaxHighlighter>
       </Paper>
     </Grid>
   );
 };
 
-const QRCodeBox = ({ name, stdout, onClick }: BoxProps) => (
+const QRCodeBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
     sm={12}
     sx={boxStyles.grid}
     zeroMinWidth
-    onClick={() => onClick(stdout)}
+    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
-      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
+      <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
+        {name}
+      </h3>
       {/* https://github.com/zpao/qrcode.react */}
       <Box sx={boxStyles.alignCenter} id="qrcode-box">
-        <QRCodeCanvas value={stdout} size={256} includeMargin />
+        <QRCodeCanvas value={plaintextOutput} size={256} includeMargin />
       </Box>
     </Paper>
   </Grid>
 );
 
-const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
+const ShortenURLBox = ({ name, plaintextOutput, onClick }: BoxProps) => {
   const [shortURL, setShortURL] = useState('');
 
   const getShortenURL = async (inputURL: string) => {
@@ -119,8 +134,8 @@ const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
 
   // call Toolbox API to get short url
   useEffect(() => {
-    getShortenURL(stdout);
-  }, [stdout]);
+    getShortenURL(plaintextOutput);
+  }, [plaintextOutput]);
 
   return (
     <Grid
@@ -132,18 +147,132 @@ const ShortenURLBox = ({ name, stdout, onClick }: BoxProps) => {
       onClick={() => onClick(shortURL)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
-        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{ name }</h3>
+        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
+          {name}
+        </h3>
         <Typography
           data-testid="magic-box-result-text"
           sx={boxStyles.paperTypography}
         >
-          { shortURL }
+          {shortURL}
         </Typography>
       </Paper>
     </Grid>
   );
 };
 
+const KeyValueBox = ({
+  name, plaintextOutput, options, onClick,
+}: BoxProps) => {
+  const data: Record<string, string> = {};
+
+  if (options) {
+    Object.entries(options).forEach(([key, value]) => {
+      data[key] = value as string;
+    });
+  }
+  if (plaintextOutput) {
+    try {
+      const parsedOutput = JSON.parse(plaintextOutput);
+      Object.entries(parsedOutput).forEach(([key, value]) => {
+        data[key] = value as string;
+      });
+    } catch { /* */ }
+  }
+
+  const handleTableClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).classList.contains('value-cell')) {
+      e.stopPropagation();
+      return;
+    }
+
+    const yamlString = Object.entries(data)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+
+    onClick(yamlString);
+  };
+
+  const handleValueClick = (e: React.MouseEvent, value: string) => {
+    e.stopPropagation();
+    onClick(value);
+  };
+
+  return (
+    <Grid
+      item
+      xs={12}
+      sm={12}
+      sx={boxStyles.grid}
+      zeroMinWidth
+      onClick={handleTableClick}
+    >
+      <Paper elevation={3} sx={boxStyles.paper}>
+        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
+          {name}
+        </h3>
+        <Box sx={{ width: '100%', overflow: 'auto', mt: 2 }}>
+          <Grid container spacing={1}>
+            {Object.entries(data).map(([key, value]) => (
+              <Grid item xs={12} key={key}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      minWidth: '30%',
+                      maxWidth: '50%',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      fontWeight: 'bold',
+                      color: 'text.secondary',
+                      pr: 2,
+                    }}
+                    title={key}
+                  >
+                    {key}
+                  </Typography>
+                  <Typography
+                    className="value-cell"
+                    onClick={(e) => handleValueClick(e, String(value))}
+                    sx={{
+                      flex: 1,
+                      cursor: 'pointer',
+                      p: 1,
+                      borderRadius: 1,
+                      '&:hover': {
+                        bgcolor: 'primary.light',
+                        color: 'primary.contrastText',
+                      },
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {String(value)}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Paper>
+    </Grid>
+  );
+};
+
 export {
-  CodeBox, DefaultBox, NotingMatchBox, QRCodeBox, ShortenURLBox,
+  CodeBox,
+  DefaultBox,
+  KeyValueBox,
+  NotingMatchBox,
+  QRCodeBox,
+  ShortenURLBox,
 };

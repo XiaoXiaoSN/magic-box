@@ -29,26 +29,6 @@ describe('CronExpressionBoxSource', () => {
       expect(result).toBeDefined();
       expect(result?.answer).toBe('Каждую секунду');
     });
-
-    it('should handle timezone options', () => {
-      let result = CronExpressionBoxSource.checkMatch('* * * * *', { tz: '8' });
-      expect(result).toBeDefined();
-      expect(result?.answer).toBe('Every minute');
-
-      result = CronExpressionBoxSource.checkMatch('*/2 10 * * *', { tz: '8' });
-      expect(result).toBeDefined();
-      expect(result?.answer).toBe('Every 2 minutes, between 18:00 and 18:59');
-    });
-
-    it('should handle timezone options', () => {
-      let result = CronExpressionBoxSource.checkMatch('1 2 3 4 5', { lang: 'tw', tz: '8' });
-      expect(result).toBeDefined();
-      expect(result?.answer).toBe('在 10:01, 每月的  3 號, 或 星期五, 僅在 四月');
-
-      result = CronExpressionBoxSource.checkMatch('* * * * * 2', { lang: 'jp', tz: '8' });
-      expect(result).toBeDefined();
-      expect(result?.answer).toBe('毎秒火曜日 にのみ');
-    });
   });
 
   describe('generateBoxes', () => {
@@ -61,7 +41,7 @@ describe('CronExpressionBoxSource', () => {
       const boxes = await CronExpressionBoxSource.generateBoxes('* * * * *');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Cron Expression');
-      expect(boxes[0].props.stdout).toBe('Every minute');
+      expect(boxes[0].props.plaintextOutput).toBe('Every minute');
       expect(boxes[0].component).toBe(DefaultBox);
     });
   });

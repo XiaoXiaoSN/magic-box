@@ -44,7 +44,7 @@ describe('URLDecodeBoxSource', () => {
       const boxes = await URLDecodeBoxSource.generateBoxes(input);
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('URLEncode decode');
-      expect(boxes[0].props.stdout).toBe('https://example.com/path?query=hello world');
+      expect(boxes[0].props.plaintextOutput).toBe('https://example.com/path?query=hello world');
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].component).toBe(DefaultBox);
     });

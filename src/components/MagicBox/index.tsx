@@ -9,14 +9,17 @@ import {
   CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
+  K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
   PrettyJSONBoxSource,
+  RandomIntegerBoxSource,
   ShortenURLBoxSource,
   TimeFormatBoxSource,
   TimestampBoxSource,
   URLDecodeBoxSource,
+  UuidBoxSource,
 } from '@modules/boxes';
 import { BoxSource } from '@modules/BoxSource';
 import React, { useEffect, useState } from 'react';
@@ -27,14 +30,17 @@ const defaultBoxSources: BoxSource[] = [
   CronExpressionBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
+  K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
   PrettyJSONBoxSource,
+  RandomIntegerBoxSource,
   ShortenURLBoxSource,
   TimeFormatBoxSource,
   TimestampBoxSource,
   URLDecodeBoxSource,
+  UuidBoxSource,
 ];
 
 interface Props {
@@ -116,7 +122,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
       {boxes.length > 0 ? (
         boxes.map((src, idx) => {
           const {
-            name, stdout, options, onClick, priority,
+            name, plaintextOutput: stdout, options, onClick, priority,
           } = src.props;
 
           const onClickWithCopy = (output: string) => {
@@ -135,7 +141,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
             >
               <src.component
                 name={name}
-                stdout={stdout}
+                plaintextOutput={stdout}
                 options={options}
                 onClick={onClickWithCopy}
                 priority={priority}
