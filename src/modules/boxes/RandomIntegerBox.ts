@@ -1,8 +1,11 @@
 import { DefaultBox } from '@components/Boxes';
 import crypto from '@functions/crypto';
+import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
 const PriorityRandomBox = 10;
+const DEFAULT_MIN = 0;
+const DEFAULT_MAX = 100;
 
 interface Match {
   min: number;
@@ -11,18 +14,37 @@ interface Match {
 
 export const RandomIntegerBoxSource = {
   checkMatch(input: string): Match | undefined {
-    // Match pattern like "random 1-100" or "random 1~100" or just "random"
-    const match = input.match(/^random(?:\s+(\d+)\s*[-~]?\s*(\d+))?$/i);
+    if (!isString(input)) {
+      return undefined;
+    }
+    if (input === '' || trim(input) === '') {
+      return undefined;
+    }
+
+    const regularInput = trim(input);
+
+    // Match pattern like "random 0-100" or "random 0~100" or "random 100" or just "random"
+    const match = regularInput.match(/^random(?:\s+(\d+)(?:\s*[-~]?\s*(\d+))?)?$/i);
     if (!match) {
       return undefined;
     }
 
     if (!match[1] && !match[2]) {
-      return { min: 1, max: 100 };
+      return { min: DEFAULT_MIN, max: DEFAULT_MAX };
+    }
+
+    // If only one number is provided, use it as max and set min to 0
+    if (!match[2]) {
+      const max = parseInt(match[1], 10);
+      if (max <= 1) {
+        return undefined;
+      }
+      return { min: DEFAULT_MIN, max };
     }
 
     const min = parseInt(match[1], 10);
     const max = parseInt(match[2], 10);
+
     if (min >= max) {
       return undefined;
     }
