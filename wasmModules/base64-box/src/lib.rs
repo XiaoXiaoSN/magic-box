@@ -41,7 +41,7 @@ mod tests {
         assert_eq!(decode_to_string(b64).unwrap(), plain);
 
         let maybe_b64 = "Not a Base64 String".to_string();
-        let result = Result::<String, String>::Err("Invalid byte 32, offset 3.".to_string());
+        let result = Result::<String, String>::Err("Invalid symbol 32, offset 3.".to_string());
         assert_eq!(decode_to_string(maybe_b64), result);
 
         let maybe_b64 = "Base64encode".to_string();
