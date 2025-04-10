@@ -10,7 +10,7 @@ runs:
     - name: Build WASM
       shell: bash
       run: |
-        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +
+        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} +
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
