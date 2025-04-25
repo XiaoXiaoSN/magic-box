@@ -1,4 +1,4 @@
-import { CodeBox } from '@components/Boxes';
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 import {
   isBase64, isObject, isString, trim,
 } from '@functions/helper';
@@ -68,7 +68,7 @@ export const Base64DecodeBoxSource = {
     return [
       new BoxBuilder('Base64 decode', decodedText)
         .setOptions(languageOpts)
-        .setComponent(CodeBox)
+        .setTemplate(CodeBoxTemplate)
         .build(),
     ];
   },

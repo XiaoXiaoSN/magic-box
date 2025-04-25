@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import crypto from '@functions/crypto';
 import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
 
@@ -31,7 +31,7 @@ export const UuidBoxSource = {
 
     return [
       new BoxBuilder('UUID', uuid)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityUuidBox)
         .build(),
     ];

@@ -1,4 +1,4 @@
-import { QRCodeBox } from '@components/Boxes';
+import { QRCodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { GenerateQRCodeBoxSource } from '../GenerateQRCodeBox';
@@ -42,7 +42,7 @@ describe('GenerateQRCodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
       expect(boxes[0].props.plaintextOutput).toBe(input);
-      expect(boxes[0].component).toBe(QRCodeBox);
+      expect(boxes[0].component).toBe(QRCodeBoxTemplate);
     });
   });
 });

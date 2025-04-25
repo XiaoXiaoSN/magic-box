@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { UuidBoxSource } from '../UuidBox';
@@ -45,7 +45,7 @@ describe('UuidBoxSource', () => {
       expect(box.props.name).toBe('UUID');
       expect(box.props.plaintextOutput).toMatch(validUUIDv4Regex);
       expect(box.props.plaintextOutput.length).toBe(36);
-      expect(box.component).toBe(DefaultBox);
+      expect(box.component).toBe(DefaultBoxTemplate);
     });
 
     it('should generate different UUIDs for each call', async () => {

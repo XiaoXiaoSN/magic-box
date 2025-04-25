@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isRFC3339, isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
@@ -39,11 +39,11 @@ export const TimeFormatBoxSource = {
     return [
       new BoxBuilder('timestamp (s)', (timestamp / 1000).toString())
         .setPriority(PriorityTimeFormat)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
       new BoxBuilder('timestamp (ms)', timestamp.toString())
         .setPriority(PriorityTimeFormat)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
     ];
   },

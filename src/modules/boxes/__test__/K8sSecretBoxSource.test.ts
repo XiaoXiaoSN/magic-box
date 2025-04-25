@@ -1,4 +1,4 @@
-import { KeyValueBox } from '@components/Boxes';
+import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { K8sSecretBoxSource } from '../K8sSecretBox';
@@ -88,7 +88,7 @@ data:
         username: 'admin',
         password: 'password123',
       });
-      expect(boxes[0].component).toBe(KeyValueBox);
+      expect(boxes[0].component).toBe(KeyValueBoxTemplate);
     });
 
     it('should return empty array for non-readable data', async () => {
@@ -100,7 +100,7 @@ data:
         data: '<unreadable-string>',
         password: 'password123',
       });
-      expect(boxes[0].component).toBe(KeyValueBox);
+      expect(boxes[0].component).toBe(KeyValueBoxTemplate);
     });
   });
 });

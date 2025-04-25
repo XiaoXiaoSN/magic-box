@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import {
   Box, BoxBuilder, BoxOptions, extractOptionKeys,
@@ -62,7 +62,7 @@ export const CronExpressionBoxSource = {
     return [
       new BoxBuilder('Cron Expression', answer)
         .setPriority(PriorityCronExpression)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
     ];
   },

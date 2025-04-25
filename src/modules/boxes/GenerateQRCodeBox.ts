@@ -1,4 +1,4 @@
-import { QRCodeBox } from '@components/Boxes';
+import { QRCodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import {
   Box, BoxBuilder, BoxOptions, hasOptionKeys,
@@ -33,7 +33,7 @@ export const GenerateQRCodeBoxSource = {
 
     return [
       new BoxBuilder('QRCode', input)
-        .setComponent(QRCodeBox)
+        .setTemplate(QRCodeBoxTemplate)
         .setPriority(PriorityGenerateQRCode)
         .build(),
     ];

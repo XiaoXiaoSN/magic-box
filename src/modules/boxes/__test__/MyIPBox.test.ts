@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { MyIPBoxSource } from '../MyIPBox';
@@ -85,7 +85,7 @@ describe('MyIPBoxSource', () => {
       expect(boxes[0].props.name).toBe('My IP');
       expect(boxes[0].props.plaintextOutput).toBe('116.12.57.176 (Auckland, NZ)');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
     });
   });
 });

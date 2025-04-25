@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { TimeFormatBoxSource } from '../TimeFormatBox';
@@ -41,13 +41,13 @@ describe('TimeFormatBoxSource', () => {
       expect(boxes[0].props.name).toBe('timestamp (s)');
       expect(boxes[0].props.plaintextOutput).toBe('1734262497.53');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
 
       // timestamp (ms) box
       expect(boxes[1].props.name).toBe('timestamp (ms)');
       expect(boxes[1].props.plaintextOutput).toBe('1734262497530');
       expect(boxes[1].props.priority).toBe(10);
-      expect(boxes[1].component).toBe(DefaultBox);
+      expect(boxes[1].component).toBe(DefaultBoxTemplate);
     });
   });
 });

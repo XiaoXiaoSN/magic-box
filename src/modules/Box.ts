@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 
 export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
@@ -69,7 +69,7 @@ export class BoxBuilder {
     return this;
   }
 
-  setComponent(component?: BoxComponent) {
+  setTemplate(component?: BoxComponent) {
     this.component = component;
     return this;
   }
@@ -83,7 +83,7 @@ export class BoxBuilder {
         options: this.options,
         onClick: this.onClick,
       },
-      component: this.component ?? DefaultBox,
+      component: this.component ?? DefaultBoxTemplate,
     };
   }
 }

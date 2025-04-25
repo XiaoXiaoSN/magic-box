@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { DateCalculateBoxSource } from '../DateCalculateBox';
@@ -134,7 +134,7 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-21');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
     });
 
     it('should generate correct box for subtraction format', async () => {

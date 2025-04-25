@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { CronExpressionBoxSource } from '../CronExpressionBox';
@@ -42,7 +42,7 @@ describe('CronExpressionBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Cron Expression');
       expect(boxes[0].props.plaintextOutput).toBe('Every minute');
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
     });
   });
 });

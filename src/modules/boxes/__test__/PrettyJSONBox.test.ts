@@ -1,4 +1,4 @@
-import { CodeBox } from '@components/Boxes';
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { PrettyJSONBoxSource } from '../PrettyJSONBox';
@@ -69,7 +69,7 @@ describe('PrettyJSONBoxSource', () => {
     }
 }`;
       expect(boxes[0].props.plaintextOutput).toBe(expectedOutput);
-      expect(boxes[0].component).toBe(CodeBox);
+      expect(boxes[0].component).toBe(CodeBoxTemplate);
     });
   });
 });

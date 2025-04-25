@@ -1,4 +1,4 @@
-import { KeyValueBox } from '@components/Boxes';
+import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { decodeBase64 } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
@@ -58,7 +58,7 @@ export const K8sSecretBoxSource = {
     return [
       new BoxBuilder('Kubernetes Secret', '')
         .setOptions(match.data)
-        .setComponent(KeyValueBox)
+        .setTemplate(KeyValueBoxTemplate)
         .setPriority(PriorityK8sSecret)
         .build(),
     ];

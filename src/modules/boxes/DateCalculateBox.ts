@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
@@ -118,7 +118,7 @@ export const DateCalculateBoxSource = {
     return [
       new BoxBuilder('Date Calculate', result)
         .setPriority(PriorityDateCalculate)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .setOptions({
           fromDate,
           toDate,

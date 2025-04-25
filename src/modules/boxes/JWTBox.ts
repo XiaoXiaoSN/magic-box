@@ -1,4 +1,4 @@
-import { CodeBox } from '@components/Boxes';
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 import { jwtDecode } from 'jwt-decode';
@@ -37,7 +37,7 @@ export const JWTBoxSource = {
     return [
       new BoxBuilder('JWT Decode', jwtStr)
         .setOptions({ language: 'json' })
-        .setComponent(CodeBox)
+        .setTemplate(CodeBoxTemplate)
         .setPriority(PriorityJWT)
         .build(),
     ];

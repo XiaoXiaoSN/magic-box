@@ -10,7 +10,7 @@ import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
 import boxStyles from './styles';
 
-const NotingMatchBox = () => (
+const NotingMatchBoxTemplate = () => (
   <Grid item xs={12} sm={12} sx={boxStyles.grid} zeroMinWidth>
     <Paper elevation={3} sx={boxStyles.paper}>
       <Typography sx={boxStyles.paperTypography}>nothing match</Typography>
@@ -18,7 +18,7 @@ const NotingMatchBox = () => (
   </Grid>
 );
 
-const DefaultBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
+const DefaultBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
@@ -41,7 +41,7 @@ const DefaultBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   </Grid>
 );
 
-const CodeBox = ({
+const CodeBoxTemplate = ({
   name, plaintextOutput, options, onClick,
 }: BoxProps) => {
   let language = 'yaml';
@@ -80,7 +80,7 @@ const CodeBox = ({
   );
 };
 
-const QRCodeBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
+const QRCodeBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
     item
     xs={12}
@@ -101,7 +101,7 @@ const QRCodeBox = ({ name, plaintextOutput, onClick }: BoxProps) => (
   </Grid>
 );
 
-const ShortenURLBox = ({ name, plaintextOutput, onClick }: BoxProps) => {
+const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => {
   const [shortURL, setShortURL] = useState('');
 
   const getShortenURL = async (inputURL: string) => {
@@ -161,7 +161,7 @@ const ShortenURLBox = ({ name, plaintextOutput, onClick }: BoxProps) => {
   );
 };
 
-const KeyValueBox = ({
+const KeyValueBoxTemplate = ({
   name, plaintextOutput, options, onClick,
 }: BoxProps) => {
   const data: Record<string, string> = {};
@@ -269,10 +269,10 @@ const KeyValueBox = ({
 };
 
 export {
-  CodeBox,
-  DefaultBox,
-  KeyValueBox,
-  NotingMatchBox,
-  QRCodeBox,
-  ShortenURLBox,
+  CodeBoxTemplate,
+  DefaultBoxTemplate,
+  KeyValueBoxTemplate,
+  NotingMatchBoxTemplate,
+  QRCodeBoxTemplate,
+  ShortenURLBoxTemplate,
 };

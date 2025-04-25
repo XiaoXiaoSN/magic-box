@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import {
   Box, BoxBuilder, BoxOptions, extractOptionKeys,
@@ -81,7 +81,7 @@ export const ShortenURLBoxSource = {
     const { shortenURL } = match;
     return [
       new BoxBuilder('Shorten URL', shortenURL)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityShortenURL)
         .build(),
     ];

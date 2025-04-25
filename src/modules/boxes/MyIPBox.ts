@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
@@ -73,7 +73,7 @@ export const MyIPBoxSource = {
     return [
       new BoxBuilder('My IP', displayText)
         .setPriority(PriorityMyIP)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
     ];
   },

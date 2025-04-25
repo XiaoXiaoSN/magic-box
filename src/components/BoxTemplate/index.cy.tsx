@@ -1,14 +1,14 @@
 import { mount } from 'cypress/react18';
 import React from 'react';
 
-import { ShortenURLBox } from './index';
+import { ShortenURLBoxTemplate } from './index';
 
-describe('<ShortenURLBox />', () => {
+describe('<ShortenURLBoxTemplate />', () => {
   it('renders', () => {
     const stubOnClick = cy.stub();
 
     mount(
-      <ShortenURLBox
+      <ShortenURLBoxTemplate
         name="TITLE"
         plaintextOutput="https://example.com"
         options={null}

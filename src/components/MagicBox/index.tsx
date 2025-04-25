@@ -1,4 +1,4 @@
-import { NotingMatchBox } from '@components/Boxes';
+import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
@@ -152,7 +152,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
           );
         })
       ) : (
-        <NotingMatchBox />
+        <NotingMatchBoxTemplate />
       )}
       <CustomizedSnackbar notify={notify} />
     </>

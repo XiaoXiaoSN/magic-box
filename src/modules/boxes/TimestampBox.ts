@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isNumeric } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
@@ -60,7 +60,7 @@ export const TimestampBoxSource = {
       resp.push(
         new BoxBuilder('RFC 3339', date.toISOString())
           .setPriority(PriorityRFC3339)
-          .setComponent(DefaultBox)
+          .setTemplate(DefaultBoxTemplate)
           .build(),
       );
     }
@@ -68,7 +68,7 @@ export const TimestampBoxSource = {
       resp.push(
         new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString())
           .setPriority(PriorityRFC3339)
-          .setComponent(DefaultBox)
+          .setTemplate(DefaultBoxTemplate)
           .build(),
       );
     }

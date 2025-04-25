@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { MathExpressionBoxSource } from '../MathExpressionBox';
@@ -55,7 +55,7 @@ describe('MathExpressionBoxSource', () => {
       expect(boxes[0].props.priority).toBe(10); // PriorityMathExpression value
       expect(boxes[0].props.name).toBe('Math Expression');
       expect(boxes[0].props.plaintextOutput).toBe('4');
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
     });
   });
 });

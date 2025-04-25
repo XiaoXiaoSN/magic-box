@@ -1,4 +1,4 @@
-import { CodeBox } from '@components/Boxes';
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isJSON, isString, trim } from '@functions/helper';
 import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
 
@@ -46,7 +46,7 @@ export const PrettyJSONBoxSource = {
     return [
       new BoxBuilder('Pretty JSON', jsonStr)
         .setOptions(options)
-        .setComponent(CodeBox)
+        .setTemplate(CodeBoxTemplate)
         .setPriority(PriorityPrettyJSON)
         .build(),
     ];

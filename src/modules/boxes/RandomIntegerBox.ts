@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import crypto from '@functions/crypto';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
@@ -67,7 +67,7 @@ export const RandomIntegerBoxSource = {
 
     return [
       new BoxBuilder('Random Number', randomInRange.toString())
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityRandomBox)
         .setOptions({
           min: match.min.toString(),

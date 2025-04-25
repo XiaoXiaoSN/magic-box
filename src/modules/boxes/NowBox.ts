@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 
@@ -39,14 +39,14 @@ export const NowBoxSource = {
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
         .setPriority(PriorityRFC3339)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
       new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
         .setPriority(PriorityRFC3339)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
       new BoxBuilder('Timestamp (s)', (timestamp / 1000).toString())
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .build(),
     ];
   },

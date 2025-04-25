@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { Box, BoxBuilder } from '@modules/Box';
 import { evaluate } from 'mathjs';
@@ -54,7 +54,7 @@ export const MathExpressionBoxSource = {
     const { answer } = match;
     return [
       new BoxBuilder('Math Expression', answer)
-        .setComponent(DefaultBox)
+        .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityMathExpression)
         .build(),
     ];

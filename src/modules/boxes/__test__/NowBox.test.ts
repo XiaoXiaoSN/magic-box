@@ -1,4 +1,4 @@
-import { DefaultBox } from '@components/Boxes';
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
 import { NowBoxSource } from '../NowBox';
@@ -62,17 +62,17 @@ describe('NowBoxSource', () => {
       // RFC 3339 box
       expect(boxes[0].props.name).toBe('RFC 3339');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-01T00:00:00.000Z');
-      expect(boxes[0].component).toBe(DefaultBox);
+      expect(boxes[0].component).toBe(DefaultBoxTemplate);
 
       // RFC 3339 (UTC+8) box
       expect(boxes[1].props.name).toBe('RFC 3339 (UTC+8)');
       expect(boxes[1].props.plaintextOutput).toBe('2024-01-01T08:00:00.000+08:00');
-      expect(boxes[1].component).toBe(DefaultBox);
+      expect(boxes[1].component).toBe(DefaultBoxTemplate);
 
       // Timestamp box
       expect(boxes[2].props.name).toBe('Timestamp (s)');
       expect(boxes[2].props.plaintextOutput).toBe('1704067200');
-      expect(boxes[2].component).toBe(DefaultBox);
+      expect(boxes[2].component).toBe(DefaultBoxTemplate);
     });
   });
 });
