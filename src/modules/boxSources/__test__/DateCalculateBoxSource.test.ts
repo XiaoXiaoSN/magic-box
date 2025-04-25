@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect, it } from '@jest/globals';
 
-import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBox';
+import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBoxSource';
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {

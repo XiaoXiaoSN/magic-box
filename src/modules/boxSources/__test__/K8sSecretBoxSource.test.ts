@@ -1,7 +1,7 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { K8sSecretBoxSource } from '../K8sSecretBox';
+import { K8sSecretBoxSource } from '../K8sSecretBoxSource';
 
 describe('K8sSecretBoxSource', () => {
   const validSecretYaml = `

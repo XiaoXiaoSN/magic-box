@@ -1,7 +1,7 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { PrettyJSONBoxSource } from '../PrettyJSONBox';
+import { PrettyJSONBoxSource } from '../PrettyJSONBoxSource';
 
 describe('PrettyJSONBoxSource', () => {
   describe('checkMatch', () => {

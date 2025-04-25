@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { RandomIntegerBoxSource } from '../RandomIntegerBox';
+import { RandomIntegerBoxSource } from '../RandomIntegerBoxSource';
 
 describe('RandomIntegerBoxSource', () => {
   describe('checkMatch', () => {

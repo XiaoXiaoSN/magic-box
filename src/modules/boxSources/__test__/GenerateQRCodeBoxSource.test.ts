@@ -1,7 +1,7 @@
 import { QRCodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { GenerateQRCodeBoxSource } from '../GenerateQRCodeBox';
+import { GenerateQRCodeBoxSource } from '../GenerateQRCodeBoxSource';
 
 describe('GenerateQRCodeBoxSource', () => {
   describe('checkMatch', () => {

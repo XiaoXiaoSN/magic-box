@@ -1,7 +1,7 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { JWTBoxSource } from '../JWTBox';
+import { JWTBoxSource } from '../JWTBoxSource';
 
 describe('JWTBoxSource', () => {
   const validJWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';

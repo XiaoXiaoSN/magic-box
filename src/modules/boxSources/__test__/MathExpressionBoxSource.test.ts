@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { MathExpressionBoxSource } from '../MathExpressionBox';
+import { MathExpressionBoxSource } from '../MathExpressionBoxSource';
 
 describe('MathExpressionBoxSource', () => {
   describe('checkMatch', () => {

@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { TimestampBoxSource } from '../TimestampBox';
+import { TimestampBoxSource } from '../TimestampBoxSource';
 
 describe('TimestampBoxSource', () => {
   describe('checkMatch', () => {

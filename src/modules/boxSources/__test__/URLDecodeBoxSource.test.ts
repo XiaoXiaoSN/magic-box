@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { URLDecodeBoxSource } from '../URLDecodeBox';
+import { URLDecodeBoxSource } from '../URLDecodeBoxSource';
 
 describe('URLDecodeBoxSource', () => {
   describe('checkMatch', () => {

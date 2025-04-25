@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { CronExpressionBoxSource } from '../CronExpressionBox';
+import { CronExpressionBoxSource } from '../CronExpressionBoxSource';
 
 describe('CronExpressionBoxSource', () => {
   describe('checkMatch', () => {

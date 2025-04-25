@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { NowBoxSource } from '../NowBox';
+import { NowBoxSource } from '../NowBoxSource';
 
 describe('NowBoxSource', () => {
   describe('checkMatch', () => {

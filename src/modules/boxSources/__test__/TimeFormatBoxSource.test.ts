@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { TimeFormatBoxSource } from '../TimeFormatBox';
+import { TimeFormatBoxSource } from '../TimeFormatBoxSource';
 
 describe('TimeFormatBoxSource', () => {
   describe('checkMatch', () => {

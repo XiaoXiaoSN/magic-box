@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from '@jest/globals';
 
-import { MyIPBoxSource } from '../MyIPBox';
+import { MyIPBoxSource } from '../MyIPBoxSource';
 
 // Mock fetch
 global.fetch = jest.fn();
