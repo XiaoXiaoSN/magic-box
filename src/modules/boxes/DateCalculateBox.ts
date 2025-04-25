@@ -22,9 +22,7 @@ export const DateCalculateBoxSource = {
       return undefined;
     }
 
-    const fromDate = addMatch[1].toLowerCase() === 'now'
-      ? new Date()
-      : new Date(addMatch[2]);
+    const fromDate = addMatch[1].toLowerCase() === 'now' ? new Date() : new Date(addMatch[2]);
 
     if (Number.isNaN(fromDate.getTime())) {
       return undefined;
@@ -74,7 +72,7 @@ export const DateCalculateBoxSource = {
     const daysDiff = Math.round(timeDiff / (1000 * 3600 * 24));
 
     return {
-      result: `${daysDiff} days`,
+      result: `${daysDiff} ${Math.abs(daysDiff) > 1 ? 'days' : 'day'}`,
       fromDate: fromDate.toISOString().split('T')[0],
       toDate: toDate.toISOString().split('T')[0],
       days: daysDiff,
