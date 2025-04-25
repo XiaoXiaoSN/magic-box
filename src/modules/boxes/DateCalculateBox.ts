@@ -12,24 +12,49 @@ interface Match {
   operation: string;
 }
 
+// regex pattern for date calculation
+const MONTH = '(?:0?[1-9]|1[0-2]|Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
+const DAY = '(?:0?[1-9]|[12][0-9]|3[01])';
+const DATE = [
+  'today',
+  'now',
+  `\\d{4}-${MONTH}-${DAY}`, // 2025-04-25
+  `\\d{4}/${MONTH}/${DAY}`, // 2025/04/25
+  `${MONTH}-${DAY}-\\d{4}`, // 04/25/2025
+  `\\d{4}-${MONTH}-${DAY}T\\d{2}:\\d{2}:\\d{2}Z?`, // 2025-04-25T12:00:00Z
+  `\\d{4}-${MONTH}-${DAY}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z?`, // 2025-04-25T12:00:00Z
+  `\\d{4}-${MONTH}-${DAY} \\d{2}:\\d{2}:\\d{2}`, // 2025-04-25 12:00:00
+  '\\d{13}', // timestamp like 1682419200000
+].join('|');
+const OPERATOR = '[+-]';
+const NUMBER = '\\d+';
+const UNIT = 'd(ay(s)?)?';
+
+const ADD_PATTERN = new RegExp(`^(${DATE})\\s*(${OPERATOR})\\s*(${NUMBER})${UNIT}$`, 'i');
+const DIFF_PATTERN = new RegExp(`^(${DATE})\\s+to\\s+(${DATE})$`, 'i');
+
+const parseDate = (s: string): Date => {
+  if (s.toLowerCase() === 'now' || s.toLowerCase() === 'today') {
+    return new Date();
+  }
+  return new Date(s);
+};
+
 export const DateCalculateBoxSource = {
   // Deal with the pattern of `now + 20d` or `2024-10-31 + 30d`
   checkAddSubtractPattern(input: string): Match | undefined {
-    const addPattern = /^(now|(\d{4}-\d{2}-\d{2}))\s*([+-])\s*(\d+)([dD])$/i;
-    const addMatch = input.match(addPattern);
-
+    const addMatch = input.match(ADD_PATTERN);
     if (!addMatch) {
       return undefined;
     }
 
-    const fromDate = addMatch[1].toLowerCase() === 'now' ? new Date() : new Date(addMatch[2]);
-
+    const fromDate = parseDate(addMatch[1]);
     if (Number.isNaN(fromDate.getTime())) {
       return undefined;
     }
 
-    const operation = addMatch[3];
-    const days = parseInt(addMatch[4], 10);
+    const operation = addMatch[2];
+    const days = parseInt(addMatch[3], 10);
     const resultDate = new Date(fromDate);
 
     if (operation === '+') {
@@ -49,22 +74,17 @@ export const DateCalculateBoxSource = {
 
   // Deal with the pattern of `now to 2025-10-31` or `2024-10-31 to now`
   checkDateDiffPattern(input: string): Match | undefined {
-    const diffPattern = /^(now|(\d{4}-\d{2}-\d{2}))\s+to\s+(now|(\d{4}-\d{2}-\d{2}))$/i;
-    const diffMatch = input.match(diffPattern);
-
+    const diffMatch = input.match(DIFF_PATTERN);
     if (!diffMatch) {
       return undefined;
     }
 
-    const fromDate = diffMatch[1].toLowerCase() === 'now'
-      ? new Date()
-      : new Date(diffMatch[2] || diffMatch[1]);
-
-    const toDate = diffMatch[3].toLowerCase() === 'now'
-      ? new Date()
-      : new Date(diffMatch[4] || diffMatch[3]);
-
-    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    const fromDate = parseDate(diffMatch[1]);
+    if (Number.isNaN(fromDate.getTime())) {
+      return undefined;
+    }
+    const toDate = parseDate(diffMatch[2]);
+    if (Number.isNaN(toDate.getTime())) {
       return undefined;
     }
 
@@ -131,3 +151,7 @@ export const DateCalculateBoxSource = {
 };
 
 export default DateCalculateBoxSource;
+export const exportedForTesting = {
+  DATE,
+  parseDate,
+};

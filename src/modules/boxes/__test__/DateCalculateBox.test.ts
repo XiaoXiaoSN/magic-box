@@ -1,7 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect } from '@jest/globals';
+import { expect, it } from '@jest/globals';
 
-import { DateCalculateBoxSource } from '../DateCalculateBox';
+import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBox';
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {
@@ -13,11 +13,31 @@ describe('DateCalculateBoxSource', () => {
     jest.useRealTimers();
   });
 
+  describe('parseDate', () => {
+    it.each([
+      ['2024-01-01'],
+      ['2024/01/01'],
+      ['2024-01-01T00:00:00Z'],
+      ['2024-01-01T00:00:00.00Z'],
+      ['2024-01-01 00:00:00'],
+      ['now'],
+    ])('should successfully parse difference formats', (dateString: string) => {
+      const DATE_PATTERN = new RegExp(exportedForTesting.DATE, 'i');
+      const match = dateString.match(DATE_PATTERN);
+      expect(match).toBeTruthy();
+      if (match) {
+        const parsedDate = exportedForTesting.parseDate(dateString);
+        expect(parsedDate).toBeInstanceOf(Date);
+        expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
+      }
+    });
+  });
+
   describe('checkAddSubtractPattern', () => {
     it('should return undefined for non-matching input', () => {
       expect(DateCalculateBoxSource.checkAddSubtractPattern('')).toBeUndefined();
       expect(DateCalculateBoxSource.checkAddSubtractPattern('invalid')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('2024/01/01 + 20d')).toBeUndefined();
+      expect(DateCalculateBoxSource.checkAddSubtractPattern('2024/01-01 + 20d')).toBeUndefined();
     });
 
     it('should handle "now + days" format', () => {
@@ -61,7 +81,7 @@ describe('DateCalculateBoxSource', () => {
     it('should return undefined for non-matching input', () => {
       expect(DateCalculateBoxSource.checkDateDiffPattern('')).toBeUndefined();
       expect(DateCalculateBoxSource.checkDateDiffPattern('invalid')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkDateDiffPattern('2024/01/01 to 2025/01/01')).toBeUndefined();
+      expect(DateCalculateBoxSource.checkDateDiffPattern('2024/01-01 to 2025/01/01')).toBeUndefined();
     });
 
     it('should handle "now to specific date" format', () => {
@@ -104,8 +124,6 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should return undefined for invalid date format', () => {
-      expect(DateCalculateBoxSource.checkMatch('2024/01/01 + 20d')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkMatch('today + 20d')).toBeUndefined();
       expect(DateCalculateBoxSource.checkMatch('now + 20')).toBeUndefined();
     });
 
@@ -142,6 +160,40 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-10-01');
+    });
+
+    it('should support different types of day patterns', async () => {
+      let boxes = await DateCalculateBoxSource.generateBoxes('now + 20D');
+      expect(boxes[0].props.options).toEqual({
+        fromDate: '2024-01-01',
+        toDate: '2024-01-21',
+        days: '20',
+        operation: '+',
+      });
+
+      boxes = await DateCalculateBoxSource.generateBoxes('now + 20days');
+      expect(boxes[0]?.props?.options).toEqual({
+        fromDate: '2024-01-01',
+        toDate: '2024-01-21',
+        days: '20',
+        operation: '+',
+      });
+
+      boxes = await DateCalculateBoxSource.generateBoxes('now + 20day');
+      expect(boxes[0].props.options).toEqual({
+        fromDate: '2024-01-01',
+        toDate: '2024-01-21',
+        days: '20',
+        operation: '+',
+      });
+
+      boxes = await DateCalculateBoxSource.generateBoxes('now + 20DaYS');
+      expect(boxes[0].props.options).toEqual({
+        fromDate: '2024-01-01',
+        toDate: '2024-01-21',
+        days: '20',
+        operation: '+',
+      });
     });
 
     it('should generate correct box for difference format', async () => {
