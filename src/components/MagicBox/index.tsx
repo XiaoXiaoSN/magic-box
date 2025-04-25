@@ -1,8 +1,9 @@
-import { NotingMatchBox } from '@components/Boxes';
+import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
 import { Box, BoxOptions } from '@modules/Box';
+import { BoxSource } from '@modules/BoxSource';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
@@ -21,8 +22,7 @@ import {
   TimestampBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,
-} from '@modules/boxes';
-import { BoxSource } from '@modules/BoxSource';
+} from '@modules/boxSources';
 import React, { useEffect, useState } from 'react';
 
 const defaultBoxSources: BoxSource[] = [
@@ -152,7 +152,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
           );
         })
       ) : (
-        <NotingMatchBox />
+        <NotingMatchBoxTemplate />
       )}
       <CustomizedSnackbar notify={notify} />
     </>
