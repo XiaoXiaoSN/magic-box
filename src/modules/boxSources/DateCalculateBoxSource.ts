@@ -34,8 +34,19 @@ const ADD_PATTERN = new RegExp(`^(${DATE})\\s*(${OPERATOR})\\s*(${NUMBER})${UNIT
 const DIFF_PATTERN = new RegExp(`^(${DATE})\\s+to\\s+(${DATE})$`, 'i');
 
 const parseDate = (s: string): Date => {
-  if (s.toLowerCase() === 'now' || s.toLowerCase() === 'today') {
+  const dateString = s.toLowerCase();
+  if (dateString.toLowerCase() === 'now' || dateString.toLowerCase() === 'today') {
     return new Date();
+  }
+  if (dateString === 'tomorrow') {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return date;
+  }
+  if (dateString === 'yesterday') {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return date;
   }
   return new Date(s);
 };

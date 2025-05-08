@@ -21,6 +21,7 @@ describe('DateCalculateBoxSource', () => {
       ['2024-01-01T00:00:00.00Z'],
       ['2024-01-01 00:00:00'],
       ['now'],
+      ['today'],
     ])('should successfully parse difference formats', (dateString: string) => {
       const DATE_PATTERN = new RegExp(exportedForTesting.DATE, 'i');
       const match = dateString.match(DATE_PATTERN);
@@ -30,6 +31,18 @@ describe('DateCalculateBoxSource', () => {
         expect(parsedDate).toBeInstanceOf(Date);
         expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
       }
+    });
+
+    it('should parse `tomorrow`', () => {
+      const parsedDate = exportedForTesting.parseDate('tomorrow');
+      expect(parsedDate).toBeInstanceOf(Date);
+      expect(parsedDate.toDateString()).toMatch('Tue Jan 02 2024');
+    });
+
+    it('should parse `yesterday`', () => {
+      const parsedDate = exportedForTesting.parseDate('yesterday');
+      expect(parsedDate).toBeInstanceOf(Date);
+      expect(parsedDate.toDateString()).toMatch('Sun Dec 31 2023');
     });
   });
 
