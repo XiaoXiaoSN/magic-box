@@ -37,7 +37,7 @@ const QRCodeReaderWrapper = ({
   setResult,
   setShowReader,
 }: QRCodeReaderWrapperProps) => {
-  const lastResult = useRef<string>();
+  const lastResult = useRef<string>(null);
 
   const onReadResult: OnResultFunction = (result) => {
     if (!result) return;
