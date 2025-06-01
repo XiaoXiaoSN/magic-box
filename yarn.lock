@@ -8328,9 +8328,9 @@ makeerror@1.0.12:
     tmpl "1.0.5"
 
 mathjs@^14.2.0:
-  version "14.4.0"
-  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-14.4.0.tgz#023a2f53ab7680e2baf04edc112322f7c323c1ed"
-  integrity sha512-CpoYDhNENefjIG9wU9epr+0pBHzlaySfpWcblZdAf5qXik/j/U8eSmx/oNbmXO0F5PyfwPGVD/wK4VWsTho1SA==
+  version "14.5.2"
+  resolved "https://registry.yarnpkg.com/mathjs/-/mathjs-14.5.2.tgz#0f0aa8e7f11791aa3e26feff8d431b5d70c758e6"
+  integrity sha512-51U6hp7j4M4Rj+l+q2KbmXAV9EhQVQzUdw1wE67RnUkKKq5ibxdrl9Ky2YkSUEIc2+VU8/IsThZNu6QSHUoyTA==
   dependencies:
     "@babel/runtime" "^7.26.10"
     complex.js "^2.2.5"
