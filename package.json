@@ -10,7 +10,7 @@
     "@mui/material": "^5.16.9",
     "@types/node": "^22.13.0",
     "@types/react": "19.1.0",
-    "@types/react-dom": "19.1.0",
+    "@types/react-dom": "19.1.5",
     "base64-box": "file:wasmModules/base64-box/pkg",
     "cronstrue": "^2.41.0",
     "firebase": "^11.6.1",
