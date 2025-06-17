@@ -26,11 +26,9 @@ describe('DateCalculateBoxSource', () => {
       const DATE_PATTERN = new RegExp(exportedForTesting.DATE, 'i');
       const match = dateString.match(DATE_PATTERN);
       expect(match).toBeTruthy();
-      if (match) {
-        const parsedDate = exportedForTesting.parseDate(dateString);
-        expect(parsedDate).toBeInstanceOf(Date);
-        expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
-      }
+      const parsedDate = exportedForTesting.parseDate(dateString);
+      expect(parsedDate).toBeInstanceOf(Date);
+      expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
     });
 
     it('should parse `tomorrow`', () => {

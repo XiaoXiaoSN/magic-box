@@ -18,7 +18,7 @@ describe('<BaseLayout />', () => {
       .should('have.text', 'Magic Box');
     cy.get('[data-testid="footer"]').should(
       'have.text',
-      `© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`,
+      `© ${new Date().getFullYear()} Copyright: All Rights Reserved`,
     );
   });
 });

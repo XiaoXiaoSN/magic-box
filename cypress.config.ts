@@ -9,7 +9,7 @@ export default defineConfig({
   },
   component: {
     devServer: {
-      framework: 'create-react-app',
+      framework: 'react',
       bundler: 'webpack',
       // NOTE: different from webpackConfig, there is a extra wrap `resolve`.
       webpackConfig: {

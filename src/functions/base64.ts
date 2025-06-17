@@ -45,4 +45,4 @@ export function decodeBase64(base64String: string): DecodingResult {
   };
 }
 
-export default { decodeBase64 };
+export const base64 = { decodeBase64 };

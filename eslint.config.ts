@@ -1,71 +1,73 @@
-import { defineConfig } from "eslint/config";
-import react from "eslint-plugin-react";
-import typescriptEslint from "@typescript-eslint/eslint-plugin";
-import simpleImportSort from "eslint-plugin-simple-import-sort";
-import globals from "globals";
-import tsParser from "@typescript-eslint/parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
-import stylistic from "@stylistic/eslint-plugin-ts";
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { FlatCompat } from '@eslint/eslintrc';
+import js from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tsParser from '@typescript-eslint/parser';
+import { defineConfig } from 'eslint/config';
+import reactPlugin from 'eslint-plugin-react';
+import importSort from 'eslint-plugin-simple-import-sort';
+import globals from 'globals';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
+  resolvePluginsRelativeTo: __dirname,
 });
 
 export default defineConfig([
+  js.configs.recommended,
+  ...compat.extends(
+    'airbnb',
+    'airbnb/hooks',
+    '@kesills/airbnb-typescript',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+  ),
   {
-    extends: compat.extends(
-      "airbnb",
-      "@kesills/airbnb-typescript",
-      "airbnb/hooks",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:react/recommended"
-    ),
     plugins: {
-      react,
-      "@typescript-eslint": typescriptEslint,
-      "simple-import-sort": simpleImportSort,
-      "@stylistic/ts": stylistic,
+      '@typescript-eslint': tsPlugin,
+      react: reactPlugin,
+      'simple-import-sort': importSort,
+      '@stylistic': stylistic,
     },
     languageOptions: {
-      globals: {
-        ...globals.browser,
-      },
-      parser: tsParser as any,
-      ecmaVersion: "latest",
-      sourceType: "module",
+      parser: tsParser,
       parserOptions: {
-        project: ["tsconfig.json"],
+        project: ['tsconfig.json'],
+        ecmaVersion: 'latest',
+        sourceType: 'module',
         ecmaFeatures: {
           jsx: true,
         },
       },
+      globals: {
+        ...globals.browser,
+      },
     },
     rules: {
-      "import/no-extraneous-dependencies": [
-        "error",
+      '@typescript-eslint/no-use-before-define': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'import/no-extraneous-dependencies': [
+        'error',
         {
           devDependencies: true,
         },
       ],
-      "react/function-component-definition": [
-        "error",
+      'react/function-component-definition': [
+        'error',
         {
-          namedComponents: "arrow-function",
-          unnamedComponents: "arrow-function",
+          namedComponents: 'arrow-function',
+          unnamedComponents: 'arrow-function',
         },
       ],
-      "@typescript-eslint/no-use-before-define": "warn",
-      "simple-import-sort/imports": "error",
-      "simple-import-sort/exports": "error",
-      "@stylistic/ts/brace-style": ["error", "1tbs", { allowSingleLine: true }],
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+      '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
     },
   },
 ]);
