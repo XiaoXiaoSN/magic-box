@@ -31,6 +31,8 @@ jobs:
 
       - name: Cypress run
         uses: cypress-io/github-action@v6
+        env:
+          CYPRESS_DEBUG: 1
         with:
           component: true
           start: yarn start
