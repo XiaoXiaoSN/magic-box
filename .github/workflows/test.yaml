@@ -19,7 +19,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run tests
-        run: yarn test
+        run: pnpm test
 
   cypress:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
           CYPRESS_DEBUG: 1
         with:
           component: true
-          start: yarn start
+          start: pnpm start
           wait-on: http://localhost:3000
 
       - uses: actions/upload-artifact@v4

@@ -12,16 +12,17 @@ runs:
       run: |
         find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} +
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-        cache: yarn
-
-    - name: Setup yarn
-      shell: bash
-      run: npm install -g yarn
+        cache: pnpm
 
     - name: Install dependencies
       shell: bash
-      run: yarn install --immutable
+      run: pnpm install --frozen-lockfile

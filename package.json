@@ -78,7 +78,7 @@
     "cypress": "cypress open",
     "lint": "eslint --version && eslint src --ext .ts,.tsx",
     "lint:fix": "eslint --version && eslint src --fix --ext .js,.jsx,.ts,.tsx",
-    "reload": "yarn install --check-files"
+    "reload": "pnpm install --force"
   },
   "browserslist": {
     "production": [
