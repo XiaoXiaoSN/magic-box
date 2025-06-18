@@ -9,6 +9,7 @@ export default {
     color: theme.palette.text.secondary,
     border: '1px solid #cdc9c3',
     borderRadius: '5px',
+    backgroundColor: theme.palette.background.paper,
   }),
   paperTypography: {
     textAlign: 'center',
