@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -23,12 +23,13 @@
     "paths": {
       "@components/*": ["./components/*"],
       "@functions/*": ["./functions/*"],
+      "@global*": ["./global/*"],
       "@modules/*": ["./modules/*"],
       "@pages/*": ["./pages/*"]
     }
   },
   "include": [
-    "craco.config.ts",
+    "vite.config.ts",
     "cypress.config.ts",
     "eslint.config.ts",
     "webpack.config.ts",

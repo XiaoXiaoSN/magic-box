@@ -1,4 +1,5 @@
 import { isString } from '@functions/helper';
+import env from '@global/env';
 import { BoxProps } from '@modules/Box';
 import {
   Box, Grid, Paper, Typography,
@@ -105,9 +106,7 @@ const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => 
   const [shortURL, setShortURL] = useState('');
 
   const getShortenURL = async (inputURL: string) => {
-    const toolBoxHost = process.env.TOOLBOX ?? 'https://tool.10oz.tw';
-
-    await fetch(`${toolBoxHost}/api/v1/surl`, {
+    await fetch(`${env.TOOLBOX}/api/v1/surl`, {
       method: 'POST',
       body: JSON.stringify({
         url: inputURL,
@@ -128,7 +127,7 @@ const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => 
           throw Error('The "Shorten URL" not response as expected');
         }
 
-        setShortURL(`${toolBoxHost}/${result.shorten}`);
+        setShortURL(`${env.TOOLBOX}/${result.shorten}`);
       });
   };
 

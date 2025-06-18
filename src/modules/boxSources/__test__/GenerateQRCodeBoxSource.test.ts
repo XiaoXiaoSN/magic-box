@@ -1,5 +1,5 @@
 import { QRCodeBoxTemplate } from '@components/BoxTemplate';
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 
 import { GenerateQRCodeBoxSource } from '../GenerateQRCodeBoxSource';
 

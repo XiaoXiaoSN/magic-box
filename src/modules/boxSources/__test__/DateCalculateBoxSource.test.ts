@@ -1,16 +1,16 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect, it } from '@jest/globals';
+import { expect, it, vi } from 'vitest';
 
 import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBoxSource';
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('parseDate', () => {

@@ -1,5 +1,5 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect } from '@jest/globals';
+import { expect } from 'vitest';
 
 import { CronExpressionBoxSource } from '../CronExpressionBoxSource';
 
