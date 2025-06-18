@@ -1,10 +1,10 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect } from '@jest/globals';
+import { expect, vi } from 'vitest';
 
 import { MyIPBoxSource } from '../MyIPBoxSource';
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('MyIPBoxSource', () => {
   const mockIPInfo = {
@@ -20,7 +20,7 @@ describe('MyIPBoxSource', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('checkMatch', () => {
@@ -34,7 +34,7 @@ describe('MyIPBoxSource', () => {
     });
 
     it('should return IP info when API call is successful', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as vi.Mock).mockResolvedValueOnce({
         json: () => Promise.resolve(mockIPInfo),
       });
 
@@ -46,14 +46,14 @@ describe('MyIPBoxSource', () => {
     });
 
     it('should return undefined when API call fails', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('API Error'));
+      (global.fetch as vi.Mock).mockRejectedValueOnce(new Error('API Error'));
 
       const result = await MyIPBoxSource.checkMatch('ip');
       expect(result).toBeUndefined();
     });
 
     it('should work with both "ip" and "myip" inputs', async () => {
-      (global.fetch as jest.Mock)
+      (global.fetch as vi.Mock)
         .mockResolvedValueOnce({
           json: () => Promise.resolve(mockIPInfo),
         })
@@ -76,7 +76,7 @@ describe('MyIPBoxSource', () => {
     });
 
     it('should generate box with correct display text', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (global.fetch as vi.Mock).mockResolvedValueOnce({
         json: () => Promise.resolve(mockIPInfo),
       });
 

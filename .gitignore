@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+cypress/screenshots
 
 # production
 /build
@@ -27,3 +28,4 @@ firebase-debug.log*
 
 # Vite PWA dev files
 /dev-dist
+.env.local

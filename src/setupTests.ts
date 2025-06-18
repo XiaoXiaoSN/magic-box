@@ -4,7 +4,18 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
-// ref: https://stackoverflow.com/a/68468204/6695274
-import { TextDecoder, TextEncoder } from 'util';
+import * as matchers from '@testing-library/jest-dom/matchers';
+import { cleanup } from '@testing-library/react';
+import { afterEach, expect } from 'vitest';
 
-Object.assign(global, { TextDecoder, TextEncoder });
+// Extend Vitest's expect with jest-dom matchers
+expect.extend(matchers);
+
+// Clean up after each test
+afterEach(() => {
+  cleanup();
+});
+
+// Add TextEncoder and TextDecoder to global
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;

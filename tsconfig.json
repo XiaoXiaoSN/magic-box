@@ -23,6 +23,7 @@
     "paths": {
       "@components/*": ["./components/*"],
       "@functions/*": ["./functions/*"],
+      "@global*": ["./global/*"],
       "@modules/*": ["./modules/*"],
       "@pages/*": ["./pages/*"]
     }

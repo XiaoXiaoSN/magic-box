@@ -1,17 +1,17 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect } from '@jest/globals';
+import { expect, vi } from 'vitest';
 
 import { NowBoxSource } from '../NowBoxSource';
 
 describe('NowBoxSource', () => {
   describe('checkMatch', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should return undefined for non-"now" input', () => {
@@ -42,12 +42,12 @@ describe('NowBoxSource', () => {
 
   describe('generateBoxes', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should return empty array for non-matching input', async () => {

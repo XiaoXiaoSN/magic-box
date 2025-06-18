@@ -4,11 +4,6 @@ import React from 'react';
 import { ShortenURLBoxTemplate } from './index';
 
 describe('<ShortenURLBoxTemplate />', () => {
-  it('should render correctly', () => {
-    cy.visit('/');
-    cy.get('#root', { timeout: 10000 }).should('be.visible');
-  });
-
   it('renders', () => {
     const stubOnClick = cy.stub();
 

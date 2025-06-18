@@ -1,3 +1,5 @@
+/// <reference types="vitest" />
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa'
@@ -5,6 +7,28 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@components': path.resolve(__dirname, './src/components'),
+      '@functions': path.resolve(__dirname, './src/functions'),
+      '@global': path.resolve(__dirname, './src/global'),
+      '@modules': path.resolve(__dirname, './src/modules'),
+      '@pages': path.resolve(__dirname, './src/pages'),
+    },
+  },
+  server: {
+    port: 3000,
+  },
+  build: {
+    outDir: 'build',
+    sourcemap: true,
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/setupTests.ts'],
+    include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
+  },
   plugins: [
     react(),
     VitePWA({
@@ -78,21 +102,6 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      '@components': path.resolve(__dirname, './src/components'),
-      '@functions': path.resolve(__dirname, './src/functions'),
-      '@modules': path.resolve(__dirname, './src/modules'),
-      '@pages': path.resolve(__dirname, './src/pages'),
-    },
-  },
-  server: {
-    port: 3000,
-  },
-  build: {
-    outDir: 'build',
-    sourcemap: true,
-  },
   // Handle WASM modules
   optimizeDeps: {
     exclude: ['base64-box'],
