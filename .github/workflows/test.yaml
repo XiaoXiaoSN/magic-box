@@ -29,6 +29,9 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
+      - name: Install Cypress
+        run: pnpm exec cypress install
+
       - name: Cypress run
         uses: cypress-io/github-action@v6
         env:
