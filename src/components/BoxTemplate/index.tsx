@@ -12,7 +12,7 @@ import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import boxStyles from './styles';
 
 const NotingMatchBoxTemplate = () => (
-  <Grid item xs={12} sm={12} sx={boxStyles.grid} zeroMinWidth>
+  <Grid size={{ xs: 12, sm: 12 }} sx={boxStyles.grid}>
     <Paper elevation={3} sx={boxStyles.paper}>
       <Typography sx={boxStyles.paperTypography}>nothing match</Typography>
     </Paper>
@@ -21,11 +21,8 @@ const NotingMatchBoxTemplate = () => (
 
 const DefaultBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
-    item
-    xs={12}
-    sm={12}
+    size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
-    zeroMinWidth
     onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
@@ -56,11 +53,8 @@ const CodeBoxTemplate = ({
 
   return (
     <Grid
-      item
-      xs={12}
-      sm={12}
+      size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      zeroMinWidth
       onClick={() => onClick(plaintextOutput)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
@@ -83,11 +77,8 @@ const CodeBoxTemplate = ({
 
 const QRCodeBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
   <Grid
-    item
-    xs={12}
-    sm={12}
+    size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
-    zeroMinWidth
     onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
@@ -138,11 +129,8 @@ const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => 
 
   return (
     <Grid
-      item
-      xs={12}
-      sm={12}
+      size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      zeroMinWidth
       onClick={() => onClick(shortURL)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
@@ -199,11 +187,9 @@ const KeyValueBoxTemplate = ({
 
   return (
     <Grid
-      item
-      xs={12}
-      sm={12}
+      component="div"
+      size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      zeroMinWidth
       onClick={handleTableClick}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
@@ -213,7 +199,7 @@ const KeyValueBoxTemplate = ({
         <Box sx={{ width: '100%', overflow: 'auto', mt: 2 }}>
           <Grid container spacing={1}>
             {Object.entries(data).map(([key, value]) => (
-              <Grid item xs={12} key={key}>
+              <Grid size={12} key={key}>
                 <Paper
                   variant="outlined"
                   sx={{

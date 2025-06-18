@@ -21,57 +21,64 @@ const MagicBoxPage = () => {
 
   // NOTE: material typed defined only support `xs`, `sm`...
   // https://mui.com/material-ui/api/container/#props
-  const containerMaxWidth = '95vw' as never;
+  const containerMaxWidth = '100vw' as never;
 
   return (
     <Container maxWidth={containerMaxWidth}>
       <Grid container spacing={1.5} sx={{ marginTop: '20px', padding: '30px' }}>
         {/* Magic Box Input */}
-        <Grid item xs={12} sm={12} md={6} sx={{ position: 'relative' }}>
-          <TextField
-            inputRef={inputRef}
-            id="magicInput"
-            name="magicInput"
-            multiline
-            autoFocus
-            fullWidth
-            rows={7}
-            onChange={(e) => {
-              setUserInput(e.target.value);
-            }}
-            sx={{ fontSize: '1.25rem' }} // this style attr not work
-            variant="outlined"
-          />
-
-          <Box
-            sx={{
-              position: 'absolute',
-              right: 0,
-              bottom: 0,
-              lineHeight: 0,
-            }}
-          >
-            <Suspense fallback={<div />}>
-              <QRCodeReader
-                sxIcon={{ m: 1, color: '#666666' }}
-                setUserInput={(input) => {
-                  if (inputRef.current) {
-                    inputRef.current.value = input as string;
-                    setUserInput(input);
-                  }
-                }}
-              />
-            </Suspense>
+        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
+          <Box sx={{ position: 'relative' }}>
+            <TextField
+              inputRef={inputRef}
+              id="magicInput"
+              name="magicInput"
+              multiline
+              autoFocus
+              fullWidth
+              rows={7}
+              onChange={(e) => {
+                setUserInput(e.target.value);
+              }}
+              sx={{
+                fontSize: '1.25rem',
+                '& .MuiInputBase-input': {
+                  fontSize: '1.25rem',
+                },
+              }}
+              variant="outlined"
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                lineHeight: 0,
+              }}
+            >
+              <Suspense fallback={<div />}>
+                <QRCodeReader
+                  sxIcon={{ m: 1, color: '#666666' }}
+                  setUserInput={(input) => {
+                    if (inputRef.current) {
+                      inputRef.current.value = input as string;
+                      setUserInput(input);
+                    }
+                  }}
+                />
+              </Suspense>
+            </Box>
           </Box>
         </Grid>
 
         {/* Magic Box Output */}
-        <Grid item xs={12} sm={12} md={6}>
+        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
           <Grid
             container
             justifyContent="center"
             alignItems="center"
             padding=".75rem"
+            spacing={0.5}
             sx={{
               background: '#f5f5f5',
               overflow: 'scroll',

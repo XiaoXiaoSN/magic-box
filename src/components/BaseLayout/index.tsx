@@ -1,15 +1,25 @@
-import {
-  AppBar, Toolbar, Typography,
-} from '@mui/material';
+import { AppBar, Toolbar, Typography } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
 const MagicBoxTitle = 'Magic Box';
 
-const theme = createTheme({});
+const theme = createTheme({
+  // Add any custom theme configuration here
+  components: {
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: 'white',
+          color: 'inherit',
+        },
+      },
+    },
+  },
+});
 
 interface Props {
-  children: React.ReactNode,
+  children: React.ReactNode;
 }
 
 const BaseLayout = ({ children }: Props) => (
@@ -18,7 +28,6 @@ const BaseLayout = ({ children }: Props) => (
       position="static"
       sx={{
         color: theme.palette.text.secondary,
-        backgroundColor: 'white',
         borderBottom: '1px solid #cdc9c3',
         height: '65px',
         justifyContent: 'center',
@@ -26,8 +35,6 @@ const BaseLayout = ({ children }: Props) => (
       data-testid="header"
     >
       <Toolbar>
-        {/* NOTE: I used a larger size logo
-              since lighthouse say Serves images with low resolution */}
         <img
           src="/images/logo-128.png"
           alt="icon"
@@ -48,7 +55,7 @@ const BaseLayout = ({ children }: Props) => (
       </Toolbar>
     </AppBar>
 
-    { children }
+    {children}
 
     <AppBar
       position="fixed"
@@ -56,7 +63,6 @@ const BaseLayout = ({ children }: Props) => (
         top: 'auto',
         bottom: 0,
         color: theme.palette.text.secondary,
-        backgroundColor: 'white',
         borderBottom: '1px solid #cdc9c3',
         padding: '0.2rem',
       }}
@@ -64,7 +70,6 @@ const BaseLayout = ({ children }: Props) => (
     >
       {`© ${new Date().getFullYear()} Copyright: All Rights Reserved`}
     </AppBar>
-
   </ThemeProvider>
 );
 

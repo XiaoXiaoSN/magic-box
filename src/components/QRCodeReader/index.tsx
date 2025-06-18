@@ -3,26 +3,35 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
 import { SxProps, Theme } from '@mui/material/styles';
 import { IDetectedBarcode, Scanner } from '@yudiel/react-qr-scanner';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface CloseButtonProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const CloseButton = ({ setShowReader }: CloseButtonProps) => (
-  <CloseIcon
+  <Box
     data-testid="qr-reader-close-button"
     onClick={() => setShowReader(false)}
     sx={{
       position: 'absolute',
-      top: 0,
-      right: 0,
-      margin: '.1rem',
-      zIndex: 100,
-      fontWeight: 'bold',
-      color: '#c7c7c7',
+      top: '10px',
+      right: '10px',
+      cursor: 'pointer',
+      zIndex: 1,
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      borderRadius: '50%',
+      padding: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      '&:hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      },
     }}
-  />
+  >
+    <CloseIcon />
+  </Box>
 );
 
 interface QRCodeReaderWrapperProps {
@@ -30,53 +39,32 @@ interface QRCodeReaderWrapperProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const QRCodeReaderWrapper = ({
-  setResult,
-  setShowReader,
-}: QRCodeReaderWrapperProps) => {
-  const lastResult = useRef<string>(null);
-
-  const onScan = (detectedCodes: IDetectedBarcode[]) => {
-    if (!detectedCodes.length) return;
-
-    const result = detectedCodes[0].rawValue;
-    if (!result) return;
-
-    // This callback will keep existing even after
-    // this component is unmounted
-    // So ignore it (only in this reference) if result keeps repeating
-    if (lastResult.current === result) {
-      return;
+const QRCodeReaderWrapper = ({ setResult, setShowReader }: QRCodeReaderWrapperProps) => {
+  const handleScan = (detectedCodes: IDetectedBarcode[]) => {
+    if (detectedCodes.length > 0) {
+      setResult(detectedCodes[0].rawValue);
     }
-
-    lastResult.current = result;
-    setResult(result);
-  };
-
-  const onError = (error: unknown) => {
-    console.error('QR Scanner error:', error);
   };
 
   return (
-    <Box sx={{ position: 'relative' }}>
+    <Box
+      sx={{
+        position: 'relative',
+        width: '300px',
+        height: '300px',
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        overflow: 'hidden',
+      }}
+    >
+      <CloseButton setShowReader={setShowReader} />
       <Scanner
-        onScan={onScan}
-        onError={onError}
-        constraints={{ facingMode: 'environment' }}
-        scanDelay={300}
-        sound={false}
-        styles={{
-          video: {
-            width: '70vw',
-            height: '70vw',
-            maxWidth: '500px',
-            maxHeight: '500px',
-            background: '#646464',
-            border: '.2rem solid #c7c7c7',
-          },
+        onScan={handleScan}
+        onError={(error) => console.error(error)}
+        constraints={{
+          facingMode: 'environment',
         }}
       />
-      <CloseButton setShowReader={setShowReader} />
     </Box>
   );
 };
@@ -96,11 +84,8 @@ const QRCodeReader = ({
   const [result, setResult] = useState('');
 
   useEffect(() => {
-    // if QR Reader is open and result was changed
     if (showReader && result !== '') {
       setUserInput(result);
-
-      // result updated, close QR Reader
       setShowReader(false);
     }
   }, [result, showReader, setUserInput]);
@@ -113,12 +98,12 @@ const QRCodeReader = ({
           onClick={() => setShowReader(false)}
           sx={{
             position: 'fixed',
-            top: '0',
-            left: '0',
+            top: 0,
+            left: 0,
             width: '100vw',
             height: '100vh',
-            background: 'rgba(0, 0, 0, .5)',
-            zIndex: '9999',
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 9999,
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -135,7 +120,13 @@ const QRCodeReader = ({
       )}
       <QrCodeScannerIcon
         data-testid="qr-reader-open-button"
-        sx={sxIcon}
+        sx={{
+          cursor: 'pointer',
+          '&:hover': {
+            opacity: 0.8,
+          },
+          ...sxIcon,
+        }}
         onClick={() => {
           setShowReader(true);
           setResult('');
