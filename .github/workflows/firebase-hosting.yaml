@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 20
+  NODE_VERSION: 22
   GCP_PROJECT_ID: magic-box-b8bdc
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run ESLint
-        run: yarn lint
+        run: pnpm lint
 
       # Upload built wasm modules
       - uses: actions/upload-artifact@v4
@@ -72,16 +72,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
+          cache: pnpm
 
-      - name: Setup yarn
-        run: npm install -g yarn
+      - name: Setup pnpm
+        run: npm install -g pnpm
 
       - name: Install dependencies
-        run: yarn install --immutable
+        run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: yarn build
+        run: pnpm build
         env:
           # NOTE: allow warnings
           # Treating warnings as errors because process.env.CI = true.

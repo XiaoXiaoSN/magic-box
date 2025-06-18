@@ -7,7 +7,7 @@ on:
   pull_request:
 
 env:
-  NODE_VERSION: 20
+  NODE_VERSION: 22
 
 jobs:
   unit-tests:
@@ -19,7 +19,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run tests
-        run: yarn test
+        run: pnpm test
 
   cypress:
     runs-on: ubuntu-latest
@@ -29,13 +29,16 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
+      - name: Install Cypress
+        run: pnpm exec cypress install
+
       - name: Cypress run
         uses: cypress-io/github-action@v6
         env:
           CYPRESS_DEBUG: 1
         with:
           component: true
-          start: yarn start
+          start: pnpm start
           wait-on: http://localhost:3000
 
       - uses: actions/upload-artifact@v4

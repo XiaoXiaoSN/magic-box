@@ -1,0 +1,5 @@
+ignoredBuiltDependencies:
+  - '@firebase/util'
+  - cypress
+  - esbuild
+  - protobufjs

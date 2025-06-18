@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,12 +13,12 @@ import reactPlugin from 'eslint-plugin-react';
 import importSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
 
 const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  resolvePluginsRelativeTo: __dirname,
+  baseDirectory: dirname,
+  resolvePluginsRelativeTo: dirname,
 });
 
 export default defineConfig([
@@ -29,11 +31,12 @@ export default defineConfig([
     'plugin:react/recommended',
   ),
   {
+    files: ['**/*.{ts,tsx}'],
     plugins: {
-      '@typescript-eslint': tsPlugin,
-      react: reactPlugin,
-      'simple-import-sort': importSort,
-      '@stylistic': stylistic,
+      '@typescript-eslint': tsPlugin as any,
+      react: reactPlugin as any,
+      'simple-import-sort': importSort as any,
+      '@stylistic': stylistic as any,
     },
     languageOptions: {
       parser: tsParser,

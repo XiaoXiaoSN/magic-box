@@ -1,8 +1,10 @@
 import MagicBox from '@components/MagicBox';
-import QRCodeReader from '@components/QRCodeReader';
 import { Container, Grid, TextField } from '@mui/material';
 import Box from '@mui/material/Box';
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
+
+// Dynamic import
+const QRCodeReader = React.lazy(() => import('@components/QRCodeReader'));
 
 const MagicBoxPage = () => {
   const [userInput, setUserInput] = useState('');
@@ -49,15 +51,17 @@ const MagicBoxPage = () => {
               lineHeight: 0,
             }}
           >
-            <QRCodeReader
-              sxIcon={{ m: 1, color: '#666666' }}
-              setUserInput={(input) => {
-                if (inputRef.current) {
-                  inputRef.current.value = input as string;
-                  setUserInput(input);
-                }
-              }}
-            />
+            <Suspense fallback={<div />}>
+              <QRCodeReader
+                sxIcon={{ m: 1, color: '#666666' }}
+                setUserInput={(input) => {
+                  if (inputRef.current) {
+                    inputRef.current.value = input as string;
+                    setUserInput(input);
+                  }
+                }}
+              />
+            </Suspense>
           </Box>
         </Grid>
 
