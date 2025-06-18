@@ -1,23 +1,16 @@
 import { defineConfig } from 'cypress';
 
-import webpackConfig from './webpack.config';
-
 export default defineConfig({
   projectId: 'sjqi3t',
   e2e: {
     baseUrl: 'http://localhost:3000',
+    supportFile: 'cypress/support/e2e.ts',
+    specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
   },
   component: {
     devServer: {
       framework: 'react',
-      bundler: 'webpack',
-      // NOTE: different from webpackConfig, there is a extra wrap `resolve`.
-      webpackConfig: {
-        resolve: {
-          alias: webpackConfig.alias,
-        },
-        plugins: webpackConfig.plugins,
-      },
+      bundler: 'vite',
     },
   },
 });

@@ -14,7 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -28,7 +28,7 @@
     }
   },
   "include": [
-    "craco.config.ts",
+    "vite.config.ts",
     "cypress.config.ts",
     "eslint.config.ts",
     "webpack.config.ts",

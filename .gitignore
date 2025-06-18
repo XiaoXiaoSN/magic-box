@@ -24,3 +24,6 @@ yarn-error.log*
 
 firebase-debug.log*
 .firebase
+
+# Vite PWA dev files
+/dev-dist
