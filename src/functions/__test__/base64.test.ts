@@ -1,6 +1,6 @@
 import { expect } from '@jest/globals';
 
-import base64 from '../base64';
+import { base64 } from '../base64';
 
 describe('base64 functions', () => {
   describe('decode Base64', () => {

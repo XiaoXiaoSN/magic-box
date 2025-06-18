@@ -78,7 +78,7 @@ export function isJSON(str: string): boolean {
   return false;
 }
 
-export default {
+export const helper = {
   isNumeric,
   toNumeric,
   isString,

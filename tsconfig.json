@@ -30,6 +30,7 @@
   "include": [
     "craco.config.ts",
     "cypress.config.ts",
+    "eslint.config.ts",
     "webpack.config.ts",
     "**/*.test.ts",
     "src",

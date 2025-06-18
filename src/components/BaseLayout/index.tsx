@@ -62,7 +62,7 @@ const BaseLayout = ({ children }: Props) => (
       }}
       data-testid="footer"
     >
-      {`© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`}
+      {`© ${new Date().getFullYear()} Copyright: All Rights Reserved`}
     </AppBar>
 
   </ThemeProvider>

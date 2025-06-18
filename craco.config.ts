@@ -17,4 +17,7 @@ export default {
       ],
     },
   },
+  eslint: {
+    enable: false,
+  },
 };

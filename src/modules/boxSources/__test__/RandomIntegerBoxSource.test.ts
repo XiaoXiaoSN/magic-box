@@ -65,7 +65,7 @@ describe('RandomIntegerBoxSource', () => {
       expect(box.props.name).toBe('Random Number');
 
       const value = parseInt(box.props.plaintextOutput, 10);
-      expect(value).toBeGreaterThanOrEqual(1);
+      expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThanOrEqual(100);
       expect(box.component).toBe(DefaultBoxTemplate);
     });

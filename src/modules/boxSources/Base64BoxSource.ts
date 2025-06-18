@@ -108,4 +108,4 @@ export const Base64EncodeBoxSource = {
   },
 };
 
-export default { Base64DecodeBoxSource, Base64EncodeBoxSource };
+export const base64 = { Base64DecodeBoxSource, Base64EncodeBoxSource };

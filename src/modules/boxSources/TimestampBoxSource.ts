@@ -40,7 +40,6 @@ export const TimestampBoxSource = {
         return undefined;
       }
 
-      // eslint-disable-next-line consistent-return
       return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
     } catch { /* */ }
 

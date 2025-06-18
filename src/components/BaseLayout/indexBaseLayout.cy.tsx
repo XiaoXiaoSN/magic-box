@@ -1,4 +1,4 @@
-import { mount } from 'cypress/react18';
+import { mount } from 'cypress/react';
 import React from 'react';
 
 import BaseLayout from './index';
@@ -18,7 +18,7 @@ describe('<BaseLayout />', () => {
       .should('have.text', 'Magic Box');
     cy.get('[data-testid="footer"]').should(
       'have.text',
-      `© ${new Date().getFullYear()} Copyright: All Rights Not Reserved`,
+      `© ${new Date().getFullYear()} Copyright: All Rights Reserved`,
     );
   });
 });

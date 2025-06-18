@@ -33,7 +33,7 @@ export function decodeBase64(base64String: string): DecodingResult {
     if (!/[\p{L}\p{N}\p{P}\p{Z}]/u.test(readableText)) {
       readableText = null;
     }
-  } catch (error) {
+  } catch {
     // If decoding fails, leave readableText as null
     // console.error(error);
     readableText = null;
@@ -45,4 +45,4 @@ export function decodeBase64(base64String: string): DecodingResult {
   };
 }
 
-export default { decodeBase64 };
+export const base64 = { decodeBase64 };
