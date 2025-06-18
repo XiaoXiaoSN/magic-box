@@ -1,13 +1,21 @@
 name: Setup Environment
 description: Setup Magic Box environment for GitHub Actions
 
+inputs:
+  buildWasm:
+    description: Whether to build WASM modules
+    required: false
+    default: 'true'
+
 runs:
   using: composite
   steps:
     - name: Install wasm-pack
+      if: ${{ inputs.buildWasm == 'true' }}
       uses: jetli/wasm-pack-action@v0.4.0
 
     - name: Build WASM
+      if: ${{ inputs.buildWasm == 'true' }}
       shell: bash
       run: |
         find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} +
@@ -15,7 +23,7 @@ runs:
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
       with:
-        version: 10
+        version: ${{ env.PNPM_VERSION }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

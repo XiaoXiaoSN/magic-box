@@ -14,6 +14,7 @@ concurrency:
 
 env:
   NODE_VERSION: 22
+  PNPM_VERSION: 10
   GCP_PROJECT_ID: magic-box-b8bdc
 
 jobs:
@@ -68,17 +69,10 @@ jobs:
           name: wasm-modules
           path: wasmModules
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-
-      - name: Setup pnpm
-        run: npm install -g pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          buildWasm: false
 
       - name: Build
         run: pnpm build
