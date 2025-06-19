@@ -1,5 +1,6 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
+
+import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 
 import { K8sSecretBoxSource } from '../K8sSecretBoxSource';
 

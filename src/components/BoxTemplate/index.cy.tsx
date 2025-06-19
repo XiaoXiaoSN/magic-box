@@ -1,5 +1,6 @@
-import { mount } from 'cypress/react';
 import React from 'react';
+
+import { mount } from 'cypress/react';
 
 import { ShortenURLBoxTemplate } from './index';
 
@@ -10,9 +11,9 @@ describe('<ShortenURLBoxTemplate />', () => {
     mount(
       <ShortenURLBoxTemplate
         name="TITLE"
-        plaintextOutput="https://example.com"
-        options={null}
         onClick={stubOnClick}
+        options={null}
+        plaintextOutput="https://example.com"
       />,
     );
 

@@ -16,20 +16,19 @@ function fallbackCopyTextToClipboard(content: string) {
     // var msg = successful ? 'successful' : 'unsuccessful';
     // console.log('Fallback: Copying text command was ' + msg);
   } catch (err) {
-    // eslint-disable-next-line no-console
+     
     console.error('Fallback: Oops, unable to copy', err);
   }
 
   document.body.removeChild(textArea);
 }
 
-function copyTextToClipboard(content: string) {
+function copyTextToClipboard(content: string): void {
   if (!navigator.clipboard) {
     fallbackCopyTextToClipboard(content);
     return;
   }
-  navigator.clipboard.writeText(content).then(() => {}, (err) => {
-    // eslint-disable-next-line no-console
+  navigator.clipboard.writeText(content).then(() => {}, (err) => {     
     console.error('Async: Could not copy text: ', err);
   });
 }

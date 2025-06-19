@@ -1,9 +1,12 @@
+import init, { decode_to_string, encode } from 'base64-box';
+
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import {
   isBase64, isObject, isString, trim,
 } from '@functions/helper';
-import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
-import init, * as Base64 from 'base64-box';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box, BoxOptions } from '@modules/Box';
 
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
@@ -35,7 +38,7 @@ export const Base64DecodeBoxSource = {
 
     try {
       await initBas64Box();
-      const decodedText = Base64.decode_to_string(regularInput);
+      const decodedText = decode_to_string(regularInput);
 
       const languageOpts: BoxOptions = {};
       if (options && isObject(options)) {
@@ -43,7 +46,7 @@ export const Base64DecodeBoxSource = {
           const langKeys = ['language', 'lang', 'l'];
 
           Object.keys(options).some((option) => langKeys.some((langKey) => {
-            if (option.indexOf(`${langKey}=`) === 0) {
+            if (option.startsWith(`${langKey}=`)) {
               languageOpts.language = option.substring(0, (`${langKey}=`).length);
               return true;
             }
@@ -88,7 +91,7 @@ export const Base64EncodeBoxSource = {
     }
 
     await initBas64Box();
-    const encodedText = Base64.encode(input);
+    const encodedText = encode(input);
 
     return { encodedText };
   },

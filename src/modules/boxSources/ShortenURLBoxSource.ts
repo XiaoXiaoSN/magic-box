@@ -1,8 +1,9 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import {
-  Box, BoxBuilder, BoxOptions, extractOptionKeys,
-} from '@modules/Box';
+import env from '@global/env';
+import { BoxBuilder, extractOptionKeys } from '@modules/Box';
+
+import type { Box, BoxOptions } from '@modules/Box';
 
 const PriorityShortenURL = 10;
 
@@ -12,36 +13,33 @@ interface Match {
 
 export const ShortenURLBoxSource = {
   async getShortenURL(inputURL: string, shorten: string | null): Promise<string> {
-    const toolBoxHost = process.env.TOOLBOX ?? 'https://tool.10oz.tw';
-    const shortenURLHost = process.env.SHORTEN_URL ?? 'https://10oz.tw';
+    const toolBoxHost = env.TOOLBOX_URL;
+    const shortenURLHost = env.SHORTEN_URL;
 
-    return fetch(`${toolBoxHost}/api/v1/surl`, {
+    const resp = await fetch(`${toolBoxHost}/api/v1/surl`, {
       method: 'POST',
       body: JSON.stringify({
         url: inputURL,
         shorten,
       }),
-    })
-      .then((resp) => {
-        if (resp.status !== 200) {
-          throw Error('The "Shorten URL" request is not success');
-        }
-        return resp.json();
-      })
-      .then((result) => {
-        if (
-          result == null
-          || !isString(result.shorten)
-          || result.shorten === ''
-        ) {
-          throw Error('The "Shorten URL" not response as expected');
-        }
+    });
+    if (resp.status !== 200) {
+      throw Error('The "Shorten URL" request is not success');
+    }
 
-        return `${shortenURLHost}/${result.shorten}`;
-      });
+    const result = await resp.json();
+    if (
+      result == null
+      || !isString(result.shorten)
+      || result.shorten === ''
+    ) {
+      throw Error('The "Shorten URL" not response as expected');
+    }
+
+    return `${shortenURLHost}/${result.shorten}`;
   },
 
-  async checkMatch(input: string, options: BoxOptions): Promise<Match | void> {
+  async checkMatch(input: string, options: BoxOptions): Promise<Match | undefined> {
     if (options === null) {
       return undefined;
     }

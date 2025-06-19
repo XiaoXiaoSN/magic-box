@@ -1,7 +1,10 @@
+import { jwtDecode } from 'jwt-decode';
+
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { Box, BoxBuilder } from '@modules/Box';
-import { jwtDecode } from 'jwt-decode';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box} from '@modules/Box';
 
 const PriorityJWT = 10;
 

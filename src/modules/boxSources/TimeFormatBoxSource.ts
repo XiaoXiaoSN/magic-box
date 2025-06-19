@@ -1,6 +1,8 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isRFC3339, isString, trim } from '@functions/helper';
-import { Box, BoxBuilder } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box} from '@modules/Box';
 
 const PriorityTimeFormat = 10;
 

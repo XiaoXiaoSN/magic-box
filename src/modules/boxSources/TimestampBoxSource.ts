@@ -1,6 +1,8 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isNumeric } from '@functions/helper';
-import { Box, BoxBuilder } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box} from '@modules/Box';
 
 const PriorityRFC3339 = 10;
 

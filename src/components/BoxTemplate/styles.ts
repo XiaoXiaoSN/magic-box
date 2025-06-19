@@ -1,10 +1,10 @@
-import { Theme } from '@mui/material';
+import type { Theme } from '@mui/material';
 
 export default {
   grid: {
     marginBottom: '.45rem',
   },
-  paper: (theme: Theme) => ({
+  paper: (theme: Theme): object => ({
     padding: theme.spacing(2),
     color: theme.palette.text.secondary,
     border: '1px solid #cdc9c3',

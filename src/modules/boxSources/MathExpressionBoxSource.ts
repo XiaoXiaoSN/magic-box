@@ -1,7 +1,10 @@
+import { evaluate } from 'mathjs';
+
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { Box, BoxBuilder } from '@modules/Box';
-import { evaluate } from 'mathjs';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box} from '@modules/Box';
 
 const PriorityMathExpression = 10;
 

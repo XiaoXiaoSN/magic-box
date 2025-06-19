@@ -1,5 +1,6 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect, vi } from 'vitest';
+
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 
 import { NowBoxSource } from '../NowBoxSource';
 

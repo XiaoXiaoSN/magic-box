@@ -1,12 +1,15 @@
-import MagicBox from '@components/MagicBox';
-import { Container, Grid, TextField } from '@mui/material';
-import Box from '@mui/material/Box';
 import React, { Suspense, useEffect, useState } from 'react';
 
-// Dynamic import
-const QRCodeReader = React.lazy(() => import('@components/QRCodeReader'));
+import { Container, Grid, TextField } from '@mui/material';
+import Box from '@mui/material/Box';
 
-const MagicBoxPage = () => {
+import MagicBox from '@components/MagicBox';
+
+
+// Dynamic import
+const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
+
+const MagicBoxPage = (): React.JSX.Element => {
   const [userInput, setUserInput] = useState('');
   const [magicIn, setMagicIn] = useState('');
 
@@ -16,7 +19,7 @@ const MagicBoxPage = () => {
   useEffect(() => {
     // codeql[skip] Safe: Only parses query string and sets input value
     const params = new URLSearchParams(window.location.search);
-    const inputValue = params.get('input') || params.get('i');
+    const inputValue = params.get('input') && params.get('i');
     if (inputValue) {
       setUserInput(inputValue);
       if (inputRef.current) {
@@ -43,13 +46,14 @@ const MagicBoxPage = () => {
         <Grid size={{ xs: 12, sm: 12, md: 6 }}>
           <Box sx={{ position: 'relative' }}>
             <TextField
-              inputRef={inputRef}
-              id="magicInput"
-              name="magicInput"
-              multiline
               autoFocus
               fullWidth
+              multiline
+              id="magicInput"
+              inputRef={inputRef}
+              name="magicInput"
               rows={7}
+              variant="outlined"
               onChange={(e) => {
                 setUserInput(e.target.value);
               }}
@@ -59,7 +63,6 @@ const MagicBoxPage = () => {
                   fontSize: '1.25rem',
                 },
               }}
-              variant="outlined"
             />
             <Box
               sx={{
@@ -88,8 +91,8 @@ const MagicBoxPage = () => {
         <Grid size={{ xs: 12, sm: 12, md: 6 }}>
           <Grid
             container
-            justifyContent="center"
             alignItems="center"
+            justifyContent="center"
             padding=".75rem"
             spacing={0.5}
             sx={{

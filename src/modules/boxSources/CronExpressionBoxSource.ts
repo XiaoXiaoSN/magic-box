@@ -1,9 +1,12 @@
+import cronstrue from 'cronstrue/i18n';
+
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import {
-  Box, BoxBuilder, BoxOptions, extractOptionKeys,
+import { BoxBuilder, extractOptionKeys,
 } from '@modules/Box';
-import cronstrue from 'cronstrue/i18n';
+
+import type {
+  Box, BoxOptions} from '@modules/Box';
 
 const PriorityCronExpression = 10;
 

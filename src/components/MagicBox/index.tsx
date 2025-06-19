@@ -1,9 +1,9 @@
+import React, { useEffect, useState } from 'react';
+
 import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
-import { Box, BoxOptions } from '@modules/Box';
-import { BoxSource } from '@modules/BoxSource';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
@@ -24,7 +24,9 @@ import {
   URLDecodeBoxSource,
   UuidBoxSource,
 } from '@modules/boxSources';
-import React, { useEffect, useState } from 'react';
+
+import type { Box, BoxOptions } from '@modules/Box';
+import type { BoxSource } from '@modules/BoxSource';
 
 const defaultBoxSources: BoxSource[] = [
   Base64DecodeBoxSource,
@@ -51,7 +53,7 @@ interface Props {
   input: string;
 }
 
-const MagicBox = ({ input: magicIn }: Props) => {
+const MagicBox = ({ input: magicIn }: Props) : React.JSX.Element=> {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as Box[]);
 
@@ -98,7 +100,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
 
     const [input, options] = parseInput(magicIn);
 
-    const promises = defaultBoxSources.map((boxSource) => boxSource.generateBoxes(input, options));
+    const promises = defaultBoxSources.map(async (boxSource) => boxSource.generateBoxes(input, options));
     Promise.all(promises).then((resultBoxes) => {
       const newBoxes = resultBoxes
         .filter((box) => box)
@@ -116,13 +118,13 @@ const MagicBox = ({ input: magicIn }: Props) => {
 
       setBoxes(newBoxes);
 
-      // eslint-disable-next-line no-console
+       
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
   }, [magicIn]);
 
   return (
-    <>
+    <React.Fragment>
       {boxes.length > 0 ? (
         boxes.map((src, idx) => {
           const {
@@ -136,8 +138,8 @@ const MagicBox = ({ input: magicIn }: Props) => {
 
           return (
             <div
-              data-testid="magic-box-result"
               key={src?.props.name || idx}
+              data-testid="magic-box-result"
               style={{
                 width: '100%',
                 height: '100%',
@@ -145,9 +147,9 @@ const MagicBox = ({ input: magicIn }: Props) => {
             >
               <src.component
                 name={name}
-                plaintextOutput={stdout}
-                options={options}
                 onClick={onClickWithCopy}
+                options={options}
+                plaintextOutput={stdout}
                 priority={priority}
               />
             </div>
@@ -157,7 +159,7 @@ const MagicBox = ({ input: magicIn }: Props) => {
         <NotingMatchBoxTemplate />
       )}
       <CustomizedSnackbar notify={notify} />
-    </>
+    </React.Fragment>
   );
 };
 

@@ -1,7 +1,11 @@
+import { expect, vi } from 'vitest';
+
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect, Mock, vi } from 'vitest';
 
 import { MyIPBoxSource } from '../MyIPBoxSource';
+
+import type { Mock} from 'vitest';
+
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -35,7 +39,7 @@ describe('MyIPBoxSource', () => {
 
     it('should return IP info when API call is successful', async () => {
       (global.fetch as Mock).mockResolvedValueOnce({
-        json: () => Promise.resolve(mockIPInfo),
+        json: async () => Promise.resolve(mockIPInfo),
       });
 
       const result = await MyIPBoxSource.checkMatch('ip');
@@ -55,10 +59,10 @@ describe('MyIPBoxSource', () => {
     it('should work with both "ip" and "myip" inputs', async () => {
       (global.fetch as Mock)
         .mockResolvedValueOnce({
-          json: () => Promise.resolve(mockIPInfo),
+          json: async () => Promise.resolve(mockIPInfo),
         })
         .mockResolvedValueOnce({
-          json: () => Promise.resolve(mockIPInfo),
+          json: async () => Promise.resolve(mockIPInfo),
         });
 
       const result1 = await MyIPBoxSource.checkMatch('ip');
@@ -77,7 +81,7 @@ describe('MyIPBoxSource', () => {
 
     it('should generate box with correct display text', async () => {
       (global.fetch as Mock).mockResolvedValueOnce({
-        json: () => Promise.resolve(mockIPInfo),
+        json: async () => Promise.resolve(mockIPInfo),
       });
 
       const boxes = await MyIPBoxSource.generateBoxes('ip');

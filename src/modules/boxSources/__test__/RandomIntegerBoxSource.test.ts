@@ -1,5 +1,6 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
+
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 
 import { RandomIntegerBoxSource } from '../RandomIntegerBoxSource';
 
