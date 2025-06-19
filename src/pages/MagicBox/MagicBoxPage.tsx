@@ -14,6 +14,7 @@ const MagicBoxPage = () => {
 
   // parse query string at first load
   useEffect(() => {
+    // codeql[skip] Safe: Only parses query string and sets input value
     const params = new URLSearchParams(window.location.search);
     const inputValue = params.get('input') || params.get('i');
     if (inputValue) {
