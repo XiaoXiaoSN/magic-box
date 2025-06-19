@@ -9,6 +9,7 @@ export * from './MyIPBoxSource';
 export * from './NowBoxSource';
 export * from './PrettyJSONBoxSource';
 export * from './RandomIntegerBoxSource';
+export * from './ReadableBytesBoxSource';
 export * from './ShortenURLBoxSource';
 export * from './TimeFormatBoxSource';
 export * from './TimestampBoxSource';
