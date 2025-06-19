@@ -12,6 +12,18 @@ const MagicBoxPage = () => {
 
   const inputRef = React.useRef<HTMLInputElement>(null);
 
+  // parse query string at first load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inputValue = params.get('input') || params.get('i');
+    if (inputValue) {
+      setUserInput(inputValue);
+      if (inputRef.current) {
+        inputRef.current.value = inputValue;
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const timeoutID = setTimeout(() => setMagicIn(userInput), 500);
     return () => {
