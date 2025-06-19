@@ -1,7 +1,7 @@
 import React from 'react';
 
 import CssBaseline from '@mui/material/CssBaseline';
-import { init } from '@sentry/react';
+import { browserTracingIntegration, init } from '@sentry/react';
 import ReactDOM from 'react-dom/client';
 
 import env from '@global/env';
@@ -12,6 +12,15 @@ import './index.css';
 
 init({
   dsn: env.SENTRY_DSN,
+
+  integrations: [browserTracingIntegration()],
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+  // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", /^https:\/\/mb\.10oz\.tw/],
+
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,
