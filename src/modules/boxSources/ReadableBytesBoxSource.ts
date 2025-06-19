@@ -9,8 +9,9 @@ interface Match {
 }
 
 function hasDisplayableChar(str: string): boolean {
-  // At least one character must be displayable (ASCII 32-126, or common visible Unicode characters)
-  return /[ -~\u00A0-\uD7FF\uE000-\uFFFD]/.test(str);
+  // Match at least one non-control, displayable Unicode character
+  // Exclude C0/C1 control chars, but allow letters, symbols, emoji, etc.
+  return /\P{C}/u.test(str);
 }
 
 export const ReadableBytesBoxSource = {
