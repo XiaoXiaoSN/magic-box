@@ -1,6 +1,8 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { Box, BoxBuilder } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box} from '@modules/Box';
 
 const PriorityDateCalculate = 10;
 
@@ -54,7 +56,7 @@ const parseDate = (s: string): Date => {
 export const DateCalculateBoxSource = {
   // Deal with the pattern of `now + 20d` or `2024-10-31 + 30d`
   checkAddSubtractPattern(input: string): Match | undefined {
-    const addMatch = input.match(ADD_PATTERN);
+    const addMatch = ADD_PATTERN.exec(input);
     if (!addMatch) {
       return undefined;
     }
@@ -85,7 +87,7 @@ export const DateCalculateBoxSource = {
 
   // Deal with the pattern of `now to 2025-10-31` or `2024-10-31 to now`
   checkDateDiffPattern(input: string): Match | undefined {
-    const diffMatch = input.match(DIFF_PATTERN);
+    const diffMatch = DIFF_PATTERN.exec(input);
     if (!diffMatch) {
       return undefined;
     }

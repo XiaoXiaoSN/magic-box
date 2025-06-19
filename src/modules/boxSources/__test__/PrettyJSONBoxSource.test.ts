@@ -1,5 +1,6 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
+
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 
 import { PrettyJSONBoxSource } from '../PrettyJSONBoxSource';
 

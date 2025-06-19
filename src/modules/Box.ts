@@ -49,27 +49,27 @@ export class BoxBuilder {
     public name: string,
     public plaintextOutput: string,
     public options = {} as BoxOptions,
-    public onClick = (() => {}) as BoxOnClickFn,
+    public onClick = (() => { }) as BoxOnClickFn,
     public priority?: number,
     public component?: BoxComponent,
   ) { }
 
-  setPriority(priority?: number) {
+  setPriority(priority?: number): BoxBuilder {
     this.priority = priority;
     return this;
   }
 
-  setOptions(options: BoxOptions) {
+  setOptions(options: BoxOptions): BoxBuilder {
     this.options = options;
     return this;
   }
 
-  setOnClick(onClick: BoxOnClickFn) {
+  setOnClick(onClick: BoxOnClickFn): BoxBuilder {
     this.onClick = onClick;
     return this;
   }
 
-  setTemplate(component?: BoxComponent) {
+  setTemplate(component?: BoxComponent): BoxBuilder {
     this.component = component;
     return this;
   }

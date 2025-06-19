@@ -1,10 +1,13 @@
+import React, { useEffect, useState } from 'react';
+
 import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
-import { SxProps, Theme } from '@mui/material/styles';
 import { logger } from '@sentry/react';
-import { IDetectedBarcode, Scanner } from '@yudiel/react-qr-scanner';
-import React, { useEffect, useState } from 'react';
+import { Scanner } from '@yudiel/react-qr-scanner';
+
+import type { SxProps, Theme } from '@mui/material/styles';
+import type { IDetectedBarcode } from '@yudiel/react-qr-scanner';
 
 interface CloseButtonProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
@@ -40,7 +43,10 @@ interface QRCodeReaderWrapperProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const QRCodeReaderWrapper = ({ setResult, setShowReader }: QRCodeReaderWrapperProps) => {
+const QRCodeReaderWrapper = ({
+  setResult,
+  setShowReader,
+}: QRCodeReaderWrapperProps) => {
   const handleScan = (detectedCodes: IDetectedBarcode[]) => {
     if (detectedCodes.length > 0) {
       setResult(detectedCodes[0].rawValue);
@@ -60,8 +66,8 @@ const QRCodeReaderWrapper = ({ setResult, setShowReader }: QRCodeReaderWrapperPr
     >
       <CloseButton setShowReader={setShowReader} />
       <Scanner
-        onScan={handleScan}
         onError={(error) => logger.error(`failed to scan: ${error}`)}
+        onScan={handleScan}
         constraints={{
           facingMode: 'environment',
         }}
@@ -80,7 +86,7 @@ const QRCodeReader = ({
   sxReader,
   sxIcon,
   setUserInput,
-}: QRCodeReaderProps) => {
+}: QRCodeReaderProps): React.JSX.Element => {
   const [showReader, setShowReader] = useState(false);
   const [result, setResult] = useState('');
 
@@ -92,24 +98,26 @@ const QRCodeReader = ({
   }, [result, showReader, setUserInput]);
 
   return (
-    <>
-      {showReader && (
+    <React.Fragment>
+      {showReader ? (
         <Box
           data-testid="qr-reader-modal"
           onClick={() => setShowReader(false)}
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 9999,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            ...sxReader,
-          }}
+          sx={[
+            {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 9999,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            },
+            ...(Array.isArray(sxReader) ? sxReader : [sxReader]),
+          ]}
         >
           <Box data-testid="qr-reader-container">
             <QRCodeReaderWrapper
@@ -118,22 +126,25 @@ const QRCodeReader = ({
             />
           </Box>
         </Box>
-      )}
+      ) : null}
+
       <QrCodeScannerIcon
         data-testid="qr-reader-open-button"
-        sx={{
-          cursor: 'pointer',
-          '&:hover': {
-            opacity: 0.8,
-          },
-          ...sxIcon,
-        }}
         onClick={() => {
           setShowReader(true);
           setResult('');
         }}
+        sx={[
+          {
+            cursor: 'pointer',
+            '&:hover': {
+              opacity: 0.8,
+            },
+          },
+          ...(Array.isArray(sxIcon) ? sxIcon : [sxIcon]),
+        ]}
       />
-    </>
+    </React.Fragment>
   );
 };
 

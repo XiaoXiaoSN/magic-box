@@ -1,6 +1,8 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isJSON, isString, trim } from '@functions/helper';
-import { Box, BoxBuilder, BoxOptions } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+
+import type { Box, BoxOptions } from '@modules/Box';
 
 const PriorityPrettyJSON = 10;
 

@@ -1,5 +1,6 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect, it, vi } from 'vitest';
+
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 
 import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBoxSource';
 

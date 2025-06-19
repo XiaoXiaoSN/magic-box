@@ -3,3 +3,4 @@ ignoredBuiltDependencies:
   - cypress
   - esbuild
   - protobufjs
+  - unrs-resolver

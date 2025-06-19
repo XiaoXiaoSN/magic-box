@@ -1,6 +1,7 @@
+import React from 'react';
+
 import { AppBar, Toolbar, Typography } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import React from 'react';
 
 const MagicBoxTitle = 'Magic Box';
 
@@ -22,9 +23,10 @@ interface Props {
   children: React.ReactNode;
 }
 
-const BaseLayout = ({ children }: Props) => (
+const BaseLayout = ({ children }: Props) : React.JSX.Element=> (
   <ThemeProvider theme={theme}>
     <AppBar
+      data-testid="header"
       position="static"
       sx={{
         color: theme.palette.text.secondary,
@@ -32,15 +34,14 @@ const BaseLayout = ({ children }: Props) => (
         height: '65px',
         justifyContent: 'center',
       }}
-      data-testid="header"
     >
       <Toolbar>
         <img
-          src="/images/logo-128.png"
           alt="icon"
           crossOrigin="use-credentials"
-          loading="lazy"
           height="50px"
+          loading="lazy"
+          src="/images/logo-128.png"
           width="50px"
         />
         <Typography
@@ -58,6 +59,7 @@ const BaseLayout = ({ children }: Props) => (
     {children}
 
     <AppBar
+      data-testid="footer"
       position="fixed"
       sx={{
         top: 'auto',
@@ -66,7 +68,6 @@ const BaseLayout = ({ children }: Props) => (
         borderBottom: '1px solid #cdc9c3',
         padding: '0.2rem',
       }}
-      data-testid="footer"
     >
       {`© ${new Date().getFullYear()} Copyright: All Rights Reserved`}
     </AppBar>

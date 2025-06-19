@@ -1,17 +1,18 @@
-import { isString } from '@functions/helper';
-import env from '@global/env';
-import { BoxProps } from '@modules/Box';
-import {
-  Box, Grid, Paper, Typography,
-} from '@mui/material';
-import { QRCodeCanvas } from 'qrcode.react';
 import React, { useEffect, useState } from 'react';
+
+import { Box, Grid, Paper, Typography } from '@mui/material';
+import { QRCodeCanvas } from 'qrcode.react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
+import { isString } from '@functions/helper';
+import env from '@global/env';
+
 import boxStyles from './styles';
 
-const NotingMatchBoxTemplate = () => (
+import type { BoxProps } from '@modules/Box';
+
+const NotingMatchBoxTemplate = (): React.JSX.Element => (
   <Grid size={{ xs: 12, sm: 12 }} sx={boxStyles.grid}>
     <Paper elevation={3} sx={boxStyles.paper}>
       <Typography sx={boxStyles.paperTypography}>nothing match</Typography>
@@ -19,11 +20,15 @@ const NotingMatchBoxTemplate = () => (
   </Grid>
 );
 
-const DefaultBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
+const DefaultBoxTemplate = ({
+  name,
+  plaintextOutput,
+  onClick,
+}: BoxProps): React.JSX.Element => (
   <Grid
+    onClick={() => onClick(plaintextOutput)}
     size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
-    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
       <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -40,22 +45,25 @@ const DefaultBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
 );
 
 const CodeBoxTemplate = ({
-  name, plaintextOutput, options, onClick,
-}: BoxProps) => {
+  name,
+  plaintextOutput,
+  options,
+  onClick,
+}: BoxProps): React.JSX.Element => {
   let language = 'yaml';
   if (
-    options
-    && 'language' in options
-    && typeof options.language === 'string'
+    options &&
+    'language' in options &&
+    typeof options.language === 'string'
   ) {
     language = options.language;
   }
 
   return (
     <Grid
+      onClick={() => onClick(plaintextOutput)}
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      onClick={() => onClick(plaintextOutput)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
         <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -63,10 +71,10 @@ const CodeBoxTemplate = ({
         </h3>
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter
+          customStyle={{ maxHeight: '250px' }}
           data-testid="magic-box-result-text"
           language={language}
           sx={atelierCaveLight}
-          customStyle={{ maxHeight: '250px' }}
         >
           {plaintextOutput}
         </SyntaxHighlighter>
@@ -75,51 +83,51 @@ const CodeBoxTemplate = ({
   );
 };
 
-const QRCodeBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => (
+const QRCodeBoxTemplate = ({
+  name,
+  plaintextOutput,
+  onClick,
+}: BoxProps): React.JSX.Element => (
   <Grid
+    onClick={() => onClick(plaintextOutput)}
     size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
-    onClick={() => onClick(plaintextOutput)}
   >
     <Paper elevation={3} sx={boxStyles.paper}>
       <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
         {name}
       </h3>
       {/* https://github.com/zpao/qrcode.react */}
-      <Box sx={boxStyles.alignCenter} id="qrcode-box">
-        <QRCodeCanvas value={plaintextOutput} size={256} includeMargin />
+      <Box id="qrcode-box" sx={boxStyles.alignCenter}>
+        <QRCodeCanvas size={256} value={plaintextOutput} />
       </Box>
     </Paper>
   </Grid>
 );
 
-const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => {
+// NOTE: deprecated
+const ShortenURLBoxTemplate = ({
+  name,
+  plaintextOutput,
+  onClick,
+}: BoxProps): React.JSX.Element => {
   const [shortURL, setShortURL] = useState('');
 
-  const getShortenURL = async (inputURL: string) => {
-    await fetch(`${env.TOOLBOX}/api/v1/surl`, {
+  const getShortenURL = async (inputURL: string): Promise<void> => {
+    const resp = await fetch(`${env.TOOLBOX_URL}/api/v1/surl`, {
       method: 'POST',
-      body: JSON.stringify({
-        url: inputURL,
-      }),
-    })
-      .then((resp) => {
-        if (resp.status !== 200) {
-          throw Error('The "Shorten URL" request is not success');
-        }
-        return resp.json();
-      })
-      .then((result) => {
-        if (
-          result == null
-          || !isString(result.shorten)
-          || result.shorten === ''
-        ) {
-          throw Error('The "Shorten URL" not response as expected');
-        }
+      body: JSON.stringify({ url: inputURL }),
+    });
+    if (resp.status !== 200) {
+      throw Error('The "Shorten URL" request is not success');
+    }
 
-        setShortURL(`${env.TOOLBOX}/${result.shorten}`);
-      });
+    const result = await resp.json();
+    if (result == null || !isString(result.shorten) || result.shorten === '') {
+      throw Error('The "Shorten URL" not response as expected');
+    }
+
+    setShortURL(`${env.TOOLBOX_URL}/${result.shorten}`);
   };
 
   // call Toolbox API to get short url
@@ -129,9 +137,9 @@ const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => 
 
   return (
     <Grid
+      onClick={() => onClick(shortURL)}
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      onClick={() => onClick(shortURL)}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
         <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -149,8 +157,11 @@ const ShortenURLBoxTemplate = ({ name, plaintextOutput, onClick }: BoxProps) => 
 };
 
 const KeyValueBoxTemplate = ({
-  name, plaintextOutput, options, onClick,
-}: BoxProps) => {
+  name,
+  plaintextOutput,
+  options,
+  onClick,
+}: BoxProps): React.JSX.Element => {
   const data: Record<string, string> = {};
 
   if (options) {
@@ -164,7 +175,9 @@ const KeyValueBoxTemplate = ({
       Object.entries(parsedOutput).forEach(([key, value]) => {
         data[key] = value as string;
       });
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
   }
 
   const handleTableClick = (e: React.MouseEvent) => {
@@ -188,9 +201,9 @@ const KeyValueBoxTemplate = ({
   return (
     <Grid
       component="div"
+      onClick={handleTableClick}
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
-      onClick={handleTableClick}
     >
       <Paper elevation={3} sx={boxStyles.paper}>
         <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
@@ -199,7 +212,7 @@ const KeyValueBoxTemplate = ({
         <Box sx={{ width: '100%', overflow: 'auto', mt: 2 }}>
           <Grid container spacing={1}>
             {Object.entries(data).map(([key, value]) => (
-              <Grid size={12} key={key}>
+              <Grid key={key} size={12}>
                 <Paper
                   variant="outlined"
                   sx={{
@@ -212,6 +225,7 @@ const KeyValueBoxTemplate = ({
                   }}
                 >
                   <Typography
+                    title={key}
                     variant="subtitle2"
                     sx={{
                       minWidth: '30%',
@@ -222,7 +236,6 @@ const KeyValueBoxTemplate = ({
                       color: 'text.secondary',
                       pr: 2,
                     }}
-                    title={key}
                   >
                     {key}
                   </Typography>

@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isNumeric(num: any): boolean {
+export function isNumeric(num: unknown): boolean {
   if (typeof num === 'number') {
     return true;
   }
@@ -11,26 +10,22 @@ export function isNumeric(num: any): boolean {
   return false;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function toNumeric(num: any): number | null {
+export function toNumeric(num: unknown): number | null {
   if (isNumeric(num)) {
-    return parseFloat(num);
+    return parseFloat(num as string);
   }
   return null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isString(variable: any) {
+export function isString(variable: unknown): boolean {
   return typeof variable === 'string' || variable instanceof String;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isArray(variable: any): boolean {
+export function isArray(variable: unknown): boolean {
   return Array.isArray(variable);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isObject(variable: any): boolean {
+export function isObject(variable: unknown): boolean {
   return typeof variable === 'object' && variable !== null;
 }
 
@@ -38,14 +33,13 @@ export function trim(str: string): string {
   return str.replace(/^\s+|\s+$/g, '');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isRFC3339(str: any): boolean {
+export function isRFC3339(str: unknown): boolean {
   if (!isString(str)) {
     return false;
   }
 
   const re = /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/gm;
-  return !!str.match(re);
+  return !!(str as string).match(re);
 }
 
 export function isBase64(str: string): boolean {
@@ -65,7 +59,7 @@ export function isBase64(str: string): boolean {
   if (str === '' || str.trim() === '') {
     return false;
   }
-  return !!str.match(re);
+  return !!(re.exec(str));
 }
 
 export function isJSON(str: string): boolean {

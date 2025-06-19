@@ -1,12 +1,13 @@
-import { Alert, Snackbar } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
+import { Alert, Snackbar } from '@mui/material';
+
 interface Props {
-  notify: number[],
-  text?: string,
+  notify: number[];
+  text?: string;
 }
 
-const CustomizedSnackbar = ({ notify, text } : Props) => {
+const CustomizedSnackbar = ({ notify, text }: Props): React.JSX.Element => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -17,15 +18,15 @@ const CustomizedSnackbar = ({ notify, text } : Props) => {
 
   return (
     <Snackbar
-      open={open}
-      autoHideDuration={1500}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      autoHideDuration={1500}
       onClose={() => setOpen(false)}
+      open={open}
     >
       <Alert
+        elevation={6}
         onClose={() => setOpen(false)}
         severity="success"
-        elevation={6}
         variant="filled"
       >
         {text ?? 'Copied'}

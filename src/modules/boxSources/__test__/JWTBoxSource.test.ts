@@ -1,5 +1,6 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
+
+import { CodeBoxTemplate } from '@components/BoxTemplate';
 
 import { JWTBoxSource } from '../JWTBoxSource';
 
@@ -20,7 +21,7 @@ describe('JWTBoxSource', () => {
       const result = JWTBoxSource.checkMatch(validJWT);
       expect(result).toBeDefined();
 
-      const parsed = JSON.parse(result?.jwtStr || '');
+      const parsed = JSON.parse(result?.jwtStr ?? '');
       expect(parsed.header).toEqual({
         alg: 'HS256',
         typ: 'JWT',

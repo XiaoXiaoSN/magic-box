@@ -1,4 +1,4 @@
-import * as node_crypto from 'crypto';
+import { webcrypto } from 'crypto';
 
 // Use browser's crypto API or Node.js crypto
 const getCrypto = () => {
@@ -6,7 +6,7 @@ const getCrypto = () => {
     return window.crypto;
   }
   // Node.js environment
-  return node_crypto.webcrypto;
+  return webcrypto;
 };
 
 const crypto = getCrypto();
@@ -17,7 +17,7 @@ const getRandomValues = (array: Uint32Array): Uint32Array => {
     return window.crypto.getRandomValues(array);
   }
   // Node.js environment
-  return node_crypto.webcrypto.getRandomValues(array);
+  return webcrypto.getRandomValues(array);
 };
 
 export default {
