@@ -59,6 +59,8 @@ jobs:
     needs:
       - codespell
       - eslint
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 

@@ -53,6 +53,18 @@ describe('ReadableBytesBoxSource', () => {
       expect(result?.decodedText).toBe('😀');
     });
 
+    it('should decode with control character', () => {
+      // 😀 = [240, 159, 152, 128, 11]
+      const result = ReadableBytesBoxSource.checkMatch('240 159 152 128 12');
+      expect(result).toBeDefined();
+      expect(result?.decodedText).toContain('😀');
+    });
+
+    it('should not decode with only control character', () => {
+      const result = ReadableBytesBoxSource.checkMatch('11 12 14');
+      expect(result).toBeUndefined();
+    });
+
     it('should return undefined for invalid byte values', () => {
       expect(ReadableBytesBoxSource.checkMatch('300')).toBeUndefined();
       expect(ReadableBytesBoxSource.checkMatch('-1')).toBeUndefined();

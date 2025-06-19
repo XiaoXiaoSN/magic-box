@@ -3,7 +3,7 @@ import React, { lazy, Suspense } from 'react';
 
 const MagicBoxPage = lazy(() => import('@pages/MagicBox'));
 
-const renderLoader = () => (<div className="loader" />);
+const renderLoader = () => <div className="loader" />;
 
 const App = () => (
   <BaseLayout>

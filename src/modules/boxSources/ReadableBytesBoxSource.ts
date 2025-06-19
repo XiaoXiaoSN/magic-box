@@ -8,6 +8,12 @@ interface Match {
   decodedText: string;
 }
 
+function hasDisplayableChar(str: string): boolean {
+  // Match at least one non-control, displayable Unicode character
+  // Exclude C0/C1 control chars, but allow letters, symbols, emoji, etc.
+  return /\P{C}/u.test(str);
+}
+
 export const ReadableBytesBoxSource = {
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -71,6 +77,11 @@ export const ReadableBytesBoxSource = {
       } else {
         decodedText = String.fromCharCode(...bytes);
       }
+
+      if (!hasDisplayableChar(decodedText)) {
+        return undefined;
+      }
+
       return { decodedText };
     } catch {
       return undefined;
@@ -82,6 +93,7 @@ export const ReadableBytesBoxSource = {
     if (!match) {
       return [];
     }
+
     const { decodedText } = match;
     return [
       new BoxBuilder('ByteArray to String', decodedText)
