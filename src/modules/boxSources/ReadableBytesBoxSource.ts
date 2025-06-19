@@ -8,6 +8,11 @@ interface Match {
   decodedText: string;
 }
 
+function hasDisplayableChar(str: string): boolean {
+  // At least one character must be displayable (ASCII 32-126, or common visible Unicode characters)
+  return /[ -~\u00A0-\uD7FF\uE000-\uFFFD]/.test(str);
+}
+
 export const ReadableBytesBoxSource = {
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -71,6 +76,11 @@ export const ReadableBytesBoxSource = {
       } else {
         decodedText = String.fromCharCode(...bytes);
       }
+
+      if (!hasDisplayableChar(decodedText)) {
+        return undefined;
+      }
+
       return { decodedText };
     } catch {
       return undefined;
@@ -82,6 +92,7 @@ export const ReadableBytesBoxSource = {
     if (!match) {
       return [];
     }
+
     const { decodedText } = match;
     return [
       new BoxBuilder('ByteArray to String', decodedText)
