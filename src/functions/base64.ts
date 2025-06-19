@@ -35,7 +35,6 @@ export function decodeBase64(base64String: string): DecodingResult {
     }
   } catch {
     // If decoding fails, leave readableText as null
-    // console.error(error);
     readableText = null;
   }
 

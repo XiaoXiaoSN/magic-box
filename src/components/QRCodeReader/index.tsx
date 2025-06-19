@@ -2,6 +2,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
 import { SxProps, Theme } from '@mui/material/styles';
+import { logger } from '@sentry/react';
 import { IDetectedBarcode, Scanner } from '@yudiel/react-qr-scanner';
 import React, { useEffect, useState } from 'react';
 
@@ -60,7 +61,7 @@ const QRCodeReaderWrapper = ({ setResult, setShowReader }: QRCodeReaderWrapperPr
       <CloseButton setShowReader={setShowReader} />
       <Scanner
         onScan={handleScan}
-        onError={(error) => console.error(error)}
+        onError={(error) => logger.error(`failed to scan: ${error}`)}
         constraints={{
           facingMode: 'environment',
         }}
