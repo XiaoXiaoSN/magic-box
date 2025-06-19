@@ -20,6 +20,12 @@ export default defineConfig([
       '@stylistic': stylistic as never,
       'import-x': importX as never,
     },
+    settings: {
+      react: {
+        version: 'detect',
+        defaultVersion: '19',
+      }
+    },
     languageOptions: {
       parser: tsParser,
       parserOptions: {
