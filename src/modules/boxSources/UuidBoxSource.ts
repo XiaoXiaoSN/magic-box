@@ -1,5 +1,4 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import crypto from '@functions/crypto';
 import { BoxBuilder } from '@modules/Box';
 
 import type { Box, BoxOptions } from '@modules/Box';
@@ -26,7 +25,7 @@ export const UuidBoxSource = {
       return [];
     }
 
-    let uuid: string = crypto.crypto.randomUUID();
+    let uuid: string = crypto.randomUUID();
     if (options && (options.uppercase || options.upper)) {
       uuid = uuid.toUpperCase();
     }
