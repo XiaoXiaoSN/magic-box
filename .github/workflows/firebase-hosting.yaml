@@ -16,7 +16,6 @@ env:
   NODE_VERSION: 22
   PNPM_VERSION: 10
   GCP_PROJECT_ID: magic-box-b8bdc
-  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
 jobs:
   codespell:
@@ -60,6 +59,8 @@ jobs:
     needs:
       - codespell
       - eslint
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
