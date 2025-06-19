@@ -15,8 +15,13 @@ export const URLDecodeBoxSource = {
     }
     const regularInput = trim(input);
 
-    const decodedText = decodeURIComponent(regularInput);
-    if (decodedText === regularInput) {
+    let decodedText: string;
+    try {
+      decodedText = decodeURIComponent(regularInput);
+      if (decodedText === regularInput) {
+        return undefined;
+      }
+    } catch {
       return undefined;
     }
 
