@@ -25,6 +25,12 @@ function countWords(str: string) {
 }
 
 export const WordCountBoxSource = {
+  name: 'Word Count',
+  description: 'Count words, lines, and characters in a string.',
+  defaultInput: `There are so many sounds in the world.
+i'mdifficult
+`,
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;

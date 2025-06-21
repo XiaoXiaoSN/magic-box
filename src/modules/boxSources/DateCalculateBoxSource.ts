@@ -54,6 +54,10 @@ const parseDate = (s: string): Date => {
 };
 
 export const DateCalculateBoxSource = {
+  name: 'Date Calculate',
+  description: 'Calculate the duration between two dates.',
+  defaultInput: 'now + 7d',
+
   // Deal with the pattern of `now + 20d` or `2024-10-31 + 30d`
   checkAddSubtractPattern(input: string): Match | undefined {
     const addMatch = ADD_PATTERN.exec(input);

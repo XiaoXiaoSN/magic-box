@@ -12,6 +12,10 @@ interface Match {
 }
 
 export const PrettyJSONBoxSource = {
+  name: 'Pretty JSON',
+  description: 'Format a JSON string.',
+  defaultInput: '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}',
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;

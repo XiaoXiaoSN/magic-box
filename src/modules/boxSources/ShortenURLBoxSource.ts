@@ -12,6 +12,12 @@ interface Match {
 }
 
 export const ShortenURLBoxSource = {
+  name: 'Shorten URL',
+  description: 'Shorten a URL using an external API.',
+  defaultInput: `https://github.com/XiaoXiaoSN/magic-box
+::surl
+`,
+
   async getShortenURL(inputURL: string, shorten: string | null): Promise<string> {
     const toolBoxHost = env.TOOLBOX_URL;
     const shortenURLHost = env.SHORTEN_URL;

@@ -9,6 +9,12 @@ import type {
 const PriorityGenerateQRCode = 10;
 
 export const GenerateQRCodeBoxSource = {
+  name: 'Generate QR Code',
+  description: 'Generate a QR code from a string.',
+  defaultInput: `https://mb.10oz.tw/list
+::qrcode
+`,
+
   checkMatch(input: string, options: BoxOptions): boolean {
     if (options === null) {
       return false;

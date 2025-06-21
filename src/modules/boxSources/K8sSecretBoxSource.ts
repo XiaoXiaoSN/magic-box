@@ -14,6 +14,17 @@ interface Match {
 }
 
 export const K8sSecretBoxSource = {
+  name: 'K8s Secret',
+  description: 'Decode a Kubernetes secret.',
+  defaultInput: `apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  username: dXNlcg==
+  password: cGFzc3dvcmQ=`,
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;

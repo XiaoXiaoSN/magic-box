@@ -26,6 +26,10 @@ interface Match {
 }
 
 export const Base64DecodeBoxSource = {
+  name: 'Base64 Decode',
+  description: 'Decode a Base64 encoded string.',
+  defaultInput: 'SGVsbG8gV29ybGQK', // Hello World
+
   async checkMatch(input: string, options: BoxOptions = null): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
@@ -82,6 +86,10 @@ interface EncodeMatch {
 }
 
 export const Base64EncodeBoxSource = {
+  name: 'Base64 Encode',
+  description: 'Encode a string to Base64.',
+  defaultInput: 'Hello World',
+
   async checkMatch(input: string): Promise<EncodeMatch | undefined> {
     if (!isString(input)) {
       return undefined;

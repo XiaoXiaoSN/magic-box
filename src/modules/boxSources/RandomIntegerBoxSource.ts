@@ -14,6 +14,10 @@ interface Match {
 }
 
 export const RandomIntegerBoxSource = {
+  name: 'Random Integer',
+  description: 'Generate a random integer within a given range.',
+  defaultInput: 'random 1-6',
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;

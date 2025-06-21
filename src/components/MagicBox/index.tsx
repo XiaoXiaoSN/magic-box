@@ -53,9 +53,10 @@ const defaultBoxSources: BoxSource[] = [
 
 interface Props {
   input: string;
+  sources?: BoxSource[];
 }
 
-const MagicBox = ({ input: magicIn }: Props) : React.JSX.Element=> {
+const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as Box[]);
 
@@ -100,9 +101,10 @@ const MagicBox = ({ input: magicIn }: Props) : React.JSX.Element=> {
       return;
     }
 
+    const boxSources = sources ?? defaultBoxSources;
     const [input, options] = parseInput(magicIn);
 
-    const promises = defaultBoxSources.map(async (boxSource) => boxSource.generateBoxes(input, options));
+    const promises = boxSources.map(async (boxSource) => boxSource.generateBoxes(input, options));
     Promise.all(promises).then((resultBoxes) => {
       const newBoxes = resultBoxes
         .filter((box) => box)
@@ -120,10 +122,9 @@ const MagicBox = ({ input: magicIn }: Props) : React.JSX.Element=> {
 
       setBoxes(newBoxes);
 
-       
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
-  }, [magicIn]);
+  }, [magicIn, sources]);
 
   return (
     <React.Fragment>

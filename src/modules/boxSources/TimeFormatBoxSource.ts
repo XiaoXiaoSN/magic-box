@@ -11,6 +11,10 @@ interface Match {
 }
 
 export const TimeFormatBoxSource = {
+  name: 'Time Format',
+  description: 'Format a timestamp or date string.',
+  defaultInput: '2025-06-21T19:34:57.530+08:00',
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;
