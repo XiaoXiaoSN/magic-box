@@ -2,8 +2,7 @@ import cronstrue from 'cronstrue/i18n';
 
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder, extractOptionKeys,
-} from '@modules/Box';
+import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
 import type {
   Box, BoxOptions} from '@modules/Box';
@@ -22,6 +21,10 @@ const localeMap = new Map([
 ]);
 
 export const CronExpressionBoxSource = {
+  name: 'Cron Expression',
+  description: 'Parse a cron expression to get the next run dates.',
+  defaultInput: '*/5 0 12 * * ?',
+
   checkMatch(input: string, options: BoxOptions = null): Match | undefined {
     if (!isString(input)) {
       return undefined;

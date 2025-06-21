@@ -25,6 +25,10 @@ interface Match {
 }
 
 export const MyIPBoxSource = {
+  name: 'My IP',
+  description: 'Get your public IP address.',
+  defaultInput: 'ip',
+
   async checkMatch(
     input: string,
   ): Promise<Match | undefined> {

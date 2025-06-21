@@ -8,6 +8,10 @@ const PriorityUuidBox = 10;
 type Match = boolean;
 
 export const UuidBoxSource = {
+  name: 'UUID',
+  description: 'Generate a UUID.',
+  defaultInput: 'uuid',
+
   checkMatch(input: string): Match | undefined {
     // Match "uuid" or "UUID"
     const match = /^\s*uuid\s*$/i.exec(input);

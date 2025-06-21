@@ -13,6 +13,10 @@ interface Match {
 }
 
 export const NowBoxSource = {
+  name: 'Now',
+  description: 'Get the current time in different formats.',
+  defaultInput: 'now',
+
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
       return undefined;
