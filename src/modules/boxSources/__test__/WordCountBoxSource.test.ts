@@ -1,5 +1,6 @@
-import { WordCountBoxSource } from '@modules/boxSources/WordCountBoxSource';
 import { describe, expect, it } from 'vitest';
+
+import { WordCountBoxSource } from '@modules/boxSources/WordCountBoxSource';
 
 describe('WordCountBoxSource', () => {
   it('should return correct counts for a simple string', async () => {
