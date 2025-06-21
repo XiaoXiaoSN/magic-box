@@ -154,6 +154,7 @@ Based on matching methods, we can roughly classify Boxes into two types:
 It is recommended to use Node.js version 20.x
 
 ```bash
+pnpm build:wasm
 pnpm install
 pnpm start
 ```

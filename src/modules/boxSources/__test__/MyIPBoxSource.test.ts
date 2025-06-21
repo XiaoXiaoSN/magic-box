@@ -4,7 +4,7 @@ import { DefaultBoxTemplate } from '@components/BoxTemplate';
 
 import { MyIPBoxSource } from '../MyIPBoxSource';
 
-import type { Mock} from 'vitest';
+import type { Mock } from 'vitest';
 
 
 // Mock fetch

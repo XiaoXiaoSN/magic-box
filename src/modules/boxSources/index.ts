@@ -15,3 +15,4 @@ export * from './TimeFormatBoxSource';
 export * from './TimestampBoxSource';
 export * from './URLDecodeBoxSource';
 export * from './UuidBoxSource';
+export * from './WordCountBoxSource';

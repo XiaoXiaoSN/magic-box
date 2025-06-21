@@ -23,6 +23,7 @@ import {
   TimestampBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,
+  WordCountBoxSource,
 } from '@modules/boxSources';
 
 import type { Box, BoxOptions } from '@modules/Box';
@@ -47,6 +48,7 @@ const defaultBoxSources: BoxSource[] = [
   TimestampBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,
+  WordCountBoxSource,
 ];
 
 interface Props {
@@ -128,7 +130,11 @@ const MagicBox = ({ input: magicIn }: Props) : React.JSX.Element=> {
       {boxes.length > 0 ? (
         boxes.map((src, idx) => {
           const {
-            name, plaintextOutput: stdout, options, onClick, priority,
+            name,
+            plaintextOutput: stdout,
+            options,
+            onClick,
+            priority,
           } = src.props;
 
           const onClickWithCopy = (output: string) => {
