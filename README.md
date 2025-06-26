@@ -151,7 +151,7 @@ Based on matching methods, we can roughly classify Boxes into two types:
 
 ## Development ⛑️
 
-It is recommended to use Node.js version 20.x
+It is recommended to use Node.js version 22.x
 
 ```bash
 pnpm build:wasm
@@ -159,7 +159,24 @@ pnpm install
 pnpm start
 ```
 
-### Prepare deploy
+### Development Commands
+
+- `pnpm build:wasm` - Build WASM modules before development/deployment (required for base64-box dependency)
+- `pnpm start` - Start development server on port 3000
+- `pnpm build` - Build for production (runs TypeScript compiler + Vite build)
+- `pnpm test` - Run unit tests with Vitest
+- `pnpm test:ui` - Run tests with Vitest UI
+- `pnpm lint` - Run ESLint on src/ and config files
+- `pnpm lint:fix` - Run ESLint with auto-fix
+- `pnpm test:e2e` - Run Cypress E2E tests
+- `pnpm cypress` - Open Cypress test runner
+
+### Testing
+
+- Unit tests use Vitest with jsdom environment
+- E2E tests use Cypress with custom commands in `cypress/support/`
+
+### Prepare Deploy
 
 Initial Deployment Preparation
 
