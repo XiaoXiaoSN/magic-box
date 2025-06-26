@@ -87,6 +87,7 @@ export const ShortenURLBoxSource = {
       new BoxBuilder('Shorten URL', shortenURL)
         .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityShortenURL)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

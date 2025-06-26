@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
+import CloseIcon from '@mui/icons-material/Close';
+import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Modal from '@mui/material/Modal';
+
+import { CodeBoxTemplate, DefaultBoxTemplate, KeyValueBoxTemplate, NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
@@ -26,7 +32,7 @@ import {
   WordCountBoxSource,
 } from '@modules/boxSources';
 
-import type { Box, BoxOptions } from '@modules/Box';
+import type { Box as BoxType, BoxComponent, BoxOptions } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 
 const defaultBoxSources: BoxSource[] = [
@@ -56,9 +62,27 @@ interface Props {
   sources?: BoxSource[];
 }
 
+/**
+ * Interface for BoxComponent with static supportsLarge property.
+ */
+interface LargeSupportBoxComponent extends BoxComponent {
+  supportsLarge?: boolean;
+}
+
+/**
+ * Type guard to check if a BoxComponent supports the 'large' prop.
+ */
+function isLargeSupportBoxComponent(
+  comp: BoxComponent
+): comp is LargeSupportBoxComponent {
+  return !!(comp as LargeSupportBoxComponent).supportsLarge;
+}
+
 const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
   const [notify, setNotify] = useState([0]);
-  const [boxes, setBoxes] = useState([] as Box[]);
+  const [boxes, setBoxes] = useState([] as BoxType[]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalBox, setModalBox] = useState<BoxType | null>(null);
 
   // This parses input text to extract the input and options.
   //
@@ -93,6 +117,16 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
   const copyText = (text: string) => {
     copyTextToClipboard(text);
     setNotify([Date.now()]);
+  };
+
+  const handleOpenModal = (box: BoxType) => {
+    setModalBox(box);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setModalBox(null);
   };
 
   useEffect(() => {
@@ -143,6 +177,7 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
             onClick(output);
           };
 
+          const showExpand = src.props.showExpandButton !== false;
           return (
             <div
               key={src?.props.name || idx}
@@ -150,8 +185,23 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
               style={{
                 width: '100%',
                 height: '100%',
+                position: 'relative',
               }}
             >
+              {showExpand ? <IconButton
+                  aria-label="expand"
+                  onClick={() => handleOpenModal(src)}
+                  size="small"
+                  style={{
+                    position: 'absolute',
+                    top: '.6rem',
+                    right: '.6rem',
+                    zIndex: 2,
+                    background: 'rgba(255,255,255,0.8)',
+                  }}
+                >
+                  <ZoomOutMapIcon fontSize="small" />
+                </IconButton> : null}
               <src.component
                 name={name}
                 onClick={onClickWithCopy}
@@ -165,6 +215,49 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
       ) : (
         <NotingMatchBoxTemplate />
       )}
+      <Modal
+        aria-describedby="box-modal-description"
+        aria-labelledby="box-modal-title"
+        onClose={handleCloseModal}
+        open={modalOpen}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Box
+          sx={{
+            position: 'relative',
+            maxWidth: '95vw',
+            maxHeight: '90vh',
+            width: '100%',
+            height: 'auto',
+            bgcolor: 'transparent',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {modalBox ? <div>
+              {(() => {
+                const Comp = modalBox.component;
+                const props = {
+                  name: modalBox.props.name,
+                  onClick: modalBox.props.onClick,
+                  onClose: handleCloseModal,
+                  options: modalBox.props.options,
+                  plaintextOutput: modalBox.props.plaintextOutput,
+                  priority: modalBox.props.priority,
+                };
+                if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
+                  return <Comp {...props} large />;
+                }
+                return <Comp {...props} />;
+              })()}
+            </div> : null}
+        </Box>
+      </Modal>
       <CustomizedSnackbar notify={notify} />
     </React.Fragment>
   );

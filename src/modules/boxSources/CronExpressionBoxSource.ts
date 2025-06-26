@@ -69,6 +69,7 @@ export const CronExpressionBoxSource = {
       new BoxBuilder('Cron Expression', answer)
         .setPriority(PriorityCronExpression)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

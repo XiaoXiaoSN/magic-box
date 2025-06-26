@@ -42,9 +42,10 @@ export const URLDecodeBoxSource = {
 
     const { decodedText } = match;
     return [
-      new BoxBuilder('URLEncode decode', decodedText)
+      new BoxBuilder('URLEncoding Decode', decodedText)
         .setPriority(PriorityURLEncode)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

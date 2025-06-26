@@ -62,6 +62,7 @@ export const MathExpressionBoxSource = {
     return [
       new BoxBuilder('Math Expression', answer)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .setPriority(PriorityMathExpression)
         .build(),
     ];

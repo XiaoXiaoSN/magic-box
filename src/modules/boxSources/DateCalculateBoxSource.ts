@@ -162,6 +162,7 @@ export const DateCalculateBoxSource = {
           days: days.toString(),
           operation,
         })
+        .setShowExpandButton(false)
         .build(),
     ];
   },

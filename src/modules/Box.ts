@@ -35,6 +35,9 @@ export interface BoxProps {
   options: BoxOptions,
   onClick: BoxOnClickFn,
   priority?: number,
+  showExpandButton?: boolean,
+  large?: boolean,
+  onClose?: () => void,
 }
 
 export type BoxComponent<P = BoxProps> = React.FunctionComponent<P>;
@@ -45,6 +48,8 @@ export interface Box {
 }
 
 export class BoxBuilder {
+  public showExpandButton: boolean = true;
+
   constructor(
     public name: string,
     public plaintextOutput: string,
@@ -74,6 +79,11 @@ export class BoxBuilder {
     return this;
   }
 
+  setShowExpandButton(show: boolean): BoxBuilder {
+    this.showExpandButton = show;
+    return this;
+  }
+
   build(): Box {
     return {
       props: {
@@ -82,6 +92,7 @@ export class BoxBuilder {
         priority: this.priority,
         options: this.options,
         onClick: this.onClick,
+        showExpandButton: this.showExpandButton,
       },
       component: this.component ?? DefaultBoxTemplate,
     };

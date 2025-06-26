@@ -38,6 +38,7 @@ export const UuidBoxSource = {
       new BoxBuilder('UUID', uuid)
         .setTemplate(DefaultBoxTemplate)
         .setPriority(PriorityUuidBox)
+        .setShowExpandButton(false)
         .build(),
     ];
   },
