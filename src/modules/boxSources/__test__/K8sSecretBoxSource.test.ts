@@ -89,7 +89,7 @@ data:
         username: 'admin',
         password: 'password123',
       });
-      expect(boxes[0].component).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
     });
 
     it('should return empty array for non-readable data', async () => {
@@ -101,7 +101,7 @@ data:
         data: '<unreadable-string>',
         password: 'password123',
       });
-      expect(boxes[0].component).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
     });
   });
 });

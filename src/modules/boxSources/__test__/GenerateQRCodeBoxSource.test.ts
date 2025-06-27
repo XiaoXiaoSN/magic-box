@@ -43,7 +43,7 @@ describe('GenerateQRCodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
       expect(boxes[0].props.plaintextOutput).toBe(input);
-      expect(boxes[0].component).toBe(QRCodeBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(QRCodeBoxTemplate);
     });
   });
 });

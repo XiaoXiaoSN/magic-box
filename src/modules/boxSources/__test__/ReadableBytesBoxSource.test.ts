@@ -87,7 +87,7 @@ describe('ReadableBytesBoxSource', () => {
       expect(box.props.name).toBe('ByteArray to String');
       expect(box.props.plaintextOutput).toBe('Hello');
       expect(box.props.priority).toBe(10);
-      expect(box.component).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('should generate box for utf-8 emoji', async () => {

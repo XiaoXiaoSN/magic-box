@@ -68,7 +68,7 @@ describe('RandomIntegerBoxSource', () => {
       const value = parseInt(box.props.plaintextOutput, 10);
       expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThanOrEqual(100);
-      expect(box.component).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('should generate box with custom range', async () => {

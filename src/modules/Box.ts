@@ -40,11 +40,11 @@ export interface BoxProps {
   onClose?: () => void,
 }
 
-export type BoxComponent<P = BoxProps> = React.FunctionComponent<P>;
+export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
 
 export interface Box {
   props: BoxProps,
-  component: BoxComponent,
+  boxTemplate: BoxTemplate,
 }
 
 export class BoxBuilder {
@@ -56,7 +56,7 @@ export class BoxBuilder {
     public options = {} as BoxOptions,
     public onClick = (() => { }) as BoxOnClickFn,
     public priority?: number,
-    public component?: BoxComponent,
+    public boxTemplate?: BoxTemplate,
   ) { }
 
   setPriority(priority?: number): BoxBuilder {
@@ -74,8 +74,8 @@ export class BoxBuilder {
     return this;
   }
 
-  setTemplate(component?: BoxComponent): BoxBuilder {
-    this.component = component;
+  setTemplate(template?: BoxTemplate): BoxBuilder {
+    this.boxTemplate = template;
     return this;
   }
 
@@ -94,7 +94,7 @@ export class BoxBuilder {
         onClick: this.onClick,
         showExpandButton: this.showExpandButton,
       },
-      component: this.component ?? DefaultBoxTemplate,
+      boxTemplate: this.boxTemplate ?? DefaultBoxTemplate,
     };
   }
 }

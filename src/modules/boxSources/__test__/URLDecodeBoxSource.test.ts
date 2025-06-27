@@ -47,7 +47,7 @@ describe('URLDecodeBoxSource', () => {
       expect(boxes[0].props.name).toBe('URLEncoding Decode');
       expect(boxes[0].props.plaintextOutput).toBe('https://example.com/path?query=hello world');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
     });
   });
 });

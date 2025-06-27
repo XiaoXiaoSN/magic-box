@@ -89,7 +89,7 @@ describe('MyIPBoxSource', () => {
       expect(boxes[0].props.name).toBe('My IP');
       expect(boxes[0].props.plaintextOutput).toBe('116.12.57.176 (Auckland, NZ)');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
     });
   });
 });

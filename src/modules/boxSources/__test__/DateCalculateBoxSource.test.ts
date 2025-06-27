@@ -164,7 +164,7 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-21');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('should generate correct box for subtraction format', async () => {

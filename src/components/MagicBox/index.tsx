@@ -6,7 +6,12 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Modal from '@mui/material/Modal';
 
-import { CodeBoxTemplate, DefaultBoxTemplate, KeyValueBoxTemplate, NotingMatchBoxTemplate } from '@components/BoxTemplate';
+import {
+  CodeBoxTemplate,
+  DefaultBoxTemplate,
+  KeyValueBoxTemplate,
+  NotingMatchBoxTemplate,
+} from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
@@ -32,7 +37,7 @@ import {
   WordCountBoxSource,
 } from '@modules/boxSources';
 
-import type { Box as BoxType, BoxComponent, BoxOptions } from '@modules/Box';
+import type { Box as BoxType, BoxOptions, BoxTemplate } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 
 const defaultBoxSources: BoxSource[] = [
@@ -62,23 +67,19 @@ interface Props {
   sources?: BoxSource[];
 }
 
-/**
- * Interface for BoxComponent with static supportsLarge property.
- */
-interface LargeSupportBoxComponent extends BoxComponent {
+// Interface for BoxComponent with static supportsLarge property.
+interface LargeSupportBoxComponent extends BoxTemplate {
   supportsLarge?: boolean;
 }
 
-/**
- * Type guard to check if a BoxComponent supports the 'large' prop.
- */
+// Type guard to check if a BoxComponent supports the 'large' prop.
 function isLargeSupportBoxComponent(
-  comp: BoxComponent
+  comp: BoxTemplate
 ): comp is LargeSupportBoxComponent {
   return !!(comp as LargeSupportBoxComponent).supportsLarge;
 }
 
-const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
+const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as BoxType[]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -138,7 +139,9 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
     const boxSources = sources ?? defaultBoxSources;
     const [input, options] = parseInput(magicIn);
 
-    const promises = boxSources.map(async (boxSource) => boxSource.generateBoxes(input, options));
+    const promises = boxSources.map(async (boxSource) =>
+      boxSource.generateBoxes(input, options)
+    );
     Promise.all(promises).then((resultBoxes) => {
       const newBoxes = resultBoxes
         .filter((box) => box)
@@ -188,7 +191,8 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
                 position: 'relative',
               }}
             >
-              {showExpand ? <IconButton
+              {showExpand ? (
+                <IconButton
                   aria-label="expand"
                   onClick={() => handleOpenModal(src)}
                   size="small"
@@ -201,8 +205,9 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
                   }}
                 >
                   <ZoomOutMapIcon fontSize="small" />
-                </IconButton> : null}
-              <src.component
+                </IconButton>
+              ) : null}
+              <src.boxTemplate
                 name={name}
                 onClick={onClickWithCopy}
                 options={options}
@@ -239,9 +244,10 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
             justifyContent: 'center',
           }}
         >
-          {modalBox ? <div>
+          {modalBox ? (
+            <div>
               {(() => {
-                const Comp = modalBox.component;
+                const Comp = modalBox.boxTemplate;
                 const props = {
                   name: modalBox.props.name,
                   onClick: modalBox.props.onClick,
@@ -255,7 +261,8 @@ const MagicBox = ({ input: magicIn, sources }: Props) : React.JSX.Element=> {
                 }
                 return <Comp {...props} />;
               })()}
-            </div> : null}
+            </div>
+          ) : null}
         </Box>
       </Modal>
       <CustomizedSnackbar notify={notify} />

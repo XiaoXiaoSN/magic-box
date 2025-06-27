@@ -51,7 +51,7 @@ describe('JWTBoxSource', () => {
       expect(parsed.header.alg).toBe('HS256');
       expect(parsed.body.name).toBe('John Doe');
 
-      expect(boxes[0].component).toBe(CodeBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(CodeBoxTemplate);
     });
   });
 });

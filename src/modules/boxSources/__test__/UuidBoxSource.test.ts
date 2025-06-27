@@ -46,7 +46,7 @@ describe('UuidBoxSource', () => {
       expect(box.props.name).toBe('UUID');
       expect(box.props.plaintextOutput).toMatch(validUUIDv4Regex);
       expect(box.props.plaintextOutput.length).toBe(36);
-      expect(box.component).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('should generate different UUIDs for each call', async () => {
