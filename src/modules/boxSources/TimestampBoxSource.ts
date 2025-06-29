@@ -4,7 +4,7 @@ import { BoxBuilder } from '@modules/Box';
 
 import type { Box } from '@modules/Box';
 
-const PriorityRFC3339 = 10;
+const PriorityRFC3339 = 9;
 
 interface Match {
   date: Date,
@@ -66,6 +66,7 @@ export const TimestampBoxSource = {
         new BoxBuilder('RFC 3339', date.toISOString())
           .setPriority(PriorityRFC3339)
           .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
           .build(),
       );
     }
@@ -74,6 +75,7 @@ export const TimestampBoxSource = {
         new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString())
           .setPriority(PriorityRFC3339)
           .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
           .build(),
       );
     }

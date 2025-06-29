@@ -46,10 +46,12 @@ export const TimeFormatBoxSource = {
       new BoxBuilder('timestamp (s)', (timestamp / 1000).toString())
         .setPriority(PriorityTimeFormat)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
       new BoxBuilder('timestamp (ms)', timestamp.toString())
         .setPriority(PriorityTimeFormat)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

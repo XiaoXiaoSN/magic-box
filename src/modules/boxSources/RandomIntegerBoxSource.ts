@@ -78,6 +78,7 @@ export const RandomIntegerBoxSource = {
           min: match.min.toString(),
           max: match.max.toString(),
         })
+        .setShowExpandButton(false)
         .build(),
     ];
   },

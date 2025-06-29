@@ -76,6 +76,7 @@ export const Base64DecodeBoxSource = {
       new BoxBuilder('Base64 decode', decodedText)
         .setOptions(languageOpts)
         .setTemplate(CodeBoxTemplate)
+        .setShowExpandButton(true)
         .build(),
     ];
   },
@@ -114,6 +115,7 @@ export const Base64EncodeBoxSource = {
     return [
       new BoxBuilder('Base64 encode', encodedText)
         .setPriority(PriorityBase64Encode)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

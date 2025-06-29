@@ -46,14 +46,14 @@ describe('TimestampBoxSource', () => {
       // RFC 3339 box
       expect(boxes[0].props.name).toBe('RFC 3339');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-01T00:00:00.000Z');
-      expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].component).toBe(DefaultBoxTemplate);
+      expect(boxes[0].props.priority).toBe(9);
+      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
 
       // RFC 3339 (UTC+8) box
       expect(boxes[1].props.name).toBe('RFC 3339 (UTC+8)');
       expect(boxes[1].props.plaintextOutput).toBe('2024-01-01T08:00:00.000Z');
-      expect(boxes[1].props.priority).toBe(10);
-      expect(boxes[1].component).toBe(DefaultBoxTemplate);
+      expect(boxes[1].props.priority).toBe(9);
+      expect(boxes[1].boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('should handle millisecond timestamps', async () => {

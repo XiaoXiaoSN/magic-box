@@ -80,6 +80,7 @@ export const MyIPBoxSource = {
       new BoxBuilder('My IP', displayText)
         .setPriority(PriorityMyIP)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
     ];
   },

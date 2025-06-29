@@ -70,7 +70,7 @@ describe('PrettyJSONBoxSource', () => {
     }
 }`;
       expect(boxes[0].props.plaintextOutput).toBe(expectedOutput);
-      expect(boxes[0].component).toBe(CodeBoxTemplate);
+      expect(boxes[0].boxTemplate).toBe(CodeBoxTemplate);
     });
   });
 });

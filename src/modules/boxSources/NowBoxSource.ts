@@ -46,13 +46,16 @@ export const NowBoxSource = {
       new BoxBuilder('RFC 3339', date.toISOString())
         .setPriority(PriorityRFC3339)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
       new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
         .setPriority(PriorityRFC3339)
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
       new BoxBuilder('Timestamp (s)', (timestamp / 1000).toString())
         .setTemplate(DefaultBoxTemplate)
+        .setShowExpandButton(false)
         .build(),
     ];
   },
