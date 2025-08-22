@@ -29,6 +29,7 @@ export const Base64DecodeBoxSource = {
   name: 'Base64 Decode',
   description: 'Decode a Base64 encoded string.',
   defaultInput: 'SGVsbG8gV29ybGQK', // Hello World
+  priority: 10, // Default priority for Base64 Decode
 
   async checkMatch(input: string, options: BoxOptions = null): Promise<Match | undefined> {
     if (!isString(input)) {
@@ -77,6 +78,7 @@ export const Base64DecodeBoxSource = {
         .setOptions(languageOpts)
         .setTemplate(CodeBoxTemplate)
         .setShowExpandButton(true)
+        .setPriority(this.priority)
         .build(),
     ];
   },
@@ -90,6 +92,7 @@ export const Base64EncodeBoxSource = {
   name: 'Base64 Encode',
   description: 'Encode a string to Base64.',
   defaultInput: 'Hello World',
+  priority: PriorityBase64Encode, // Lower priority since it matches almost everything
 
   async checkMatch(input: string): Promise<EncodeMatch | undefined> {
     if (!isString(input)) {
@@ -114,8 +117,8 @@ export const Base64EncodeBoxSource = {
     const { encodedText } = match;
     return [
       new BoxBuilder('Base64 encode', encodedText)
-        .setPriority(PriorityBase64Encode)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

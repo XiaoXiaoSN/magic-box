@@ -14,6 +14,7 @@ export const TimeFormatBoxSource = {
   name: 'Time Format',
   description: 'Format a timestamp or date string.',
   defaultInput: '2025-06-21T19:34:57.530+08:00',
+  priority: PriorityTimeFormat,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -44,14 +45,14 @@ export const TimeFormatBoxSource = {
     const { timestamp } = match;
     return [
       new BoxBuilder('timestamp (s)', (timestamp / 1000).toString())
-        .setPriority(PriorityTimeFormat)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
       new BoxBuilder('timestamp (ms)', timestamp.toString())
-        .setPriority(PriorityTimeFormat)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

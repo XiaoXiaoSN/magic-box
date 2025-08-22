@@ -11,6 +11,7 @@ export const UuidBoxSource = {
   name: 'UUID',
   description: 'Generate a UUID.',
   defaultInput: 'uuid',
+  priority: PriorityUuidBox,
 
   checkMatch(input: string): Match | undefined {
     // Match "uuid" or "UUID"
@@ -37,8 +38,8 @@ export const UuidBoxSource = {
     return [
       new BoxBuilder('UUID', uuid)
         .setTemplate(DefaultBoxTemplate)
-        .setPriority(PriorityUuidBox)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

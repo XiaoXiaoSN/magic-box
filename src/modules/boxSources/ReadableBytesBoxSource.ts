@@ -20,6 +20,7 @@ export const ReadableBytesBoxSource = {
   name: 'Readable Bytes',
   description: 'Convert a byte array to a readable string.',
   defaultInput: '83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115',
+  priority: PriorityReadableBytes,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -103,8 +104,8 @@ export const ReadableBytesBoxSource = {
     const { decodedText } = match;
     return [
       new BoxBuilder('ByteArray to String', decodedText)
-        .setPriority(PriorityReadableBytes)
         .setTemplate(DefaultBoxTemplate)
+        .setPriority(this.priority)
         .build(),
     ];
   },

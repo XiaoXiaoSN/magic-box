@@ -57,6 +57,7 @@ export const DateCalculateBoxSource = {
   name: 'Date Calculate',
   description: 'Calculate the duration between two dates.',
   defaultInput: 'now + 7d',
+  priority: PriorityDateCalculate,
 
   // Deal with the pattern of `now + 20d` or `2024-10-31 + 30d`
   checkAddSubtractPattern(input: string): Match | undefined {
@@ -154,7 +155,6 @@ export const DateCalculateBoxSource = {
 
     return [
       new BoxBuilder('Date Calculate', result)
-        .setPriority(PriorityDateCalculate)
         .setTemplate(DefaultBoxTemplate)
         .setOptions({
           fromDate,
@@ -163,6 +163,7 @@ export const DateCalculateBoxSource = {
           operation,
         })
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

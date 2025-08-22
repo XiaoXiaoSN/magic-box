@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 import { boxSources } from '@modules/boxSources';
 
@@ -29,9 +35,15 @@ const defaultSettings: Settings = {
   ) as Record<string, BoxSetting>,
 };
 
+const SETTINGS_STORAGE_KEY = 'mb_settings';
+
+const validatePriority = (value: number): number => {
+  return isNaN(value) ? 10 : Math.max(0, Math.min(99, value));
+};
+
 export const SettingsStorage = {
   get(): Settings {
-    const stored = localStorage.getItem('magicbox_settings');
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (stored) {
       const parsed: Settings = JSON.parse(stored);
       // Ensure all box sources exist in settings
@@ -40,9 +52,14 @@ export const SettingsStorage = {
           parsed.boxes[box.name] = {
             id: box.name,
             enabled: true,
-            priority: box.priority ?? 10,
+            priority: validatePriority(box.priority ?? 10),
             secondaryOrder: idx,
           };
+        } else {
+          // Validate existing priority values
+          parsed.boxes[box.name].priority = validatePriority(
+            parsed.boxes[box.name].priority
+          );
         }
       });
       return parsed;
@@ -50,7 +67,20 @@ export const SettingsStorage = {
     return defaultSettings;
   },
   save(settings: Settings): void {
-    localStorage.setItem('magicbox_settings', JSON.stringify(settings));
+    // Validate priorities before saving
+    const validatedSettings = {
+      ...settings,
+      boxes: Object.fromEntries(
+        Object.entries(settings.boxes).map(([key, box]) => [
+          key,
+          { ...box, priority: validatePriority(box.priority) },
+        ])
+      ),
+    };
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify(validatedSettings)
+    );
   },
 };
 
@@ -58,9 +88,12 @@ interface SettingsContextType {
   settings: Settings;
   updateSettings: (newSettings: Settings) => void;
   getFilteredAndSortedBoxSources: () => BoxSource[];
+  validatePriority: (value: string) => number;
 }
 
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined
+);
 
 export const useSettings = (): SettingsContextType => {
   const context = useContext(SettingsContext);
@@ -74,7 +107,9 @@ interface SettingsProviderProps {
   children: React.ReactNode;
 }
 
-export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
+export const SettingsProvider: React.FC<SettingsProviderProps> = ({
+  children,
+}) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
 
   useEffect(() => {
@@ -87,8 +122,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     SettingsStorage.save(newSettings);
   };
 
-  // Apply settings to box sources - filter enabled and sort by priority
-  const getFilteredAndSortedBoxSources = (): BoxSource[] => {
+  // Apply settings to box sources - filter enabled and sort by priority (memoized for performance)
+  const getFilteredAndSortedBoxSources = useMemo((): BoxSource[] => {
     const enabledBoxSources = boxSources.filter(
       (boxSource) => settings.boxes[boxSource.name]?.enabled
     );
@@ -98,7 +133,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         const setting = settings.boxes[boxSource.name];
         return {
           ...boxSource,
-          priority: setting?.priority ?? boxSource.priority ?? 10,
+          priority: validatePriority(
+            setting?.priority ?? boxSource.priority ?? 10
+          ),
           secondaryOrder: setting?.secondaryOrder ?? 0,
         };
       })
@@ -110,13 +147,24 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         // Then by secondary order
         return (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0);
       });
+  }, [settings.boxes]);
+
+  // Helper function to validate priority input from UI
+  const validatePriorityInput = (value: string): number => {
+    const num = parseInt(value, 10);
+    return validatePriority(num);
   };
 
   const value: SettingsContextType = {
     settings,
     updateSettings,
-    getFilteredAndSortedBoxSources,
+    getFilteredAndSortedBoxSources: () => getFilteredAndSortedBoxSources,
+    validatePriority: validatePriorityInput,
   };
 
-  return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
+  return (
+    <SettingsContext.Provider value={value}>
+      {children}
+    </SettingsContext.Provider>
+  );
 };

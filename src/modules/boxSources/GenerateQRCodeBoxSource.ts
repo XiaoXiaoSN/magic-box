@@ -14,6 +14,7 @@ export const GenerateQRCodeBoxSource = {
   defaultInput: `https://mb.10oz.tw/list
 ::qrcode
 `,
+  priority: PriorityGenerateQRCode,
 
   checkMatch(input: string, options: BoxOptions): boolean {
     if (options === null) {
@@ -42,7 +43,7 @@ export const GenerateQRCodeBoxSource = {
     return [
       new BoxBuilder('QRCode', input)
         .setTemplate(QRCodeBoxTemplate)
-        .setPriority(PriorityGenerateQRCode)
+        .setPriority(this.priority)
         .build(),
     ];
   },

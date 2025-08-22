@@ -24,6 +24,7 @@ type: Opaque
 data:
   username: dXNlcg==
   password: cGFzc3dvcmQ=`,
+  priority: PriorityK8sSecret,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -73,7 +74,7 @@ data:
       new BoxBuilder('Kubernetes Secret', '')
         .setOptions(match.data)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(PriorityK8sSecret)
+        .setPriority(this.priority)
         .build(),
     ];
   },
