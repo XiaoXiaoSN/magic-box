@@ -34,20 +34,12 @@ import { alpha, useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { useSettings } from '../contexts/SettingsContext';
 import { boxSources } from '../modules/boxSources';
 
 import type { DragEndEvent } from '@dnd-kit/core';
 
-interface BoxSetting {
-  id: string;
-  priority: number;
-  secondaryOrder: number;
-  enabled: boolean;
-}
-
-interface Settings {
-  boxes: Record<string, BoxSetting>;
-}
+import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 
 function groupByPriority(boxes: BoxSetting[]): Record<number, BoxSetting[]> {
   const groups: Record<number, BoxSetting[]> = {};
@@ -72,11 +64,17 @@ const SortableBoxRow = ({
   onPriorityChange,
 }: SortableBoxRowProps) => {
   const theme = useTheme();
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: box.id });
-  
-  const boxSource = boxSources.find(bs => bs.name === box.id);
-  
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: box.id });
+
+  const boxSource = boxSources.find((bs) => bs.name === box.id);
+
   return (
     <Card
       ref={setNodeRef}
@@ -85,7 +83,9 @@ const SortableBoxRow = ({
         transition: transition ?? 'none',
         opacity: isDragging ? 0.7 : 1,
         mb: { xs: 1, sm: 1.5 },
-        background: box.enabled ? 'background.paper' : alpha(theme.palette.action.disabled, 0.1),
+        background: box.enabled
+          ? 'background.paper'
+          : alpha(theme.palette.action.disabled, 0.1),
         border: box.enabled ? '1px solid' : '1px dashed',
         borderColor: box.enabled ? 'divider' : 'action.disabled',
         cursor: isDragging ? 'grabbing' : 'default',
@@ -96,7 +96,12 @@ const SortableBoxRow = ({
       }}
       {...attributes}
     >
-      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
+      <CardContent
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          '&:last-child': { pb: { xs: 1.5, sm: 2 } },
+        }}
+      >
         <Stack alignItems="center" direction="row" spacing={{ xs: 1.5, sm: 2 }}>
           <Box
             sx={{
@@ -114,7 +119,7 @@ const SortableBoxRow = ({
           >
             {idx + 1}
           </Box>
-          
+
           <IconButton
             size="small"
             {...listeners}
@@ -133,39 +138,43 @@ const SortableBoxRow = ({
           >
             <DragIndicatorIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
           </IconButton>
-          
+
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: { xs: '0.875rem', sm: '1rem' }, 
-                fontWeight: 600, 
+            <Typography
+              variant="h6"
+              sx={{
+                fontSize: { xs: '0.875rem', sm: '1rem' },
+                fontWeight: 600,
                 mb: 0.5,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
               }}
             >
               {box.id}
             </Typography>
             {boxSource?.description ? (
-              <Typography 
-                color="text.secondary" 
-                variant="body2" 
-                sx={{ 
+              <Typography
+                color="text.secondary"
+                variant="body2"
+                sx={{
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   display: { xs: 'none', sm: 'block' },
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {boxSource.description}
               </Typography>
             ) : null}
           </Box>
-          
-          <Stack alignItems="center" direction="row" spacing={{ xs: 1, sm: 1.5 }}>
+
+          <Stack
+            alignItems="center"
+            direction="row"
+            spacing={{ xs: 1, sm: 1.5 }}
+          >
             <IconButton
               onClick={() => onToggle(box.id)}
               size="small"
@@ -173,7 +182,12 @@ const SortableBoxRow = ({
                 color: box.enabled ? 'success.main' : 'action.disabled',
                 p: { xs: 0.5, sm: 1 },
                 '&:hover': {
-                  bgcolor: alpha(box.enabled ? theme.palette.success.main : theme.palette.action.active, 0.1),
+                  bgcolor: alpha(
+                    box.enabled
+                      ? theme.palette.success.main
+                      : theme.palette.action.active,
+                    0.1
+                  ),
                 },
               }}
             >
@@ -183,7 +197,7 @@ const SortableBoxRow = ({
                 <VisibilityOffIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
               )}
             </IconButton>
-            
+
             <TextField
               label="Priority"
               onChange={(e) => onPriorityChange(box.id, e.target.value)}
@@ -193,13 +207,13 @@ const SortableBoxRow = ({
               value={box.priority}
               variant="outlined"
               slotProps={{
-                input: { 
+                input: {
                   inputProps: { min: 0, max: 99 },
-                  sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
+                  sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } },
                 },
                 inputLabel: {
-                  sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } }
-                }
+                  sx: { fontSize: { xs: '0.75rem', sm: '0.875rem' } },
+                },
               }}
             />
           </Stack>
@@ -209,54 +223,25 @@ const SortableBoxRow = ({
   );
 };
 
-const defaultSettings: Settings = {
-  boxes: Object.fromEntries(
-    boxSources.map((box, idx) => [
-      box.name,
-      {
+const SettingsPage: React.FC = () => {
+  const { settings, updateSettings } = useSettings();
+
+  // Create default settings for reset functionality
+  const defaultSettings: Settings = {
+    boxes: boxSources.reduce<Record<string, BoxSetting>>((acc, box, idx) => {
+      acc[box.name] = {
         id: box.name,
         enabled: true,
         priority: box.priority ?? 10,
         secondaryOrder: idx,
-      },
-    ])
-  ) as Record<string, BoxSetting>,
-};
-
-const SettingsStorage = {
-  get: (): Settings => {
-    const stored = localStorage.getItem('magicbox_settings');
-    if (stored) {
-      const parsed: Settings = JSON.parse(stored);
-      boxSources.forEach((box, idx) => {
-        if (!parsed.boxes[box.name]) {
-          parsed.boxes[box.name] = {
-            id: box.name,
-            enabled: true,
-            priority: box.priority ?? 10,
-            secondaryOrder: idx,
-          };
-        }
-      });
-      return parsed;
-    }
-    return defaultSettings;
-  },
-  save: (settings: Settings) => {
-    localStorage.setItem('magicbox_settings', JSON.stringify(settings));
-  },
-};
-
-const SettingsPage: React.FC = () => {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+      };
+      return acc;
+    }, {}),
+  };
   const [boxes, setBoxes] = useState<BoxSetting[]>([]);
 
   useEffect(() => {
-    const loaded = SettingsStorage.get();
-    setSettings(loaded);
-    const boxArray: BoxSetting[] = Object.entries(loaded.boxes).map(
-      ([, config]) => ({ ...config })
-    );
+    const boxArray: BoxSetting[] = Object.values(settings.boxes);
     setBoxes(
       boxArray.sort((a, b) =>
         a.priority !== b.priority
@@ -264,22 +249,11 @@ const SettingsPage: React.FC = () => {
           : a.secondaryOrder - b.secondaryOrder
       )
     );
-  }, []);
+  }, [settings]);
 
   // Reset to default
   const handleReset = () => {
-    setSettings(defaultSettings);
-    const boxArray: BoxSetting[] = Object.entries(defaultSettings.boxes).map(
-      ([, config]) => ({ ...config })
-    );
-    setBoxes(
-      boxArray.sort((a, b) =>
-        a.priority !== b.priority
-          ? b.priority - a.priority
-          : a.secondaryOrder - b.secondaryOrder
-      )
-    );
-    SettingsStorage.save(defaultSettings);
+    updateSettings(defaultSettings);
   };
 
   // Toggle box enabled state
@@ -289,18 +263,7 @@ const SettingsPage: React.FC = () => {
       ...newSettings.boxes[id],
       enabled: !newSettings.boxes[id].enabled,
     };
-    setSettings(newSettings);
-    const boxArray: BoxSetting[] = Object.entries(newSettings.boxes).map(
-      ([, config]) => ({ ...config })
-    );
-    setBoxes(
-      boxArray.sort((a, b) =>
-        a.priority !== b.priority
-          ? b.priority - a.priority
-          : a.secondaryOrder - b.secondaryOrder
-      )
-    );
-    SettingsStorage.save(newSettings);
+    updateSettings(newSettings);
   };
 
   // Priority number input
@@ -350,8 +313,7 @@ const SettingsPage: React.FC = () => {
         enabled: box.enabled,
       };
     });
-    setSettings(newSettings);
-    SettingsStorage.save(newSettings);
+    updateSettings(newSettings);
   };
 
   // dnd-kit sensors
@@ -388,8 +350,7 @@ const SettingsPage: React.FC = () => {
         enabled: box.enabled,
       };
     });
-    setSettings(newSettings);
-    SettingsStorage.save(newSettings);
+    updateSettings(newSettings);
   };
 
   // group by priority
@@ -401,36 +362,45 @@ const SettingsPage: React.FC = () => {
   return (
     <Container maxWidth="md" sx={{ py: { xs: 2, sm: 4 } }}>
       {/* Header Section */}
-      <Paper 
+      <Paper
         elevation={0}
-        sx={{ 
-          p: { xs: 2, sm: 3 }, 
-          mb: { xs: 2, sm: 3 }, 
+        sx={{
+          p: { xs: 2, sm: 3 },
+          mb: { xs: 2, sm: 3 },
           bgcolor: 'primary.main',
           color: 'primary.contrastText',
           borderRadius: 2,
         }}
       >
-        <Stack 
-          alignItems={{ xs: 'flex-start', sm: 'center' }} 
-          direction={{ xs: 'column', sm: 'row' }} 
-          spacing={2} 
+        <Stack
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
           sx={{ mb: { xs: 1.5, sm: 2 } }}
         >
           <Stack alignItems="center" direction="row" spacing={1.5}>
             <SettingsIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.25rem', sm: '1.5rem' } }} variant="h5">
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                }}
+              >
                 Settings Page
               </Typography>
-              <Typography sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }} variant="body2">
+              <Typography
+                sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                variant="body2"
+              >
                 Customize tool priority and visibility
               </Typography>
             </Box>
           </Stack>
-          
+
           <Box sx={{ flex: 1 }} />
-          
+
           <Button
             onClick={handleReset}
             size="small"
@@ -451,19 +421,23 @@ const SettingsPage: React.FC = () => {
             Reset
           </Button>
         </Stack>
-        
-        <Stack 
-          alignItems="center" 
-          direction="row" 
-          spacing={1.5} 
-          sx={{ 
+
+        <Stack
+          alignItems="center"
+          direction="row"
+          spacing={1.5}
+          sx={{
             mt: { xs: 1, sm: 2 },
-            display: { xs: 'none', sm: 'flex' }
+            display: { xs: 'none', sm: 'flex' },
           }}
         >
           <TuneIcon sx={{ fontSize: 18 }} />
-          <Typography sx={{ opacity: 0.8, fontSize: '0.875rem' }} variant="body2">
-            Drag items to reorder, adjust priority values, or toggle tool visibility
+          <Typography
+            sx={{ opacity: 0.8, fontSize: '0.875rem' }}
+            variant="body2"
+          >
+            Drag items to reorder, adjust priority values, or toggle tool
+            visibility
           </Typography>
         </Stack>
       </Paper>
@@ -473,60 +447,69 @@ const SettingsPage: React.FC = () => {
         const groupSorted = grouped[priority].sort(
           (a, b) => a.secondaryOrder - b.secondaryOrder
         );
-        const enabledCount = groupSorted.filter(box => box.enabled).length;
-        
+        const enabledCount = groupSorted.filter((box) => box.enabled).length;
+
         return (
-          <Paper 
-            key={priority} 
+          <Paper
+            key={priority}
             elevation={1}
-            sx={{ 
-              p: { xs: 2, sm: 3 }, 
-              mb: { xs: 2, sm: 3 }, 
+            sx={{
+              p: { xs: 2, sm: 3 },
+              mb: { xs: 2, sm: 3 },
               borderRadius: 2,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
             }}
           >
-            <Stack 
-              alignItems={{ xs: 'flex-start', sm: 'center' }} 
-              direction={{ xs: 'column', sm: 'row' }} 
-              spacing={{ xs: 1.5, sm: 2 }} 
+            <Stack
+              alignItems={{ xs: 'flex-start', sm: 'center' }}
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={{ xs: 1.5, sm: 2 }}
               sx={{ mb: { xs: 2, sm: 3 } }}
             >
-              <Stack alignItems="center" direction="row" spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+              <Stack
+                alignItems="center"
+                direction="row"
+                spacing={1.5}
+                sx={{ width: { xs: '100%', sm: 'auto' } }}
+              >
                 <Chip
                   color="primary"
                   label={`Priority ${priority}`}
                   size="small"
                   variant="filled"
-                  sx={{ 
-                    fontWeight: 600, 
+                  sx={{
+                    fontWeight: 600,
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     height: { xs: 24, sm: 32 },
                   }}
                 />
-                <Typography color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }} variant="body2">
+                <Typography
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                  variant="body2"
+                >
                   {enabledCount}/{groupSorted.length} tools enabled
                 </Typography>
               </Stack>
-              
+
               <Box sx={{ flex: 1 }} />
-              
-              <Typography 
-                color="text.secondary" 
-                variant="caption" 
-                sx={{ 
+
+              <Typography
+                color="text.secondary"
+                variant="caption"
+                sx={{
                   fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  display: { xs: 'none', sm: 'block' }
+                  display: { xs: 'none', sm: 'block' },
                 }}
               >
                 Higher values have higher priority
               </Typography>
             </Stack>
-            
+
             <Divider sx={{ mb: 2 }} />
-            
+
             <DndContext
               collisionDetection={closestCenter}
               onDragEnd={(e) => handleDragEnd(e, priority)}

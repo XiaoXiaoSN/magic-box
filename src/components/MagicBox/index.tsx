@@ -37,6 +37,8 @@ import {
   WordCountBoxSource,
 } from '@modules/boxSources';
 
+import { useSettings } from '../../contexts/SettingsContext';
+
 import type { Box as BoxType, BoxOptions, BoxTemplate } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 
@@ -84,6 +86,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
   const [boxes, setBoxes] = useState([] as BoxType[]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
+  const { getFilteredAndSortedBoxSources } = useSettings();
 
   // This parses input text to extract the input and options.
   //
@@ -136,7 +139,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
       return;
     }
 
-    const boxSources = sources ?? defaultBoxSources;
+    const boxSources = sources ?? getFilteredAndSortedBoxSources();
     const [input, options] = parseInput(magicIn);
 
     const promises = boxSources.map(async (boxSource) =>
@@ -161,7 +164,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
 
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
-  }, [magicIn, sources]);
+  }, [magicIn, sources, getFilteredAndSortedBoxSources]);
 
   return (
     <React.Fragment>
