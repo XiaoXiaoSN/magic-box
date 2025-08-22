@@ -25,7 +25,6 @@
     "mathjs": "^14.5.2",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
-    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.2",
     "react-syntax-highlighter": "^15.6.1",
