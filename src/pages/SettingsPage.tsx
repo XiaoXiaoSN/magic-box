@@ -121,6 +121,7 @@ const SortableBoxRow = ({
           </Box>
 
           <IconButton
+            aria-label={`Drag to reorder ${box.id} tool`}
             size="small"
             {...listeners}
             sx={{
@@ -176,6 +177,7 @@ const SortableBoxRow = ({
             spacing={{ xs: 1, sm: 1.5 }}
           >
             <IconButton
+              aria-label={box.enabled ? `Disable ${box.id} tool` : `Enable ${box.id} tool`}
               onClick={() => onToggle(box.id)}
               size="small"
               sx={{
@@ -199,6 +201,7 @@ const SortableBoxRow = ({
             </IconButton>
 
             <TextField
+              aria-label={`Set priority for ${box.id} tool (0-99, higher is better)`}
               label="Priority"
               onChange={(e) => onPriorityChange(box.id, e.target.value)}
               size="small"
@@ -224,7 +227,7 @@ const SortableBoxRow = ({
 };
 
 const SettingsPage: React.FC = () => {
-  const { settings, updateSettings } = useSettings();
+  const { settings, updateSettings, validatePriority } = useSettings();
 
   // Create default settings for reset functionality
   const defaultSettings: Settings = {
@@ -268,9 +271,7 @@ const SettingsPage: React.FC = () => {
 
   // Priority number input
   const handlePriorityChange = (id: string, value: string) => {
-    let num = Number(value);
-    if (isNaN(num) || num < 0) num = 0;
-    if (num > 99) num = 99;
+    const num = validatePriority(value);
 
     let updated: BoxSetting[] = boxes.map((box) =>
       box.id === id ? { ...box, priority: num } : box
