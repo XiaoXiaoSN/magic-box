@@ -17,6 +17,7 @@ export const RandomIntegerBoxSource = {
   name: 'Random Integer',
   description: 'Generate a random integer within a given range.',
   defaultInput: 'random 1-6',
+  priority: PriorityRandomBox,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -73,12 +74,12 @@ export const RandomIntegerBoxSource = {
     return [
       new BoxBuilder('Random Number', randomInRange.toString())
         .setTemplate(DefaultBoxTemplate)
-        .setPriority(PriorityRandomBox)
         .setOptions({
           min: match.min.toString(),
           max: match.max.toString(),
         })
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

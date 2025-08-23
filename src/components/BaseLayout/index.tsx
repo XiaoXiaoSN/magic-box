@@ -1,5 +1,6 @@
 import React from 'react';
 
+import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import SettingsIcon from '@mui/icons-material/Settings';
 import {
   AppBar, Box, IconButton, Toolbar, Typography,
@@ -11,6 +12,11 @@ const MagicBoxTitle = 'Magic Box';
 
 const theme = createTheme({
   // Add any custom theme configuration here
+  palette: {
+    text: {
+      secondary: 'rgba(0, 0, 0, 0.5)', // Lighter secondary text color
+    },
+  },
   components: {
     MuiAppBar: {
       styleOverrides: {
@@ -61,6 +67,9 @@ const BaseLayout = ({ children }: Props) : React.JSX.Element=> (
         </Link>
         <Box sx={{ flexGrow: 1 }} />
         <IconButton color="inherit" component={Link} to="/list">
+          <FormatListBulletedIcon />
+        </IconButton>
+        <IconButton color="inherit" component={Link} to="/settings">
           <SettingsIcon />
         </IconButton>
       </Toolbar>

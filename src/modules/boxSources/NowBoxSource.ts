@@ -16,6 +16,7 @@ export const NowBoxSource = {
   name: 'Now',
   description: 'Get the current time in different formats.',
   defaultInput: 'now',
+  priority: PriorityRFC3339,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -44,18 +45,19 @@ export const NowBoxSource = {
     const { timestamp, date, twDate } = match;
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
-        .setPriority(PriorityRFC3339)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
       new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
-        .setPriority(PriorityRFC3339)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
       new BoxBuilder('Timestamp (s)', (timestamp / 1000).toString())
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

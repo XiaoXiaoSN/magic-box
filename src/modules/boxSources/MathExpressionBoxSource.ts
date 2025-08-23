@@ -16,6 +16,7 @@ export const MathExpressionBoxSource = {
   name: 'Math Expression',
   description: 'Evaluate a mathematical expression.',
   defaultInput: '1 + 2 * (3 + 4) / 5',
+  priority: PriorityMathExpression,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -63,7 +64,7 @@ export const MathExpressionBoxSource = {
       new BoxBuilder('Math Expression', answer)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
-        .setPriority(PriorityMathExpression)
+        .setPriority(this.priority)
         .build(),
     ];
   },

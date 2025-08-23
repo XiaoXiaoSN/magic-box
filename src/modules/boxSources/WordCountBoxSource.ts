@@ -30,6 +30,7 @@ export const WordCountBoxSource = {
   defaultInput: `There are so many sounds in the world.
 i'mdifficult
 `,
+  priority: Priority,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -68,7 +69,7 @@ characters: ${characters}`;
       new BoxBuilder('Word Count', content)
         .setTemplate(KeyValueBoxTemplate)
         .setOptions(output)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

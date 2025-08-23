@@ -15,6 +15,7 @@ export const PrettyJSONBoxSource = {
   name: 'Pretty JSON',
   description: 'Format a JSON string.',
   defaultInput: '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}',
+  priority: PriorityPrettyJSON,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -53,7 +54,7 @@ export const PrettyJSONBoxSource = {
       new BoxBuilder('Pretty JSON', jsonStr)
         .setOptions(options)
         .setTemplate(CodeBoxTemplate)
-        .setPriority(PriorityPrettyJSON)
+        .setPriority(this.priority)
         .build(),
     ];
   },

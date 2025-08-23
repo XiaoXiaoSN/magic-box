@@ -17,6 +17,7 @@ export const ShortenURLBoxSource = {
   defaultInput: `https://github.com/XiaoXiaoSN/magic-box
 ::surl
 `,
+  priority: PriorityShortenURL,
 
   async getShortenURL(inputURL: string, shorten: string | null): Promise<string> {
     const toolBoxHost = env.TOOLBOX_URL;
@@ -86,8 +87,8 @@ export const ShortenURLBoxSource = {
     return [
       new BoxBuilder('Shorten URL', shortenURL)
         .setTemplate(DefaultBoxTemplate)
-        .setPriority(PriorityShortenURL)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

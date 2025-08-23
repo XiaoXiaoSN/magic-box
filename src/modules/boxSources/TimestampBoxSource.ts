@@ -15,6 +15,7 @@ export const TimestampBoxSource = {
   name: 'Timestamp',
   description: 'Convert a date string to a timestamp.',
   defaultInput: '1735794245',
+  priority: PriorityRFC3339,
 
   checkMatch(input: string): Match | undefined {
     if (!isNumeric(input)) {
@@ -64,18 +65,18 @@ export const TimestampBoxSource = {
     if (date.getTime() > 0) {
       resp.push(
         new BoxBuilder('RFC 3339', date.toISOString())
-          .setPriority(PriorityRFC3339)
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
+          .setPriority(this.priority)
           .build(),
       );
     }
     if (twDate.getTime() > 0) {
       resp.push(
         new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString())
-          .setPriority(PriorityRFC3339)
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
+          .setPriority(this.priority)
           .build(),
       );
     }

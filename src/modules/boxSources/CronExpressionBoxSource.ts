@@ -24,6 +24,7 @@ export const CronExpressionBoxSource = {
   name: 'Cron Expression',
   description: 'Parse a cron expression to get the next run dates.',
   defaultInput: '*/5 0 12 * * ?',
+  priority: PriorityCronExpression,
 
   checkMatch(input: string, options: BoxOptions = null): Match | undefined {
     if (!isString(input)) {
@@ -67,9 +68,9 @@ export const CronExpressionBoxSource = {
     const { answer } = match;
     return [
       new BoxBuilder('Cron Expression', answer)
-        .setPriority(PriorityCronExpression)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },

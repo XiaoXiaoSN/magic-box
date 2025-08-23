@@ -14,6 +14,7 @@ export const URLDecodeBoxSource = {
   name: 'URL Decode',
   description: 'Decode a URL-encoded string.',
   defaultInput: 'https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme',
+  priority: PriorityURLEncode,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -43,9 +44,9 @@ export const URLDecodeBoxSource = {
     const { decodedText } = match;
     return [
       new BoxBuilder('URLEncoding Decode', decodedText)
-        .setPriority(PriorityURLEncode)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
+        .setPriority(this.priority)
         .build(),
     ];
   },
