@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SearchIcon from '@mui/icons-material/Search';
 import ViewInArSharpIcon from '@mui/icons-material/ViewInArSharp';
 import {
@@ -16,10 +18,12 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Paper,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -34,6 +38,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import type { BoxSource } from '@modules/BoxSource';
 
 const drawerWidth = 280;
+const drawerCollapsedWidth = 72;
 
 const ToolsListPage: React.FC = () => {
   const [input, setInput] = useState<string>('');
@@ -41,6 +46,7 @@ const ToolsListPage: React.FC = () => {
   const [magicIn, setMagicIn] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -413,43 +419,61 @@ const ToolsListPage: React.FC = () => {
       <Drawer
         variant="permanent"
         sx={{
-          width: drawerWidth,
+          width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
           flexShrink: 0,
           [`& .MuiDrawer-paper`]: {
-            width: drawerWidth,
+            width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
             boxSizing: 'border-box',
             position: 'relative',
             bgcolor: 'grey.50',
             borderRight: '1px solid',
             borderColor: 'divider',
+            overflowX: 'hidden',
           },
         }}
       >
-        <Box sx={{ p: 2 }}>
-          {/* Search */}
-          <TextField
-            fullWidth
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tools..."
-            size="small"
-            value={searchQuery}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" sx={{ fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+        <Box sx={{ p: 1.5 }}>
+          {sidebarCollapsed ? (
+            <Stack alignItems="center" direction="row" justifyContent="center">
+              <Tooltip placement="right" title="Expand sidebar">
+                <IconButton aria-label="Expand sidebar" onClick={() => setSidebarCollapsed((v) => !v)} size="small">
+                  <ChevronRightIcon />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          ) : (
+            <Stack alignItems="center" direction="row" spacing={1}>
+              <Tooltip placement="right" title="Collapse sidebar">
+                <IconButton aria-label="Collapse sidebar" onClick={() => setSidebarCollapsed((v) => !v)} size="small">
+                  <ChevronLeftIcon />
+                </IconButton>
+              </Tooltip>
+              <TextField
+                fullWidth
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tools..."
+                size="small"
+                sx={{ maxWidth: 220 }}
+                value={searchQuery}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon color="action" sx={{ fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Stack>
+          )}
         </Box>
 
         <Divider />
 
         <Box sx={{ overflow: 'auto', flex: 1 }}>
           {filteredTools.length > 0 ? (
-            <List sx={{ px: 1 }}>
+            <List sx={{ px: sidebarCollapsed ? 0 : 1 }}>
               {filteredTools.map((source) => (
                 <ListItem key={source.name} disablePadding sx={{ mb: 1 }}>
                   <ListItemButton
@@ -457,7 +481,8 @@ const ToolsListPage: React.FC = () => {
                     selected={selectedSource?.name === source.name}
                     sx={{
                       borderRadius: 2,
-                      mx: 1,
+                      mx: sidebarCollapsed ? 0.5 : 1,
+                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                       '&.Mui-selected': {
                         bgcolor: 'primary.main',
                         color: 'primary.contrastText',
@@ -470,19 +495,40 @@ const ToolsListPage: React.FC = () => {
                       },
                     }}
                   >
-                    <ListItemText
-                      primary={
-                        <Typography
-                          variant="body2"
+                    {sidebarCollapsed ? (
+                      <ListItemIcon sx={{ minWidth: 0 }}>
+                        <Box
                           sx={{
-                            fontWeight:
-                              selectedSource?.name === source.name ? 600 : 400,
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            borderRadius: '50%',
+                            width: 28,
+                            height: 28,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
                           }}
                         >
-                          {source.name}
-                        </Typography>
-                      }
-                    />
+                          {source.name.charAt(0).toUpperCase()}
+                        </Box>
+                      </ListItemIcon>
+                    ) : (
+                      <ListItemText
+                        primary={
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight:
+                                selectedSource?.name === source.name ? 600 : 400,
+                            }}
+                          >
+                            {source.name}
+                          </Typography>
+                        }
+                      />
+                    )}
                   </ListItemButton>
                 </ListItem>
               ))}
