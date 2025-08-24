@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 import SearchIcon from '@mui/icons-material/Search';
+import ViewInArSharpIcon from '@mui/icons-material/ViewInArSharp';
 import {
   Alert,
   Box,
@@ -84,31 +85,23 @@ const ToolsListPage: React.FC = () => {
               sx={{
                 p: 2,
                 mb: 2,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
+                bgcolor: 'white',
+                color: 'primary.main',
                 borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'grey.300',
               }}
             >
               <Stack alignItems="center" direction="row" spacing={2}>
-                <Box
+                <ViewInArSharpIcon
                   sx={{
-                    bgcolor: 'primary.dark',
-                    color: 'primary.contrastText',
-                    borderRadius: '50%',
-                    width: 40,
-                    height: 40,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1rem',
-                    fontWeight: 700,
+                    color: 'primary.main',
+                    fontSize: '1.5rem',
                   }}
-                >
-                  {selectedSource.name.charAt(0).toUpperCase()}
-                </Box>
+                />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
-                    sx={{ fontWeight: 700, fontSize: '1.1rem' }}
+                    sx={{ fontWeight: 500, fontSize: '1.1rem', color: 'primary.main' }}
                     variant="h6"
                   >
                     {selectedSource.name}
@@ -117,14 +110,14 @@ const ToolsListPage: React.FC = () => {
                 <IconButton
                   onClick={() => setSelectedSource(null)}
                   size="small"
-                  sx={{ color: 'primary.contrastText' }}
+                  sx={{ color: 'text.secondary' }}
                 >
-                  ❌
+                  ✕
                 </IconButton>
               </Stack>
               {selectedSource.description ? (
                 <Typography
-                  sx={{ mt: 1, opacity: 0.9, fontSize: '0.875rem' }}
+                  sx={{ mt: 1, fontSize: '0.875rem', color: 'text.secondary' }}
                   variant="body2"
                 >
                   {selectedSource.description}
@@ -271,15 +264,17 @@ const ToolsListPage: React.FC = () => {
               sx={{
                 p: 3,
                 mb: 3,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
+                bgcolor: 'white',
+                color: 'primary.main',
                 borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'grey.300',
               }}
             >
-              <Typography sx={{ fontWeight: 700, mb: 1 }} variant="h5">
+              <Typography sx={{ fontWeight: 500, mb: 1, color: 'primary.main' }} variant="h5">
                 Tools Explorer
               </Typography>
-              <Typography sx={{ opacity: 0.9 }} variant="body2">
+              <Typography sx={{ color: 'text.secondary' }} variant="body2">
                 Explore and test individual tools
               </Typography>
             </Paper>
@@ -488,7 +483,7 @@ const ToolsListPage: React.FC = () => {
             {/* Tool Header */}
             <Paper
               elevation={0}
-              sx={{ p: 4, mb: 4, bgcolor: 'primary.main', borderRadius: 3 }}
+              sx={{ p: 4, mb: 4, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'grey.300' }}
             >
               <Stack
                 alignItems="center"
@@ -496,25 +491,15 @@ const ToolsListPage: React.FC = () => {
                 spacing={2}
                 sx={{ mb: 2 }}
               >
-                <Box
+                <ViewInArSharpIcon
                   sx={{
-                    bgcolor: 'primary.dark',
-                    color: 'primary.contrastText',
-                    borderRadius: '50%',
-                    width: 48,
-                    height: 48,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: 700,
+                    color: 'primary.main',
+                    fontSize: '2rem',
                   }}
-                >
-                  {selectedSource.name.charAt(0).toUpperCase()}
-                </Box>
+                />
                 <Box>
                   <Typography
-                    sx={{ fontWeight: 700, color: 'primary.contrastText' }}
+                    sx={{ fontWeight: 500, color: 'primary.main' }}
                     variant="h4"
                   >
                     {selectedSource.name}
@@ -524,7 +509,7 @@ const ToolsListPage: React.FC = () => {
 
               {selectedSource.description ? (
                 <Typography
-                  sx={{ color: 'primary.contrastText', lineHeight: 1.6 }}
+                  sx={{ color: 'text.secondary', lineHeight: 1.6 }}
                   variant="body1"
                 >
                   {selectedSource.description}
