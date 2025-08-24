@@ -280,27 +280,23 @@ const ToolsListPage: React.FC = () => {
             </Paper>
 
             {/* Mobile Search and Filter */}
-            <Card sx={{ mb: 2 }}>
-              <CardContent sx={{ pb: 2 }}>
-                <TextField
-                  fullWidth
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search tools..."
-                  size="small"
-                  sx={{ mb: 2 }}
-                  value={searchQuery}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" sx={{ fontSize: 20 }} />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <TextField
+              fullWidth
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search tools..."
+              size="small"
+              sx={{ mb: 2 }}
+              value={searchQuery}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" sx={{ fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
 
             {/* Mobile Tools List */}
             {filteredTools.length > 0 ? (
@@ -309,12 +305,14 @@ const ToolsListPage: React.FC = () => {
                   <Card
                     key={source.name}
                     onClick={() => handleSourceSelect(source)}
+                    elevation={0}
                     sx={{
                       cursor: 'pointer',
                       transition: 'all 0.2s ease-in-out',
+                      border: '1px solid',
+                      borderColor: 'grey.200',
                       '&:hover': {
-                        transform: 'translateY(-1px)',
-                        boxShadow: theme.shadows[3],
+                        borderColor: 'grey.300',
                       },
                       '&:active': {
                         transform: 'translateY(0px)',
