@@ -24,6 +24,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 
 import MagicBox from '@components/MagicBox';
 import { boxSources } from '@modules/boxSources';
@@ -39,6 +40,7 @@ const ToolsListPage: React.FC = () => {
   const [selectedSource, setSelectedSource] = useState<BoxSource | null>(null);
   const [magicIn, setMagicIn] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -72,7 +74,31 @@ const ToolsListPage: React.FC = () => {
   const handleSourceSelect = (source: BoxSource) => {
     setSelectedSource(source);
     setInput(source.defaultInput ?? '');
+    const next = new URLSearchParams(searchParams);
+    next.set('box', source.name);
+    setSearchParams(next);
   };
+
+  const clearSelection = () => {
+    setSelectedSource(null);
+    setInput('');
+    const next = new URLSearchParams(searchParams);
+    next.delete('box');
+    setSearchParams(next);
+  };
+
+  // Restore selection from query string on load or when URL changes
+  useEffect(() => {
+    const toolName = searchParams.get('box');
+    if (!toolName) {
+      return;
+    }
+    const fromUrl = availableBoxSources.find((s) => s.name === toolName);
+    if (fromUrl && (!selectedSource || selectedSource.name !== fromUrl.name)) {
+      setSelectedSource(fromUrl);
+      setInput(fromUrl.defaultInput ?? '');
+    }
+  }, [searchParams, availableBoxSources]);
 
   if (isMobile) {
     return (
@@ -108,7 +134,7 @@ const ToolsListPage: React.FC = () => {
                   </Typography>
                 </Box>
                 <IconButton
-                  onClick={() => setSelectedSource(null)}
+                  onClick={clearSelection}
                   size="small"
                   sx={{ color: 'text.secondary' }}
                 >
