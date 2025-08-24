@@ -1,7 +1,8 @@
 import React from 'react';
 
-import CloseIcon from '@mui/icons-material/Close';
-import { Box, Grid, IconButton, Paper, Typography } from '@mui/material';
+import { Box, Grid, Paper, Typography } from '@mui/material';
+
+import Modal from '@components/Modal';
 
 import boxStyles from './styles';
 
@@ -63,18 +64,17 @@ const KeyValueBoxTemplate = ({
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
     >
-      <Paper elevation={3} sx={(theme) => ({
-        ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-        ...(largeModal && {
-          padding: theme.spacing(4),
-        }),
-      })}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>{name}</h3>
-          {onClose ? <IconButton aria-label="close" onClick={onClose} size="small">
-              <CloseIcon fontSize="small" />
-            </IconButton> : null}
-        </div>
+      <Modal
+        onClose={onClose}
+        testId="magic-box-result-title"
+        title={name}
+        sx={(theme) => ({
+          ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
+          ...(largeModal && {
+            padding: theme.spacing(4),
+          }),
+        })}
+      >
         <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
           <Grid container spacing={1}>
             {Object.entries(data).map(([key, value]) => (
@@ -127,7 +127,7 @@ const KeyValueBoxTemplate = ({
             ))}
           </Grid>
         </Box>
-      </Paper>
+      </Modal>
     </Grid>
   );
 };

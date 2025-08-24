@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
-import { Grid, Paper, Typography } from '@mui/material';
+import { Grid, Typography } from '@mui/material';
 
+import Modal from '@components/Modal';
 import { isString } from '@functions/helper';
 import env from '@global/env';
 
@@ -11,6 +12,7 @@ import type { BoxProps } from '@modules/Box';
 
 interface ShortenURLBoxTemplateProps extends BoxProps {
   largeModal?: boolean;
+  onClose?: () => void;
 }
 
 const ShortenURLBoxTemplate = ({
@@ -18,6 +20,7 @@ const ShortenURLBoxTemplate = ({
   plaintextOutput,
   onClick,
   largeModal = false,
+  onClose,
 }: ShortenURLBoxTemplateProps): React.JSX.Element => {
   const [shortURL, setShortURL] = useState('');
 
@@ -49,22 +52,24 @@ const ShortenURLBoxTemplate = ({
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
     >
-      <Paper elevation={3} sx={(theme) => ({
-        ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-        ...(largeModal && {
-          padding: theme.spacing(4),
-        }),
-      })}>
-        <h3 data-testid="magic-box-result-title" style={{ margin: 0 }}>
-          {name}
-        </h3>
+      <Modal
+        onClose={onClose}
+        testId="magic-box-result-title"
+        title={name}
+        sx={(theme) => ({
+          ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
+          ...(largeModal && {
+            padding: theme.spacing(4),
+          }),
+        })}
+      >
         <Typography
           data-testid="magic-box-result-text"
           sx={boxStyles.paperTypography}
         >
           {shortURL}
         </Typography>
-      </Paper>
+      </Modal>
     </Grid>
   );
 };
