@@ -78,6 +78,7 @@ const SortableBoxRow = ({
   return (
     <Card
       ref={setNodeRef}
+      elevation={0}
       sx={{
         transform: CSS.Transform.toString(transform),
         transition: transition ?? 'none',
@@ -90,7 +91,6 @@ const SortableBoxRow = ({
         borderColor: box.enabled ? 'divider' : 'action.disabled',
         cursor: isDragging ? 'grabbing' : 'default',
         '&:hover': {
-          boxShadow: theme.shadows[4],
           borderColor: 'primary.light',
         },
       }}
@@ -453,11 +453,10 @@ const SettingsPage: React.FC = () => {
         return (
           <Paper
             key={priority}
-            elevation={1}
+            elevation={0}
             sx={{
               p: { xs: 2, sm: 3 },
               mb: { xs: 2, sm: 3 },
-              borderRadius: 2,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
