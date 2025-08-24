@@ -78,6 +78,7 @@ const SortableBoxRow = ({
   return (
     <Card
       ref={setNodeRef}
+      elevation={0}
       sx={{
         transform: CSS.Transform.toString(transform),
         transition: transition ?? 'none',
@@ -90,7 +91,6 @@ const SortableBoxRow = ({
         borderColor: box.enabled ? 'divider' : 'action.disabled',
         cursor: isDragging ? 'grabbing' : 'default',
         '&:hover': {
-          boxShadow: theme.shadows[4],
           borderColor: 'primary.light',
         },
       }}
@@ -137,7 +137,7 @@ const SortableBoxRow = ({
               },
             }}
           >
-            <DragIndicatorIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />
+            <DragIndicatorIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
           </IconButton>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -186,7 +186,7 @@ const SortableBoxRow = ({
                 '&:hover': {
                   bgcolor: alpha(
                     box.enabled
-                      ? theme.palette.success.main
+                       ? theme.palette.success.main
                       : theme.palette.action.active,
                     0.1
                   ),
@@ -368,54 +368,70 @@ const SettingsPage: React.FC = () => {
         sx={{
           p: { xs: 2, sm: 3 },
           mb: { xs: 2, sm: 3 },
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
+          bgcolor: 'white',
           borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.300',
         }}
       >
         <Stack
-          alignItems={{ xs: 'flex-start', sm: 'center' }}
-          direction={{ xs: 'column', sm: 'row' }}
+          alignItems="flex-start"
+          direction="row"
           spacing={2}
-          sx={{ mb: { xs: 1.5, sm: 2 } }}
         >
-          <Stack alignItems="center" direction="row" spacing={1.5}>
-            <SettingsIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
+          <Stack alignItems="center" direction="row" spacing={1.5} sx={{ flex: 1 }}>
+            <SettingsIcon sx={{ color: 'primary.main' }} />
             <Box>
               <Typography
                 variant="h5"
                 sx={{
-                  fontWeight: 700,
-                  fontSize: { xs: '1.25rem', sm: '1.5rem' },
+                  fontWeight: 500,
+                  mb: 1,
+                  color: 'primary.main',
                 }}
               >
                 Settings Page
               </Typography>
               <Typography
-                sx={{ opacity: 0.9, fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                sx={{ color: 'text.secondary' }}
                 variant="body2"
               >
-                Customize tool priority and visibility
+                Customize priority and visibility
               </Typography>
             </Box>
           </Stack>
 
-          <Box sx={{ flex: 1 }} />
+          {/* Mobile: Icon only */}
+          <IconButton
+            onClick={handleReset}
+            size="small"
+            sx={{
+              display: { xs: 'flex', sm: 'none' },
+              color: 'primary.main',
+              border: '1px solid',
+              borderColor: 'primary.main',
+              borderRadius: 1,
+            }}
+          >
+            <RefreshIcon sx={{ fontSize: '1.25rem' }} />
+          </IconButton>
 
+          {/* Desktop: Button with text */}
           <Button
             onClick={handleReset}
             size="small"
-            startIcon={<RefreshIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />}
+            startIcon={<RefreshIcon sx={{ fontSize: '0.875rem' }} />}
             variant="outlined"
             sx={{
-              color: 'white',
-              borderColor: 'rgba(255, 255, 255, 0.5)',
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              px: { xs: 1, sm: 2 },
-              py: { xs: 0.5, sm: 1 },
+              display: { xs: 'none', sm: 'flex' },
+              color: 'primary.main',
+              borderColor: 'primary.main',
+              fontSize: '0.875rem',
+              px: 2,
+              py: 1,
               '&:hover': {
-                borderColor: 'white',
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                borderColor: 'primary.dark',
+                bgcolor: 'rgba(25, 118, 210, 0.04)',
               },
             }}
           >
@@ -423,24 +439,6 @@ const SettingsPage: React.FC = () => {
           </Button>
         </Stack>
 
-        <Stack
-          alignItems="center"
-          direction="row"
-          spacing={1.5}
-          sx={{
-            mt: { xs: 1, sm: 2 },
-            display: { xs: 'none', sm: 'flex' },
-          }}
-        >
-          <TuneIcon sx={{ fontSize: 18 }} />
-          <Typography
-            sx={{ opacity: 0.8, fontSize: '0.875rem' }}
-            variant="body2"
-          >
-            Drag items to reorder, adjust priority values, or toggle tool
-            visibility
-          </Typography>
-        </Stack>
       </Paper>
 
       {/* Priority Groups */}
@@ -453,11 +451,10 @@ const SettingsPage: React.FC = () => {
         return (
           <Paper
             key={priority}
-            elevation={1}
+            elevation={0}
             sx={{
               p: { xs: 2, sm: 3 },
               mb: { xs: 2, sm: 3 },
-              borderRadius: 2,
               bgcolor: 'background.paper',
               border: '1px solid',
               borderColor: 'divider',
@@ -497,16 +494,6 @@ const SettingsPage: React.FC = () => {
 
               <Box sx={{ flex: 1 }} />
 
-              <Typography
-                color="text.secondary"
-                variant="caption"
-                sx={{
-                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                  display: { xs: 'none', sm: 'block' },
-                }}
-              >
-                Higher values have higher priority
-              </Typography>
             </Stack>
 
             <Divider sx={{ mb: 2 }} />

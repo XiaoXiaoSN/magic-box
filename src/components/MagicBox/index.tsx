@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import CloseIcon from '@mui/icons-material/Close';
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
@@ -67,6 +67,7 @@ const defaultBoxSources: BoxSource[] = [
 interface Props {
   input: string;
   sources?: BoxSource[];
+  onPasteInput?: (value: string) => void;
 }
 
 // Interface for BoxComponent with static supportsLarge property.
@@ -81,11 +82,13 @@ function isLargeSupportBoxComponent(
   return !!(comp as LargeSupportBoxComponent).supportsLarge;
 }
 
-const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
+const MagicBox = ({ input: magicIn, sources, onPasteInput }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as BoxType[]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const { getFilteredAndSortedBoxSources } = useSettings();
 
   // This parses input text to extract the input and options.
@@ -136,6 +139,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
   useEffect(() => {
     if (trim(magicIn) === '') {
       setBoxes([]);
+      setSelectedIndex(0);
       return;
     }
 
@@ -166,6 +170,124 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
     });
   }, [magicIn, sources, getFilteredAndSortedBoxSources]);
 
+  // Ensure selected index stays within bounds and reset when boxes change
+  useEffect(() => {
+    if (boxes.length === 0) {
+      setSelectedIndex(0);
+      return;
+    }
+    if (selectedIndex >= boxes.length) {
+      setSelectedIndex(boxes.length - 1);
+    }
+  }, [boxes, selectedIndex]);
+
+  // Scroll the selected item into view
+  useEffect(() => {
+    const el = itemRefs.current[selectedIndex];
+    if (el) {
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch {
+        // noop
+      }
+    }
+  }, [selectedIndex]);
+
+  // Keyboard handlers: Ctrl+N (next), Ctrl+Shift+N (prev), Enter (copy)
+  useEffect(() => {
+    const pasteAsInput = (value: string) => {
+      if (onPasteInput) {
+        onPasteInput(value);
+        return;
+      }
+      const input = document.getElementById('magicInput') as HTMLInputElement | null;
+      if (!input) return;
+      input.focus();
+      // Set value and notify React via input event
+      input.value = value;
+      try {
+        const evt = new Event('input', { bubbles: true });
+        input.dispatchEvent(evt);
+      } catch {
+        // noop
+      }
+    };
+
+    const handler = (e: KeyboardEvent) => {
+      const isCtrl = e.ctrlKey || e.metaKey; // support macOS
+      const tag = (e.target as HTMLElement | null)?.tagName?.toUpperCase?.();
+      const isTypingField = tag === 'INPUT' || tag === 'TEXTAREA';
+
+      // Copy + Paste into input with Cmd/Ctrl + Enter
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (boxes.length === 0) return;
+
+        const selected = boxes[selectedIndex];
+        if (!selected) return;
+        
+        const stdout = selected.props.plaintextOutput ?? '';
+        if (stdout) {
+          copyText(stdout);
+          selected.props.onClick(stdout);
+          pasteAsInput(stdout);
+        }
+        return;
+      }
+
+      // Navigate with Ctrl+N / Ctrl+Shift+N
+      if (isCtrl && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+
+        if (boxes.length === 0) return;
+      
+        setSelectedIndex((prev) => {
+          const next = e.shiftKey ? prev - 1 : prev + 1;
+          if (next < 0) return 0;
+          if (next >= boxes.length) return boxes.length - 1;
+          return next;
+        });
+        return;
+      }
+
+      // Navigate with Ctrl+P (previous)
+      if (e.ctrlKey && !e.metaKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+
+        if (boxes.length === 0) return;
+
+        setSelectedIndex((prev) => {
+          const next = prev - 1;
+          if (next < 0) return 0;
+          return next;
+        });
+        return;
+      }
+
+      // Copy selected with Enter (works even when typing in input/textarea)
+      if (e.key === 'Enter' && !isCtrl) {
+        // Avoid inserting a newline in inputs when copying
+        if (isTypingField) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        if (boxes.length === 0) return;
+        const selected = boxes[selectedIndex];
+        if (!selected) return;
+        const stdout = selected.props.plaintextOutput ?? '';
+        if (stdout) {
+          copyText(stdout);
+          selected.props.onClick(stdout);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [boxes, selectedIndex]);
+
   return (
     <React.Fragment>
       {boxes.length > 0 ? (
@@ -187,7 +309,13 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
           return (
             <div
               key={src?.props.name || idx}
+              ref={(el) => {
+                itemRefs.current[idx] = el;
+              }}
+              aria-selected={idx === selectedIndex}
               data-testid="magic-box-result"
+              onClick={() => setSelectedIndex(idx)}
+              role="listitem"
               style={{
                 width: '100%',
                 height: '100%',
@@ -216,6 +344,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
                 options={options}
                 plaintextOutput={stdout}
                 priority={priority}
+                selected={idx === selectedIndex}
               />
             </div>
           );
@@ -253,14 +382,17 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
                 const Comp = modalBox.boxTemplate;
                 const props = {
                   name: modalBox.props.name,
-                  onClick: modalBox.props.onClick,
+                  onClick: (output: string) => {
+                    copyText(output);
+                    modalBox.props.onClick(output);
+                  },
                   onClose: handleCloseModal,
                   options: modalBox.props.options,
                   plaintextOutput: modalBox.props.plaintextOutput,
                   priority: modalBox.props.priority,
                 };
                 if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
-                  return <Comp {...props} large />;
+                  return <Comp {...props} largeModal />;
                 }
                 return <Comp {...props} />;
               })()}

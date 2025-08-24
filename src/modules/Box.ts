@@ -36,8 +36,9 @@ export interface BoxProps {
   onClick: BoxOnClickFn,
   priority?: number,
   showExpandButton?: boolean,
-  large?: boolean,
+  largeModal?: boolean,
   onClose?: () => void,
+  selected?: boolean,
 }
 
 export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
