@@ -8,7 +8,7 @@ import boxStyles from './styles';
 import type { BoxProps } from '@modules/Box';
 
 interface KeyValueBoxTemplateProps extends BoxProps {
-  large?: boolean;
+  largeModal?: boolean;
   onClose?: () => void;
 }
 
@@ -17,7 +17,7 @@ const KeyValueBoxTemplate = ({
   plaintextOutput,
   options,
   onClick,
-  large = false,
+  largeModal = false,
   onClose,
 }: KeyValueBoxTemplateProps): React.JSX.Element => {
   const data: Record<string, string> = {};
@@ -65,7 +65,7 @@ const KeyValueBoxTemplate = ({
     >
       <Paper elevation={3} sx={(theme) => ({
         ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-        ...(large && {
+        ...(largeModal && {
           padding: theme.spacing(4),
         }),
       })}>
@@ -75,14 +75,14 @@ const KeyValueBoxTemplate = ({
               <CloseIcon fontSize="small" />
             </IconButton> : null}
         </div>
-        <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: large ? '60vh' : '250px' }}>
+        <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
           <Grid container spacing={1}>
             {Object.entries(data).map(([key, value]) => (
               <Grid key={key} size={12}>
                 <Paper
                   variant="outlined"
                   sx={{
-                    p: large ? 2 : 1,
+                    p: largeModal ? 2 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     '&:hover': {

@@ -10,14 +10,14 @@ import boxStyles from './styles';
 import type { BoxProps } from '@modules/Box';
 
 interface ShortenURLBoxTemplateProps extends BoxProps {
-  large?: boolean;
+  largeModal?: boolean;
 }
 
 const ShortenURLBoxTemplate = ({
   name,
   plaintextOutput,
   onClick,
-  large = false,
+  largeModal = false,
 }: ShortenURLBoxTemplateProps): React.JSX.Element => {
   const [shortURL, setShortURL] = useState('');
 
@@ -51,7 +51,7 @@ const ShortenURLBoxTemplate = ({
     >
       <Paper elevation={3} sx={(theme) => ({
         ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-        ...(large && {
+        ...(largeModal && {
           padding: theme.spacing(4),
         }),
       })}>

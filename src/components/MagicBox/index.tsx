@@ -260,7 +260,7 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
                   priority: modalBox.props.priority,
                 };
                 if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
-                  return <Comp {...props} large />;
+                  return <Comp {...props} largeModal />;
                 }
                 return <Comp {...props} />;
               })()}

@@ -10,7 +10,7 @@ import boxStyles from './styles';
 import type { BoxProps } from '@modules/Box';
 
 interface CodeBoxTemplateProps extends BoxProps {
-  large?: boolean;
+  largeModal?: boolean;
   onClose?: () => void;
 }
 
@@ -19,7 +19,7 @@ const CodeBoxTemplate = ({
   plaintextOutput,
   options,
   onClick,
-  large = false,
+  largeModal: large = false,
   onClose,
 }: CodeBoxTemplateProps): React.JSX.Element => {
   let language = 'yaml';

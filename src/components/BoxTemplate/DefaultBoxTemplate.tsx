@@ -8,7 +8,7 @@ import boxStyles from './styles';
 import type { BoxProps } from '@modules/Box';
 
 interface DefaultBoxTemplateProps extends BoxProps {
-  large?: boolean;
+  largeModal?: boolean;
   onClose?: () => void;
 }
 
@@ -16,7 +16,7 @@ const DefaultBoxTemplate = ({
   name,
   plaintextOutput,
   onClick,
-  large = false,
+  largeModal = false,
   onClose,
 }: DefaultBoxTemplateProps): React.JSX.Element => (
   <Grid
@@ -26,7 +26,7 @@ const DefaultBoxTemplate = ({
   >
     <Paper elevation={3} sx={(theme) => ({
       ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-      ...(large && {
+      ...(largeModal && {
         padding: theme.spacing(4),
       }),
     })}>

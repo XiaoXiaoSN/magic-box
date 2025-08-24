@@ -8,14 +8,14 @@ import boxStyles from './styles';
 import type { BoxProps } from '@modules/Box';
 
 interface QRCodeBoxTemplateProps extends BoxProps {
-  large?: boolean;
+  largeModal?: boolean;
 }
 
 const QRCodeBoxTemplate = ({
   name,
   plaintextOutput,
   onClick,
-  large = false,
+  largeModal = false,
 }: QRCodeBoxTemplateProps): React.JSX.Element => (
   <Grid
     onClick={() => onClick(plaintextOutput)}
@@ -24,7 +24,7 @@ const QRCodeBoxTemplate = ({
   >
     <Paper elevation={3} sx={(theme) => ({
       ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-      ...(large && {
+      ...(largeModal && {
         padding: theme.spacing(4),
       }),
     })}>
