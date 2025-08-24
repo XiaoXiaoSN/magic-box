@@ -304,8 +304,8 @@ const ToolsListPage: React.FC = () => {
                 {filteredTools.map((source) => (
                   <Card
                     key={source.name}
-                    onClick={() => handleSourceSelect(source)}
                     elevation={0}
+                    onClick={() => handleSourceSelect(source)}
                     sx={{
                       cursor: 'pointer',
                       transition: 'all 0.2s ease-in-out',
