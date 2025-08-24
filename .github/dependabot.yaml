@@ -16,7 +16,7 @@ updates:
 
   # Maintain dependencies for Cargo
   - package-ecosystem: cargo
-    directory: /
+    directory: /wasmModules/base64-box
     schedule:
       interval: monthly
 
