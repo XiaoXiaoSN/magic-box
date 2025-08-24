@@ -3,6 +3,7 @@ import React from 'react';
 import { Box, Grid, Paper, Typography } from '@mui/material';
 
 import Modal from '@components/Modal';
+import { extendSxProps } from '@functions/muiHelper';
 
 import boxStyles from './styles';
 
@@ -20,6 +21,7 @@ const KeyValueBoxTemplate = ({
   onClick,
   largeModal = false,
   onClose,
+  selected = false,
 }: KeyValueBoxTemplateProps): React.JSX.Element => {
   const data: Record<string, string> = {};
 
@@ -64,17 +66,16 @@ const KeyValueBoxTemplate = ({
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
     >
-      <Modal
-        onClose={onClose}
-        testId="magic-box-result-title"
-        title={name}
-        sx={(theme) => ({
-          ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-          ...(largeModal && {
-            padding: theme.spacing(4),
-          }),
-        })}
-      >
+      <Box sx={selected ? boxStyles.selectedPaper : undefined}>
+        <Modal
+          onClose={onClose}
+          testId="magic-box-result-title"
+          title={name}
+          sx={extendSxProps(
+            typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
+            largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined
+          )}
+        >
         <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
           <Grid container spacing={1}>
             {Object.entries(data).map(([key, value]) => (
@@ -127,7 +128,8 @@ const KeyValueBoxTemplate = ({
             ))}
           </Grid>
         </Box>
-      </Modal>
+        </Modal>
+      </Box>
     </Grid>
   );
 };

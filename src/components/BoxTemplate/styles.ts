@@ -11,6 +11,11 @@ export default {
     borderRadius: '5px',
     backgroundColor: theme.palette.background.paper,
   }),
+  selectedPaper: (theme: Theme): object => ({
+    outline: `2px solid ${theme.palette.primary.main}`,
+    borderRadius: '6px',
+    boxShadow: '0 0 0 2px rgba(25,118,210,0.2) inset',
+  }),
   paperTypography: {
     textAlign: 'center',
     overflow: 'auto',

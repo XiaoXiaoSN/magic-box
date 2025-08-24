@@ -103,7 +103,15 @@ const MagicBoxPage = (): React.JSX.Element => {
               maxHeight: 'calc(100dvh - 150px)',
             }}
           >
-            <MagicBox input={magicIn} />
+            <MagicBox
+              input={magicIn}
+              onPasteInput={(val: string) => {
+                setUserInput(val);
+                if (inputRef.current) {
+                  inputRef.current.value = val;
+                }
+              }}
+            />
           </Grid>
         </Grid>
       </Grid>

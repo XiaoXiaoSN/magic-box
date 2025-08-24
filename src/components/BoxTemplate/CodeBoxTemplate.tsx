@@ -1,10 +1,11 @@
 import React from 'react';
 
-import { Grid } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 import Modal from '@components/Modal';
+import { extendSxProps } from '@functions/muiHelper';
 
 import boxStyles from './styles';
 
@@ -22,6 +23,7 @@ const CodeBoxTemplate = ({
   onClick,
   largeModal = false,
   onClose,
+  selected = false,
 }: CodeBoxTemplateProps): React.JSX.Element => {
   let language = 'yaml';
   if (
@@ -38,17 +40,16 @@ const CodeBoxTemplate = ({
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
     >
-      <Modal
-        onClose={onClose}
-        testId="magic-box-result-title"
-        title={name}
-        sx={(theme) => ({
-          ...(typeof boxStyles.paper === 'function' ? boxStyles.paper(theme) : boxStyles.paper),
-          ...(largeModal && {
-            padding: theme.spacing(4),
-          }),
-        })}
-      >
+      <Box sx={selected ? boxStyles.selectedPaper : undefined}>
+        <Modal
+          onClose={onClose}
+          testId="magic-box-result-title"
+          title={name}
+          sx={extendSxProps(
+            typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
+            largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined
+          )}
+        >
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
         <SyntaxHighlighter
           customStyle={{ maxHeight: largeModal ? '60vh' : '250px' }}
@@ -58,7 +59,8 @@ const CodeBoxTemplate = ({
         >
           {plaintextOutput}
         </SyntaxHighlighter>
-      </Modal>
+        </Modal>
+      </Box>
     </Grid>
   );
 };

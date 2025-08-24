@@ -1,8 +1,8 @@
-import type { SxProps, Theme } from '@mui/material/styles';
+import type { SxProps, Theme } from "@mui/material/styles";
 
-function extendSxProps<T extends Theme>(
+export function extendSxProps<T extends Theme>(
   base: SxProps<T>,
-  extra?: SxProps<T>
+  ...extras: (SxProps<T> | undefined)[]
 ): SxProps<T> {
   const toArray = (sx?: SxProps<T>): SxProps<T>[] => {
     if (!sx) return [];
@@ -11,8 +11,12 @@ function extendSxProps<T extends Theme>(
       : [sx];
   };
 
-  const merged: SxProps<T>[] = [...toArray(base), ...toArray(extra)];
+  const merged: SxProps<T>[] = [
+    ...toArray(base),
+    ...extras.flatMap(toArray),
+  ];
+
   return merged as SxProps<T>;
 }
 
-export { extendSxProps };
+// Named export already provided above; avoid duplicate export to satisfy bundlers
