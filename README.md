@@ -36,6 +36,14 @@ Based on matching methods, we can roughly classify Boxes into two types:
 1. match by the `input` string
 2. match by `options`
 
+### Keyboard Shortcuts ⌨️
+
+- Ctrl + n: move to the next Box
+- Ctrl + Shift + n: move to the previous Box
+- Ctrl + p: move to the previous Box
+- Enter: copy the selected Box output to clipboard
+- Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
+
 <details>
 <summary> <b>Base64Box</b> </summary>
 
