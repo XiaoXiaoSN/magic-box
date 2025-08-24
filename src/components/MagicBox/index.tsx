@@ -253,7 +253,10 @@ const MagicBox = ({ input: magicIn, sources }: Props): React.JSX.Element => {
                 const Comp = modalBox.boxTemplate;
                 const props = {
                   name: modalBox.props.name,
-                  onClick: modalBox.props.onClick,
+                  onClick: (output: string) => {
+                    copyText(output);
+                    modalBox.props.onClick(output);
+                  },
                   onClose: handleCloseModal,
                   options: modalBox.props.options,
                   plaintextOutput: modalBox.props.plaintextOutput,
