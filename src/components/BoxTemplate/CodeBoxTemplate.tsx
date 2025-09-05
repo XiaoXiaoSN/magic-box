@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { Box, Grid } from '@mui/material';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';

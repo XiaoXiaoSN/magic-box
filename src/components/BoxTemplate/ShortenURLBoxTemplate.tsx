@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Grid, Typography } from '@mui/material';
 
@@ -24,7 +24,7 @@ const ShortenURLBoxTemplate = ({
 }: ShortenURLBoxTemplateProps): React.JSX.Element => {
   const [shortURL, setShortURL] = useState('');
 
-  const getShortenURL = async (inputURL: string): Promise<void> => {
+  const getShortenURL = useCallback(async (inputURL: string): Promise<void> => {
     const resp = await fetch(`${env.TOOLBOX_URL}/api/v1/surl`, {
       method: 'POST',
       body: JSON.stringify({ url: inputURL }),
@@ -39,12 +39,12 @@ const ShortenURLBoxTemplate = ({
     }
 
     setShortURL(`${env.TOOLBOX_URL}/${result.shorten}`);
-  };
+  }, []);
 
   // call Toolbox API to get short url
   useEffect(() => {
     getShortenURL(plaintextOutput);
-  }, [plaintextOutput]);
+  }, [plaintextOutput, getShortenURL]);
 
   return (
     <Grid

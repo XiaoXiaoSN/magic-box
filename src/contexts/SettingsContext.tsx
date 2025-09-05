@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useEffect,
@@ -38,7 +38,7 @@ const defaultSettings: Settings = {
 const SETTINGS_STORAGE_KEY = 'mb_settings';
 
 const validatePriority = (value: number): number => {
-  return isNaN(value) ? 10 : Math.max(0, Math.min(99, value));
+  return Number.isNaN(value) ? 10 : Math.max(0, Math.min(99, value));
 };
 
 export const SettingsStorage = {

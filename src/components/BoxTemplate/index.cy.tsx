@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { mount } from 'cypress/react';
 
 import { ShortenURLBoxTemplate } from './index';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import SettingsIcon from '@mui/icons-material/Settings';
 import {
@@ -7,6 +5,8 @@ import {
 } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
+
+import type React from 'react';
 
 const MagicBoxTitle = 'Magic Box';
 
@@ -33,7 +33,9 @@ interface Props {
   children: React.ReactNode;
 }
 
-const BaseLayout = ({ children }: Props) : React.JSX.Element=> (
+const BaseLayout = ({ children }: Props) : React.JSX.Element=> {
+
+  return (
   <ThemeProvider theme={theme}>
     <AppBar
       data-testid="header"
@@ -92,6 +94,8 @@ const BaseLayout = ({ children }: Props) : React.JSX.Element=> (
       {`© ${new Date().getFullYear()} Copyright: All Rights Reserved`}
     </AppBar>
   </ThemeProvider>
-);
+  );
+};
+
 
 export default BaseLayout;

@@ -31,7 +31,6 @@ import {
 import { useSearchParams } from 'react-router-dom';
 
 import MagicBox from '@components/MagicBox';
-import { boxSources } from '@modules/boxSources';
 
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -104,7 +103,7 @@ const ToolsListPage: React.FC = () => {
       setSelectedSource(fromUrl);
       setInput(fromUrl.defaultInput ?? '');
     }
-  }, [searchParams, availableBoxSources]);
+  }, [searchParams, availableBoxSources, selectedSource]);
 
   if (isMobile) {
     return (
@@ -421,7 +420,7 @@ const ToolsListPage: React.FC = () => {
         sx={{
           width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
+          "& .MuiDrawer-paper": {
             width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
             boxSizing: 'border-box',
             position: 'relative',
