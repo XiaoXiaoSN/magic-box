@@ -173,7 +173,7 @@ describe('MagicBox Page', () => {
 
     testCases.forEach((testCase) => {
       it(`MagicBox input: ${testCase.testTitle}`, () => {
-        cy.get('[id="magicInput"]').type(testCase.input, { parseSpecialCharSequences: false });
+        cy.get('[name="magicInput"]').type(testCase.input, { parseSpecialCharSequences: false });
 
         const magicBoxResults = cy.get('[data-testid="magic-box-result"]');
         magicBoxResults.should('be.visible').should('have.length', testCase.output.length);

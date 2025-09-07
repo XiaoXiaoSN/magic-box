@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useId, useState } from 'react';
 
 import { Container, Grid, TextField } from '@mui/material';
 import Box from '@mui/material/Box';
@@ -14,6 +14,7 @@ const MagicBoxPage = (): React.JSX.Element => {
   const [magicIn, setMagicIn] = useState('');
 
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const magicInputId = useId();
 
   // parse query string at first load
   useEffect(() => {
@@ -49,7 +50,7 @@ const MagicBoxPage = (): React.JSX.Element => {
               autoFocus
               fullWidth
               multiline
-              id="magicInput"
+              id={magicInputId}
               inputRef={inputRef}
               name="magicInput"
               rows={7}

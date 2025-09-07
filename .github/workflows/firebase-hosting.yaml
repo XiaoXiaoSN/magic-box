@@ -35,16 +35,30 @@ jobs:
       - name: Codespell
         uses: codespell-project/actions-codespell@master
 
-  eslint:
+  quality:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
       - name: Run ESLint
         run: pnpm lint
+
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+
+      - name: Run Biome Lint
+        run: |
+          # biome ci src/ *.config.ts
+          biome lint src/ *.config.ts
 
       # Upload built wasm modules
       - uses: actions/upload-artifact@v4
@@ -53,12 +67,13 @@ jobs:
           name: wasm-modules
           path: wasmModules/*/pkg
 
+
   build-and-deploy:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     needs:
       - codespell
-      - eslint
+      - quality
     env:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
