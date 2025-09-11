@@ -67,7 +67,6 @@ jobs:
           name: wasm-modules
           path: wasmModules/*/pkg
 
-
   build-and-deploy:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
