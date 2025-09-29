@@ -26,24 +26,23 @@ const QRCodeBoxTemplate = ({
     size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
   >
-    <Box sx={selected ? boxStyles.selectedPaper : undefined}>
-      <Modal
-        onClose={onClose}
-        testId="magic-box-result-title"
-        title={name}
-        sx={extendSxProps(
-          typeof boxStyles.paper === 'function'
-            ? boxStyles.paper
-            : boxStyles.paper,
-          largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined
-        )}
-      >
-        {/* https://github.com/zpao/qrcode.react */}
-        <Box sx={{ ...boxStyles.alignCenter, p: 2 }}>
-          <QRCodeCanvas size={256} value={plaintextOutput} />
-        </Box>
-      </Modal>
-    </Box>
+    <Modal
+      onClose={onClose}
+      testId="magic-box-result-title"
+      title={name}
+      sx={extendSxProps(
+        typeof boxStyles.paper === 'function'
+          ? boxStyles.paper
+          : boxStyles.paper,
+        largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
+        selected ? boxStyles.selectedPaper : undefined
+      )}
+    >
+      {/* https://github.com/zpao/qrcode.react */}
+      <Box sx={{ ...boxStyles.alignCenter, p: 2 }}>
+        <QRCodeCanvas size={256} value={plaintextOutput} />
+      </Box>
+    </Modal>
   </Grid>
 );
 

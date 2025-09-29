@@ -1,4 +1,4 @@
-import { Box, Grid, Typography } from '@mui/material';
+import { Grid, Typography } from '@mui/material';
 
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
@@ -25,26 +25,25 @@ const DefaultBoxTemplate = ({
     size={{ xs: 12, sm: 12 }}
     sx={boxStyles.grid}
   >
-    <Box sx={selected ? boxStyles.selectedPaper : undefined}>
-      <Modal
-        onClose={onClose}
-        testId="magic-box-result-title"
-        title={name}
-        sx={extendSxProps(
-          typeof boxStyles.paper === 'function'
-            ? boxStyles.paper
-            : boxStyles.paper,
-          largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined
-        )}
-      >
-      <Typography
-        data-testid="magic-box-result-text"
-        sx={boxStyles.paperTypography}
-      >
-        {plaintextOutput}
-      </Typography>
-      </Modal>
-    </Box>
+    <Modal
+      onClose={onClose}
+      testId="magic-box-result-title"
+      title={name}
+      sx={extendSxProps(
+        typeof boxStyles.paper === 'function'
+          ? boxStyles.paper
+          : boxStyles.paper,
+        largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
+        selected ? boxStyles.selectedPaper : undefined
+      )}
+    >
+    <Typography
+      data-testid="magic-box-result-text"
+      sx={boxStyles.paperTypography}
+    >
+      {plaintextOutput}
+    </Typography>
+    </Modal>
   </Grid>
 );
 
