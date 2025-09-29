@@ -92,10 +92,14 @@ const MagicBox = ({
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     if (trim(magicIn) === '') {
       setBoxes([]);
       setSelectedIndex(0);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     const boxSources = sources ?? getFilteredAndSortedBoxSources();
@@ -105,6 +109,8 @@ const MagicBox = ({
       boxSource.generateBoxes(input, options)
     );
     Promise.all(promises).then((resultBoxes) => {
+      if (cancelled) return;
+
       const newBoxes = resultBoxes
         .filter((box) => box)
         .flat()
@@ -123,6 +129,9 @@ const MagicBox = ({
 
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [magicIn, sources, getFilteredAndSortedBoxSources, parseInput]);
 
   // Ensure selected index stays within bounds and reset when boxes change
