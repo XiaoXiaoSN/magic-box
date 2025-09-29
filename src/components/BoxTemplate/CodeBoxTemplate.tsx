@@ -1,6 +1,6 @@
 import { Grid } from '@mui/material';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { atelierCaveLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
@@ -43,20 +43,25 @@ const CodeBoxTemplate = ({
         testId="magic-box-result-title"
         title={name}
         sx={extendSxProps(
-          typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
-          largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined,
+          typeof boxStyles.paper === 'function'
+            ? boxStyles.paper
+            : boxStyles.paper,
+          largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
           selected ? boxStyles.selectedPaper : undefined
         )}
       >
-      {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
-      <SyntaxHighlighter
-        customStyle={{ maxHeight: largeModal ? '60vh' : '250px' }}
-        data-testid="magic-box-result-text"
-        language={language}
-        sx={atelierCaveLight}
-      >
-        {plaintextOutput}
-      </SyntaxHighlighter>
+        {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
+        <SyntaxHighlighter
+          data-testid="magic-box-result-text"
+          language={language}
+          style={atomOneLight}
+          customStyle={{
+            maxHeight: largeModal ? '60vh' : '250px',
+            textAlign: 'left',
+          }}
+        >
+          {plaintextOutput}
+        </SyntaxHighlighter>
       </Modal>
     </Grid>
   );
@@ -64,4 +69,4 @@ const CodeBoxTemplate = ({
 
 CodeBoxTemplate.supportsLarge = true;
 
-export default CodeBoxTemplate; 
+export default CodeBoxTemplate;
