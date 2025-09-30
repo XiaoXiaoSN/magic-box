@@ -43,7 +43,7 @@ const MagicBox = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { getFilteredAndSortedBoxSources } = useSettings();
 
   // This parses input text to extract the input and options.
@@ -92,10 +92,14 @@ const MagicBox = ({
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     if (trim(magicIn) === '') {
       setBoxes([]);
       setSelectedIndex(0);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
 
     const boxSources = sources ?? getFilteredAndSortedBoxSources();
@@ -105,6 +109,8 @@ const MagicBox = ({
       boxSource.generateBoxes(input, options)
     );
     Promise.all(promises).then((resultBoxes) => {
+      if (cancelled) return;
+
       const newBoxes = resultBoxes
         .filter((box) => box)
         .flat()
@@ -123,6 +129,9 @@ const MagicBox = ({
 
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [magicIn, sources, getFilteredAndSortedBoxSources, parseInput]);
 
   // Ensure selected index stays within bounds and reset when boxes change
@@ -249,72 +258,73 @@ const MagicBox = ({
   return (
     <React.Fragment>
       {boxes.length > 0 ? (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {boxes.map((src, idx) => {
-            const {
-              name,
-              plaintextOutput: stdout,
-              options,
-              onClick,
-              priority,
-            } = src.props;
+        boxes.map((src, idx) => {
+          const {
+            name,
+            plaintextOutput: stdout,
+            options,
+            onClick,
+            priority,
+          } = src.props;
 
-            const onClickWithCopy = (output: string) => {
-              copyText(output);
-              onClick(output);
-            };
+          const onClickWithCopy = (output: string) => {
+            copyText(output);
+            onClick(output);
+          };
 
-            const showExpand = src.props.showExpandButton !== false;
-            return (
-              <li
-                key={src?.props.name || idx}
-                ref={(el) => {
-                  itemRefs.current[idx] = el as HTMLDivElement | null;
-                }}
-                aria-current={idx === selectedIndex ? 'true' : 'false'}
-                data-testid="magic-box-result"
-                onClick={() => setSelectedIndex(idx)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setSelectedIndex(idx);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  position: 'relative',
-                  listStyle: 'none',
-                }}
-              >
-                {showExpand ? (
-                  <IconButton
-                    aria-label="expand"
-                    onClick={() => handleOpenModal(src)}
-                    size="small"
-                    style={{
-                      position: 'absolute',
-                      top: '.6rem',
-                      right: '.6rem',
-                      zIndex: 2,
-                      background: 'rgba(255,255,255,0.8)',
-                    }}
-                  >
-                    <ZoomOutMapIcon fontSize="small" />
-                  </IconButton>
-                ) : null}
-                <src.boxTemplate
-                  name={name}
-                  onClick={onClickWithCopy}
-                  options={options}
-                  plaintextOutput={stdout}
-                  priority={priority}
-                  selected={idx === selectedIndex}
-                />
-              </li>
-            );
-          })}
-        </ul>
+          const showExpand = src.props.showExpandButton !== false;
+          return (
+            <button
+              key={src?.props.name || idx}
+              ref={(el) => {
+                itemRefs.current[idx] = el;
+              }}
+              data-testid="magic-box-result"
+              onClick={() => setSelectedIndex(idx)}
+              type="button"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedIndex(idx);
+                }
+              }}
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative',
+                border: 'none',
+                background: 'transparent',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              {showExpand ? (
+                <IconButton
+                  aria-label="expand"
+                  onClick={() => handleOpenModal(src)}
+                  size="small"
+                  style={{
+                    position: 'absolute',
+                    top: '.6rem',
+                    right: '.6rem',
+                    zIndex: 2,
+                    background: 'rgba(255,255,255,0.8)',
+                  }}
+                >
+                  <ZoomOutMapIcon fontSize="small" />
+                </IconButton>
+              ) : null}
+              <src.boxTemplate
+                name={name}
+                onClick={onClickWithCopy}
+                options={options}
+                plaintextOutput={stdout}
+                priority={priority}
+                selected={idx === selectedIndex}
+              />
+            </button>
+          );
+        })
       ) : (
         <NotingMatchBoxTemplate />
       )}

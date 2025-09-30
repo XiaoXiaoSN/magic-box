@@ -64,70 +64,69 @@ const KeyValueBoxTemplate = ({
       size={{ xs: 12, sm: 12 }}
       sx={boxStyles.grid}
     >
-      <Box sx={selected ? boxStyles.selectedPaper : undefined}>
-        <Modal
-          onClose={onClose}
-          testId="magic-box-result-title"
-          title={name}
-          sx={extendSxProps(
-            typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
-            largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined
-          )}
-        >
-        <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
-          <Grid container spacing={1}>
-            {Object.entries(data).map(([key, value]) => (
-              <Grid key={key} size={12}>
-                <Paper
-                  variant="outlined"
+      <Modal
+        onClose={onClose}
+        testId="magic-box-result-title"
+        title={name}
+        sx={extendSxProps(
+          typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
+          largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined,
+          selected ? boxStyles.selectedPaper : undefined
+        )}
+      >
+      <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
+        <Grid container spacing={1}>
+          {Object.entries(data).map(([key, value]) => (
+            <Grid key={key} size={12}>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: largeModal ? 2 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                <Typography
+                  title={key}
+                  variant="subtitle2"
                   sx={{
-                    p: largeModal ? 2 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
+                    minWidth: '30%',
+                    maxWidth: '50%',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    fontWeight: 'bold',
+                    color: 'text.secondary',
+                    pr: 2,
                   }}
                 >
-                  <Typography
-                    title={key}
-                    variant="subtitle2"
-                    sx={{
-                      minWidth: '30%',
-                      maxWidth: '50%',
-                      textOverflow: 'ellipsis',
-                      overflow: 'hidden',
-                      fontWeight: 'bold',
-                      color: 'text.secondary',
-                      pr: 2,
-                    }}
-                  >
-                    {key}
-                  </Typography>
-                  <Typography
-                    className="value-cell"
-                    onClick={(e) => handleValueClick(e, String(value))}
-                    sx={{
-                      flex: 1,
-                      cursor: 'pointer',
-                      p: 1,
-                      borderRadius: 1,
-                      '&:hover': {
-                        bgcolor: 'primary.light',
-                        color: 'primary.contrastText',
-                      },
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {String(value)}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-        </Modal>
+                  {key}
+                </Typography>
+                <Typography
+                  className="value-cell"
+                  onClick={(e) => handleValueClick(e, String(value))}
+                  sx={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 1,
+                    '&:hover': {
+                      bgcolor: 'primary.light',
+                      color: 'primary.contrastText',
+                    },
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {String(value)}
+                </Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
       </Box>
+      </Modal>
     </Grid>
   );
 };

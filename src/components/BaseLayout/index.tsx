@@ -4,7 +4,7 @@ import {
   AppBar, Box, IconButton, Toolbar, Typography,
 } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import type React from 'react';
 
