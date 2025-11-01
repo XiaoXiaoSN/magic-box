@@ -61,7 +61,7 @@ jobs:
           biome lint src/ *.config.ts
 
       # Upload built wasm modules
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: github.event_name != 'pull_request'
         with:
           name: wasm-modules
