@@ -19,6 +19,7 @@ interface Props {
   input: string;
   sources?: BoxSource[];
   onPasteInput?: (value: string) => void;
+  resetTrigger?: number;
 }
 
 // Interface for BoxComponent with static supportsLarge property.
@@ -37,14 +38,22 @@ const MagicBox = ({
   input: magicIn,
   sources,
   onPasteInput,
+  resetTrigger,
 }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState([0]);
   const [boxes, setBoxes] = useState([] as BoxType[]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { getFilteredAndSortedBoxSources } = useSettings();
+
+  // reset selection when parent triggers reset
+  useEffect(() => {
+    if (resetTrigger !== undefined) {
+      setSelectedIndex(-1);
+    }
+  }, [resetTrigger]);
 
   // This parses input text to extract the input and options.
   //
@@ -96,7 +105,7 @@ const MagicBox = ({
 
     if (trim(magicIn) === '') {
       setBoxes([]);
-      setSelectedIndex(0);
+      setSelectedIndex(-1);
       return () => {
         cancelled = true;
       };
@@ -126,6 +135,7 @@ const MagicBox = ({
         });
 
       setBoxes(newBoxes);
+      setSelectedIndex(-1);
 
       console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
@@ -137,7 +147,7 @@ const MagicBox = ({
   // Ensure selected index stays within bounds and reset when boxes change
   useEffect(() => {
     if (boxes.length === 0) {
-      setSelectedIndex(0);
+      setSelectedIndex(-1);
       return;
     }
     if (selectedIndex >= boxes.length) {
@@ -235,14 +245,17 @@ const MagicBox = ({
 
       // Copy selected with Enter (works even when typing in input/textarea)
       if (e.key === 'Enter' && !isCtrl) {
+        if (boxes.length === 0) return;
+        
+        const selected = boxes[selectedIndex];
+        if (!selected) return;
+
         // Avoid inserting a newline in inputs when copying
         if (isTypingField) {
           e.preventDefault();
           e.stopPropagation();
         }
-        if (boxes.length === 0) return;
-        const selected = boxes[selectedIndex];
-        if (!selected) return;
+
         const stdout = selected.props.plaintextOutput ?? '';
         if (stdout) {
           copyText(stdout);

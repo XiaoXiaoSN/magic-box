@@ -12,6 +12,7 @@ const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 const MagicBoxPage = (): React.JSX.Element => {
   const [userInput, setUserInput] = useState('');
   const [magicIn, setMagicIn] = useState('');
+  const [resetCounter, setResetCounter] = useState(0);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const magicInputId = useId();
@@ -57,6 +58,9 @@ const MagicBoxPage = (): React.JSX.Element => {
               variant="outlined"
               onChange={(e) => {
                 setUserInput(e.target.value);
+              }}
+              onFocus={() => {
+                setResetCounter((c) => c + 1);
               }}
               sx={{
                 fontSize: '1.25rem',
@@ -106,6 +110,7 @@ const MagicBoxPage = (): React.JSX.Element => {
           >
             <MagicBox
               input={magicIn}
+              resetTrigger={resetCounter}
               onPasteInput={(val: string) => {
                 setUserInput(val);
                 if (inputRef.current) {
