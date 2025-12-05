@@ -79,6 +79,7 @@ const KeyValueBoxTemplate = ({
           {Object.entries(data).map(([key, value]) => (
             <Grid key={key} size={12}>
               <Paper
+                data-testid={`magic-box-key-value-pair-${key}`}
                 variant="outlined"
                 sx={{
                   p: largeModal ? 2 : 1,
@@ -90,6 +91,7 @@ const KeyValueBoxTemplate = ({
                 }}
               >
                 <Typography
+                  data-testid={`magic-box-key-${key}`}
                   title={key}
                   variant="subtitle2"
                   sx={{
@@ -106,6 +108,7 @@ const KeyValueBoxTemplate = ({
                 </Typography>
                 <Typography
                   className="value-cell"
+                  data-testid={`magic-box-value-${key}`}
                   onClick={(e) => handleValueClick(e, String(value))}
                   sx={{
                     flex: 1,
