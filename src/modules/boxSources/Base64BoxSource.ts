@@ -116,7 +116,7 @@ export const Base64EncodeBoxSource = {
 
     const { encodedText } = match;
     return [
-      new BoxBuilder('Base64 encode', encodedText)
+      new BoxBuilder('Base64 Encode', encodedText)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

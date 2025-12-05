@@ -3,8 +3,24 @@
 describe('MagicBox Page', () => {
   beforeEach(() => {
     // Visit the homepage before each test
-    cy.visit('/');
+    cy.visit('/', {
+      timeout: 30000,
+      retryOnStatusCodeFailure: true,
+    });
+    
+    // Wait for the page to be fully loaded
     cy.get('body').should('be.visible');
+    
+    // Wait for React app to mount (check for root element)
+    cy.get('#root', { timeout: 10000 }).should('exist');
+    
+    // Wait for lazy loaded components to be ready
+    // Wait for the input/textarea field to be visible (indicates MagicBoxPage is loaded)
+    // MUI TextField with multiline uses textarea, so we check for either input or textarea
+    cy.get('input[name="magicInput"], textarea[name="magicInput"]', { timeout: 15000 }).should('be.visible');
+    
+    // Wait for QR reader button to be available (indicates QRCodeReader is loaded)
+    cy.get('[data-testid="qr-reader-open-button"]', { timeout: 15000 }).should('be.visible');
   });
 
   describe('QR Code Scanner', () => {
@@ -33,8 +49,12 @@ describe('MagicBox Page', () => {
         input: 'Hello World',
         output: [
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'SGVsbG8gV29ybGQ=',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 2\ncharacters: 11',
           },
         ],
       },
@@ -47,8 +67,12 @@ describe('MagicBox Page', () => {
             text: 'Hello World',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'U0dWc2JHOGdWMjl5YkdRPQ==',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 1\ncharacters: 16',
           },
         ],
       },
@@ -61,8 +85,12 @@ describe('MagicBox Page', () => {
             text: 'Every minute, every 2 hours, only on Monday',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'KiAqLzIgKiAqIDE=',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 5\ncharacters: 11',
           },
         ],
       },
@@ -76,8 +104,12 @@ describe('MagicBox Page', () => {
             text: '每分鐘, 每 2 小時, 僅在 星期三',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'KiAqLzIgKiAqIDM=',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 5\ncharacters: 11',
           },
         ],
       },
@@ -100,8 +132,12 @@ describe('MagicBox Page', () => {
 }`,
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnpkV0lpT2lJeE1qTTBOVFkzT0Rrd0lpd2libUZ0WlNJNklrcHZhRzRnUkc5bElpd2lhV0YwSWpveE5URTJNak01TURJeWZRLlNmbEt4d1JKU01lS0tGMlFUNGZ3cE1lSmYzNlBPazZ5SlZfYWRRc3N3NWM=',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 1\ncharacters: 155',
           },
         ],
       },
@@ -114,8 +150,12 @@ describe('MagicBox Page', () => {
             text: '139',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'MTAwKzM5',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 1\ncharacters: 6',
           },
         ],
       },
@@ -132,8 +172,12 @@ describe('MagicBox Page', () => {
 }`,
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'eyJuYW1lIjogIkpvaG4iLCJhZ2UiOiAzMCwiY2l0eSI6ICJOZXcgWW9yayJ9',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 5\ncharacters: 45',
           },
         ],
       },
@@ -150,8 +194,12 @@ describe('MagicBox Page', () => {
             text: '1734262497530',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'MjAyNC0xMi0xNVQxOTozNDo1Ny41MzArMDg6MDA=',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 1\ncharacters: 29',
           },
         ],
       },
@@ -160,12 +208,16 @@ describe('MagicBox Page', () => {
         input: 'https://www.google.com/search?q=hello%20world',
         output: [
           {
-            title: 'URLEncode decode',
+            title: 'URLEncoding Decode',
             text: 'https://www.google.com/search?q=hello world',
           },
           {
-            title: 'Base64 encode',
+            title: 'Base64 Encode',
             text: 'aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS9zZWFyY2g/cT1oZWxsbyUyMHdvcmxk',
+          },
+          {
+            title: 'Word Count',
+            text: 'lines: 1\nwords: 1\ncharacters: 45',
           },
         ],
       },
@@ -173,22 +225,58 @@ describe('MagicBox Page', () => {
 
     testCases.forEach((testCase) => {
       it(`MagicBox input: ${testCase.testTitle}`, () => {
-        cy.get('[name="magicInput"]').type(testCase.input, { parseSpecialCharSequences: false });
+        // MUI TextField with multiline uses textarea
+        cy.get('input[name="magicInput"], textarea[name="magicInput"]', { timeout: 10000 })
+          .should('be.visible')
+          .clear()
+          .type(testCase.input, { parseSpecialCharSequences: false });
 
-        const magicBoxResults = cy.get('[data-testid="magic-box-result"]');
-        magicBoxResults.should('be.visible').should('have.length', testCase.output.length);
-
-        let result = magicBoxResults.first();
+        // Wait for results to appear (MagicBox processes input with 500ms debounce)
+        cy.get('[data-testid="magic-box-result"]', { timeout: 10000 })
+          .should('be.visible')
+          .should('have.length', testCase.output.length);
 
         testCase.output.forEach((output, index) => {
-          result.within(() => {
-            cy.get('[data-testid="magic-box-result-title"]').should('have.text', output.title);
-            cy.get('[data-testid="magic-box-result-text"]').should('have.text', output.text);
-          });
-
-          if (index < testCase.output.length - 1) {
-            result = result.next();
-          }
+          cy.get('[data-testid="magic-box-result"]')
+            .eq(index)
+            .within(() => {
+              cy.get('[data-testid="magic-box-result-title"]', { timeout: 10000 })
+                .should('be.visible')
+                .should('have.text', output.title);
+              
+              // Word Count uses KeyValueBoxTemplate, which displays key-value pairs
+              // Other boxes use DefaultBoxTemplate or CodeBoxTemplate with magic-box-result-text
+              if (output.title === 'Word Count') {
+                // For Word Count, check that the key-value pairs are displayed
+                // The text format is "lines: X\nwords: Y\ncharacters: Z"
+                // KeyValueBoxTemplate renders these as separate key-value pairs in Paper elements
+                const parts = output.text.split('\n');
+                parts.forEach((part) => {
+                  const [key, value] = part.split(': ');
+                  // Use the testid attributes added to KeyValueBoxTemplate
+                  cy.get(`[data-testid="magic-box-key-value-pair-${key}"]`, { timeout: 10000 })
+                    .should('exist')
+                    .within(() => {
+                      // Verify the key exists
+                      cy.get(`[data-testid="magic-box-key-${key}"]`, { timeout: 10000 })
+                        .should('be.visible')
+                        .should('have.text', key);
+                      // Verify the value exists
+                      cy.get(`[data-testid="magic-box-value-${key}"]`, { timeout: 10000 })
+                        .should('be.visible')
+                        .should('have.text', value);
+                    });
+                });
+              } else {
+                // For other boxes, check the text content directly
+                // Use scrollIntoView for elements that might be clipped
+                cy.get('[data-testid="magic-box-result-text"]', { timeout: 10000 })
+                  .should('exist')
+                  .scrollIntoView()
+                  .should('be.visible')
+                  .should('have.text', output.text);
+              }
+            });
         });
       });
     });
