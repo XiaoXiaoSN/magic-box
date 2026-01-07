@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v6
 
       # Download built wasm modules
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         if: github.event_name != 'pull_request'
         with:
           name: wasm-modules
