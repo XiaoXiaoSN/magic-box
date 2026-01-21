@@ -1,6 +1,6 @@
-import { Grid } from '@mui/material';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { atomOneLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { lazy, Suspense } from 'react';
+
+import { CircularProgress, Grid } from '@mui/material';
 
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
@@ -8,6 +8,37 @@ import { extendSxProps } from '@functions/muiHelper';
 import boxStyles from './styles';
 
 import type { BoxProps } from '@modules/Box';
+
+interface HighlighterProps {
+  language: string;
+  children: string;
+  customStyle?: React.CSSProperties;
+}
+
+// dynamic import to reduce bundle size
+const LazyHighlighter = lazy(async () => {
+  const [highlighterModule, styleModule] = await Promise.all([
+    import('react-syntax-highlighter'),
+    import('react-syntax-highlighter/dist/esm/styles/hljs'),
+  ]);
+
+  const SyntaxHighlighterComponent = highlighterModule.default;
+  const atomOneLight = styleModule.atomOneLight;
+
+  // return a wrapper component with style pre-loaded
+  return {
+    default: ({ language, children, customStyle }: HighlighterProps) => (
+      <SyntaxHighlighterComponent
+        customStyle={customStyle}
+        data-testid="magic-box-result-text"
+        language={language}
+        style={atomOneLight}
+      >
+        {children}
+      </SyntaxHighlighterComponent>
+    ),
+  };
+});
 
 interface CodeBoxTemplateProps extends BoxProps {
   largeModal?: boolean;
@@ -51,17 +82,30 @@ const CodeBoxTemplate = ({
         )}
       >
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
-        <SyntaxHighlighter
-          data-testid="magic-box-result-text"
-          language={language}
-          style={atomOneLight}
-          customStyle={{
-            maxHeight: largeModal ? '60vh' : '250px',
-            textAlign: 'left',
-          }}
+        <Suspense
+          fallback={
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '100px',
+              }}
+            >
+              <CircularProgress size={24} />
+            </div>
+          }
         >
-          {plaintextOutput}
-        </SyntaxHighlighter>
+          <LazyHighlighter
+            language={language}
+            customStyle={{
+              maxHeight: largeModal ? '60vh' : '250px',
+              textAlign: 'left',
+            }}
+          >
+            {plaintextOutput}
+          </LazyHighlighter>
+        </Suspense>
       </Modal>
     </Grid>
   );
