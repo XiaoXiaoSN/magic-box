@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, memo, Suspense } from 'react';
 
 import { CircularProgress, Grid } from '@mui/material';
 
@@ -45,7 +45,7 @@ interface CodeBoxTemplateProps extends BoxProps {
   onClose?: () => void;
 }
 
-const CodeBoxTemplate = ({
+const CodeBoxTemplateComponent = ({
   name,
   plaintextOutput,
   options,
@@ -111,6 +111,9 @@ const CodeBoxTemplate = ({
   );
 };
 
-CodeBoxTemplate.supportsLarge = true;
+const CodeBoxTemplate = Object.assign(
+  memo(CodeBoxTemplateComponent),
+  { supportsLarge: true }
+);
 
 export default CodeBoxTemplate;

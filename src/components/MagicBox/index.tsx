@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
 import Box from '@mui/material/Box';
@@ -34,6 +34,9 @@ function isLargeSupportBoxComponent(
   return !!(comp as LargeSupportBoxComponent).supportsLarge;
 }
 
+// hoist static JSX to avoid re-creating on every render
+const EmptyState = <NotingMatchBoxTemplate />;
+
 const MagicBox = ({
   input: magicIn,
   sources,
@@ -45,8 +48,9 @@ const MagicBox = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const { getFilteredAndSortedBoxSources } = useSettings();
+
+  const itemRefs = useRef<Map<number, HTMLButtonElement | null>>(new Map());
+  const { filteredBoxSources } = useSettings();
 
   // reset selection when parent triggers reset
   useEffect(() => {
@@ -95,10 +99,33 @@ const MagicBox = ({
     setModalOpen(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setModalOpen(false);
     setModalBox(null);
-  };
+  }, []);
+
+  // memoize modal content to avoid re-creating on every render
+  const modalContent = useMemo(() => {
+    if (!modalBox) return null;
+
+    const Comp = modalBox.boxTemplate;
+    const props = {
+      name: modalBox.props.name,
+      onClick: (output: string) => {
+        copyText(output);
+        modalBox.props.onClick(output);
+      },
+      onClose: handleCloseModal,
+      options: modalBox.props.options,
+      plaintextOutput: modalBox.props.plaintextOutput,
+      priority: modalBox.props.priority,
+    };
+
+    if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
+      return <Comp {...props} largeModal />;
+    }
+    return <Comp {...props} />;
+  }, [modalBox, copyText, handleCloseModal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,7 +138,7 @@ const MagicBox = ({
       };
     }
 
-    const boxSources = sources ?? getFilteredAndSortedBoxSources();
+    const boxSources = sources ?? filteredBoxSources;
     const [input, options] = parseInput(magicIn);
 
     const promises = boxSources.map(async (boxSource) =>
@@ -142,7 +169,7 @@ const MagicBox = ({
     return () => {
       cancelled = true;
     };
-  }, [magicIn, sources, getFilteredAndSortedBoxSources, parseInput]);
+  }, [magicIn, sources, filteredBoxSources, parseInput]);
 
   // Ensure selected index stays within bounds and reset when boxes change
   useEffect(() => {
@@ -157,7 +184,7 @@ const MagicBox = ({
 
   // Scroll the selected item into view
   useEffect(() => {
-    const el = itemRefs.current[selectedIndex];
+    const el = itemRefs.current.get(selectedIndex);
     if (el) {
       try {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -290,7 +317,11 @@ const MagicBox = ({
             <button
               key={src?.props.name || idx}
               ref={(el) => {
-                itemRefs.current[idx] = el;
+                if (el) {
+                  itemRefs.current.set(idx, el);
+                } else {
+                  itemRefs.current.delete(idx);
+                }
               }}
               data-testid="magic-box-result"
               onClick={() => setSelectedIndex(idx)}
@@ -339,7 +370,7 @@ const MagicBox = ({
           );
         })
       ) : (
-        <NotingMatchBoxTemplate />
+        EmptyState
       )}
       <Modal
         aria-describedby="box-modal-description"
@@ -365,28 +396,7 @@ const MagicBox = ({
             justifyContent: 'center',
           }}
         >
-          {modalBox ? (
-            <div>
-              {(() => {
-                const Comp = modalBox.boxTemplate;
-                const props = {
-                  name: modalBox.props.name,
-                  onClick: (output: string) => {
-                    copyText(output);
-                    modalBox.props.onClick(output);
-                  },
-                  onClose: handleCloseModal,
-                  options: modalBox.props.options,
-                  plaintextOutput: modalBox.props.plaintextOutput,
-                  priority: modalBox.props.priority,
-                };
-                if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
-                  return <Comp {...props} largeModal />;
-                }
-                return <Comp {...props} />;
-              })()}
-            </div>
-          ) : null}
+          {modalContent ? <div>{modalContent}</div> : null}
         </Box>
       </Modal>
       <CustomizedSnackbar notify={notify} />

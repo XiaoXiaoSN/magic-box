@@ -1,3 +1,5 @@
+import { memo, useMemo } from 'react';
+
 import { Box, Grid, Paper, Typography } from '@mui/material';
 
 import Modal from '@components/Modal';
@@ -12,7 +14,7 @@ interface KeyValueBoxTemplateProps extends BoxProps {
   onClose?: () => void;
 }
 
-const KeyValueBoxTemplate = ({
+const KeyValueBoxTemplateComponent = ({
   name,
   plaintextOutput,
   options,
@@ -21,23 +23,28 @@ const KeyValueBoxTemplate = ({
   onClose,
   selected = false,
 }: KeyValueBoxTemplateProps): React.JSX.Element => {
-  const data: Record<string, string> = {};
+  // memoize data parsing to avoid re-parsing JSON on every render
+  const data = useMemo(() => {
+    const result: Record<string, string> = {};
 
-  if (options) {
-    Object.entries(options).forEach(([key, value]) => {
-      data[key] = value as string;
-    });
-  }
-  if (plaintextOutput) {
-    try {
-      const parsedOutput = JSON.parse(plaintextOutput);
-      Object.entries(parsedOutput).forEach(([key, value]) => {
-        data[key] = value as string;
+    if (options) {
+      Object.entries(options).forEach(([key, value]) => {
+        result[key] = value as string;
       });
-    } catch {
-      /* */
     }
-  }
+    if (plaintextOutput) {
+      try {
+        const parsedOutput = JSON.parse(plaintextOutput);
+        Object.entries(parsedOutput).forEach(([key, value]) => {
+          result[key] = value as string;
+        });
+      } catch {
+        /* */
+      }
+    }
+
+    return result;
+  }, [plaintextOutput, options]);
 
   const handleTableClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).classList.contains('value-cell')) {
@@ -134,6 +141,9 @@ const KeyValueBoxTemplate = ({
   );
 };
 
-KeyValueBoxTemplate.supportsLarge = true;
+const KeyValueBoxTemplate = Object.assign(
+  memo(KeyValueBoxTemplateComponent),
+  { supportsLarge: true }
+);
 
 export default KeyValueBoxTemplate; 

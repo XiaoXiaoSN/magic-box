@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { Grid, Typography } from '@mui/material';
 
 import Modal from '@components/Modal';
@@ -12,7 +14,7 @@ interface DefaultBoxTemplateProps extends BoxProps {
   onClose?: () => void;
 }
 
-const DefaultBoxTemplate = ({
+const DefaultBoxTemplateComponent = ({
   name,
   plaintextOutput,
   onClick,
@@ -47,6 +49,9 @@ const DefaultBoxTemplate = ({
   </Grid>
 );
 
-DefaultBoxTemplate.supportsLarge = true;
+const DefaultBoxTemplate = Object.assign(
+  memo(DefaultBoxTemplateComponent),
+  { supportsLarge: true }
+);
 
 export default DefaultBoxTemplate;

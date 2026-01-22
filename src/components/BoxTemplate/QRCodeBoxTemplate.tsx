@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 import { Box, Grid } from '@mui/material';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -13,7 +15,7 @@ interface QRCodeBoxTemplateProps extends BoxProps {
   onClose?: () => void;
 }
 
-const QRCodeBoxTemplate = ({
+const QRCodeBoxTemplate = memo(({
   name,
   plaintextOutput,
   onClick,
@@ -44,6 +46,6 @@ const QRCodeBoxTemplate = ({
       </Box>
     </Modal>
   </Grid>
-);
+));
 
 export default QRCodeBoxTemplate;
