@@ -37,13 +37,13 @@ const MagicBoxPage = (): React.JSX.Element => {
     };
   }, [userInput]);
 
-  // NOTE: material typed defined only support `xs`, `sm`...
-  // https://mui.com/material-ui/api/container/#props
-  const containerMaxWidth = '100vw' as never;
-
   return (
-    <Container maxWidth={containerMaxWidth}>
-      <Grid container spacing={1.5} sx={{ marginTop: '20px', padding: '30px' }}>
+    <Container maxWidth={false}>
+      <Grid
+        container
+        spacing={1.5}
+        sx={{ marginTop: '20px', padding: { xs: '10px', md: '30px' } }}
+      >
         {/* Magic Box Input */}
         <Grid size={{ xs: 12, sm: 12, md: 6 }}>
           <Box sx={{ position: 'relative' }}>
@@ -102,7 +102,7 @@ const MagicBoxPage = (): React.JSX.Element => {
             spacing={0.5}
             sx={{
               background: '#f5f5f5',
-              overflow: 'scroll',
+              overflow: 'auto',
               '&::-webkit-scrollbar': { display: 'none' },
               scrollbarWidth: 'none', // Firefox
               maxHeight: 'calc(100dvh - 150px)',
