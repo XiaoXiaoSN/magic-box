@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -86,8 +87,8 @@ export const SettingsStorage = {
 
 interface SettingsContextType {
   settings: Settings;
+  filteredBoxSources: BoxSource[];
   updateSettings: (newSettings: Settings) => void;
-  getFilteredAndSortedBoxSources: () => BoxSource[];
   validatePriority: (value: string) => number;
 }
 
@@ -117,10 +118,10 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     setSettings(loaded);
   }, []);
 
-  const updateSettings = (newSettings: Settings) => {
+  const updateSettings = useCallback((newSettings: Settings) => {
     setSettings(newSettings);
     SettingsStorage.save(newSettings);
-  };
+  }, []);
 
   // Apply settings to box sources - filter enabled and sort by priority (memoized for performance)
   const getFilteredAndSortedBoxSources = useMemo((): BoxSource[] => {
@@ -150,17 +151,25 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   }, [settings.boxes]);
 
   // Helper function to validate priority input from UI
-  const validatePriorityInput = (value: string): number => {
+  const validatePriorityInput = useCallback((value: string): number => {
     const num = parseInt(value, 10);
     return validatePriority(num);
-  };
+  }, []);
 
-  const value: SettingsContextType = {
-    settings,
-    updateSettings,
-    getFilteredAndSortedBoxSources: () => getFilteredAndSortedBoxSources,
-    validatePriority: validatePriorityInput,
-  };
+  const value = useMemo<SettingsContextType>(
+    () => ({
+      settings,
+      updateSettings,
+      filteredBoxSources: getFilteredAndSortedBoxSources,
+      validatePriority: validatePriorityInput,
+    }),
+    [
+      settings,
+      updateSettings,
+      getFilteredAndSortedBoxSources,
+      validatePriorityInput,
+    ]
+  );
 
   return (
     <SettingsContext.Provider value={value}>

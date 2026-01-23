@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 
 import { Grid, Typography } from '@mui/material';
 
@@ -15,7 +15,7 @@ interface ShortenURLBoxTemplateProps extends BoxProps {
   onClose?: () => void;
 }
 
-const ShortenURLBoxTemplate = ({
+const ShortenURLBoxTemplate = memo(({
   name,
   plaintextOutput,
   onClick,
@@ -72,6 +72,6 @@ const ShortenURLBoxTemplate = ({
       </Modal>
     </Grid>
   );
-};
+});
 
 export default ShortenURLBoxTemplate; 

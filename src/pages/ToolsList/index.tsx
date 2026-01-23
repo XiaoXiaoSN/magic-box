@@ -49,12 +49,8 @@ const ToolsListPage: React.FC = () => {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { getFilteredAndSortedBoxSources } = useSettings();
-
-  // Get enabled and sorted box sources from settings
-  const availableBoxSources = useMemo(() => {
-    return getFilteredAndSortedBoxSources();
-  }, [getFilteredAndSortedBoxSources]);
+  const { filteredBoxSources } = useSettings();
+  const availableBoxSources = filteredBoxSources;
 
   // Filter tools based on search
   const filteredTools = useMemo(() => {
