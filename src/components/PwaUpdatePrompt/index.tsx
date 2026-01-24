@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
@@ -8,15 +8,19 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 
 const checkIntervalMs = 60 * 60 * 1000;
 
-const PwaUpdatePrompt = (): React.JSX.Element => {
+const PwaUpdatePrompt = (): React.JSX.Element | null => {
   const [open, setOpen] = useState(false);
+  const updateIntervalId = useRef<ReturnType<typeof setInterval> | null>(null);
   const {
     needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(registration) {
+    onRegistered(registration: ServiceWorkerRegistration | undefined) {
       if (!registration) return;
-      setInterval(() => {
+      if (updateIntervalId.current) {
+        clearInterval(updateIntervalId.current);
+      }
+      updateIntervalId.current = setInterval(() => {
         registration.update();
       }, checkIntervalMs);
     },
@@ -24,6 +28,15 @@ const PwaUpdatePrompt = (): React.JSX.Element => {
       setOpen(true);
     },
   });
+
+  useEffect(() => {
+    return () => {
+      if (updateIntervalId.current) {
+        clearInterval(updateIntervalId.current);
+        updateIntervalId.current = null;
+      }
+    };
+  }, []);
 
   const handleRefresh = () => {
     void updateServiceWorker(true);

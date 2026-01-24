@@ -314,7 +314,7 @@ const MagicBox = ({
 
           const showExpand = src.props.showExpandButton !== false;
           return (
-            <div
+            <button
               key={src?.props.name || idx}
               ref={(el) => {
                 if (el) {
@@ -325,14 +325,7 @@ const MagicBox = ({
               }}
               data-testid="magic-box-result"
               onClick={() => setSelectedIndex(idx)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setSelectedIndex(idx);
-                }
-              }}
+              type="button"
               style={{
                 width: '100%',
                 height: '100%',
@@ -346,6 +339,7 @@ const MagicBox = ({
               {showExpand ? (
                 <IconButton
                   aria-label="expand"
+                  component="span"
                   onClick={() => handleOpenModal(src)}
                   size="small"
                   style={{
@@ -367,7 +361,7 @@ const MagicBox = ({
                 priority={priority}
                 selected={idx === selectedIndex}
               />
-            </div>
+            </button>
           );
         })
       ) : (
