@@ -314,7 +314,7 @@ const MagicBox = ({
 
           const showExpand = src.props.showExpandButton !== false;
           return (
-            <button
+            <div
               key={src?.props.name || idx}
               ref={(el) => {
                 if (el) {
@@ -325,7 +325,8 @@ const MagicBox = ({
               }}
               data-testid="magic-box-result"
               onClick={() => setSelectedIndex(idx)}
-              type="button"
+              role="button"
+              tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
@@ -366,7 +367,7 @@ const MagicBox = ({
                 priority={priority}
                 selected={idx === selectedIndex}
               />
-            </button>
+            </div>
           );
         })
       ) : (

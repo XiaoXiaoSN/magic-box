@@ -5,8 +5,15 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
+import packageJson from './package.json';
+
+const buildVersion = `${packageJson.version}-${new Date().toISOString()}`;
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_VERSION__: JSON.stringify(buildVersion),
+  },
   resolve: {
     alias: {
       '@components': path.resolve(__dirname, './src/components'),

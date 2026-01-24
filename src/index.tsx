@@ -4,6 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { browserTracingIntegration, init } from '@sentry/react';
 import ReactDOM from 'react-dom/client';
 
+import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
 
 import App from './App';
@@ -38,3 +39,5 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+document.documentElement.dataset.buildVersion = buildVersion;

@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 
 import BaseLayout from '@components/BaseLayout';
+import PwaUpdatePrompt from '@components/PwaUpdatePrompt';
 import SettingsPage from '@pages/SettingsPage';
 
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -23,6 +24,7 @@ const App = (): React.JSX.Element => (
             <Route element={<SettingsPage />} path="/settings" />
           </Routes>
         </Suspense>
+        <PwaUpdatePrompt />
       </BaseLayout>
     </Router>
   </SettingsProvider>

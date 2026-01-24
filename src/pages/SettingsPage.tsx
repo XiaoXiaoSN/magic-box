@@ -33,6 +33,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
+import { buildVersion } from '@global/buildInfo';
+
 import { useSettings } from '../contexts/SettingsContext';
 import { boxSources } from '../modules/boxSources';
 
@@ -392,10 +394,10 @@ const SettingsPage: React.FC = () => {
                 Settings Page
               </Typography>
               <Typography
-                sx={{ color: 'text.secondary' }}
-                variant="body2"
+                color="text.secondary"
+                variant="caption"
               >
-                Customize priority and visibility
+                Build: {buildVersion}
               </Typography>
             </Box>
           </Stack>
