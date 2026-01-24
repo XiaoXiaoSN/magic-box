@@ -5,8 +5,15 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
+import packageJson from './package.json';
+
+const buildVersion = `${packageJson.version}-${new Date().toISOString()}`;
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __BUILD_VERSION__: JSON.stringify(buildVersion),
+  },
   resolve: {
     alias: {
       '@components': path.resolve(__dirname, './src/components'),
@@ -79,7 +86,7 @@ export default defineConfig({
       ],
     },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
       maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
       runtimeCaching: [
         {

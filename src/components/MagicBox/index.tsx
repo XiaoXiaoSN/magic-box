@@ -326,12 +326,6 @@ const MagicBox = ({
               data-testid="magic-box-result"
               onClick={() => setSelectedIndex(idx)}
               type="button"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setSelectedIndex(idx);
-                }
-              }}
               style={{
                 width: '100%',
                 height: '100%',
@@ -345,6 +339,7 @@ const MagicBox = ({
               {showExpand ? (
                 <IconButton
                   aria-label="expand"
+                  component="span"
                   onClick={() => handleOpenModal(src)}
                   size="small"
                   style={{
