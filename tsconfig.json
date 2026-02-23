@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "esnext",
     "lib": [
       "dom",
       "dom.iterable",
@@ -19,13 +19,12 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "baseUrl": "src",
     "paths": {
-      "@components/*": ["./components/*"],
-      "@functions/*": ["./functions/*"],
-      "@global*": ["./global/*"],
-      "@modules/*": ["./modules/*"],
-      "@pages/*": ["./pages/*"]
+      "@components/*": ["./src/components/*"],
+      "@functions/*": ["./src/functions/*"],
+      "@global*": ["./src/global/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@pages/*": ["./src/pages/*"]
     }
   },
   "include": [
