@@ -1,7 +1,7 @@
 import { evaluate } from 'mathjs';
 
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { isString, trim } from '@functions/helper';
+import { isJSON, isString, trim } from '@functions/helper';
 import { BoxBuilder } from '@modules/Box';
 
 import type { Box } from '@modules/Box';
@@ -28,6 +28,11 @@ export const MathExpressionBoxSource = {
 
     const regularInput = trim(input);
 
+    // prevent JSON objects/arrays from being evaluated as math expressions
+    if ((regularInput.startsWith('{') || regularInput.startsWith('[')) && isJSON(regularInput)) {
+      return undefined;
+    }
+
     // prevent `mathjs` built-in functions
     if (regularInput === 'random') {
       return undefined;
@@ -38,12 +43,11 @@ export const MathExpressionBoxSource = {
       if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
         return undefined;
       }
-      // FIXME: when input is a JSON
       if (answer === '[object Object]') {
         return undefined;
       }
 
-      if (answer === regularInput) {
+      if (answer.replace(/\s/g, '') === regularInput.replace(/\s/g, '')) {
         return undefined;
       }
 
