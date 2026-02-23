@@ -1,5 +1,6 @@
 import { Base64DecodeBoxSource, Base64EncodeBoxSource } from './Base64BoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
+import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import JWTBoxSource from './JWTBoxSource';
@@ -7,7 +8,6 @@ import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
-import PrettyJSONBoxSource from './PrettyJSONBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
@@ -28,7 +28,7 @@ export const boxSources = [
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
-  PrettyJSONBoxSource,
+  DataConverterBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
   ShortenURLBoxSource,
