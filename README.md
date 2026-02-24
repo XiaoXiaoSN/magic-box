@@ -69,6 +69,30 @@ Based on matching methods, we can roughly classify Boxes into two types:
 </details>
 
 <details>
+<summary> <b>DataConverter</b> </summary>
+
+| match rule                | description                              | output                      |
+| ------------------------- | ---------------------------------------- | --------------------------- |
+| valid JSON/YAML/TOML/XML  | formatted output for the detected format | ![](docs/DataConverter.png) |
+| option `json` or `tojson` | convert input to formatted JSON          | formatted JSON              |
+| option `yaml` or `toyaml` | convert input to formatted YAML          | formatted YAML              |
+| option `toml` or `totoml` | convert input to formatted TOML          | formatted TOML              |
+| option `xml` or `toxml`   | convert input to formatted XML           | formatted XML               |
+
+</details>
+
+<details>
+<summary> <b>DateCalculateBox</b> </summary>
+
+| match rule          | description                              | example               | output                      |
+| ------------------- | ---------------------------------------- | --------------------- | --------------------------- |
+| `date1` + `number`d | add days to a date                       | `now + 7d`            | ![](docs/DateCalculate.png) |
+| `date1` - `number`d | subtract days from a date                | `2025-01-01 - 30d`    |                             |
+| `date1` to `date2`  | calculate the duration between two dates | `today to 2025-12-31` |                             |
+
+</details>
+
+<details>
 <summary> <b>GenerateQRCodeBox</b> </summary>
 
 | match rule                       | description      | output                       |
@@ -91,6 +115,15 @@ Based on matching methods, we can roughly classify Boxes into two types:
 </details>
 
 <details>
+<summary> <b>K8sSecretBox</b> </summary>
+
+| match rule                 | description                               | output                  |
+| -------------------------- | ----------------------------------------- | ----------------------- |
+| valid K8s Secret YAML/JSON | decode base64 values in a K8s Secret data | ![](docs/K8sSecret.png) |
+
+</details>
+
+<details>
 <summary> <b>MathExpressionBox</b> </summary>
 
 | match rule         | description               | output                       |
@@ -100,20 +133,20 @@ Based on matching methods, we can roughly classify Boxes into two types:
 </details>
 
 <details>
+<summary> <b>MyIPBox</b> </summary>
+
+| match rule     | description                                | output             |
+| -------------- | ------------------------------------------ | ------------------ |
+| `ip` or `myip` | fetch and show your public IP and location | ![](docs/MyIP.png) |
+
+</details>
+
+<details>
 <summary> <b>NowBox</b> </summary>
 
 | match rule          | description                                                                                    | output            |
 | ------------------- | ---------------------------------------------------------------------------------------------- | ----------------- |
 | input matches `now` | show current time in 3 difference formats: `RFC 3339`, `RFC 3339 (UTC+8)`, and `Timestamp (s)` | ![](docs/Now.png) |
-
-</details>
-
-<details>
-<summary> <b>PrettyJSON</b> </summary>
-
-| match rule | description    | output                   |
-| ---------- | -------------- | ------------------------ |
-| valid JSON | formatted JSON | ![](docs/PrettyJSON.png) |
 
 </details>
 
@@ -142,9 +175,9 @@ Based on matching methods, we can roughly classify Boxes into two types:
 <details>
 <summary> <b>TimestampBox</b> </summary>
 
-| match rule                                                                               | description                                | output                   |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------ |
-| valid timestamp. to avoid match all of number string, it only receive 1600 AD to 2500 AD | the time of timestamp in `RFC 3339` format | ![](docs/TimeFormat.png) |
+| match rule                                                                               | description                                | output                  |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
+| valid timestamp. to avoid match all of number string, it only receive 1600 AD to 2500 AD | the time of timestamp in `RFC 3339` format | ![](docs/Timestamp.png) |
 
 </details>
 
@@ -154,6 +187,48 @@ Based on matching methods, we can roughly classify Boxes into two types:
 | match rule         | description                | output                          |
 | ------------------ | -------------------------- | ------------------------------- |
 | URL-encoded string | decoded URL-encoded string | ![](docs/URLEncodingDecode.png) |
+
+</details>
+
+<details>
+<summary> <b>RandomIntegerBox</b> </summary>
+
+| match rule           | description                                  | example       | output               |
+| -------------------- | -------------------------------------------- | ------------- | -------------------- |
+| `random`             | generate a random number between 0 and 100   | `random`      | ![](docs/Random.png) |
+| `random` `max`       | generate a random number between 0 and max   | `random 1000` |                      |
+| `random` `min`-`max` | generate a random number between min and max | `random 1-6`  |                      |
+
+</details>
+
+<details>
+<summary> <b>ReadableBytesBox</b> </summary>
+
+| match rule | description                                                          | example                  | output                      |
+| ---------- | -------------------------------------------------------------------- | ------------------------ | --------------------------- |
+| byte array | convert a byte array (comma or space separated) to a readable string | `72, 101, 108, 108, 111` | ![](docs/ReadableBytes.png) |
+
+</details>
+
+<details>
+<summary> <b>UuidBox</b> </summary>
+
+| match rule | description                     | output             |
+| ---------- | ------------------------------- | ------------------ |
+| `uuid`     | generate a new random UUID (v4) | ![](docs/UUID.png) |
+
+| options              | description              | example   |
+| -------------------- | ------------------------ | --------- |
+| `upper`, `uppercase` | return UUID in uppercase | `::upper` |
+
+</details>
+
+<details>
+<summary> <b>WordCountBox</b> </summary>
+
+| match rule | description                        | output                  |
+| ---------- | ---------------------------------- | ----------------------- |
+| any string | count lines, words, and characters | ![](docs/WordCount.png) |
 
 </details>
 

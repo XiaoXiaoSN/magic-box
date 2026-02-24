@@ -16,7 +16,6 @@ import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
-import YamlJsonBoxSource from './YamlJsonBoxSource';
 
 export const boxSources = [
   Base64DecodeBoxSource,
@@ -38,5 +37,4 @@ export const boxSources = [
   URLDecodeBoxSource,
   UuidBoxSource,
   WordCountBoxSource,
-  YamlJsonBoxSource,
 ];
