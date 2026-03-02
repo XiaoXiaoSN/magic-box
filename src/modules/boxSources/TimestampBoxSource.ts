@@ -73,7 +73,7 @@ export const TimestampBoxSource = {
     }
     if (twDate.getTime() > 0) {
       resp.push(
-        new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString())
+        new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)
