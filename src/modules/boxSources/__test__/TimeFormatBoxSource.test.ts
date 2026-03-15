@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { TimeFormatBoxSource } from '../TimeFormatBoxSource';
 
@@ -16,7 +15,9 @@ describe('TimeFormatBoxSource', () => {
     });
 
     it('should parse valid RFC3339 time string', () => {
-      const result = TimeFormatBoxSource.checkMatch('2024-12-15T19:34:57.530+08:00');
+      const result = TimeFormatBoxSource.checkMatch(
+        '2024-12-15T19:34:57.530+08:00',
+      );
       expect(result).toBeDefined();
       expect(result?.timestamp).toBe(1734262497530);
     });
@@ -35,7 +36,9 @@ describe('TimeFormatBoxSource', () => {
     });
 
     it('should generate correct boxes for valid time string', async () => {
-      const boxes = await TimeFormatBoxSource.generateBoxes('2024-12-15T19:34:57.530+08:00');
+      const boxes = await TimeFormatBoxSource.generateBoxes(
+        '2024-12-15T19:34:57.530+08:00',
+      );
       expect(boxes).toHaveLength(2);
 
       // timestamp (s) box

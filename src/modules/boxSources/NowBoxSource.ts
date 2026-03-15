@@ -1,15 +1,14 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityRFC3339 = 10;
 
 interface Match {
-  timestamp: number,
-  date: Date,
-  twDate: Date,
+  timestamp: number;
+  date: Date;
+  twDate: Date;
 }
 
 export const NowBoxSource = {
@@ -26,7 +25,7 @@ export const NowBoxSource = {
 
     if (regularInput === 'now') {
       const timestamp = Date.now();
-      const tzOffset = (8 * 60 * 60) * 1000;
+      const tzOffset = 8 * 60 * 60 * 1000;
       const date = new Date(timestamp);
       const twDate = new Date(timestamp + tzOffset);
 
@@ -49,7 +48,10 @@ export const NowBoxSource = {
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
-      new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
+      new BoxBuilder(
+        'RFC 3339 (UTC+8)',
+        twDate.toISOString().replace('Z', '+08:00'),
+      )
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)

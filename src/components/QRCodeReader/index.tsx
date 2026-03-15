@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
-
 import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
-import { logger } from '@sentry/react';
-import { Scanner } from '@yudiel/react-qr-scanner';
-
 import type { SxProps, Theme } from '@mui/material/styles';
+import { logger } from '@sentry/react';
 import type { IDetectedBarcode } from '@yudiel/react-qr-scanner';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import React, { useEffect, useState } from 'react';
 
 interface CloseButtonProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;

@@ -1,12 +1,10 @@
+import { CodeBoxTemplate } from '@components/BoxTemplate';
+import { isString, trim } from '@functions/helper';
+import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-
-import { CodeBoxTemplate } from '@components/BoxTemplate';
-import { isString, trim } from '@functions/helper';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
-
-import type { Box, BoxOptions } from '@modules/Box';
 
 const PriorityDataConverter = 10;
 
@@ -38,13 +36,18 @@ function detectFormat(input: string): DetectedData | undefined {
   if (!trimmed) return undefined;
 
   // Try JSON
-  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
     try {
       const data = JSON.parse(trimmed);
       if (data && typeof data === 'object') {
         return { format: DataFormat.JSON, data };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // Try XML
@@ -54,7 +57,9 @@ function detectFormat(input: string): DetectedData | undefined {
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         return { format: DataFormat.XML, data };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // Try TOML
@@ -64,7 +69,9 @@ function detectFormat(input: string): DetectedData | undefined {
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         return { format: DataFormat.TOML, data };
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // Try YAML
@@ -77,7 +84,9 @@ function detectFormat(input: string): DetectedData | undefined {
         return { format: DataFormat.YAML, data };
       }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   return undefined;
 }
@@ -85,12 +94,13 @@ function detectFormat(input: string): DetectedData | undefined {
 export const DataConverterBoxSource = {
   name: 'Data Converter',
   description: 'Convert between JSON, YAML, TOML, and XML formats.',
-  defaultInput: '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}\n\n::toYAML\n::toTOML\n::toXML',
+  defaultInput:
+    '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}\n\n::toYAML\n::toTOML\n::toXML',
   priority: PriorityDataConverter,
 
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     if (!isString(input)) return [];
-    
+
     const detected = detectFormat(input);
     if (!detected) return [];
 
@@ -98,21 +108,21 @@ export const DataConverterBoxSource = {
     const boxes: Box[] = [];
 
     const formats = [
-      { 
-        id: DataFormat.JSON, 
-        name: 'JSON', 
+      {
+        id: DataFormat.JSON,
+        name: 'JSON',
         keys: ['json', 'tojson'],
-        stringify: (d: unknown) => JSON.stringify(d, null, '    ') 
+        stringify: (d: unknown) => JSON.stringify(d, null, '    '),
       },
-      { 
-        id: DataFormat.YAML, 
-        name: 'YAML', 
+      {
+        id: DataFormat.YAML,
+        name: 'YAML',
         keys: ['yaml', 'yml', 'toyaml', 'toyml'],
-        stringify: (d: unknown) => stringifyYaml(d) 
+        stringify: (d: unknown) => stringifyYaml(d),
       },
-      { 
-        id: DataFormat.TOML, 
-        name: 'TOML', 
+      {
+        id: DataFormat.TOML,
+        name: 'TOML',
         keys: ['toml', 'totoml'],
         stringify: (d: unknown) => {
           try {
@@ -121,25 +131,31 @@ export const DataConverterBoxSource = {
             console.error('TOML stringify failed:', e);
             return undefined;
           }
-        }
+        },
       },
-      { 
-        id: DataFormat.XML, 
-        name: 'XML', 
+      {
+        id: DataFormat.XML,
+        name: 'XML',
         keys: ['xml', 'toxml'],
         stringify: (d: unknown) => {
           try {
-            const wrapData = Array.isArray(d) ? { root: { item: d } } : (Object.keys(d as object).length > 1 ? { root: d } : d);
+            const wrapData = Array.isArray(d)
+              ? { root: { item: d } }
+              : Object.keys(d as object).length > 1
+                ? { root: d }
+                : d;
             return xmlBuilder.build(wrapData);
           } catch (e) {
             console.error('XML build failed:', e);
             return undefined;
           }
-        }
+        },
       },
     ];
 
-    const hasAnyTargetOption = formats.some(fmt => hasOptionKeys(options, ...fmt.keys));
+    const hasAnyTargetOption = formats.some((fmt) =>
+      hasOptionKeys(options, ...fmt.keys),
+    );
 
     for (const fmt of formats) {
       const isTargetRequested = hasOptionKeys(options, ...fmt.keys);
@@ -167,7 +183,7 @@ export const DataConverterBoxSource = {
             .setOptions({ language: fmt.id })
             .setTemplate(CodeBoxTemplate)
             .setPriority(this.priority + (isSourceFormat ? 0.1 : 0))
-            .build()
+            .build(),
         );
       } catch (e) {
         console.error(`Conversion to ${fmt.name} failed:`, e);

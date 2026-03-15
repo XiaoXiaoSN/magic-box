@@ -1,13 +1,9 @@
-import { memo } from 'react';
-
-import { Grid, Typography } from '@mui/material';
-
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
-
-import boxStyles from './styles';
-
 import type { BoxProps } from '@modules/Box';
+import { Grid, Typography } from '@mui/material';
+import { memo } from 'react';
+import boxStyles from './styles';
 
 interface DefaultBoxTemplateProps extends BoxProps {
   largeModal?: boolean;
@@ -36,22 +32,21 @@ const DefaultBoxTemplateComponent = ({
           ? boxStyles.paper
           : boxStyles.paper,
         largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
-        selected ? boxStyles.selectedPaper : undefined
+        selected ? boxStyles.selectedPaper : undefined,
       )}
     >
-    <Typography
-      data-testid="magic-box-result-text"
-      sx={boxStyles.paperTypography}
-    >
-      {plaintextOutput}
-    </Typography>
+      <Typography
+        data-testid="magic-box-result-text"
+        sx={boxStyles.paperTypography}
+      >
+        {plaintextOutput}
+      </Typography>
     </Modal>
   </Grid>
 );
 
-const DefaultBoxTemplate = Object.assign(
-  memo(DefaultBoxTemplateComponent),
-  { supportsLarge: true }
-);
+const DefaultBoxTemplate = Object.assign(memo(DefaultBoxTemplateComponent), {
+  supportsLarge: true,
+});
 
 export default DefaultBoxTemplate;

@@ -1,14 +1,13 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { isNumeric, } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
+import { isNumeric } from '@functions/helper';
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityRFC3339 = 9;
 
 interface Match {
-  date: Date,
-  twDate: Date,
+  date: Date;
+  twDate: Date;
 }
 
 export const TimestampBoxSource = {
@@ -22,7 +21,7 @@ export const TimestampBoxSource = {
       return undefined;
     }
 
-    const twTimezoneOffset = (8 * 60 * 60) * 1000;
+    const twTimezoneOffset = 8 * 60 * 60 * 1000;
     const minTimestamp = new Date('1600-01-01T00:00:00');
     const maxTimestamp = new Date('2099-12-31T23:59:59');
 
@@ -48,7 +47,9 @@ export const TimestampBoxSource = {
       }
 
       return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },
@@ -73,7 +74,10 @@ export const TimestampBoxSource = {
     }
     if (twDate.getTime() > 0) {
       resp.push(
-        new BoxBuilder('RFC 3339 (UTC+8)', twDate.toISOString().replace('Z', '+08:00'))
+        new BoxBuilder(
+          'RFC 3339 (UTC+8)',
+          twDate.toISOString().replace('Z', '+08:00'),
+        )
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)

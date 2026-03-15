@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useEffect, useRef, useState } from 'react';
 
 const checkIntervalMs = 60 * 60 * 1000;
 
@@ -63,12 +63,8 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
         }}
       >
         <Stack spacing={0.5}>
-          <Typography variant="body2">
-            New version available.
-          </Typography>
-          <Typography variant="caption">
-            Refresh to update the app.
-          </Typography>
+          <Typography variant="body2">New version available.</Typography>
+          <Typography variant="caption">Refresh to update the app.</Typography>
         </Stack>
         <Button
           color="inherit"
@@ -78,11 +74,7 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
         >
           Refresh
         </Button>
-        <Button
-          color="inherit"
-          onClick={() => setOpen(false)}
-          size="small"
-        >
+        <Button color="inherit" onClick={() => setOpen(false)} size="small">
           Later
         </Button>
       </Stack>

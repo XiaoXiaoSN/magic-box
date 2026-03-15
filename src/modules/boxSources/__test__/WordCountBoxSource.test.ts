@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { WordCountBoxSource } from '@modules/boxSources/WordCountBoxSource';
+import { describe, expect, it } from 'vitest';
 
 describe('WordCountBoxSource', () => {
   it('should return correct counts for a simple string', async () => {
@@ -9,7 +8,9 @@ describe('WordCountBoxSource', () => {
     expect(boxes).toHaveLength(1);
     const box = boxes[0];
     expect(box.props.name).toBe('Word Count');
-    expect(box.props.plaintextOutput).toBe('lines: 1\nwords: 2\ncharacters: 11');
+    expect(box.props.plaintextOutput).toBe(
+      'lines: 1\nwords: 2\ncharacters: 11',
+    );
   });
 
   it('should return correct counts for a multi-line string', async () => {
@@ -18,7 +19,9 @@ describe('WordCountBoxSource', () => {
     expect(boxes).toHaveLength(1);
     const box = boxes[0];
     expect(box.props.name).toBe('Word Count');
-    expect(box.props.plaintextOutput).toBe('lines: 2\nwords: 6\ncharacters: 26');
+    expect(box.props.plaintextOutput).toBe(
+      'lines: 2\nwords: 6\ncharacters: 26',
+    );
     expect(box.props.options).toEqual({
       lines: '2',
       words: '6',

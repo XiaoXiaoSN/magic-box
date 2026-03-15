@@ -2,9 +2,12 @@ export function isNumeric(num: unknown): boolean {
   if (typeof num === 'number') {
     return true;
   }
-  if (typeof num === 'string' && num.trim() !== '' && /^[+-]?\d+(\.\d*)?$/.test(num)) {
-    return !Number.isNaN(num)
-    && !Number.isNaN(parseFloat(num));
+  if (
+    typeof num === 'string' &&
+    num.trim() !== '' &&
+    /^[+-]?\d+(\.\d*)?$/.test(num)
+  ) {
+    return !Number.isNaN(num) && !Number.isNaN(parseFloat(num));
   }
 
   return false;
@@ -38,7 +41,8 @@ export function isRFC3339(str: unknown): boolean {
     return false;
   }
 
-  const re = /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/gm;
+  const re =
+    /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/gm;
   return !!(str as string).match(re);
 }
 
@@ -54,19 +58,28 @@ export function isBase64(str: string): boolean {
    *       ([0-9a-zA-Z+/]{3}=)    # three valid characters followed by =
    *   )?                         # , or nothing
    *   $                          # End of input
-  */
-  const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/m;
+   */
+  const re =
+    /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/m;
   if (str === '' || str.trim() === '') {
     return false;
   }
-  return !!(re.exec(str));
+  return !!re.exec(str);
 }
 
 export function isJSON(str: string): boolean {
   // https://stackoverflow.com/a/3710506/6695274
-  if (/^[\],:{}\s]*$/.test(str.replace(/\\["\\/bfnrtu]/g, '@')
-    .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?/g, ']')
-    .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+  if (
+    /^[\],:{}\s]*$/.test(
+      str
+        .replace(/\\["\\/bfnrtu]/g, '@')
+        .replace(
+          /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?/g,
+          ']',
+        )
+        .replace(/(?:^|:|,)(?:\s*\[)+/g, ''),
+    )
+  ) {
     return true;
   }
   return false;

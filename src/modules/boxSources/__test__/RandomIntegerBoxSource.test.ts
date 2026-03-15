@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { RandomIntegerBoxSource } from '../RandomIntegerBoxSource';
 
@@ -53,7 +52,9 @@ describe('RandomIntegerBoxSource', () => {
       expect(RandomIntegerBoxSource.checkMatch('randomx')).toBeUndefined();
       expect(RandomIntegerBoxSource.checkMatch('random -1-10')).toBeUndefined();
       expect(RandomIntegerBoxSource.checkMatch('random 1--10')).toBeUndefined();
-      expect(RandomIntegerBoxSource.checkMatch('random 1-10-10')).toBeUndefined();
+      expect(
+        RandomIntegerBoxSource.checkMatch('random 1-10-10'),
+      ).toBeUndefined();
     });
   });
 
@@ -100,7 +101,9 @@ describe('RandomIntegerBoxSource', () => {
     });
 
     it('should return empty array for non-matching input', async () => {
-      const boxes = await RandomIntegerBoxSource.generateBoxes('not a random command');
+      const boxes = await RandomIntegerBoxSource.generateBoxes(
+        'not a random command',
+      );
       expect(boxes).toHaveLength(0);
     });
 

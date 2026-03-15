@@ -24,8 +24,10 @@ describe('<ShortenURLBoxTemplate />', () => {
 
     const SHORTEN_URL = 'https://tool.10oz.tw';
 
-    cy.get('[data-testid="magic-box-result-title"]')
-      .should('have.text', 'TITLE');
+    cy.get('[data-testid="magic-box-result-title"]').should(
+      'have.text',
+      'TITLE',
+    );
     cy.wait('@shortenUrl');
     cy.get('[data-testid="magic-box-result-text"]')
       .contains(new RegExp(`^${SHORTEN_URL}`))

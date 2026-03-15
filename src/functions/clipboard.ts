@@ -19,9 +19,12 @@ function copyTextToClipboard(content: string): void {
     fallbackCopyTextToClipboard(content);
     return;
   }
-  navigator.clipboard.writeText(content).then(() => {}, (err) => {     
-    console.error('Async: Could not copy text: ', err);
-  });
+  navigator.clipboard.writeText(content).then(
+    () => {},
+    (err) => {
+      console.error('Async: Could not copy text: ', err);
+    },
+  );
 }
 
 export default copyTextToClipboard;

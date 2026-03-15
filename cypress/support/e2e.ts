@@ -13,8 +13,10 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
   // Ignore media errors when closing QR scanner (camera stream interruption)
-  if (err.message.includes('play() request was interrupted') || 
-      err.message.includes('media was removed from the document')) {
+  if (
+    err.message.includes('play() request was interrupted') ||
+    err.message.includes('media was removed from the document')
+  ) {
     return false;
   }
   // Let other errors fail the test

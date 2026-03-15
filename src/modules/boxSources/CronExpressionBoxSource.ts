@@ -1,16 +1,13 @@
-import cronstrue from 'cronstrue/i18n';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
+import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
-
-import type {
-  Box, BoxOptions} from '@modules/Box';
+import cronstrue from 'cronstrue/i18n';
 
 const PriorityCronExpression = 10;
 
 interface Match {
-  answer: string,
+  answer: string;
 }
 
 const localeMap = new Map([
@@ -45,21 +42,26 @@ export const CronExpressionBoxSource = {
         }
       }
 
-      const answer = cronstrue.toString(
-        regularInput,
-        { use24HourTimeFormat: true, locale },
-      );
+      const answer = cronstrue.toString(regularInput, {
+        use24HourTimeFormat: true,
+        locale,
+      });
       if (answer === regularInput) {
         return undefined;
       }
 
       return { answer };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },
 
-  async generateBoxes(input: string, options: BoxOptions = null): Promise<Box[]> {
+  async generateBoxes(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Box[]> {
     const match = this.checkMatch(input, options);
     if (!match) {
       return [];

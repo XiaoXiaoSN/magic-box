@@ -4,7 +4,10 @@ export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
 
 // Checks whether any of the given keys are exist in the BoxOptions
-export const hasOptionKeys = (options: BoxOptions, ...keys: string[]): boolean => {
+export const hasOptionKeys = (
+  options: BoxOptions,
+  ...keys: string[]
+): boolean => {
   if (options === null) {
     return false;
   }
@@ -30,22 +33,22 @@ export const extractOptionKeys = (
 export type BoxOnClickFn = (out: string) => void;
 
 export interface BoxProps {
-  name: string,
-  plaintextOutput: string,
-  options: BoxOptions,
-  onClick: BoxOnClickFn,
-  priority?: number,
-  showExpandButton?: boolean,
-  largeModal?: boolean,
-  onClose?: () => void,
-  selected?: boolean,
+  name: string;
+  plaintextOutput: string;
+  options: BoxOptions;
+  onClick: BoxOnClickFn;
+  priority?: number;
+  showExpandButton?: boolean;
+  largeModal?: boolean;
+  onClose?: () => void;
+  selected?: boolean;
 }
 
 export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
 
 export interface Box {
-  props: BoxProps,
-  boxTemplate: BoxTemplate,
+  props: BoxProps;
+  boxTemplate: BoxTemplate;
 }
 
 export class BoxBuilder {
@@ -55,10 +58,10 @@ export class BoxBuilder {
     public name: string,
     public plaintextOutput: string,
     public options = {} as BoxOptions,
-    public onClick = (() => { }) as BoxOnClickFn,
+    public onClick = (() => {}) as BoxOnClickFn,
     public priority?: number,
     public boxTemplate?: BoxTemplate,
-  ) { }
+  ) {}
 
   setPriority(priority?: number): BoxBuilder {
     this.priority = priority;

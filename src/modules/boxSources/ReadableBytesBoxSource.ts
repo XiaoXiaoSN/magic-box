@@ -1,8 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityReadableBytes = 10;
 
@@ -19,7 +18,8 @@ function hasDisplayableChar(str: string): boolean {
 export const ReadableBytesBoxSource = {
   name: 'Readable Bytes',
   description: 'Convert a byte array to a readable string.',
-  defaultInput: '83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115',
+  defaultInput:
+    '83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115',
   priority: PriorityReadableBytes,
 
   checkMatch(input: string): Match | undefined {

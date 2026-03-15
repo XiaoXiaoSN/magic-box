@@ -1,15 +1,13 @@
-import { evaluate } from 'mathjs';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isJSON, isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+import { evaluate } from 'mathjs';
 
 const PriorityMathExpression = 10;
 
 interface Match {
-  answer: string,
+  answer: string;
 }
 
 export const MathExpressionBoxSource = {
@@ -29,7 +27,10 @@ export const MathExpressionBoxSource = {
     const regularInput = trim(input);
 
     // prevent JSON objects/arrays from being evaluated as math expressions
-    if ((regularInput.startsWith('{') || regularInput.startsWith('[')) && isJSON(regularInput)) {
+    if (
+      (regularInput.startsWith('{') || regularInput.startsWith('[')) &&
+      isJSON(regularInput)
+    ) {
       return undefined;
     }
 
@@ -40,7 +41,11 @@ export const MathExpressionBoxSource = {
 
     try {
       const answer = evaluate(regularInput)?.toString();
-      if (answer === null || typeof answer === 'object' || typeof answer === 'function') {
+      if (
+        answer === null ||
+        typeof answer === 'object' ||
+        typeof answer === 'function'
+      ) {
         return undefined;
       }
       if (answer === '[object Object]') {
@@ -52,7 +57,9 @@ export const MathExpressionBoxSource = {
       }
 
       return { answer };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },

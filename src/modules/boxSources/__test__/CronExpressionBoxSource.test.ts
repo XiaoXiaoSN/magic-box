@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { CronExpressionBoxSource } from '../CronExpressionBoxSource';
 
@@ -12,7 +11,9 @@ describe('CronExpressionBoxSource', () => {
 
     it('should return undefined for invalid cron expression', () => {
       expect(CronExpressionBoxSource.checkMatch('123')).toBeUndefined();
-      expect(CronExpressionBoxSource.checkMatch('invalid cron')).toBeUndefined();
+      expect(
+        CronExpressionBoxSource.checkMatch('invalid cron'),
+      ).toBeUndefined();
     });
 
     it('should return a match for valid cron expression', () => {
@@ -22,11 +23,15 @@ describe('CronExpressionBoxSource', () => {
     });
 
     it('should handle language options', () => {
-      let result = CronExpressionBoxSource.checkMatch('* * * * *', { lang: 'zh' });
+      let result = CronExpressionBoxSource.checkMatch('* * * * *', {
+        lang: 'zh',
+      });
       expect(result).toBeDefined();
       expect(result?.answer).toBe('每分鐘');
 
-      result = CronExpressionBoxSource.checkMatch('* * * * * *', { lang: 'ru' });
+      result = CronExpressionBoxSource.checkMatch('* * * * * *', {
+        lang: 'ru',
+      });
       expect(result).toBeDefined();
       expect(result?.answer).toBe('Каждую секунду');
     });

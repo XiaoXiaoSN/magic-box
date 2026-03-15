@@ -1,10 +1,8 @@
-import React, { Suspense, useEffect, useId, useState } from 'react';
+import MagicBox from '@components/MagicBox';
 
 import { Container, Grid, TextField } from '@mui/material';
 import Box from '@mui/material/Box';
-
-import MagicBox from '@components/MagicBox';
-
+import React, { Suspense, useEffect, useId, useState } from 'react';
 
 // Dynamic import
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));

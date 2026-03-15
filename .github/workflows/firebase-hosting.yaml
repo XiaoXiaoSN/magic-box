@@ -47,9 +47,6 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
-      - name: Run ESLint
-        run: pnpm lint
-
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:

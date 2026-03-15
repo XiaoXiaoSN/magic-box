@@ -1,3 +1,6 @@
+import type { BoxSource } from '@modules/BoxSource';
+
+import { boxSources } from '@modules/boxSources';
 import {
   createContext,
   useCallback,
@@ -6,10 +9,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
-import { boxSources } from '@modules/boxSources';
-
-import type { BoxSource } from '@modules/BoxSource';
 
 export interface BoxSetting {
   id: string;
@@ -32,7 +31,7 @@ const defaultSettings: Settings = {
         priority: box.priority ?? 10,
         secondaryOrder: idx,
       },
-    ])
+    ]),
   ) as Record<string, BoxSetting>,
 };
 
@@ -59,7 +58,7 @@ export const SettingsStorage = {
         } else {
           // Validate existing priority values
           parsed.boxes[box.name].priority = validatePriority(
-            parsed.boxes[box.name].priority
+            parsed.boxes[box.name].priority,
           );
         }
       });
@@ -75,12 +74,12 @@ export const SettingsStorage = {
         Object.entries(settings.boxes).map(([key, box]) => [
           key,
           { ...box, priority: validatePriority(box.priority) },
-        ])
+        ]),
       ),
     };
     localStorage.setItem(
       SETTINGS_STORAGE_KEY,
-      JSON.stringify(validatedSettings)
+      JSON.stringify(validatedSettings),
     );
   },
 };
@@ -93,7 +92,7 @@ interface SettingsContextType {
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const useSettings = (): SettingsContextType => {
@@ -126,7 +125,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   // Apply settings to box sources - filter enabled and sort by priority (memoized for performance)
   const getFilteredAndSortedBoxSources = useMemo((): BoxSource[] => {
     const enabledBoxSources = boxSources.filter(
-      (boxSource) => settings.boxes[boxSource.name]?.enabled
+      (boxSource) => settings.boxes[boxSource.name]?.enabled,
     );
 
     return enabledBoxSources
@@ -135,7 +134,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
         return {
           ...boxSource,
           priority: validatePriority(
-            setting?.priority ?? boxSource.priority ?? 10
+            setting?.priority ?? boxSource.priority ?? 10,
           ),
           secondaryOrder: setting?.secondaryOrder ?? 0,
         };
@@ -168,7 +167,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       updateSettings,
       getFilteredAndSortedBoxSources,
       validatePriorityInput,
-    ]
+    ],
   );
 
   return (

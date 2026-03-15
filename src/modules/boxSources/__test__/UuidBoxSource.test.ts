@@ -1,11 +1,11 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { UuidBoxSource } from '../UuidBoxSource';
 
 describe('UuidBoxSource', () => {
-  const validUUIDv4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const validUUIDv4Regex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   describe('checkMatch', () => {
     it('should match "uuid" command', () => {
@@ -53,7 +53,9 @@ describe('UuidBoxSource', () => {
       const boxes1 = await UuidBoxSource.generateBoxes('uuid');
       const boxes2 = await UuidBoxSource.generateBoxes('uuid');
 
-      expect(boxes1[0].props.plaintextOutput).not.toBe(boxes2[0].props.plaintextOutput);
+      expect(boxes1[0].props.plaintextOutput).not.toBe(
+        boxes2[0].props.plaintextOutput,
+      );
     });
 
     describe('case sensitivity', () => {
@@ -63,7 +65,9 @@ describe('UuidBoxSource', () => {
       });
 
       it('should generate uppercase UUID for uppercase input', async () => {
-        const boxes = await UuidBoxSource.generateBoxes('UUID', { uppercase: true });
+        const boxes = await UuidBoxSource.generateBoxes('UUID', {
+          uppercase: true,
+        });
         expect(boxes[0].props.plaintextOutput).toMatch(/^[0-9A-F-]+$/);
       });
     });

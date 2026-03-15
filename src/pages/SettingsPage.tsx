@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import type { DragEndEvent } from '@dnd-kit/core';
 
 import {
   closestCenter,
@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { buildVersion } from '@global/buildInfo';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -32,15 +33,10 @@ import Stack from '@mui/material/Stack';
 import { alpha, useTheme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-
-import { buildVersion } from '@global/buildInfo';
-
+import { useEffect, useState } from 'react';
+import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { boxSources } from '../modules/boxSources';
-
-import type { DragEndEvent } from '@dnd-kit/core';
-
-import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 
 function groupByPriority(boxes: BoxSetting[]): Record<number, BoxSetting[]> {
   const groups: Record<number, BoxSetting[]> = {};
@@ -138,7 +134,9 @@ const SortableBoxRow = ({
               },
             }}
           >
-            <DragIndicatorIcon sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }} />
+            <DragIndicatorIcon
+              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+            />
           </IconButton>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -178,7 +176,9 @@ const SortableBoxRow = ({
             spacing={{ xs: 1, sm: 1.5 }}
           >
             <IconButton
-              aria-label={box.enabled ? `Disable ${box.id} tool` : `Enable ${box.id} tool`}
+              aria-label={
+                box.enabled ? `Disable ${box.id} tool` : `Enable ${box.id} tool`
+              }
               onClick={() => onToggle(box.id)}
               size="small"
               sx={{
@@ -187,9 +187,9 @@ const SortableBoxRow = ({
                 '&:hover': {
                   bgcolor: alpha(
                     box.enabled
-                       ? theme.palette.success.main
+                      ? theme.palette.success.main
                       : theme.palette.action.active,
-                    0.1
+                    0.1,
                   ),
                 },
               }}
@@ -250,8 +250,8 @@ const SettingsPage: React.FC = () => {
       boxArray.sort((a, b) =>
         a.priority !== b.priority
           ? b.priority - a.priority
-          : a.secondaryOrder - b.secondaryOrder
-      )
+          : a.secondaryOrder - b.secondaryOrder,
+      ),
     );
   }, [settings]);
 
@@ -275,14 +275,14 @@ const SettingsPage: React.FC = () => {
     const num = validatePriority(value);
 
     let updated: BoxSetting[] = boxes.map((box) =>
-      box.id === id ? { ...box, priority: num } : box
+      box.id === id ? { ...box, priority: num } : box,
     );
 
     // Move to the new group and place at the end of that group
     updated = updated.map((box, _, arr) => {
       if (box.id === id) {
         const samePriority = arr.filter(
-          (box) => box.priority === num && box.id !== id
+          (box) => box.priority === num && box.id !== id,
         );
         return { ...box, secondaryOrder: samePriority.length };
       }
@@ -302,8 +302,8 @@ const SettingsPage: React.FC = () => {
       updated.sort((a, b) =>
         a.priority !== b.priority
           ? b.priority - a.priority
-          : a.secondaryOrder - b.secondaryOrder
-      )
+          : a.secondaryOrder - b.secondaryOrder,
+      ),
     );
     // Update settings
     const newSettings: Settings = { ...settings, boxes: { ...settings.boxes } };
@@ -339,7 +339,7 @@ const SettingsPage: React.FC = () => {
     const updated: BoxSetting[] = [...rest, ...newGroup].sort((a, b) =>
       a.priority !== b.priority
         ? b.priority - a.priority
-        : a.secondaryOrder - b.secondaryOrder
+        : a.secondaryOrder - b.secondaryOrder,
     );
     setBoxes(updated);
     // Update settings
@@ -375,12 +375,13 @@ const SettingsPage: React.FC = () => {
           borderColor: 'grey.300',
         }}
       >
-        <Stack
-          alignItems="flex-start"
-          direction="row"
-          spacing={2}
-        >
-          <Stack alignItems="center" direction="row" spacing={1.5} sx={{ flex: 1 }}>
+        <Stack alignItems="flex-start" direction="row" spacing={2}>
+          <Stack
+            alignItems="center"
+            direction="row"
+            spacing={1.5}
+            sx={{ flex: 1 }}
+          >
             <SettingsIcon sx={{ color: 'primary.main' }} />
             <Box>
               <Typography
@@ -393,10 +394,7 @@ const SettingsPage: React.FC = () => {
               >
                 Settings Page
               </Typography>
-              <Typography
-                color="text.secondary"
-                variant="caption"
-              >
+              <Typography color="text.secondary" variant="caption">
                 Build: {buildVersion}
               </Typography>
             </Box>
@@ -439,13 +437,12 @@ const SettingsPage: React.FC = () => {
             Reset
           </Button>
         </Stack>
-
       </Paper>
 
       {/* Priority Groups */}
       {sortedPriorities.map((priority) => {
         const groupSorted = grouped[priority].sort(
-          (a, b) => a.secondaryOrder - b.secondaryOrder
+          (a, b) => a.secondaryOrder - b.secondaryOrder,
         );
         const enabledCount = groupSorted.filter((box) => box.enabled).length;
 
@@ -494,7 +491,6 @@ const SettingsPage: React.FC = () => {
               </Stack>
 
               <Box sx={{ flex: 1 }} />
-
             </Stack>
 
             <Divider sx={{ mb: 2 }} />
@@ -510,7 +506,7 @@ const SettingsPage: React.FC = () => {
               >
                 {groupSorted.map((box, idx) => (
                   <SortableBoxRow
-                    key={`${box.id}-${idx}`}
+                    key={box.id}
                     box={box}
                     idx={idx}
                     onPriorityChange={handlePriorityChange}

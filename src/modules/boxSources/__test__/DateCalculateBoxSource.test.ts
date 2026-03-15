@@ -1,8 +1,10 @@
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect, it, vi } from 'vitest';
 
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
-
-import { DateCalculateBoxSource, exportedForTesting } from '../DateCalculateBoxSource';
+import {
+  DateCalculateBoxSource,
+  exportedForTesting,
+} from '../DateCalculateBoxSource';
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {
@@ -32,7 +34,12 @@ describe('DateCalculateBoxSource', () => {
       expect(match).toBeTruthy();
       const parsedDate = exportedForTesting.parseDate(dateString);
       expect(parsedDate).toBeInstanceOf(Date);
-      if (!dateString.includes('+') && !dateString.includes('Z') && !dateString.includes('now') && !dateString.includes('today')) {
+      if (
+        !dateString.includes('+') &&
+        !dateString.includes('Z') &&
+        !dateString.includes('now') &&
+        !dateString.includes('today')
+      ) {
         expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
       }
     });
@@ -52,13 +59,20 @@ describe('DateCalculateBoxSource', () => {
 
   describe('checkAddSubtractPattern', () => {
     it('should return undefined for non-matching input', () => {
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('invalid')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('2024/01-01 + 20d')).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(''),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('invalid'),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024/01-01 + 20d'),
+      ).toBeUndefined();
     });
 
     it('should handle "now + days" format', () => {
-      const result = DateCalculateBoxSource.checkAddSubtractPattern('now + 20d');
+      const result =
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 20d');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-01-01');
       expect(result?.toDate).toBe('2024-01-21');
@@ -67,7 +81,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle "now - days" format', () => {
-      const result = DateCalculateBoxSource.checkAddSubtractPattern('now - 10d');
+      const result =
+        DateCalculateBoxSource.checkAddSubtractPattern('now - 10d');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-01-01');
       expect(result?.toDate).toBe('2023-12-22');
@@ -76,7 +91,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle "specific date + days" format', () => {
-      const result = DateCalculateBoxSource.checkAddSubtractPattern('2024-10-31 + 30d');
+      const result =
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-10-31 + 30d');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-10-31');
       expect(result?.toDate).toBe('2024-11-30');
@@ -85,7 +101,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle "specific date - days" format', () => {
-      const result = DateCalculateBoxSource.checkAddSubtractPattern('2024-10-31 - 30d');
+      const result =
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-10-31 - 30d');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-10-31');
       expect(result?.toDate).toBe('2024-10-01');
@@ -94,15 +111,25 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle multiple units (h, m, s, ms)', () => {
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('now + 1h')?.result).toBe('2024-01-01T01:00:00.000Z');
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('now + 30m')?.result).toBe('2024-01-01T00:30:00.000Z');
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('now + 45s')?.result).toBe('2024-01-01T00:00:45.000Z');
-      expect(DateCalculateBoxSource.checkAddSubtractPattern('now + 500ms')?.result).toBe('2024-01-01T00:00:00.500Z');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 1h')?.result,
+      ).toBe('2024-01-01T01:00:00.000Z');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 30m')?.result,
+      ).toBe('2024-01-01T00:30:00.000Z');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 45s')?.result,
+      ).toBe('2024-01-01T00:00:45.000Z');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 500ms')?.result,
+      ).toBe('2024-01-01T00:00:00.500Z');
     });
 
     it('should handle addition with timezone offset', () => {
       // 2024-01-01T00:00:00+08:00 is 2023-12-31T16:00:00.000Z
-      const result = DateCalculateBoxSource.checkAddSubtractPattern('2024-01-01T00:00:00+08:00 + 1h');
+      const result = DateCalculateBoxSource.checkAddSubtractPattern(
+        '2024-01-01T00:00:00+08:00 + 1h',
+      );
       expect(result?.result).toBe('2023-12-31T17:00:00.000Z');
     });
   });
@@ -110,12 +137,17 @@ describe('DateCalculateBoxSource', () => {
   describe('checkDateDiffPattern', () => {
     it('should return undefined for non-matching input', () => {
       expect(DateCalculateBoxSource.checkDateDiffPattern('')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkDateDiffPattern('invalid')).toBeUndefined();
-      expect(DateCalculateBoxSource.checkDateDiffPattern('2024/01-01 to 2025/01/01')).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkDateDiffPattern('invalid'),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkDateDiffPattern('2024/01-01 to 2025/01/01'),
+      ).toBeUndefined();
     });
 
     it('should handle "now to specific date" format', () => {
-      const result = DateCalculateBoxSource.checkDateDiffPattern('now to 2024-12-31');
+      const result =
+        DateCalculateBoxSource.checkDateDiffPattern('now to 2024-12-31');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-01-01');
       expect(result?.toDate).toBe('2024-12-31');
@@ -124,7 +156,9 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle "specific date to specific date" format', () => {
-      const result = DateCalculateBoxSource.checkDateDiffPattern('2024-01-01 to 2024-12-31');
+      const result = DateCalculateBoxSource.checkDateDiffPattern(
+        '2024-01-01 to 2024-12-31',
+      );
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2024-01-01');
       expect(result?.toDate).toBe('2024-12-31');
@@ -133,7 +167,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should handle "specific date to now" format', () => {
-      const result = DateCalculateBoxSource.checkDateDiffPattern('2023-01-01 to now');
+      const result =
+        DateCalculateBoxSource.checkDateDiffPattern('2023-01-01 to now');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2023-01-01');
       expect(result?.toDate).toBe('2024-01-01');
@@ -142,26 +177,33 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should be case insensitive for "to" keyword', () => {
-      const result = DateCalculateBoxSource.checkDateDiffPattern('now TO 2024-12-31');
+      const result =
+        DateCalculateBoxSource.checkDateDiffPattern('now TO 2024-12-31');
       expect(result).toBeDefined();
       expect(result?.operation).toBe('diff');
     });
 
     it('should handle "-" separator for difference', () => {
-      const result = DateCalculateBoxSource.checkDateDiffPattern('2024-01-02 - 2024-01-01');
+      const result = DateCalculateBoxSource.checkDateDiffPattern(
+        '2024-01-02 - 2024-01-01',
+      );
       expect(result?.result).toBe('-1 day');
     });
 
     it('should handle precise differences with microseconds', () => {
       const d1 = '2024-01-01T00:00:00.100000Z';
       const d2 = '2024-01-01T00:00:00.100500Z';
-      const result = DateCalculateBoxSource.checkDateDiffPattern(`${d1} to ${d2}`);
+      const result = DateCalculateBoxSource.checkDateDiffPattern(
+        `${d1} to ${d2}`,
+      );
       expect(result?.result).toBe('500us');
     });
 
     it('should handle differences across different timezones', () => {
       // Both are 2024-01-01T00:00:00Z
-      const result = DateCalculateBoxSource.checkDateDiffPattern('2024-01-01T08:00:00+08:00 to 2024-01-01T00:00:00Z');
+      const result = DateCalculateBoxSource.checkDateDiffPattern(
+        '2024-01-01T08:00:00+08:00 to 2024-01-01T00:00:00Z',
+      );
       expect(result?.result).toBe('0 seconds');
     });
   });
@@ -204,7 +246,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should generate correct box for subtraction format', async () => {
-      const boxes = await DateCalculateBoxSource.generateBoxes('2024-10-31 - 30d');
+      const boxes =
+        await DateCalculateBoxSource.generateBoxes('2024-10-31 - 30d');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-10-01');
@@ -245,7 +288,8 @@ describe('DateCalculateBoxSource', () => {
     });
 
     it('should generate correct box for difference format', async () => {
-      const boxes = await DateCalculateBoxSource.generateBoxes('now to 2024-12-31');
+      const boxes =
+        await DateCalculateBoxSource.generateBoxes('now to 2024-12-31');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('365 days');

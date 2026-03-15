@@ -1,8 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityDateCalculate = 10;
 
@@ -15,7 +14,8 @@ interface Match {
 }
 
 // regex pattern for date calculation
-const MONTH = '(?:0?[1-9]|1[0-2]|Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
+const MONTH =
+  '(?:0?[1-9]|1[0-2]|Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
 const DAY = '(?:0?[1-9]|[12][0-9]|3[01])';
 const TZ = '(?:Z|[+-]\\d{2}(?::?\\d{2})?)';
 const DATE = [
@@ -30,14 +30,21 @@ const DATE = [
 ].join('|');
 const OPERATOR = '[+-]';
 const NUMBER = '\\d+';
-const UNIT = '(?:d|day|days|h|hour|hours|m|min|minute|minutes|s|sec|second|seconds|ms|millisecond|milliseconds)';
+const UNIT =
+  '(?:d|day|days|h|hour|hours|m|min|minute|minutes|s|sec|second|seconds|ms|millisecond|milliseconds)';
 
-const ADD_PATTERN = new RegExp(`^(${DATE})\\s*(${OPERATOR})\\s*(${NUMBER})\\s*(${UNIT})$`, 'i');
+const ADD_PATTERN = new RegExp(
+  `^(${DATE})\\s*(${OPERATOR})\\s*(${NUMBER})\\s*(${UNIT})$`,
+  'i',
+);
 const DIFF_PATTERN = new RegExp(`^(${DATE})\\s+(?:to|-)\\s+(${DATE})$`, 'i');
 
 const parseDate = (s: string): Date => {
   const dateString = s.toLowerCase();
-  if (dateString.toLowerCase() === 'now' || dateString.toLowerCase() === 'today') {
+  if (
+    dateString.toLowerCase() === 'now' ||
+    dateString.toLowerCase() === 'today'
+  ) {
     return new Date();
   }
   if (dateString === 'tomorrow') {
@@ -107,9 +114,15 @@ export const DateCalculateBoxSource = {
     const resultISO = resultDate.toISOString();
 
     return {
-      result: resultISO.endsWith('T00:00:00.000Z') ? resultISO.split('T')[0] : resultISO,
-      fromDate: fromISO.endsWith('T00:00:00.000Z') ? fromISO.split('T')[0] : fromISO,
-      toDate: resultISO.endsWith('T00:00:00.000Z') ? resultISO.split('T')[0] : resultISO,
+      result: resultISO.endsWith('T00:00:00.000Z')
+        ? resultISO.split('T')[0]
+        : resultISO,
+      fromDate: fromISO.endsWith('T00:00:00.000Z')
+        ? fromISO.split('T')[0]
+        : fromISO,
+      toDate: resultISO.endsWith('T00:00:00.000Z')
+        ? resultISO.split('T')[0]
+        : resultISO,
       days: amount * (multiplier / (24 * 60 * 60 * 1000)),
       operation,
     };
@@ -146,7 +159,8 @@ export const DateCalculateBoxSource = {
 
     const fromExtraUs = getExtraUs(fromStr);
     const toExtraUs = getExtraUs(toStr);
-    const totalDiffUs = BigInt(timeDiffMs) * 1000n + BigInt(toExtraUs - fromExtraUs);
+    const totalDiffUs =
+      BigInt(timeDiffMs) * 1000n + BigInt(toExtraUs - fromExtraUs);
 
     const formatDiff = (diffUs: bigint): string => {
       const isNegative = diffUs < 0n;
@@ -155,13 +169,13 @@ export const DateCalculateBoxSource = {
       if (absUs === 0n) return '0 seconds';
 
       const days = absUs / (24n * 60n * 60n * 1000n * 1000n);
-      absUs %= (24n * 60n * 60n * 1000n * 1000n);
+      absUs %= 24n * 60n * 60n * 1000n * 1000n;
       const hours = absUs / (60n * 60n * 1000n * 1000n);
-      absUs %= (60n * 60n * 1000n * 1000n);
+      absUs %= 60n * 60n * 1000n * 1000n;
       const minutes = absUs / (60n * 1000n * 1000n);
-      absUs %= (60n * 1000n * 1000n);
+      absUs %= 60n * 1000n * 1000n;
       const seconds = absUs / (1000n * 1000n);
-      absUs %= (1000n * 1000n);
+      absUs %= 1000n * 1000n;
       const ms = absUs / 1000n;
       const us = absUs % 1000n;
 
@@ -191,7 +205,9 @@ export const DateCalculateBoxSource = {
 
     return {
       result,
-      fromDate: fromISO.endsWith('T00:00:00.000Z') ? fromISO.split('T')[0] : fromISO,
+      fromDate: fromISO.endsWith('T00:00:00.000Z')
+        ? fromISO.split('T')[0]
+        : fromISO,
       toDate: toISO.endsWith('T00:00:00.000Z') ? toISO.split('T')[0] : toISO,
       days: daysDiff,
       operation: 'diff',
@@ -229,9 +245,7 @@ export const DateCalculateBoxSource = {
       return [];
     }
 
-    const {
-      result, fromDate, toDate, days, operation,
-    } = match;
+    const { result, fromDate, toDate, days, operation } = match;
 
     return [
       new BoxBuilder('Date Calculate', result)

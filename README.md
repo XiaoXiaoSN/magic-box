@@ -249,8 +249,8 @@ pnpm start
 - `pnpm build` - Build for production (runs TypeScript compiler + Vite build)
 - `pnpm test` - Run unit tests with Vitest
 - `pnpm test:ui` - Run tests with Vitest UI
-- `pnpm lint` - Run ESLint on src/ and config files
-- `pnpm lint:fix` - Run ESLint with auto-fix
+- `pnpm lint` - Run Biome check
+- `pnpm lint:fix` - Run Biome check with auto-fix
 - `pnpm test:e2e` - Run Cypress E2E tests
 - `pnpm cypress` - Open Cypress test runner
 

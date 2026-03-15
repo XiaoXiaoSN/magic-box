@@ -10,7 +10,7 @@ describe('<BaseLayout />', () => {
         <BaseLayout>
           <p data-testid="test">test</p>
         </BaseLayout>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     cy.get('[data-testid="test"]').should('have.text', 'test');
@@ -20,7 +20,7 @@ describe('<BaseLayout />', () => {
       .should('have.text', 'Magic Box');
     cy.get('[data-testid="footer"]').should(
       'have.text',
-      `© ${new Date().getFullYear()} Copyright: All Rights Reserved`
+      `© ${new Date().getFullYear()} Copyright: All Rights Reserved`,
     );
   });
 });

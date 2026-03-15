@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { MathExpressionBoxSource } from '../MathExpressionBoxSource';
 
@@ -45,7 +44,9 @@ describe('MathExpressionBoxSource', () => {
     });
 
     it('should generate correct box for valid math expression', async () => {
-      const boxes = await MathExpressionBoxSource.generateBoxes('2 + 2^10 + log(10, 10000)');
+      const boxes = await MathExpressionBoxSource.generateBoxes(
+        '2 + 2^10 + log(10, 10000)',
+      );
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Math Expression');
       expect(boxes[0].props.plaintextOutput).toBe('1026.25');

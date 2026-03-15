@@ -1,19 +1,21 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Modal from '@mui/material/Modal';
-
 import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
-
-import { useSettings } from '../../contexts/SettingsContext';
-
-import type { Box as BoxType, BoxOptions, BoxTemplate } from '@modules/Box';
+import type { BoxOptions, BoxTemplate, Box as BoxType } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
+import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Modal from '@mui/material/Modal';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface Props {
   input: string;
@@ -29,7 +31,7 @@ interface LargeSupportBoxComponent extends BoxTemplate {
 
 // Type guard to check if a BoxComponent supports the 'large' prop.
 function isLargeSupportBoxComponent(
-  comp: BoxTemplate
+  comp: BoxTemplate,
 ): comp is LargeSupportBoxComponent {
   return !!(comp as LargeSupportBoxComponent).supportsLarge;
 }
@@ -142,7 +144,7 @@ const MagicBox = ({
     const [input, options] = parseInput(magicIn);
 
     const promises = boxSources.map(async (boxSource) =>
-      boxSource.generateBoxes(input, options)
+      boxSource.generateBoxes(input, options),
     );
     Promise.all(promises).then((resultBoxes) => {
       if (cancelled) return;
@@ -203,7 +205,7 @@ const MagicBox = ({
       }
       // Fallback: try to find input by name attribute instead of ID
       const input = document.querySelector(
-        'input[name="magicInput"]'
+        'input[name="magicInput"]',
       ) as HTMLInputElement | null;
       if (!input) return;
       input.focus();
@@ -273,7 +275,7 @@ const MagicBox = ({
       // Copy selected with Enter (works even when typing in input/textarea)
       if (e.key === 'Enter' && !isCtrl) {
         if (boxes.length === 0) return;
-        
+
         const selected = boxes[selectedIndex];
         if (!selected) return;
 
@@ -297,76 +299,74 @@ const MagicBox = ({
 
   return (
     <React.Fragment>
-      {boxes.length > 0 ? (
-        boxes.map((src, idx) => {
-          const {
-            name,
-            plaintextOutput: stdout,
-            options,
-            onClick,
-            priority,
-          } = src.props;
+      {boxes.length > 0
+        ? boxes.map((src, idx) => {
+            const {
+              name,
+              plaintextOutput: stdout,
+              options,
+              onClick,
+              priority,
+            } = src.props;
 
-          const onClickWithCopy = (output: string) => {
-            copyText(output);
-            onClick(output);
-          };
+            const onClickWithCopy = (output: string) => {
+              copyText(output);
+              onClick(output);
+            };
 
-          const showExpand = src.props.showExpandButton !== false;
-          return (
-            <button
-              key={src?.props.name || idx}
-              ref={(el) => {
-                if (el) {
-                  itemRefs.current.set(idx, el);
-                } else {
-                  itemRefs.current.delete(idx);
-                }
-              }}
-              data-testid="magic-box-result"
-              onClick={() => setSelectedIndex(idx)}
-              type="button"
-              style={{
-                width: '100%',
-                height: '100%',
-                position: 'relative',
-                border: 'none',
-                background: 'transparent',
-                padding: 0,
-                cursor: 'pointer',
-              }}
-            >
-              {showExpand ? (
-                <IconButton
-                  aria-label="expand"
-                  component="span"
-                  onClick={() => handleOpenModal(src)}
-                  size="small"
-                  style={{
-                    position: 'absolute',
-                    top: '.6rem',
-                    right: '.6rem',
-                    zIndex: 2,
-                    background: 'rgba(255,255,255,0.8)',
-                  }}
-                >
-                  <ZoomOutMapIcon fontSize="small" />
-                </IconButton>
-              ) : null}
-              <src.boxTemplate
-                name={name}
-                onClick={onClickWithCopy}
-                options={options}
-                plaintextOutput={stdout}
-                priority={priority}
-                selected={idx === selectedIndex}
-              />
-            </button>
-          );
-        })
-      ) : (
-        EmptyState
-      )}
+            const showExpand = src.props.showExpandButton !== false;
+            return (
+              <button
+                key={src?.props.name || idx}
+                ref={(el) => {
+                  if (el) {
+                    itemRefs.current.set(idx, el);
+                  } else {
+                    itemRefs.current.delete(idx);
+                  }
+                }}
+                data-testid="magic-box-result"
+                onClick={() => setSelectedIndex(idx)}
+                type="button"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'relative',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                {showExpand ? (
+                  <IconButton
+                    aria-label="expand"
+                    component="span"
+                    onClick={() => handleOpenModal(src)}
+                    size="small"
+                    style={{
+                      position: 'absolute',
+                      top: '.6rem',
+                      right: '.6rem',
+                      zIndex: 2,
+                      background: 'rgba(255,255,255,0.8)',
+                    }}
+                  >
+                    <ZoomOutMapIcon fontSize="small" />
+                  </IconButton>
+                ) : null}
+                <src.boxTemplate
+                  name={name}
+                  onClick={onClickWithCopy}
+                  options={options}
+                  plaintextOutput={stdout}
+                  priority={priority}
+                  selected={idx === selectedIndex}
+                />
+              </button>
+            );
+          })
+        : EmptyState}
       <Modal
         aria-describedby="box-modal-description"
         aria-labelledby="box-modal-title"

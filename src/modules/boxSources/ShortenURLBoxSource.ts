@@ -1,14 +1,13 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import env from '@global/env';
-import { BoxBuilder, extractOptionKeys } from '@modules/Box';
-
 import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
 const PriorityShortenURL = 10;
 
 interface Match {
-  shortenURL: string,
+  shortenURL: string;
 }
 
 export const ShortenURLBoxSource = {
@@ -19,7 +18,10 @@ export const ShortenURLBoxSource = {
 `,
   priority: PriorityShortenURL,
 
-  async getShortenURL(inputURL: string, shorten: string | null): Promise<string> {
+  async getShortenURL(
+    inputURL: string,
+    shorten: string | null,
+  ): Promise<string> {
     const toolBoxHost = env.TOOLBOX_URL;
     const shortenURLHost = env.SHORTEN_URL;
 
@@ -35,18 +37,17 @@ export const ShortenURLBoxSource = {
     }
 
     const result = await resp.json();
-    if (
-      result == null
-      || !isString(result.shorten)
-      || result.shorten === ''
-    ) {
+    if (result == null || !isString(result.shorten) || result.shorten === '') {
       throw Error('The "Shorten URL" not response as expected');
     }
 
     return `${shortenURLHost}/${result.shorten}`;
   },
 
-  async checkMatch(input: string, options: BoxOptions): Promise<Match | undefined> {
+  async checkMatch(
+    input: string,
+    options: BoxOptions,
+  ): Promise<Match | undefined> {
     if (options === null) {
       return undefined;
     }
@@ -72,7 +73,9 @@ export const ShortenURLBoxSource = {
     try {
       const shortenURL = await this.getShortenURL(regularInput, shortenOption);
       return { shortenURL };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },

@@ -7,20 +7,24 @@ describe('MagicBox Page', () => {
       timeout: 30000,
       retryOnStatusCodeFailure: true,
     });
-    
+
     // Wait for the page to be fully loaded
     cy.get('body').should('be.visible');
-    
+
     // Wait for React app to mount (check for root element)
     cy.get('#root', { timeout: 10000 }).should('exist');
-    
+
     // Wait for lazy loaded components to be ready
     // Wait for the input/textarea field to be visible (indicates MagicBoxPage is loaded)
     // MUI TextField with multiline uses textarea, so we check for either input or textarea
-    cy.get('input[name="magicInput"], textarea[name="magicInput"]', { timeout: 15000 }).should('be.visible');
-    
+    cy.get('input[name="magicInput"], textarea[name="magicInput"]', {
+      timeout: 15000,
+    }).should('be.visible');
+
     // Wait for QR reader button to be available (indicates QRCodeReader is loaded)
-    cy.get('[data-testid="qr-reader-open-button"]', { timeout: 15000 }).should('be.visible');
+    cy.get('[data-testid="qr-reader-open-button"]', { timeout: 15000 }).should(
+      'be.visible',
+    );
   });
 
   describe('QR Code Scanner', () => {
@@ -115,7 +119,8 @@ describe('MagicBox Page', () => {
       },
       {
         testTitle: 'JWT Decode',
-        input: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+        input:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
         output: [
           {
             title: 'JWT Decode',
@@ -226,7 +231,9 @@ describe('MagicBox Page', () => {
     testCases.forEach((testCase) => {
       it(`MagicBox input: ${testCase.testTitle}`, () => {
         // MUI TextField with multiline uses textarea
-        cy.get('input[name="magicInput"], textarea[name="magicInput"]', { timeout: 10000 })
+        cy.get('input[name="magicInput"], textarea[name="magicInput"]', {
+          timeout: 10000,
+        })
           .should('be.visible')
           .clear()
           .type(testCase.input, { parseSpecialCharSequences: false });
@@ -240,10 +247,12 @@ describe('MagicBox Page', () => {
           cy.get('[data-testid="magic-box-result"]')
             .eq(index)
             .within(() => {
-              cy.get('[data-testid="magic-box-result-title"]', { timeout: 10000 })
+              cy.get('[data-testid="magic-box-result-title"]', {
+                timeout: 10000,
+              })
                 .should('be.visible')
                 .should('have.text', output.title);
-              
+
               // Word Count uses KeyValueBoxTemplate, which displays key-value pairs
               // Other boxes use DefaultBoxTemplate or CodeBoxTemplate with magic-box-result-text
               if (output.title === 'Word Count') {
@@ -254,15 +263,21 @@ describe('MagicBox Page', () => {
                 parts.forEach((part) => {
                   const [key, value] = part.split(': ');
                   // Use the testid attributes added to KeyValueBoxTemplate
-                  cy.get(`[data-testid="magic-box-key-value-pair-${key}"]`, { timeout: 10000 })
+                  cy.get(`[data-testid="magic-box-key-value-pair-${key}"]`, {
+                    timeout: 10000,
+                  })
                     .should('exist')
                     .within(() => {
                       // Verify the key exists
-                      cy.get(`[data-testid="magic-box-key-${key}"]`, { timeout: 10000 })
+                      cy.get(`[data-testid="magic-box-key-${key}"]`, {
+                        timeout: 10000,
+                      })
                         .should('be.visible')
                         .should('have.text', key);
                       // Verify the value exists
-                      cy.get(`[data-testid="magic-box-value-${key}"]`, { timeout: 10000 })
+                      cy.get(`[data-testid="magic-box-value-${key}"]`, {
+                        timeout: 10000,
+                      })
                         .should('be.visible')
                         .should('have.text', value);
                     });
@@ -270,7 +285,9 @@ describe('MagicBox Page', () => {
               } else {
                 // For other boxes, check the text content directly
                 // Use scrollIntoView for elements that might be clipped
-                cy.get('[data-testid="magic-box-result-text"]', { timeout: 10000 })
+                cy.get('[data-testid="magic-box-result-text"]', {
+                  timeout: 10000,
+                })
                   .should('exist')
                   .scrollIntoView()
                   .should('be.visible')

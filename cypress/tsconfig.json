@@ -6,10 +6,6 @@
     "types": ["cypress", "node", "@testing-library/cypress"],
     "isolatedModules": false
   },
-  "include": [
-    "./global.d.ts",
-    "./**/*.ts",
-    "../cypress.d.ts"
-  ],
+  "include": ["./global.d.ts", "./**/*.ts", "../cypress.d.ts"],
   "exclude": []
 }

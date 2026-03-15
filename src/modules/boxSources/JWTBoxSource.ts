@@ -1,21 +1,20 @@
-import { jwtDecode } from 'jwt-decode';
-
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+import { jwtDecode } from 'jwt-decode';
 
 const PriorityJWT = 10;
 
 interface Match {
-  jwtStr: string,
+  jwtStr: string;
 }
 
 export const JWTBoxSource = {
   name: 'JWT Decode',
   description: 'Decode a JSON Web Token.',
-  defaultInput: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+  defaultInput:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
   priority: PriorityJWT,
 
   checkMatch(input: string): Match | undefined {
@@ -27,10 +26,16 @@ export const JWTBoxSource = {
     try {
       const jwtHeader = jwtDecode(regularInput, { header: true });
       const jwtBody = jwtDecode(regularInput);
-      const jwtStr = JSON.stringify({ header: jwtHeader, body: jwtBody }, null, '    ');
+      const jwtStr = JSON.stringify(
+        { header: jwtHeader, body: jwtBody },
+        null,
+        '    ',
+      );
 
       return { jwtStr };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },

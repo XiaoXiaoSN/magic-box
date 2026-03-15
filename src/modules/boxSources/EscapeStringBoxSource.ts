@@ -1,8 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityEscapeString = 15;
 
@@ -12,6 +11,7 @@ const PriorityEscapeString = 15;
 // - Literal "^[" (common representation in logs)
 // - \x1B[@-Z\\-_]       two-char escape sequences (e.g. \x1BM for reverse index)
 // - \x1B\[[0-?]*[ -/]*[@-~]  CSI sequences (colors, cursor movement, erase, etc.)
+// biome-ignore lint/suspicious/noControlCharactersInRegex: needed to match ANSI escape sequences
 const ANSI_REGEX = /(?:\x1B|\^\[)(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
 
 interface Match {
@@ -46,8 +46,9 @@ function unescapeString(input: string): string {
 
 export const EscapeStringBoxSource = {
   name: 'Escape String',
-  description: 'Unescape JSON-escaped strings (\\") and strip ANSI color codes.',
-  defaultInput: '"{\\\"message\\\":\\\"something here\\\"}"',
+  description:
+    'Unescape JSON-escaped strings (\\") and strip ANSI color codes.',
+  defaultInput: '"{\\"message\\":\\"something here\\"}"',
   priority: PriorityEscapeString,
 
   checkMatch(input: string): Match | undefined {

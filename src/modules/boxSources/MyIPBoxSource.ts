@@ -1,8 +1,7 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 interface IPInfoResponse {
   city: string;
@@ -30,9 +29,7 @@ export const MyIPBoxSource = {
   defaultInput: 'ip',
   priority: PriorityMyIP,
 
-  async checkMatch(
-    input: string,
-  ): Promise<Match | undefined> {
+  async checkMatch(input: string): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -57,14 +54,14 @@ export const MyIPBoxSource = {
         location: ipInfo.country,
         colocation: ipInfo.city,
       };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },
 
-  async generateBoxes(
-    input: string,
-  ): Promise<Box[]> {
+  async generateBoxes(input: string): Promise<Box[]> {
     const match = await this.checkMatch(input);
     if (!match) {
       return [];

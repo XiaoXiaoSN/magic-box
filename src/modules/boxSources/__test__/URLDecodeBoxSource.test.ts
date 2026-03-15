@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { URLDecodeBoxSource } from '../URLDecodeBoxSource';
 
@@ -12,7 +11,9 @@ describe('URLDecodeBoxSource', () => {
 
     it('should return undefined for strings without encoded characters', () => {
       expect(URLDecodeBoxSource.checkMatch('hello world')).toBeUndefined();
-      expect(URLDecodeBoxSource.checkMatch('https://example.com')).toBeUndefined();
+      expect(
+        URLDecodeBoxSource.checkMatch('https://example.com'),
+      ).toBeUndefined();
     });
 
     it('should decode URL encoded strings', () => {
@@ -22,13 +23,19 @@ describe('URLDecodeBoxSource', () => {
     });
 
     it('should decode complex URLs', () => {
-      const result = URLDecodeBoxSource.checkMatch('https://www.google.com/search?q=hello%20world&lang=en%20US');
+      const result = URLDecodeBoxSource.checkMatch(
+        'https://www.google.com/search?q=hello%20world&lang=en%20US',
+      );
       expect(result).toBeDefined();
-      expect(result?.decodedText).toBe('https://www.google.com/search?q=hello world&lang=en US');
+      expect(result?.decodedText).toBe(
+        'https://www.google.com/search?q=hello world&lang=en US',
+      );
     });
 
     it('should handle special characters', () => {
-      const result = URLDecodeBoxSource.checkMatch('Space%20%26%20Special%20%3F%20Chars%21');
+      const result = URLDecodeBoxSource.checkMatch(
+        'Space%20%26%20Special%20%3F%20Chars%21',
+      );
       expect(result).toBeDefined();
       expect(result?.decodedText).toBe('Space & Special ? Chars!');
     });
@@ -45,7 +52,9 @@ describe('URLDecodeBoxSource', () => {
       const boxes = await URLDecodeBoxSource.generateBoxes(input);
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('URLEncoding Decode');
-      expect(boxes[0].props.plaintextOutput).toBe('https://example.com/path?query=hello world');
+      expect(boxes[0].props.plaintextOutput).toBe(
+        'https://example.com/path?query=hello world',
+      );
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
     });

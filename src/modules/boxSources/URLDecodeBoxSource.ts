@@ -1,19 +1,19 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityURLEncode = 10;
 
 interface Match {
-  decodedText: string,
+  decodedText: string;
 }
 
 export const URLDecodeBoxSource = {
   name: 'URL Decode',
   description: 'Decode a URL-encoded string.',
-  defaultInput: 'https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme',
+  defaultInput:
+    'https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme',
   priority: PriorityURLEncode,
 
   checkMatch(input: string): Match | undefined {

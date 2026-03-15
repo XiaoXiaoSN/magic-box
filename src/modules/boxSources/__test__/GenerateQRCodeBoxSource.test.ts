@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { QRCodeBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { GenerateQRCodeBoxSource } from '../GenerateQRCodeBoxSource';
 
@@ -9,7 +8,9 @@ describe('GenerateQRCodeBoxSource', () => {
     it('should return false without qr/qrcode option', () => {
       expect(GenerateQRCodeBoxSource.checkMatch('test', null)).toBe(false);
       expect(GenerateQRCodeBoxSource.checkMatch('test', {})).toBe(false);
-      expect(GenerateQRCodeBoxSource.checkMatch('test', { meow: true })).toBe(false);
+      expect(GenerateQRCodeBoxSource.checkMatch('test', { meow: true })).toBe(
+        false,
+      );
     });
 
     it('should return false for empty input', () => {
@@ -17,8 +18,12 @@ describe('GenerateQRCodeBoxSource', () => {
     });
 
     it('should return true with qr/qrcode option', () => {
-      expect(GenerateQRCodeBoxSource.checkMatch('test', { qr: true })).toBe(true);
-      expect(GenerateQRCodeBoxSource.checkMatch('test', { qrcode: true })).toBe(true);
+      expect(GenerateQRCodeBoxSource.checkMatch('test', { qr: true })).toBe(
+        true,
+      );
+      expect(GenerateQRCodeBoxSource.checkMatch('test', { qrcode: true })).toBe(
+        true,
+      );
     });
   });
 
@@ -30,7 +35,9 @@ describe('GenerateQRCodeBoxSource', () => {
 
     it('should generate QRCode box for valid input with qr option', async () => {
       const input = 'https://example.com';
-      const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, { qr: true });
+      const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, {
+        qr: true,
+      });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
       expect(boxes[0].props.plaintextOutput).toBe(input);
@@ -39,7 +46,9 @@ describe('GenerateQRCodeBoxSource', () => {
 
     it('should generate QRCode box for valid input with qrcode option', async () => {
       const input = 'https://example.com';
-      const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, { qrcode: true });
+      const boxes = await GenerateQRCodeBoxSource.generateBoxes(input, {
+        qrcode: true,
+      });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
       expect(boxes[0].props.plaintextOutput).toBe(input);

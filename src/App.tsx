@@ -1,10 +1,8 @@
-import { lazy, Suspense } from 'react';
-
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-
 import BaseLayout from '@components/BaseLayout';
 import PwaUpdatePrompt from '@components/PwaUpdatePrompt';
 import SettingsPage from '@pages/SettingsPage';
+import { lazy, Suspense } from 'react';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 import { SettingsProvider } from './contexts/SettingsContext';
 

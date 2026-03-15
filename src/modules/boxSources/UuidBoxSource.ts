@@ -1,7 +1,6 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { BoxBuilder } from '@modules/Box';
-
 import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
 
 const PriorityUuidBox = 10;
 
@@ -24,7 +23,10 @@ export const UuidBoxSource = {
     return true;
   },
 
-  async generateBoxes(input: string, options: BoxOptions = null): Promise<Box[]> {
+  async generateBoxes(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Box[]> {
     const match = this.checkMatch(input);
     if (!match) {
       return [];

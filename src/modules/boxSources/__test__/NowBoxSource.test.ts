@@ -1,6 +1,5 @@
-import { expect, vi } from 'vitest';
-
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { expect, vi } from 'vitest';
 
 import { NowBoxSource } from '../NowBoxSource';
 
@@ -67,7 +66,9 @@ describe('NowBoxSource', () => {
 
       // RFC 3339 (UTC+8) box
       expect(boxes[1].props.name).toBe('RFC 3339 (UTC+8)');
-      expect(boxes[1].props.plaintextOutput).toBe('2024-01-01T08:00:00.000+08:00');
+      expect(boxes[1].props.plaintextOutput).toBe(
+        '2024-01-01T08:00:00.000+08:00',
+      );
       expect(boxes[1].boxTemplate).toBe(DefaultBoxTemplate);
 
       // Timestamp box

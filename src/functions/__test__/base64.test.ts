@@ -7,7 +7,9 @@ describe('base64 functions', () => {
     it('should decode a base64 string', () => {
       let result = base64.decodeBase64('SGVsbG8gV29ybGQh');
       expect(result).toEqual({
-        decoded: new Uint8Array([72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]),
+        decoded: new Uint8Array([
+          72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33,
+        ]),
         readableText: 'Hello World!',
       });
 

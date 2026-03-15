@@ -6,24 +6,24 @@ declare namespace Cypress {
      * Opens the QR Reader modal
      * @example cy.openQRReader()
      */
-    openQRReader(): Chainable<void>
+    openQRReader(): Chainable<void>;
 
     /**
      * Closes the QR Reader modal using close button
      * @example cy.closeQRReader()
      */
-    closeQRReader(): Chainable<void>
+    closeQRReader(): Chainable<void>;
 
     /**
      * Verifies that QR Reader is open and all elements are visible
      * @example cy.verifyQRReaderOpen()
      */
-    verifyQRReaderOpen(): Chainable<void>
+    verifyQRReaderOpen(): Chainable<void>;
 
     /**
      * Verifies that QR Reader is closed
      * @example cy.verifyQRReaderClosed()
      */
-    verifyQRReaderClosed(): Chainable<void>
+    verifyQRReaderClosed(): Chainable<void>;
   }
 }

@@ -1,13 +1,9 @@
-import { memo, useMemo } from 'react';
-
-import { Box, Grid, Paper, Typography } from '@mui/material';
-
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
-
-import boxStyles from './styles';
-
 import type { BoxProps } from '@modules/Box';
+import { Box, Grid, Paper, Typography } from '@mui/material';
+import { memo, useMemo } from 'react';
+import boxStyles from './styles';
 
 interface KeyValueBoxTemplateProps extends BoxProps {
   largeModal?: boolean;
@@ -76,74 +72,83 @@ const KeyValueBoxTemplateComponent = ({
         testId="magic-box-result-title"
         title={name}
         sx={extendSxProps(
-          typeof boxStyles.paper === 'function' ? boxStyles.paper : boxStyles.paper,
-          largeModal ? ((theme) => ({ padding: theme.spacing(4) })) : undefined,
-          selected ? boxStyles.selectedPaper : undefined
+          typeof boxStyles.paper === 'function'
+            ? boxStyles.paper
+            : boxStyles.paper,
+          largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
+          selected ? boxStyles.selectedPaper : undefined,
         )}
       >
-      <Box sx={{ width: '100%', overflowY: 'auto', overflowX: 'hidden', mt: 2, maxHeight: largeModal ? '60vh' : '250px' }}>
-        <Grid container spacing={1}>
-          {Object.entries(data).map(([key, value]) => (
-            <Grid key={key} size={12}>
-              <Paper
-                data-testid={`magic-box-key-value-pair-${key}`}
-                variant="outlined"
-                sx={{
-                  p: largeModal ? 2 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                  },
-                }}
-              >
-                <Typography
-                  data-testid={`magic-box-key-${key}`}
-                  title={key}
-                  variant="subtitle2"
+        <Box
+          sx={{
+            width: '100%',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            mt: 2,
+            maxHeight: largeModal ? '60vh' : '250px',
+          }}
+        >
+          <Grid container spacing={1}>
+            {Object.entries(data).map(([key, value]) => (
+              <Grid key={key} size={12}>
+                <Paper
+                  data-testid={`magic-box-key-value-pair-${key}`}
+                  variant="outlined"
                   sx={{
-                    minWidth: '30%',
-                    maxWidth: '50%',
-                    textOverflow: 'ellipsis',
-                    overflow: 'hidden',
-                    fontWeight: 'bold',
-                    color: 'text.secondary',
-                    pr: 2,
-                  }}
-                >
-                  {key}
-                </Typography>
-                <Typography
-                  className="value-cell"
-                  data-testid={`magic-box-value-${key}`}
-                  onClick={(e) => handleValueClick(e, String(value))}
-                  sx={{
-                    flex: 1,
-                    cursor: 'pointer',
-                    p: 1,
-                    borderRadius: 1,
+                    p: largeModal ? 2 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
                     '&:hover': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.contrastText',
+                      bgcolor: 'action.hover',
                     },
-                    transition: 'all 0.2s',
                   }}
                 >
-                  {String(value)}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+                  <Typography
+                    data-testid={`magic-box-key-${key}`}
+                    title={key}
+                    variant="subtitle2"
+                    sx={{
+                      minWidth: '30%',
+                      maxWidth: '50%',
+                      textOverflow: 'ellipsis',
+                      overflow: 'hidden',
+                      fontWeight: 'bold',
+                      color: 'text.secondary',
+                      pr: 2,
+                    }}
+                  >
+                    {key}
+                  </Typography>
+                  <Typography
+                    className="value-cell"
+                    data-testid={`magic-box-value-${key}`}
+                    onClick={(e) => handleValueClick(e, String(value))}
+                    sx={{
+                      flex: 1,
+                      cursor: 'pointer',
+                      p: 1,
+                      borderRadius: 1,
+                      '&:hover': {
+                        bgcolor: 'primary.light',
+                        color: 'primary.contrastText',
+                      },
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {String(value)}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
       </Modal>
     </Grid>
   );
 };
 
-const KeyValueBoxTemplate = Object.assign(
-  memo(KeyValueBoxTemplateComponent),
-  { supportsLarge: true }
-);
+const KeyValueBoxTemplate = Object.assign(memo(KeyValueBoxTemplateComponent), {
+  supportsLarge: true,
+});
 
-export default KeyValueBoxTemplate; 
+export default KeyValueBoxTemplate;

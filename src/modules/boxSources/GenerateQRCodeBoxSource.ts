@@ -1,10 +1,7 @@
 import { QRCodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import { BoxBuilder, hasOptionKeys,
-} from '@modules/Box';
-
-import type {
-  Box, BoxOptions} from '@modules/Box';
+import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const PriorityGenerateQRCode = 10;
 

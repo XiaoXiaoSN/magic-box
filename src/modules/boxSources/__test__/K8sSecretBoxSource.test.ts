@@ -1,6 +1,5 @@
-import { expect } from 'vitest';
-
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import { expect } from 'vitest';
 
 import { K8sSecretBoxSource } from '../K8sSecretBoxSource';
 
@@ -93,7 +92,9 @@ data:
     });
 
     it('should return empty array for non-readable data', async () => {
-      const boxes = await K8sSecretBoxSource.generateBoxes(nonReadableSecretYaml);
+      const boxes = await K8sSecretBoxSource.generateBoxes(
+        nonReadableSecretYaml,
+      );
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Kubernetes Secret');
       expect(boxes[0].props.priority).toBe(10);

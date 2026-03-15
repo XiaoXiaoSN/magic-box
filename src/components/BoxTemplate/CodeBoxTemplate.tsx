@@ -1,13 +1,9 @@
-import { lazy, memo, Suspense } from 'react';
-
-import { CircularProgress, Grid } from '@mui/material';
-
 import Modal from '@components/Modal';
 import { extendSxProps } from '@functions/muiHelper';
-
-import boxStyles from './styles';
-
 import type { BoxProps } from '@modules/Box';
+import { CircularProgress, Grid } from '@mui/material';
+import { lazy, memo, Suspense } from 'react';
+import boxStyles from './styles';
 
 interface HighlighterProps {
   language: string;
@@ -78,7 +74,7 @@ const CodeBoxTemplateComponent = ({
             ? boxStyles.paper
             : boxStyles.paper,
           largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
-          selected ? boxStyles.selectedPaper : undefined
+          selected ? boxStyles.selectedPaper : undefined,
         )}
       >
         {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
@@ -111,9 +107,8 @@ const CodeBoxTemplateComponent = ({
   );
 };
 
-const CodeBoxTemplate = Object.assign(
-  memo(CodeBoxTemplateComponent),
-  { supportsLarge: true }
-);
+const CodeBoxTemplate = Object.assign(memo(CodeBoxTemplateComponent), {
+  supportsLarge: true,
+});
 
 export default CodeBoxTemplate;

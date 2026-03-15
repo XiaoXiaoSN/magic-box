@@ -1,12 +1,8 @@
-import init, { decode_to_string, encode } from 'base64-box';
-
 import { CodeBoxTemplate } from '@components/BoxTemplate';
-import {
-  isBase64, isObject, isString, trim,
-} from '@functions/helper';
-import { BoxBuilder } from '@modules/Box';
-
+import { isBase64, isObject, isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder } from '@modules/Box';
+import init, { decode_to_string, encode } from 'base64-box';
 
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
@@ -21,8 +17,8 @@ async function initBas64Box() {
 }
 
 interface Match {
-  decodedText: string,
-  languageOpts: BoxOptions,
+  decodedText: string;
+  languageOpts: BoxOptions;
 }
 
 export const Base64DecodeBoxSource = {
@@ -31,7 +27,10 @@ export const Base64DecodeBoxSource = {
   defaultInput: 'SGVsbG8gV29ybGQK', // Hello World
   priority: 10, // Default priority for Base64 Decode
 
-  async checkMatch(input: string, options: BoxOptions = null): Promise<Match | undefined> {
+  async checkMatch(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -50,23 +49,35 @@ export const Base64DecodeBoxSource = {
         try {
           const langKeys = ['language', 'lang', 'l'];
 
-          Object.keys(options).some((option) => langKeys.some((langKey) => {
-            if (option.startsWith(`${langKey}=`)) {
-              languageOpts.language = option.substring(0, (`${langKey}=`).length);
-              return true;
-            }
-            return false;
-          }));
-        } catch { /* */ }
+          Object.keys(options).some((option) =>
+            langKeys.some((langKey) => {
+              if (option.startsWith(`${langKey}=`)) {
+                languageOpts.language = option.substring(
+                  0,
+                  `${langKey}=`.length,
+                );
+                return true;
+              }
+              return false;
+            }),
+          );
+        } catch {
+          /* */
+        }
       }
 
       return { decodedText, languageOpts };
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
 
     return undefined;
   },
 
-  async generateBoxes(input: string, options: BoxOptions = null): Promise<Box[]> {
+  async generateBoxes(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Box[]> {
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
@@ -85,7 +96,7 @@ export const Base64DecodeBoxSource = {
 };
 
 interface EncodeMatch {
-  encodedText: string,
+  encodedText: string;
 }
 
 export const Base64EncodeBoxSource = {

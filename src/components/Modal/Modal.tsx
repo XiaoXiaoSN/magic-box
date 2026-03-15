@@ -1,7 +1,6 @@
+import { extendSxProps } from '@functions/muiHelper';
 import CloseIcon from '@mui/icons-material/Close';
 import { IconButton, Paper } from '@mui/material';
-
-import { extendSxProps } from '@functions/muiHelper';
 
 import type { SxProps, Theme } from '@mui/material/styles';
 

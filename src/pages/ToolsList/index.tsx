@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-
+import MagicBox from '@components/MagicBox';
+import type { BoxSource } from '@modules/BoxSource';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SearchIcon from '@mui/icons-material/Search';
@@ -28,13 +28,9 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-
-import MagicBox from '@components/MagicBox';
-
 import { useSettings } from '../../contexts/SettingsContext';
-
-import type { BoxSource } from '@modules/BoxSource';
 
 const drawerWidth = 280;
 const drawerCollapsedWidth = 72;
@@ -61,7 +57,7 @@ const ToolsListPage: React.FC = () => {
     return availableBoxSources.filter(
       (source) =>
         source.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        source.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        source.description?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [availableBoxSources, searchQuery]);
 
@@ -128,7 +124,11 @@ const ToolsListPage: React.FC = () => {
                 />
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
-                    sx={{ fontWeight: 500, fontSize: '1.1rem', color: 'primary.main' }}
+                    sx={{
+                      fontWeight: 500,
+                      fontSize: '1.1rem',
+                      color: 'primary.main',
+                    }}
                     variant="h6"
                   >
                     {selectedSource.name}
@@ -298,7 +298,10 @@ const ToolsListPage: React.FC = () => {
                 borderColor: 'grey.300',
               }}
             >
-              <Typography sx={{ fontWeight: 500, mb: 1, color: 'primary.main' }} variant="h5">
+              <Typography
+                sx={{ fontWeight: 500, mb: 1, color: 'primary.main' }}
+                variant="h5"
+              >
                 Tools Explorer
               </Typography>
               <Typography sx={{ color: 'text.secondary' }} variant="body2">
@@ -416,7 +419,7 @@ const ToolsListPage: React.FC = () => {
         sx={{
           width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
           flexShrink: 0,
-          "& .MuiDrawer-paper": {
+          '& .MuiDrawer-paper': {
             width: sidebarCollapsed ? drawerCollapsedWidth : drawerWidth,
             boxSizing: 'border-box',
             position: 'relative',
@@ -431,7 +434,11 @@ const ToolsListPage: React.FC = () => {
           {sidebarCollapsed ? (
             <Stack alignItems="center" direction="row" justifyContent="center">
               <Tooltip placement="right" title="Expand sidebar">
-                <IconButton aria-label="Expand sidebar" onClick={() => setSidebarCollapsed((v) => !v)} size="small">
+                <IconButton
+                  aria-label="Expand sidebar"
+                  onClick={() => setSidebarCollapsed((v) => !v)}
+                  size="small"
+                >
                   <ChevronRightIcon />
                 </IconButton>
               </Tooltip>
@@ -439,7 +446,11 @@ const ToolsListPage: React.FC = () => {
           ) : (
             <Stack alignItems="center" direction="row" spacing={1}>
               <Tooltip placement="right" title="Collapse sidebar">
-                <IconButton aria-label="Collapse sidebar" onClick={() => setSidebarCollapsed((v) => !v)} size="small">
+                <IconButton
+                  aria-label="Collapse sidebar"
+                  onClick={() => setSidebarCollapsed((v) => !v)}
+                  size="small"
+                >
                   <ChevronLeftIcon />
                 </IconButton>
               </Tooltip>
@@ -477,7 +488,9 @@ const ToolsListPage: React.FC = () => {
                     sx={{
                       borderRadius: 2,
                       mx: sidebarCollapsed ? 0.5 : 1,
-                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                      justifyContent: sidebarCollapsed
+                        ? 'center'
+                        : 'flex-start',
                       '&.Mui-selected': {
                         bgcolor: 'primary.main',
                         color: 'primary.contrastText',
@@ -516,7 +529,9 @@ const ToolsListPage: React.FC = () => {
                             variant="body2"
                             sx={{
                               fontWeight:
-                                selectedSource?.name === source.name ? 600 : 400,
+                                selectedSource?.name === source.name
+                                  ? 600
+                                  : 400,
                             }}
                           >
                             {source.name}
@@ -548,7 +563,14 @@ const ToolsListPage: React.FC = () => {
             {/* Tool Header */}
             <Paper
               elevation={0}
-              sx={{ p: 4, mb: 4, bgcolor: 'white', borderRadius: 2, border: '1px solid', borderColor: 'grey.300' }}
+              sx={{
+                p: 4,
+                mb: 4,
+                bgcolor: 'white',
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'grey.300',
+              }}
             >
               <Stack
                 alignItems="center"
