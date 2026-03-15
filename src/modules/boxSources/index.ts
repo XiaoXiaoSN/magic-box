@@ -2,6 +2,7 @@ import { Base64DecodeBoxSource, Base64EncodeBoxSource } from './Base64BoxSource'
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
+import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
@@ -20,6 +21,7 @@ import WordCountBoxSource from './WordCountBoxSource';
 export const boxSources = [
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
+  EscapeStringBoxSource,
   CronExpressionBoxSource,
   DateCalculateBoxSource,
   GenerateQRCodeBoxSource,
