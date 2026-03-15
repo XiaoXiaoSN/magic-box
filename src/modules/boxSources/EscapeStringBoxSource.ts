@@ -7,9 +7,12 @@ import type { Box } from '@modules/Box';
 const PriorityEscapeString = 15;
 
 // Comprehensive ANSI escape sequence regex:
+// Supports:
+// - Real ESC character (\x1B)
+// - Literal "^[" (common representation in logs)
 // - \x1B[@-Z\\-_]       two-char escape sequences (e.g. \x1BM for reverse index)
 // - \x1B\[[0-?]*[ -/]*[@-~]  CSI sequences (colors, cursor movement, erase, etc.)
-const ANSI_REGEX = /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
+const ANSI_REGEX = /(?:\x1B|\^\[)(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g;
 
 interface Match {
   unescapedText: string;

@@ -52,6 +52,20 @@ describe('EscapeStringBoxSource', () => {
       expect(result).toBeDefined();
       expect(result?.unescapedText).toBe('Bold Greenerase');
     });
+
+    it('should handle literal "^[" representing ANSI codes', () => {
+      const input = '^[[2m2026-03-15T05:43:40.072934Z^[[0m ^[[32m INFO^[[0m';
+      const result = EscapeStringBoxSource.checkMatch(input);
+      expect(result).toBeDefined();
+      expect(result?.unescapedText).toBe('2026-03-15T05:43:40.072934Z  INFO');
+    });
+
+    it('should handle user provided ANSI example', () => {
+      const input = '\x1B[2m2026-03-15T05:43:40.072934Z\x1B[0m \x1B[32m INFO\x1B[0m processor-worker ThreadId(17) \x1B[1msubscribe\x1B[0m\x1B[1m{\x1B[0m\x1B[3mexchange\x1B[0m\x1B[2m=\x1B[0m"Hyperliquid" \x1B[3mshard\x1B[0m\x1B[2m=\x1B[0m2 \x1B[3mreplica\x1B[0m\x1B[2m=\x1B[0m1\x1B[1m}\x1B[0m\x1B[2m:\x1B[0m \x1B[2mmarket::websocket::manager\x1B[0m\x1B[2m:\x1B[0m Will reconnect after 20.14 hours';
+      const result = EscapeStringBoxSource.checkMatch(input);
+      expect(result).toBeDefined();
+      expect(result?.unescapedText).toBe('2026-03-15T05:43:40.072934Z  INFO processor-worker ThreadId(17) subscribe{exchange="Hyperliquid" shard=2 replica=1}: market::websocket::manager: Will reconnect after 20.14 hours');
+    });
   });
 
   describe('generateBoxes', () => {
