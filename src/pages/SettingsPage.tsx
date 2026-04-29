@@ -77,6 +77,7 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
     attributes,
     listeners,
     setNodeRef,
+    setActivatorNodeRef,
     transform,
     transition,
     isDragging,
@@ -98,12 +99,13 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
         transform: CSS.Transform.toString(transform),
         transition: transition ?? 'none',
       }}
-      {...attributes}
     >
       <button
         aria-label={`Drag to reorder ${box.id}`}
         className="dnd-grip"
+        ref={setActivatorNodeRef}
         type="button"
+        {...attributes}
         {...listeners}
       >
         <GripIcon />

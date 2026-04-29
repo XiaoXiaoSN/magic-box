@@ -1616,9 +1616,10 @@ pre,
 }
 
 .dnd-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 20px 28px 24px minmax(0, 1fr) auto 32px;
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
   padding: 8px 10px;
   border-radius: 6px;
   background: var(--bg-elev);
@@ -1647,10 +1648,15 @@ pre,
   color: var(--ink-4);
   display: grid;
   place-items: center;
-  flex-shrink: 0;
   cursor: grab;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  touch-action: none;
 }
 
 .dnd-grip:active {
@@ -1664,8 +1670,8 @@ pre,
 .dnd-index {
   font-size: 10px;
   color: var(--ink-4);
-  width: 20px;
-  flex-shrink: 0;
+  width: 28px;
+  text-align: left;
 }
 
 .dnd-tag {
@@ -1678,7 +1684,6 @@ pre,
   place-items: center;
   font-size: 12px;
   font-family: var(--mono);
-  flex-shrink: 0;
 }
 
 .dnd-title {
@@ -1701,6 +1706,10 @@ pre,
   white-space: nowrap;
 }
 
+.dnd-row .toggle {
+  justify-self: end;
+}
+
 @media (max-width: 720px) {
   .settings-section {
     flex-direction: column;
@@ -1718,5 +1727,9 @@ pre,
 
   .dnd-kind {
     display: none;
+  }
+
+  .dnd-row {
+    grid-template-columns: 20px 28px 24px minmax(0, 1fr) 32px;
   }
 }
