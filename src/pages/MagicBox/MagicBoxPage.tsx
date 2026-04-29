@@ -1,126 +1,140 @@
 import MagicBox from '@components/MagicBox';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Container, Grid, TextField } from '@mui/material';
-import Box from '@mui/material/Box';
-import React, { Suspense, useEffect, useId, useState } from 'react';
-
-// Dynamic import
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
+
+// Strips inline ::option directives and surfaces them as chips so users can
+// see what flags will be applied without leaving the input.
+const parseOptionsForChips = (input: string) => {
+  const regex = /\n::(\w+)=?(\S*)/gm;
+  const opts: Record<string, string | true> = {};
+  for (const match of input.matchAll(regex)) {
+    const key = match[1].toLowerCase();
+    const value = match[2];
+    opts[key] = value || true;
+  }
+  return opts;
+};
 
 const MagicBoxPage = (): React.JSX.Element => {
   const [userInput, setUserInput] = useState('');
   const [magicIn, setMagicIn] = useState('');
   const [resetCounter, setResetCounter] = useState(0);
 
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  const magicInputId = useId();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // parse query string at first load
+  // Hydrate input from query string on first load (?input=... or ?i=...) and
+  // focus the textarea so users can start typing without an extra click.
   useEffect(() => {
-    // codeql[skip] Safe: Only parses query string and sets input value
     const params = new URLSearchParams(window.location.search);
-    const inputValue = params.get('input') && params.get('i');
-    if (inputValue) {
-      setUserInput(inputValue);
-      if (inputRef.current) {
-        inputRef.current.value = inputValue;
-      }
+    const seed = params.get('input') ?? params.get('i');
+    if (seed) {
+      setUserInput(seed);
+      if (inputRef.current) inputRef.current.value = seed;
     }
+    inputRef.current?.focus();
   }, []);
 
+  // Debounce input → magicIn so MagicBox doesn't run on every keystroke.
   useEffect(() => {
-    const timeoutID = setTimeout(() => setMagicIn(userInput), 500);
-    return () => {
-      clearTimeout(timeoutID);
-    };
+    const timeoutID = window.setTimeout(() => setMagicIn(userInput), 500);
+    return () => window.clearTimeout(timeoutID);
   }, [userInput]);
 
-  return (
-    <Container maxWidth={false}>
-      <Grid
-        container
-        spacing={1.5}
-        sx={{ marginTop: '20px', padding: { xs: '10px', md: '30px' } }}
-      >
-        {/* Magic Box Input */}
-        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-          <Box sx={{ position: 'relative' }}>
-            <TextField
-              autoFocus
-              fullWidth
-              multiline
-              id={magicInputId}
-              inputRef={inputRef}
-              name="magicInput"
-              rows={7}
-              variant="outlined"
-              onChange={(e) => {
-                setUserInput(e.target.value);
-              }}
-              onFocus={() => {
-                setResetCounter((c) => c + 1);
-              }}
-              sx={{
-                fontSize: '1.25rem',
-                '& .MuiInputBase-input': {
-                  fontSize: '1.25rem',
-                },
-              }}
-            />
-            <Box
-              sx={{
-                position: 'absolute',
-                right: 0,
-                bottom: 0,
-                lineHeight: 0,
-              }}
-            >
-              <Suspense fallback={<div />}>
-                <QRCodeReader
-                  sxIcon={{ m: 1, color: '#666666' }}
-                  setUserInput={(input) => {
-                    if (inputRef.current) {
-                      inputRef.current.value = input as string;
-                      setUserInput(input);
-                    }
-                  }}
-                />
-              </Suspense>
-            </Box>
-          </Box>
-        </Grid>
+  const optionChips = useMemo(
+    () => Object.entries(parseOptionsForChips(userInput)),
+    [userInput],
+  );
 
-        {/* Magic Box Output */}
-        <Grid size={{ xs: 12, sm: 12, md: 6 }}>
-          <Grid
-            container
-            alignItems="center"
-            justifyContent="center"
-            padding=".75rem"
-            spacing={0.5}
-            sx={{
-              background: '#f5f5f5',
-              overflow: 'auto',
-              '&::-webkit-scrollbar': { display: 'none' },
-              scrollbarWidth: 'none', // Firefox
-              maxHeight: 'calc(100dvh - 150px)',
-            }}
-          >
+  const handleScannedInput = (value: string) => {
+    setUserInput(value);
+    if (inputRef.current) inputRef.current.value = value;
+  };
+
+  return (
+    <div className="home">
+      <div className="home-inner">
+        <div className="home-col">
+          <div className="home-col-head">
+            <span aria-hidden="true" className="dot" />
+            <span>Input</span>
+            {optionChips.length > 0 ? (
+              <span className="input-options" data-testid="input-options">
+                {optionChips.map(([k, v]) => (
+                  <span className="opt-chip" key={k}>
+                    <span className="opt-k">{k}</span>
+                    {v !== true ? (
+                      <>
+                        <span className="opt-eq">=</span>
+                        <span className="opt-v">{String(v)}</span>
+                      </>
+                    ) : null}
+                  </span>
+                ))}
+              </span>
+            ) : null}
+          </div>
+          <div className="input-card">
+            <textarea
+              ref={inputRef}
+              data-testid="magic-input"
+              name="magicInput"
+              onChange={(e) => setUserInput(e.target.value)}
+              onFocus={() => setResetCounter((c) => c + 1)}
+              placeholder="Paste anything — a timestamp, JWT, JSON, cron, math expression…"
+              rows={8}
+              spellCheck={false}
+              value={userInput}
+            />
+            <Suspense fallback={<div />}>
+              <QrButton setUserInput={handleScannedInput} />
+            </Suspense>
+          </div>
+        </div>
+
+        <div className="home-col">
+          <div className="home-col-head">
+            <span aria-hidden="true" className="dot" />
+            <span>Output</span>
+            <span className="swap">
+              <span className="kbd">⌃</span>
+              <span className="kbd">N</span>
+              <span className="swap-label">next</span>
+              <span className="swap-sep" />
+              <span className="kbd">↵</span>
+              <span className="swap-label">copy</span>
+            </span>
+          </div>
+          <div className="boxes" data-testid="magic-output">
             <MagicBox
               input={magicIn}
-              resetTrigger={resetCounter}
               onPasteInput={(val: string) => {
                 setUserInput(val);
-                if (inputRef.current) {
-                  inputRef.current.value = val;
-                }
+                if (inputRef.current) inputRef.current.value = val;
               }}
+              resetTrigger={resetCounter}
             />
-          </Grid>
-        </Grid>
-      </Grid>
-    </Container>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
+
+interface QrButtonProps {
+  setUserInput: (value: string) => void;
+}
+
+// QR scanner button pinned bottom-right of the input card.
+const QrButton = ({ setUserInput }: QrButtonProps) => (
+  <div className="input-qr-btn" data-testid="qr-reader-launcher">
+    <QRCodeReader
+      setUserInput={
+        setUserInput as React.Dispatch<React.SetStateAction<string>>
+      }
+      sxIcon={{ fontSize: 18, color: 'inherit' }}
+    />
+  </div>
+);
 
 export default MagicBoxPage;

@@ -23,8 +23,10 @@ interface Match {
 
 export const Base64DecodeBoxSource = {
   name: 'Base64 Decode',
-  description: 'Decode a Base64 encoded string.',
+  description: 'Decode a Base64 encoded string back into readable text.',
   defaultInput: 'SGVsbG8gV29ybGQK', // Hello World
+  tag: '◱',
+  kind: 'Decode',
   priority: 10, // Default priority for Base64 Decode
 
   async checkMatch(
@@ -103,6 +105,8 @@ export const Base64EncodeBoxSource = {
   name: 'Base64 Encode',
   description: 'Encode a string to Base64.',
   defaultInput: 'Hello World',
+  tag: '◱',
+  kind: 'Encode',
   priority: PriorityBase64Encode, // Lower priority since it matches almost everything
 
   async checkMatch(input: string): Promise<EncodeMatch | undefined> {

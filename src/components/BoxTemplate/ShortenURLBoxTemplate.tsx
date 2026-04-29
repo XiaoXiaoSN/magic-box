@@ -1,24 +1,10 @@
-import Modal from '@components/Modal';
 import { isString } from '@functions/helper';
 import env from '@global/env';
 import type { BoxProps } from '@modules/Box';
-import { Grid, Typography } from '@mui/material';
 import { memo, useCallback, useEffect, useState } from 'react';
-import boxStyles from './styles';
-
-interface ShortenURLBoxTemplateProps extends BoxProps {
-  largeModal?: boolean;
-  onClose?: () => void;
-}
 
 const ShortenURLBoxTemplate = memo(
-  ({
-    name,
-    plaintextOutput,
-    onClick,
-    largeModal = false,
-    onClose,
-  }: ShortenURLBoxTemplateProps): React.JSX.Element => {
+  ({ plaintextOutput, onClick }: BoxProps): React.JSX.Element => {
     const [shortURL, setShortURL] = useState('');
 
     const getShortenURL = useCallback(
@@ -45,38 +31,33 @@ const ShortenURLBoxTemplate = memo(
       [],
     );
 
-    // call Toolbox API to get short url
     useEffect(() => {
       getShortenURL(plaintextOutput);
     }, [plaintextOutput, getShortenURL]);
 
     return (
-      <Grid
-        onClick={() => onClick(shortURL)}
-        size={{ xs: 12, sm: 12 }}
-        sx={boxStyles.grid}
+      <button
+        className="box-out mono"
+        data-testid="magic-box-result-text"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick(shortURL);
+        }}
+        style={{
+          cursor: 'pointer',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          textAlign: 'left',
+          width: '100%',
+          fontFamily: 'inherit',
+          color: 'inherit',
+          font: 'inherit',
+        }}
+        type="button"
       >
-        <Modal
-          onClose={onClose}
-          testId="magic-box-result-title"
-          title={name}
-          sx={(theme) => ({
-            ...(typeof boxStyles.paper === 'function'
-              ? boxStyles.paper(theme)
-              : boxStyles.paper),
-            ...(largeModal && {
-              padding: theme.spacing(4),
-            }),
-          })}
-        >
-          <Typography
-            data-testid="magic-box-result-text"
-            sx={boxStyles.paperTypography}
-          >
-            {shortURL}
-          </Typography>
-        </Modal>
-      </Grid>
+        {shortURL}
+      </button>
     );
   },
 );

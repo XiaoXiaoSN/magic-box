@@ -12,8 +12,10 @@ interface Match {
 
 export const TimestampBoxSource = {
   name: 'Timestamp',
-  description: 'Convert a date string to a timestamp.',
+  description: 'Convert a Unix timestamp back to a human-readable date.',
   defaultInput: '1735794245',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityRFC3339,
 
   checkMatch(input: string): Match | undefined {

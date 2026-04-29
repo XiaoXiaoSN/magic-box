@@ -11,9 +11,11 @@ interface Match {
 
 export const URLDecodeBoxSource = {
   name: 'URL Decode',
-  description: 'Decode a URL-encoded string.',
+  description: 'Decode percent-encoded strings.',
   defaultInput:
     'https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme',
+  tag: '%',
+  kind: 'Decode',
   priority: PriorityURLEncode,
 
   checkMatch(input: string): Match | undefined {

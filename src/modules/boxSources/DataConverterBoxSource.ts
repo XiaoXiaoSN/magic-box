@@ -93,9 +93,11 @@ function detectFormat(input: string): DetectedData | undefined {
 
 export const DataConverterBoxSource = {
   name: 'Data Converter',
-  description: 'Convert between JSON, YAML, TOML, and XML formats.',
+  description: 'Pretty-print and convert between JSON, YAML, TOML and XML.',
   defaultInput:
     '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}\n\n::toYAML\n::toTOML\n::toXML',
+  tag: '{ }',
+  kind: 'Format',
   priority: PriorityDataConverter,
 
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {

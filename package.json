@@ -62,7 +62,7 @@
   },
   "scripts": {
     "start": "vite",
-    "start:debug": "vite --debug",
+    "dev": "vite --debug",
     "preview": "vite preview",
     "build": "tsc && vite build",
     "build:wasm": "find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web {} +",

@@ -12,8 +12,10 @@ interface Match {
 
 export const MathExpressionBoxSource = {
   name: 'Math Expression',
-  description: 'Evaluate a mathematical expression.',
+  description: 'Evaluate mathematical expressions with standard operators.',
   defaultInput: '1 + 2 * (3 + 4) / 5',
+  tag: '=',
+  kind: 'Compute',
   priority: PriorityMathExpression,
 
   checkMatch(input: string): Match | undefined {

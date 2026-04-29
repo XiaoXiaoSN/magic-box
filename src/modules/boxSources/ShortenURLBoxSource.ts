@@ -12,10 +12,12 @@ interface Match {
 
 export const ShortenURLBoxSource = {
   name: 'Shorten URL',
-  description: 'Shorten a URL using an external API.',
+  description: 'Generate a short URL with an optional custom alias.',
   defaultInput: `https://github.com/XiaoXiaoSN/magic-box
 ::surl
 `,
+  tag: '↗',
+  kind: 'Transform',
   priority: PriorityShortenURL,
 
   async getShortenURL(

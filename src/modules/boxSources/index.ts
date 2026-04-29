@@ -21,11 +21,14 @@ import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
 
+// Path B: default order is the display order. High-signal sources sit on top;
+// catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
+// stay below specific matches without needing per-box priority.
 export const boxSources = [
-  Base64DecodeBoxSource,
-  Base64EncodeBoxSource,
   EscapeStringBoxSource,
+  Base64DecodeBoxSource,
   CronExpressionBoxSource,
+  DataConverterBoxSource,
   DateCalculateBoxSource,
   GenerateQRCodeBoxSource,
   JWTBoxSource,
@@ -33,13 +36,13 @@ export const boxSources = [
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
-  DataConverterBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
   ShortenURLBoxSource,
   TimeFormatBoxSource,
-  TimestampBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,
+  TimestampBoxSource,
+  Base64EncodeBoxSource,
   WordCountBoxSource,
 ];

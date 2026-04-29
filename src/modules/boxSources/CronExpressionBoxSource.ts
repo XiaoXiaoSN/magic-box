@@ -19,8 +19,10 @@ const localeMap = new Map([
 
 export const CronExpressionBoxSource = {
   name: 'Cron Expression',
-  description: 'Parse a cron expression to get the next run dates.',
+  description: 'Translate cron expressions into human-readable schedules.',
   defaultInput: '*/5 0 12 * * ?',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityCronExpression,
 
   checkMatch(input: string, options: BoxOptions = null): Match | undefined {

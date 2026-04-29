@@ -17,9 +17,11 @@ function hasDisplayableChar(str: string): boolean {
 
 export const ReadableBytesBoxSource = {
   name: 'Readable Bytes',
-  description: 'Convert a byte array to a readable string.',
+  description: 'Turn a comma-separated byte array into a readable string.',
   defaultInput:
     '83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115',
+  tag: '⟶',
+  kind: 'Decode',
   priority: PriorityReadableBytes,
 
   checkMatch(input: string): Match | undefined {

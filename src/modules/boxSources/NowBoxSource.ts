@@ -13,8 +13,11 @@ interface Match {
 
 export const NowBoxSource = {
   name: 'Now',
-  description: 'Get the current time in different formats.',
+  description:
+    'Display the current time in RFC 3339, RFC 3339 (UTC+8), and Unix timestamp.',
   defaultInput: 'now',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityRFC3339,
 
   checkMatch(input: string): Match | undefined {

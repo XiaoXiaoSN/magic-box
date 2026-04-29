@@ -62,8 +62,11 @@ const parseDate = (s: string): Date => {
 
 export const DateCalculateBoxSource = {
   name: 'Date Calculate',
-  description: 'Calculate the duration between two dates.',
+  description:
+    'Add or subtract days from a date, or compute the duration between two dates.',
   defaultInput: 'now + 7d',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityDateCalculate,
 
   // Deal with the pattern of `now + 20d` or `2024-10-31 + 30d`
