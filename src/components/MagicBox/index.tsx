@@ -79,26 +79,9 @@ const MagicBox = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [tick, setTick] = useState(0);
 
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const { filteredBoxSources } = useSettings();
-
-  // Tick once a second only when input actually depends on real time so the
-  // Now / Timestamp boxes refresh without re-running sources for static input.
-  const needsTick = useMemo(
-    () =>
-      /\bnow\b/i.test(magicIn) ||
-      /^\s*-?\d{9,13}\s*$/.test(magicIn) ||
-      /\bip\b/i.test(magicIn),
-    [magicIn],
-  );
-
-  useEffect(() => {
-    if (!needsTick) return undefined;
-    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [needsTick]);
 
   useEffect(() => {
     if (resetTrigger !== undefined) {
@@ -122,13 +105,8 @@ const MagicBox = ({
     setModalBox(null);
   }, []);
 
-  // tick is folded into the dep key so biome's exhaustive-deps check stays
-  // happy while still re-firing the effect once a second for live boxes.
-  const generationKey = `${magicIn}#${tick}`;
-
   useEffect(() => {
     let cancelled = false;
-    void generationKey; // dependency anchor
 
     if (trim(magicIn) === '') {
       setBoxes([]);
@@ -168,7 +146,7 @@ const MagicBox = ({
     return () => {
       cancelled = true;
     };
-  }, [generationKey, magicIn, sources, filteredBoxSources]);
+  }, [magicIn, sources, filteredBoxSources]);
 
   useEffect(() => {
     if (boxes.length === 0) {
