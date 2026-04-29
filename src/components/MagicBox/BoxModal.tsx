@@ -29,7 +29,14 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
 
   return (
     <Modal aria-labelledby="box-modal-title" onClose={onClose} open={open}>
-      <div className="box-modal-overlay">
+      <div className="box-modal-root">
+        <button
+          aria-label="Close modal backdrop"
+          className="box-modal-overlay"
+          onClick={onClose}
+          tabIndex={-1}
+          type="button"
+        />
         <div className="box-modal-card">
           <div className="box-modal-head">
             <span aria-hidden="true" className="box-tag">
