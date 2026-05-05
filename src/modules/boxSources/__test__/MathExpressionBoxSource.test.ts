@@ -5,33 +5,35 @@ import { MathExpressionBoxSource } from '../MathExpressionBoxSource';
 
 describe('MathExpressionBoxSource', () => {
   describe('checkMatch', () => {
-    it('should return undefined for empty input', () => {
-      expect(MathExpressionBoxSource.checkMatch('')).toBeUndefined();
+    it('should return undefined for empty input', async () => {
+      expect(await MathExpressionBoxSource.checkMatch('')).toBeUndefined();
     });
 
-    it('should return undefined for non-math expressions', () => {
-      expect(MathExpressionBoxSource.checkMatch('hello world')).toBeUndefined();
-      expect(MathExpressionBoxSource.checkMatch('abc')).toBeUndefined();
+    it('should return undefined for non-math expressions', async () => {
+      expect(
+        await MathExpressionBoxSource.checkMatch('hello world'),
+      ).toBeUndefined();
+      expect(await MathExpressionBoxSource.checkMatch('abc')).toBeUndefined();
     });
 
-    it('should return correct result for basic arithmetic', () => {
-      const result = MathExpressionBoxSource.checkMatch('1000 + 2000');
+    it('should return correct result for basic arithmetic', async () => {
+      const result = await MathExpressionBoxSource.checkMatch('1000 + 2000');
       expect(result).toBeDefined();
       expect(result?.answer).toBe('3000');
     });
 
-    it('should handle complex expressions', () => {
-      let result = MathExpressionBoxSource.checkMatch('2 * (3 + 4)');
+    it('should handle complex expressions', async () => {
+      let result = await MathExpressionBoxSource.checkMatch('2 * (3 + 4)');
       expect(result).toBeDefined();
       expect(result?.answer).toBe('14');
 
-      result = MathExpressionBoxSource.checkMatch('sin(PI/2)');
+      result = await MathExpressionBoxSource.checkMatch('sin(PI/2)');
       expect(result).toBeDefined();
       expect(result?.answer).toBe('1');
     });
 
-    it('should handle decimal numbers', () => {
-      const result = MathExpressionBoxSource.checkMatch('1.5 * 2.5');
+    it('should handle decimal numbers', async () => {
+      const result = await MathExpressionBoxSource.checkMatch('1.5 * 2.5');
       expect(result).toBeDefined();
       expect(result?.answer).toBe('3.75');
     });

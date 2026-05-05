@@ -6,8 +6,24 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
-import './firebaseConfig';
 import './index.css';
+
+// defer firebase init until the browser is idle so the analytics SDK
+// (~150KB gzipped) does not block first paint.
+const loadFirebase = () => {
+  import('./firebaseConfig').catch(() => {
+    /* analytics is best-effort */
+  });
+};
+type IdleWindow = Window & {
+  requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => void;
+};
+const w = window as IdleWindow;
+if (typeof w.requestIdleCallback === 'function') {
+  w.requestIdleCallback(loadFirebase, { timeout: 4000 });
+} else {
+  setTimeout(loadFirebase, 2000);
+}
 
 init({
   dsn: env.SENTRY_DSN,
