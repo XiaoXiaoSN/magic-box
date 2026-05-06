@@ -34,7 +34,7 @@ jobs:
       - name: Codespell
         uses: codespell-project/actions-codespell@master
         with:
-          skip: "public/**/*.png,public/**/*.jpg,public/**/*.jpeg,public/**/*.gif,public/**/*.webp,public/**/*.svg,public/**/*.ico,public/**/*.bmp,public/**/*.avif,public/**/*.tiff,bun.lock"
+          skip: "./public/images/*,./public/apple-touch-icon.png,./public/favicon.ico,./bun.lock"
 
   quality:
     permissions:
