@@ -33,6 +33,8 @@ jobs:
 
       - name: Codespell
         uses: codespell-project/actions-codespell@master
+        with:
+          skip: "public/**/*.png,public/**/*.jpg,public/**/*.jpeg,public/**/*.gif,public/**/*.webp,public/**/*.svg,public/**/*.ico,public/**/*.bmp,public/**/*.avif,public/**/*.tiff,bun.lock"
 
   quality:
     permissions:
