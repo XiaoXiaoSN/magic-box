@@ -14,7 +14,6 @@ concurrency:
 
 env:
   NODE_VERSION: 22
-  PNPM_VERSION: 10
   GCP_PROJECT_ID: magic-box-b8bdc
 
 jobs:
@@ -88,7 +87,7 @@ jobs:
           buildWasm: false
 
       - name: Build
-        run: pnpm build
+        run: bun run build
         env:
           # NOTE: allow warnings
           # Treating warnings as errors because process.env.CI = true.

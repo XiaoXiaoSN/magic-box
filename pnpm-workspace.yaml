@@ -1,7 +1,0 @@
-ignoredBuiltDependencies:
-  - '@firebase/util'
-  - '@sentry/cli'
-  - cypress
-  - esbuild
-  - protobufjs
-  - unrs-resolver
