@@ -16,7 +16,7 @@
     "@sentry/react": "^9.30.0",
     "@sentry/vite-plugin": "^5.2.1",
     "@types/node": "^22.15.32",
-    "@types/react": "19.1.8",
+    "@types/react": "19.2.14",
     "@types/react-dom": "19.1.6",
     "@yudiel/react-qr-scanner": "^2.3.1",
     "base64-box": "file:wasmModules/base64-box/pkg",
