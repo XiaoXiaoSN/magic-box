@@ -20,7 +20,7 @@
     "@types/react-dom": "19.1.6",
     "@yudiel/react-qr-scanner": "^2.3.1",
     "base64-box": "file:wasmModules/base64-box/pkg",
-    "cronstrue": "^2.61.0",
+    "cronstrue": "^3.14.0",
     "fast-xml-parser": "^5.3.7",
     "firebase": "^11.9.1",
     "jwt-decode": "^4.0.0",
