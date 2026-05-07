@@ -49,6 +49,8 @@ export const EscapeStringBoxSource = {
   description:
     'Unescape JSON-escaped strings (\\") and strip ANSI color codes.',
   defaultInput: '"{\\"message\\":\\"something here\\"}"',
+  tag: '\\',
+  kind: 'Decode',
   priority: PriorityEscapeString,
 
   checkMatch(input: string): Match | undefined {

@@ -11,8 +11,11 @@ interface Match {
 
 export const TimeFormatBoxSource = {
   name: 'Time Format',
-  description: 'Format a timestamp or date string.',
+  description:
+    'Convert an RFC 3339 timestamp into Unix seconds and milliseconds.',
   defaultInput: '2025-06-21T19:34:57.530+08:00',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityTimeFormat,
 
   checkMatch(input: string): Match | undefined {

@@ -2,7 +2,6 @@ import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
-import cronstrue from 'cronstrue/i18n';
 
 const PriorityCronExpression = 10;
 
@@ -17,13 +16,22 @@ const localeMap = new Map([
   ['jp', 'ja'],
 ]);
 
+// cheap pre-screen so cronstrue/i18n (~263KB) loads only for cron-shaped inputs.
+// matches 5–7 fields of cron-allowed chars separated by whitespace.
+const CRON_SHAPE = /^[\d*/,?\-LW#]+(\s+[\d*/,?\-LW#]+){4,6}$/i;
+
 export const CronExpressionBoxSource = {
   name: 'Cron Expression',
-  description: 'Parse a cron expression to get the next run dates.',
+  description: 'Translate cron expressions into human-readable schedules.',
   defaultInput: '*/5 0 12 * * ?',
+  tag: '⏱',
+  kind: 'Time',
   priority: PriorityCronExpression,
 
-  checkMatch(input: string, options: BoxOptions = null): Match | undefined {
+  async checkMatch(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -32,6 +40,10 @@ export const CronExpressionBoxSource = {
     }
 
     const regularInput = trim(input);
+
+    if (!CRON_SHAPE.test(regularInput)) {
+      return undefined;
+    }
 
     try {
       let locale = 'en';
@@ -42,6 +54,7 @@ export const CronExpressionBoxSource = {
         }
       }
 
+      const { default: cronstrue } = await import('cronstrue/i18n');
       const answer = cronstrue.toString(regularInput, {
         use24HourTimeFormat: true,
         locale,
@@ -62,7 +75,7 @@ export const CronExpressionBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    const match = this.checkMatch(input, options);
+    const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
     }

@@ -42,6 +42,8 @@ export interface BoxProps {
   largeModal?: boolean;
   onClose?: () => void;
   selected?: boolean;
+  tag?: string;
+  kind?: string;
 }
 
 export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
@@ -61,6 +63,8 @@ export class BoxBuilder {
     public onClick = (() => {}) as BoxOnClickFn,
     public priority?: number,
     public boxTemplate?: BoxTemplate,
+    public tag?: string,
+    public kind?: string,
   ) {}
 
   setPriority(priority?: number): BoxBuilder {
@@ -88,6 +92,16 @@ export class BoxBuilder {
     return this;
   }
 
+  setTag(tag: string): BoxBuilder {
+    this.tag = tag;
+    return this;
+  }
+
+  setKind(kind: string): BoxBuilder {
+    this.kind = kind;
+    return this;
+  }
+
   build(): Box {
     return {
       props: {
@@ -97,6 +111,8 @@ export class BoxBuilder {
         options: this.options,
         onClick: this.onClick,
         showExpandButton: this.showExpandButton,
+        tag: this.tag,
+        kind: this.kind,
       },
       boxTemplate: this.boxTemplate ?? DefaultBoxTemplate,
     };

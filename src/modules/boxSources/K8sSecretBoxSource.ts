@@ -13,7 +13,9 @@ interface Match {
 
 export const K8sSecretBoxSource = {
   name: 'K8s Secret',
-  description: 'Decode a Kubernetes secret.',
+  description: 'Base64-decode all values inside a Kubernetes Secret YAML.',
+  tag: '⎈',
+  kind: 'Decode',
   defaultInput: `apiVersion: v1
 kind: Secret
 metadata:

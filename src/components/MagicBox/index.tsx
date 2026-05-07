@@ -1,13 +1,8 @@
-import { NotingMatchBoxTemplate } from '@components/BoxTemplate';
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
-import type { BoxOptions, BoxTemplate, Box as BoxType } from '@modules/Box';
+import type { BoxOptions, Box as BoxType } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
-import ZoomOutMapIcon from '@mui/icons-material/ZoomOutMap';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Modal from '@mui/material/Modal';
 import React, {
   useCallback,
   useEffect,
@@ -16,6 +11,8 @@ import React, {
   useState,
 } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
+import BoxCard from './BoxCard';
+import BoxModal from './BoxModal';
 
 interface Props {
   input: string;
@@ -24,20 +21,52 @@ interface Props {
   resetTrigger?: number;
 }
 
-// Interface for BoxComponent with static supportsLarge property.
-interface LargeSupportBoxComponent extends BoxTemplate {
-  supportsLarge?: boolean;
-}
+const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
+  if (trim(input) === '') {
+    return (
+      <div className="empty" data-testid="magic-box-empty">
+        <div aria-hidden="true" className="empty-mark" />
+        <div className="empty-title">Start typing</div>
+        <div className="empty-sub">
+          MagicBox auto-detects formats and shows every useful transformation.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="empty" data-testid="magic-box-empty">
+      <div aria-hidden="true" className="empty-mark" />
+      <div className="empty-title">No matches</div>
+      <div className="empty-sub">
+        Try a different format — JSON, JWT, timestamp, cron, base64, math…
+      </div>
+    </div>
+  );
+};
 
-// Type guard to check if a BoxComponent supports the 'large' prop.
-function isLargeSupportBoxComponent(
-  comp: BoxTemplate,
-): comp is LargeSupportBoxComponent {
-  return !!(comp as LargeSupportBoxComponent).supportsLarge;
-}
+// Parses input text and inline `::option=value` directives.
+// Example:
+//   Hello World
+//   ::option1
+//   ::Option3=value
+// becomes input='Hello World' / options={option1:true, option3:'value'}.
+const parseInput = (input: string): [string, BoxOptions] => {
+  const regex = /\n::(\w+)=?(.*)/gm;
+  const matches = Array.from(input.matchAll(regex), (match) => [
+    match[1],
+    match[2],
+  ]);
 
-// hoist static JSX to avoid re-creating on every render
-const EmptyState = <NotingMatchBoxTemplate />;
+  const initOptions: BoxOptions = {};
+  const options = matches.reduce((opts, [key, value]) => {
+    const updatedOpts = opts;
+    updatedOpts[key.toLowerCase()] = value || true;
+    return updatedOpts;
+  }, initOptions);
+
+  const replacedInput = input.replaceAll(regex, '');
+  return [replacedInput, options];
+};
 
 const MagicBox = ({
   input: magicIn,
@@ -51,83 +80,30 @@ const MagicBox = ({
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
-  const itemRefs = useRef<Map<number, HTMLButtonElement | null>>(new Map());
+  const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const { filteredBoxSources } = useSettings();
 
-  // reset selection when parent triggers reset
   useEffect(() => {
     if (resetTrigger !== undefined) {
       setSelectedIndex(-1);
     }
   }, [resetTrigger]);
 
-  // This parses input text to extract the input and options.
-  //
-  // Example:
-  //   Hello World
-  //   ::option1
-  //   ::option2=
-  //   ::Option3=value
-  //
-  // Will be parsed to:
-  //   input: Hello World (string)
-  //   options: { option1: true, option2: true, option3: 'value' } (object)
-  const parseInput = useCallback((input: string): [string, BoxOptions] => {
-    const regex = /\n::(\w+)=?(.*)/gm;
-    const matches = Array.from(input.matchAll(regex), (match) => [
-      match[1],
-      match[2],
-    ]);
-
-    const initOptions: BoxOptions = {};
-    const options = matches.reduce((opts, [key, value]) => {
-      const updatedOpts = opts;
-      updatedOpts[key.toLowerCase()] = value || true;
-      return updatedOpts;
-    }, initOptions);
-
-    const replacedInput = input.replaceAll(regex, '');
-
-    return [replacedInput, options];
-  }, []);
-
   const copyText = useCallback((text: string) => {
+    if (text === undefined || text === null || text === '') return;
     copyTextToClipboard(text);
     setNotify([Date.now()]);
   }, []);
 
-  const handleOpenModal = (box: BoxType) => {
+  const handleOpenModal = useCallback((box: BoxType) => {
     setModalBox(box);
     setModalOpen(true);
-  };
+  }, []);
 
   const handleCloseModal = useCallback(() => {
     setModalOpen(false);
     setModalBox(null);
   }, []);
-
-  // memoize modal content to avoid re-creating on every render
-  const modalContent = useMemo(() => {
-    if (!modalBox) return null;
-
-    const Comp = modalBox.boxTemplate;
-    const props = {
-      name: modalBox.props.name,
-      onClick: (output: string) => {
-        copyText(output);
-        modalBox.props.onClick(output);
-      },
-      onClose: handleCloseModal,
-      options: modalBox.props.options,
-      plaintextOutput: modalBox.props.plaintextOutput,
-      priority: modalBox.props.priority,
-    };
-
-    if (isLargeSupportBoxComponent(Comp) && Comp.supportsLarge) {
-      return <Comp {...props} largeModal />;
-    }
-    return <Comp {...props} />;
-  }, [modalBox, copyText, handleCloseModal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,37 +119,35 @@ const MagicBox = ({
     const boxSources = sources ?? filteredBoxSources;
     const [input, options] = parseInput(magicIn);
 
-    const promises = boxSources.map(async (boxSource) =>
-      boxSource.generateBoxes(input, options),
-    );
+    const promises = boxSources.map(async (boxSource) => {
+      const generated = await boxSource.generateBoxes(input, options);
+      // enrich each box with its source's tag/kind so the chrome can render them
+      return generated.map((b) => ({
+        ...b,
+        props: {
+          ...b.props,
+          tag: b.props.tag ?? boxSource.tag,
+          kind: b.props.kind ?? boxSource.kind,
+        },
+      }));
+    });
+
     Promise.all(promises).then((resultBoxes) => {
       if (cancelled) return;
 
-      const newBoxes = resultBoxes
-        .filter((box) => box)
-        .flat()
-        .sort((a, b) => {
-          const priorityA = a.props.priority ?? 0;
-          const priorityB = b.props.priority ?? 0;
-          return priorityB - priorityA;
-        })
-        .map((box) => {
-          const updatedBox = box;
-          updatedBox.props.priority = box.props.priority ?? 0;
-          return updatedBox;
-        });
+      // Path B: respect source order from SettingsContext (already sorted by
+      // secondaryOrder); preserve each source's emission order.
+      const newBoxes = resultBoxes.filter((box) => box).flat();
 
       setBoxes(newBoxes);
       setSelectedIndex(-1);
-
-      console.log(`input: ${input}\n`, 'boxes:', newBoxes, 'options:', options);
     });
+
     return () => {
       cancelled = true;
     };
-  }, [magicIn, sources, filteredBoxSources, parseInput]);
+  }, [magicIn, sources, filteredBoxSources]);
 
-  // Ensure selected index stays within bounds and reset when boxes change
   useEffect(() => {
     if (boxes.length === 0) {
       setSelectedIndex(-1);
@@ -184,53 +158,49 @@ const MagicBox = ({
     }
   }, [boxes, selectedIndex]);
 
-  // Scroll the selected item into view
   useEffect(() => {
     const el = itemRefs.current.get(selectedIndex);
     if (el) {
       try {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch {
-        // noop
+        /* noop */
       }
     }
   }, [selectedIndex]);
 
-  // Keyboard handlers: Ctrl+N (next), Ctrl+Shift+N (prev), Enter (copy)
+  // Keyboard shortcuts: Ctrl+N (next), Ctrl+Shift+N / Ctrl+P (prev),
+  // Enter (copy), Cmd/Ctrl+Enter (copy + paste back into input).
   useEffect(() => {
     const pasteAsInput = (value: string) => {
       if (onPasteInput) {
         onPasteInput(value);
         return;
       }
-      // Fallback: try to find input by name attribute instead of ID
       const input = document.querySelector(
-        'input[name="magicInput"]',
-      ) as HTMLInputElement | null;
+        'input[name="magicInput"], textarea[name="magicInput"]',
+      ) as HTMLInputElement | HTMLTextAreaElement | null;
       if (!input) return;
       input.focus();
-      // Set value and notify React via input event
       input.value = value;
       try {
         const evt = new Event('input', { bubbles: true });
         input.dispatchEvent(evt);
       } catch {
-        // noop
+        /* noop */
       }
     };
 
     const handler = (e: KeyboardEvent) => {
-      const isCtrl = e.ctrlKey || e.metaKey; // support macOS
+      const isCtrl = e.ctrlKey || e.metaKey;
       const tag = (e.target as HTMLElement | null)?.tagName?.toUpperCase?.();
       const isTypingField = tag === 'INPUT' || tag === 'TEXTAREA';
 
-      // Copy + Paste into input with Cmd/Ctrl + Enter
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         e.stopPropagation();
 
         if (boxes.length === 0) return;
-
         const selected = boxes[selectedIndex];
         if (!selected) return;
 
@@ -243,10 +213,8 @@ const MagicBox = ({
         return;
       }
 
-      // Navigate with Ctrl+N / Ctrl+Shift+N
       if (isCtrl && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
-
         if (boxes.length === 0) return;
 
         setSelectedIndex((prev) => {
@@ -258,28 +226,18 @@ const MagicBox = ({
         return;
       }
 
-      // Navigate with Ctrl+P (previous)
       if (e.ctrlKey && !e.metaKey && (e.key === 'p' || e.key === 'P')) {
         e.preventDefault();
-
         if (boxes.length === 0) return;
-
-        setSelectedIndex((prev) => {
-          const next = prev - 1;
-          if (next < 0) return 0;
-          return next;
-        });
+        setSelectedIndex((prev) => Math.max(prev - 1, 0));
         return;
       }
 
-      // Copy selected with Enter (works even when typing in input/textarea)
       if (e.key === 'Enter' && !isCtrl) {
         if (boxes.length === 0) return;
-
         const selected = boxes[selectedIndex];
         if (!selected) return;
 
-        // Avoid inserting a newline in inputs when copying
         if (isTypingField) {
           e.preventDefault();
           e.stopPropagation();
@@ -297,103 +255,46 @@ const MagicBox = ({
     return () => window.removeEventListener('keydown', handler);
   }, [boxes, selectedIndex, copyText, onPasteInput]);
 
+  const setItemRef = useCallback(
+    (idx: number) => (el: HTMLDivElement | null) => {
+      if (el) {
+        itemRefs.current.set(idx, el);
+      } else {
+        itemRefs.current.delete(idx);
+      }
+    },
+    [],
+  );
+
+  const renderedBoxes = useMemo(
+    () =>
+      boxes.map((src, idx) => (
+        <BoxCard
+          key={src?.props?.name ? `${src.props.name}-${idx}` : idx}
+          ref={setItemRef(idx)}
+          box={src}
+          onCopy={copyText}
+          onExpand={
+            src.props.showExpandButton !== false
+              ? () => handleOpenModal(src)
+              : undefined
+          }
+          onSelect={() => setSelectedIndex(idx)}
+          selected={idx === selectedIndex}
+        />
+      )),
+    [boxes, selectedIndex, copyText, handleOpenModal, setItemRef],
+  );
+
   return (
     <React.Fragment>
-      {boxes.length > 0
-        ? boxes.map((src, idx) => {
-            const {
-              name,
-              plaintextOutput: stdout,
-              options,
-              onClick,
-              priority,
-            } = src.props;
-
-            const onClickWithCopy = (output: string) => {
-              copyText(output);
-              onClick(output);
-            };
-
-            const showExpand = src.props.showExpandButton !== false;
-            return (
-              <button
-                key={src?.props.name || idx}
-                ref={(el) => {
-                  if (el) {
-                    itemRefs.current.set(idx, el);
-                  } else {
-                    itemRefs.current.delete(idx);
-                  }
-                }}
-                data-testid="magic-box-result"
-                onClick={() => setSelectedIndex(idx)}
-                type="button"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  position: 'relative',
-                  border: 'none',
-                  background: 'transparent',
-                  padding: 0,
-                  cursor: 'pointer',
-                }}
-              >
-                {showExpand ? (
-                  <IconButton
-                    aria-label="expand"
-                    component="span"
-                    onClick={() => handleOpenModal(src)}
-                    size="small"
-                    style={{
-                      position: 'absolute',
-                      top: '.6rem',
-                      right: '.6rem',
-                      zIndex: 2,
-                      background: 'rgba(255,255,255,0.8)',
-                    }}
-                  >
-                    <ZoomOutMapIcon fontSize="small" />
-                  </IconButton>
-                ) : null}
-                <src.boxTemplate
-                  name={name}
-                  onClick={onClickWithCopy}
-                  options={options}
-                  plaintextOutput={stdout}
-                  priority={priority}
-                  selected={idx === selectedIndex}
-                />
-              </button>
-            );
-          })
-        : EmptyState}
-      <Modal
-        aria-describedby="box-modal-description"
-        aria-labelledby="box-modal-title"
+      {boxes.length > 0 ? renderedBoxes : <EmptyState input={magicIn} />}
+      <BoxModal
+        box={modalBox}
         onClose={handleCloseModal}
+        onCopy={copyText}
         open={modalOpen}
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'relative',
-            maxWidth: '95vw',
-            maxHeight: '90vh',
-            width: '100%',
-            height: 'auto',
-            bgcolor: 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {modalContent ? <div>{modalContent}</div> : null}
-        </Box>
-      </Modal>
+      />
       <CustomizedSnackbar notify={notify} />
     </React.Fragment>
   );

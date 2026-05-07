@@ -9,19 +9,22 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
     # Update the npm manifest file to relax
     # the version requirements
     versioning-strategy: widen
+    ignore:
+      # local file: dependency built from wasmModules/base64-box/pkg (gitignored build artifact)
+      - dependency-name: "base64-box"
 
   # Maintain dependencies for Cargo
   - package-ecosystem: cargo
     directory: /wasmModules/base64-box
     schedule:
-      interval: monthly
+      interval: weekly
 
   # Maintain dependencies for GitHub Actions
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly

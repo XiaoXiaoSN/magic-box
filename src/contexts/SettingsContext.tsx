@@ -128,25 +128,22 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       (boxSource) => settings.boxes[boxSource.name]?.enabled,
     );
 
-    return enabledBoxSources
-      .map((boxSource) => {
-        const setting = settings.boxes[boxSource.name];
-        return {
-          ...boxSource,
-          priority: validatePriority(
-            setting?.priority ?? boxSource.priority ?? 10,
-          ),
-          secondaryOrder: setting?.secondaryOrder ?? 0,
-        };
-      })
-      .sort((a, b) => {
-        // Sort by priority first (higher priority first)
-        if (a.priority !== b.priority) {
-          return (b.priority ?? 0) - (a.priority ?? 0);
-        }
-        // Then by secondary order
-        return (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0);
-      });
+    return (
+      enabledBoxSources
+        .map((boxSource) => {
+          const setting = settings.boxes[boxSource.name];
+          return {
+            ...boxSource,
+            priority: validatePriority(
+              setting?.priority ?? boxSource.priority ?? 10,
+            ),
+            secondaryOrder: setting?.secondaryOrder ?? 0,
+          };
+        })
+        // Path B: sort solely by user-controlled drag order. priority kept on
+        // settings shape for back-compat but no longer drives box placement.
+        .sort((a, b) => (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0))
+    );
   }, [settings.boxes]);
 
   // Helper function to validate priority input from UI

@@ -6,5 +6,8 @@ export interface BoxSource {
   name: string;
   description: string;
   defaultInput: string;
+  tag: string;
+  kind: string;
+  priority?: number;
   generateBoxes: (input: string, options: BoxOptions) => Promise<Box[]>;
 }

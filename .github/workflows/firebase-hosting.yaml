@@ -14,7 +14,6 @@ concurrency:
 
 env:
   NODE_VERSION: 22
-  PNPM_VERSION: 10
   GCP_PROJECT_ID: magic-box-b8bdc
 
 jobs:
@@ -34,6 +33,8 @@ jobs:
 
       - name: Codespell
         uses: codespell-project/actions-codespell@master
+        with:
+          skip: "./public/images/*,./public/apple-touch-icon.png,./public/favicon.ico,./bun.lock"
 
   quality:
     permissions:
@@ -88,7 +89,7 @@ jobs:
           buildWasm: false
 
       - name: Build
-        run: pnpm build
+        run: bun run build
         env:
           # NOTE: allow warnings
           # Treating warnings as errors because process.env.CI = true.

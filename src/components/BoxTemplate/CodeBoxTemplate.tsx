@@ -1,14 +1,12 @@
-import Modal from '@components/Modal';
-import { extendSxProps } from '@functions/muiHelper';
 import type { BoxProps } from '@modules/Box';
-import { CircularProgress, Grid } from '@mui/material';
+import { CircularProgress } from '@mui/material';
 import { lazy, memo, Suspense } from 'react';
-import boxStyles from './styles';
 
 interface HighlighterProps {
   language: string;
   children: string;
   customStyle?: React.CSSProperties;
+  dataTestId?: string;
 }
 
 // dynamic import to reduce bundle size
@@ -21,12 +19,16 @@ const LazyHighlighter = lazy(async () => {
   const SyntaxHighlighterComponent = highlighterModule.default;
   const atomOneLight = styleModule.atomOneLight;
 
-  // return a wrapper component with style pre-loaded
   return {
-    default: ({ language, children, customStyle }: HighlighterProps) => (
+    default: ({
+      language,
+      children,
+      customStyle,
+      dataTestId,
+    }: HighlighterProps) => (
       <SyntaxHighlighterComponent
         customStyle={customStyle}
-        data-testid="magic-box-result-text"
+        data-testid={dataTestId}
         language={language}
         style={atomOneLight}
       >
@@ -36,20 +38,11 @@ const LazyHighlighter = lazy(async () => {
   };
 });
 
-interface CodeBoxTemplateProps extends BoxProps {
-  largeModal?: boolean;
-  onClose?: () => void;
-}
-
 const CodeBoxTemplateComponent = ({
-  name,
   plaintextOutput,
   options,
-  onClick,
   largeModal = false,
-  onClose,
-  selected = false,
-}: CodeBoxTemplateProps): React.JSX.Element => {
+}: BoxProps): React.JSX.Element => {
   let language = 'yaml';
   if (
     options &&
@@ -60,50 +53,36 @@ const CodeBoxTemplateComponent = ({
   }
 
   return (
-    <Grid
-      onClick={() => onClick(plaintextOutput)}
-      size={{ xs: 12, sm: 12 }}
-      sx={boxStyles.grid}
-    >
-      <Modal
-        onClose={onClose}
-        testId="magic-box-result-title"
-        title={name}
-        sx={extendSxProps(
-          typeof boxStyles.paper === 'function'
-            ? boxStyles.paper
-            : boxStyles.paper,
-          largeModal ? (theme) => ({ padding: theme.spacing(4) }) : undefined,
-          selected ? boxStyles.selectedPaper : undefined,
-        )}
-      >
-        {/* https://react-syntax-highlighter.github.io/react-syntax-highlighter/demo/ */}
-        <Suspense
-          fallback={
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '100px',
-              }}
-            >
-              <CircularProgress size={24} />
-            </div>
-          }
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100px',
+          }}
         >
-          <LazyHighlighter
-            language={language}
-            customStyle={{
-              maxHeight: largeModal ? '60vh' : '250px',
-              textAlign: 'left',
-            }}
-          >
-            {plaintextOutput}
-          </LazyHighlighter>
-        </Suspense>
-      </Modal>
-    </Grid>
+          <CircularProgress size={24} />
+        </div>
+      }
+    >
+      <LazyHighlighter
+        dataTestId="magic-box-result-text"
+        language={language}
+        customStyle={{
+          margin: 0,
+          background: 'transparent',
+          padding: 0,
+          maxHeight: largeModal ? '60vh' : '250px',
+          textAlign: 'left',
+          fontSize: '13px',
+          lineHeight: 1.5,
+        }}
+      >
+        {plaintextOutput}
+      </LazyHighlighter>
+    </Suspense>
   );
 };
 

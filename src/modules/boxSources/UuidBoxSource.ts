@@ -8,8 +8,10 @@ type Match = boolean;
 
 export const UuidBoxSource = {
   name: 'UUID',
-  description: 'Generate a UUID.',
+  description: 'Generate a fresh UUID v4, uppercase optional.',
   defaultInput: 'uuid',
+  tag: '⚂',
+  kind: 'Generate',
   priority: PriorityUuidBox,
 
   checkMatch(input: string): Match | undefined {

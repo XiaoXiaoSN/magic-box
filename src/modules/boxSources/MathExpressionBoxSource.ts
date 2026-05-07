@@ -2,7 +2,6 @@ import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isJSON, isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
-import { evaluate } from 'mathjs';
 
 const PriorityMathExpression = 10;
 
@@ -10,13 +9,18 @@ interface Match {
   answer: string;
 }
 
+// cheap pre-screen so mathjs (~600KB) loads only for math-shaped inputs
+const MATH_SHAPE = /[+\-*/^%!]|[a-zA-Z]+\s*\(/;
+
 export const MathExpressionBoxSource = {
   name: 'Math Expression',
-  description: 'Evaluate a mathematical expression.',
+  description: 'Evaluate mathematical expressions with standard operators.',
   defaultInput: '1 + 2 * (3 + 4) / 5',
+  tag: '=',
+  kind: 'Compute',
   priority: PriorityMathExpression,
 
-  checkMatch(input: string): Match | undefined {
+  async checkMatch(input: string): Promise<Match | undefined> {
     if (!isString(input)) {
       return undefined;
     }
@@ -39,7 +43,12 @@ export const MathExpressionBoxSource = {
       return undefined;
     }
 
+    if (!/\d/.test(regularInput) || !MATH_SHAPE.test(regularInput)) {
+      return undefined;
+    }
+
     try {
+      const { evaluate } = await import('mathjs');
       const answer = evaluate(regularInput)?.toString();
       if (
         answer === null ||
@@ -65,7 +74,7 @@ export const MathExpressionBoxSource = {
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const match = this.checkMatch(input);
+    const match = await this.checkMatch(input);
     if (!match) {
       return [];
     }

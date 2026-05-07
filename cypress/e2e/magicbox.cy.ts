@@ -169,7 +169,7 @@ describe('MagicBox Page', () => {
         input: '{"name": "John","age": 30,"city": "New York"}',
         output: [
           {
-            title: 'Pretty JSON',
+            title: 'JSON Output',
             text: `{
     "name": "John",
     "age": 30,
