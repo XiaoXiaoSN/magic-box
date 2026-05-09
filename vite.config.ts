@@ -80,6 +80,12 @@ export default defineConfig({
             purpose: 'maskable any',
           },
           {
+            src: '/images/logo-256.png',
+            sizes: '256x256',
+            type: 'image/png',
+            purpose: 'maskable any',
+          },
+          {
             src: '/images/logo-512.png',
             sizes: '512x512',
             type: 'image/png',
