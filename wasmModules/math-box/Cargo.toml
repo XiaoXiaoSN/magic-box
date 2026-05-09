@@ -1,0 +1,63 @@
+[package]
+name = "math-box"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Lightweight expression evaluator for magic-box"
+
+[lib]
+name = "math_box"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["std", "wasm", "bigint", "fraction", "unit", "complex"]
+std = []
+wasm = ["dep:wasm-bindgen", "dep:console_error_panic_hook"]
+bigint = ["dep:num-bigint", "dep:num-traits"]
+fraction = ["dep:num-integer", "dep:num-rational", "dep:num-traits"]
+unit = []
+complex = []
+
+[dependencies]
+wasm-bindgen = { version = "0.2", optional = true }
+console_error_panic_hook = { version = "0.1", optional = true }
+num-bigint = { version = "0.4", optional = true, default-features = false }
+num-traits = { version = "0.2", optional = true, default-features = false }
+num-integer = { version = "0.1", optional = true, default-features = false }
+num-rational = { version = "0.4", optional = true, default-features = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+criterion = { version = "0.5", default-features = false }
+
+[[bench]]
+name = "eval"
+harness = false
+
+# WASM-tuned release profile: fat LTO + single codegen unit unlock cross-crate
+# inlining of num-bigint/num-rational and the VM dispatch loop; panic=abort
+# drops landing-pad tables that wasm cannot use anyway. Diagnostic panic
+# context is recovered via console_error_panic_hook (see lib.rs).
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.bench]
+lto = "fat"
+codegen-units = 1
+
+# rustc 2024 edition emits bulk-memory and other post-MVP wasm features by
+# default; the bundled wasm-opt rejects the input without the matching
+# --enable-* flags. List the features rustc actually emits, not the full set.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+    "-O",
+    "--enable-bulk-memory",
+    "--enable-mutable-globals",
+    "--enable-nontrapping-float-to-int",
+    "--enable-sign-ext",
+    "--enable-reference-types",
+]

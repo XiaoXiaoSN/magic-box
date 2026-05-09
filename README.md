@@ -126,9 +126,27 @@ Based on matching methods, we can roughly classify Boxes into two types:
 <details>
 <summary> <b>MathExpressionBox</b> </summary>
 
+Powered by the in-tree [`math-box`](wasmModules/math-box/) WASM module —
+a clean-room expression evaluator written in Rust, replacing `mathjs` since
+v0.2 to keep the bundle small and the licence pure MIT/Apache-2.0.
+
 | match rule         | description               | output                       |
 | ------------------ | ------------------------- | ---------------------------- |
 | valid math express | calculate the math result | ![](docs/MathExpression.png) |
+
+Supported syntax (highlights):
+
+- arithmetic `+ - * / % ^`, factorial `5!`, function calls `sin(PI/2)`
+- variables and statement chaining: `x = 5; y = 7; x*y + x^2`
+- user-defined functions: `sq(x) = x^2; sq(11) + sq(13)`
+- BigInt literals via `n` suffix: `9007199254740993n + 1n`
+- fractions: `frac(1, 3) + frac(1, 4)` → `7/12`
+- complex numbers: `(2 + 3*i) * (2 - 3*i)` → `13`
+- units: `1 km + 500 m to m` → `1500 m` (length / mass / time SI)
+
+See [wasmModules/math-box/NOTES.md](wasmModules/math-box/NOTES.md) for the
+full design and roadmap, and
+[BENCHMARK.md](wasmModules/math-box/BENCHMARK.md) for performance vs `mathjs`.
 
 </details>
 

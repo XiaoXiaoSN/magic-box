@@ -122,6 +122,6 @@ export default defineConfig({
   ],
   // Handle WASM modules
   optimizeDeps: {
-    exclude: ['base64-box'],
+    exclude: ['base64-box', 'math-box'],
   },
 });
