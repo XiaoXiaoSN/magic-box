@@ -120,8 +120,12 @@ export default defineConfig({
       project: 'magic-box',
     }),
   ],
-  // Handle WASM modules
   optimizeDeps: {
+    // wasm modules are loaded dynamically; skip pre-bundle
     exclude: ['base64-box', 'math-box'],
+    // pre-bundle so cypress component tests don't trigger mid-run
+    // re-optimization that reloads the iframe and aborts dynamic
+    // imports of *.cy.tsx specs.
+    include: ['workbox-window'],
   },
 });
