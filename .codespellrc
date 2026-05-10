@@ -2,3 +2,4 @@
 skip = .git,.vscode,node_modules,build,target,yarn.lock,pnpm-lock.yaml
 check-filenames =
 check-hidden =
+ignore-words-list = numer,ans

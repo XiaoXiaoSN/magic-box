@@ -18,7 +18,7 @@ runs:
       if: ${{ inputs.buildWasm == 'true' }}
       shell: bash
       run: |
-        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} +
+        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} \;
 
     - name: Setup bun
       uses: oven-sh/setup-bun@v2
