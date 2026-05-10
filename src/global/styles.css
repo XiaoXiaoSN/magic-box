@@ -237,6 +237,8 @@ pre,
 @media (max-width: 720px) {
   .home-inner {
     grid-template-columns: 1fr;
+    gap: 2rem;
+    align-content: start;
   }
 
   .home {
