@@ -51,10 +51,10 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
       sx={{ mb: 6 }}
     >
       <Stack
-        alignItems="center"
         direction="row"
         spacing={1.5}
         sx={{
+          alignItems: 'center',
           bgcolor: 'grey.900',
           color: 'common.white',
           px: 2,
