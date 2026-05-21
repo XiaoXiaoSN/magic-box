@@ -1,0 +1,433 @@
+# Instincts generated from https://github.com/XiaoXiaoSN/magic-box
+# Generated: 2026-05-05T11:56:02.943Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: magic-box-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Commit Length
+
+## Action
+
+Keep commit messages concise (~32 characters)
+
+## Evidence
+
+- Average commit message length: 32 chars
+- Based on 6 commits
+
+---
+id: magic-box-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Naming Files
+
+## Action
+
+Use PascalCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: PascalCase
+
+---
+id: magic-box-import-relative
+trigger: "when importing modules"
+confidence: 0.75
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Import Relative
+
+## Action
+
+Use relative imports for project files
+
+## Evidence
+
+- Import analysis shows relative import pattern
+- Example: import { x } from '../lib/x'
+
+---
+id: magic-box-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Export Style
+
+## Action
+
+Prefer mixed exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: mixed
+
+---
+id: magic-box-arch-feature-based
+trigger: "when adding a new feature"
+confidence: 0.85
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Arch Feature Based
+
+## Action
+
+Create a new folder in src/features/ with all related code colocated
+
+## Evidence
+
+- Feature-based module organization detected
+- Structure: src/features/[feature-name]/
+
+---
+id: magic-box-test-colocate
+trigger: "when writing tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Test Colocate
+
+## Action
+
+Place test file next to the source file (e.g., Button.test.tsx next to Button.tsx)
+
+## Evidence
+
+- Colocated test pattern detected
+- Tests live alongside source files
+
+---
+id: magic-box-workflow-feature-development-ui-component-update
+trigger: "when doing feature development ui component update"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Workflow Feature Development Ui Component Update
+
+## Action
+
+Follow the feature-development-ui-component-update workflow:
+1. Modify or add files in src/components/ (e.g., new or updated component .tsx files)
+2. Update or add corresponding test files (e.g., .test.tsx or .cy.tsx)
+3. Update or add styles in src/global/styles.css or component-specific styles
+4. Update related context or module files in src/contexts/ or src/modules/
+5. Optionally update UI assets in public/ (e.g., icons, images)
+6. Optionally update documentation (e.g., DEFERRED.md)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/components/**/*.tsx, src/components/**/*.test.tsx, src/components/**/*.cy.tsx
+
+---
+id: magic-box-workflow-bugfix-ui-or-style
+trigger: "when doing bugfix ui or style"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/XiaoXiaoSN/magic-box
+---
+
+# Magic Box Workflow Bugfix Ui Or Style
+
+## Action
+
+Follow the bugfix-ui-or-style workflow:
+1. Identify the UI component or page with the issue
+2. Edit the relevant .tsx file(s) in src/components/ or src/pages/
+3. Update src/global/styles.css if the fix involves CSS
+4. Test the fix locally
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/components/**/*.tsx, src/pages/**/*.tsx, src/global/styles.css
+
+---
+id: magic-box-instinct-file-naming
+trigger: "When creating or renaming a file in the codebase"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct File Naming
+
+## Action
+
+Use PascalCase for file names (e.g., MagicBox.tsx)
+
+## Evidence
+
+- Pattern in src/components/
+- Naming conventions: files: PascalCase
+
+---
+id: magic-box-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Function Naming
+
+## Action
+
+Use camelCase for function names
+
+## Evidence
+
+- Naming conventions: functions: camelCase
+
+---
+id: magic-box-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Class Naming
+
+## Action
+
+Use PascalCase for class names
+
+## Evidence
+
+- Naming conventions: classes: PascalCase
+
+---
+id: magic-box-instinct-constant-naming
+trigger: "When defining a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Constant Naming
+
+## Action
+
+Use SCREAMING_SNAKE_CASE for constant names
+
+## Evidence
+
+- Naming conventions: constants: SCREAMING_SNAKE_CASE
+
+---
+id: magic-box-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Import Style
+
+## Action
+
+Use relative import paths
+
+## Evidence
+
+- importStyle: relative
+- Pattern in src/components/ imports
+
+---
+id: magic-box-instinct-export-style
+trigger: "When exporting modules or components"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Export Style
+
+## Action
+
+Use a mix of default and named exports as appropriate
+
+## Evidence
+
+- exportStyle: mixed
+
+---
+id: magic-box-instinct-test-location
+trigger: "When writing tests for a component or module"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Test Location
+
+## Action
+
+Colocate test files next to the implementation (e.g., MyComponent.test.tsx in the same folder as MyComponent.tsx)
+
+## Evidence
+
+- testLocation: colocated
+- Pattern in src/components/**/*.test.tsx
+
+---
+id: magic-box-instinct-test-naming
+trigger: "When naming a test file for a component"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Test Naming
+
+## Action
+
+Use the format ComponentName.test.tsx or ComponentName.cy.tsx
+
+## Evidence
+
+- Pattern in src/components/**/*.test.tsx
+- Pattern in src/components/**/*.cy.tsx
+
+---
+id: magic-box-instinct-test-update-with-feature
+trigger: "When adding or updating a component or feature"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Test Update With Feature
+
+## Action
+
+Add or update corresponding test files for the component or feature
+
+## Evidence
+
+- feature-development-ui-component-update workflow
+- Pattern in commit sequences: update or add test files
+
+---
+id: magic-box-instinct-commit-prefix
+trigger: "When writing a commit message for CI or maintenance tasks"
+confidence: 0.8
+domain: git
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Commit Prefix
+
+## Action
+
+Prefix the commit message with 'ci:' or 'chore:' as appropriate
+
+## Evidence
+
+- Pattern in commits: 'ci: ignore base64-box...', 'chore: upgrade vite to 8'
+
+---
+id: magic-box-instinct-commit-length
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Commit Length
+
+## Action
+
+Keep the commit message concise (around 32 characters on average)
+
+## Evidence
+
+- commits.averageLength: 32
+- Examples: 'Allow modal backdrop dismissal', 'Fix settings drag handle layout'
+
+---
+id: magic-box-instinct-feature-workflow
+trigger: "When adding a new feature or updating a UI component"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Feature Workflow
+
+## Action
+
+Modify/add component files, update/add corresponding tests, update styles, adjust related context/module files, and optionally update UI assets and documentation
+
+## Evidence
+
+- feature-development-ui-component-update workflow
+- Pattern in commit sequences and files involved
+
+---
+id: magic-box-instinct-bugfix-workflow
+trigger: "When fixing a UI bug or layout/styling issue"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: XiaoXiaoSN/magic-box
+---
+
+# Magic Box Instinct Bugfix Workflow
+
+## Action
+
+Edit the relevant component/page, update global styles if needed, and test the fix locally
+
+## Evidence
+
+- bugfix-ui-or-style workflow
+- Pattern in commit sequences and files involved
+
