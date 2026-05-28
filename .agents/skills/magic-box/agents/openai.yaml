@@ -1,0 +1,6 @@
+interface:
+  display_name: "Magic Box"
+  short_description: "Repo-specific patterns and workflows for magic-box"
+  default_prompt: "Use the magic-box repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
