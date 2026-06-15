@@ -4,6 +4,7 @@ import { buildShareLink } from '@functions/shareLink';
 import type { BoxSource } from '@modules/BoxSource';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
 const SELECTION_KEY = 'mb:list:selected';
@@ -20,6 +21,29 @@ const KIND_ORDER = [
   'Analyze',
   'Info',
 ];
+
+type LocaleText = ReturnType<typeof useLocale>['t'];
+
+const getKindLabel = (kind: string | undefined, t: LocaleText) => {
+  if (kind === 'Format') return t('toolsList.kind.format');
+  return kind;
+};
+
+const getSourceDisplay = (source: BoxSource, t: LocaleText) => {
+  if (source.name === 'Data Converter') {
+    return {
+      name: t('toolsList.source.dataConverter.name'),
+      description: t('toolsList.source.dataConverter.description'),
+      kind: getKindLabel(source.kind, t),
+    };
+  }
+
+  return {
+    name: source.name,
+    description: source.description,
+    kind: getKindLabel(source.kind, t),
+  };
+};
 
 const Chevron = ({ direction }: { direction: 'left' | 'right' | 'down' }) => {
   const points =
@@ -77,6 +101,7 @@ const ClearIcon = () => (
 );
 
 const ToolsListPage = (): React.JSX.Element => {
+  const { t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -121,13 +146,18 @@ const ToolsListPage = (): React.JSX.Element => {
   const filteredSources = useMemo(() => {
     if (!query) return filteredBoxSources;
     const q = query.toLowerCase();
-    return filteredBoxSources.filter(
-      (b) =>
+    return filteredBoxSources.filter((b) => {
+      const display = getSourceDisplay(b, t);
+      return (
         b.name.toLowerCase().includes(q) ||
         b.description?.toLowerCase().includes(q) ||
-        b.kind?.toLowerCase().includes(q),
-    );
-  }, [filteredBoxSources, query]);
+        b.kind?.toLowerCase().includes(q) ||
+        display.name.toLowerCase().includes(q) ||
+        display.description?.toLowerCase().includes(q) ||
+        display.kind?.toLowerCase().includes(q)
+      );
+    });
+  }, [filteredBoxSources, query, t]);
 
   const grouped = useMemo(() => {
     const byKind: Record<string, BoxSource[]> = {};
@@ -164,14 +194,14 @@ const ToolsListPage = (): React.JSX.Element => {
       <div className="list-page">
         <div className="preview-empty">
           <div className="preview-empty-mark" />
-          <div className="preview-empty-title">No boxes available</div>
-          <div className="preview-empty-sub">
-            Enable some in Settings to get started.
-          </div>
+          <div className="preview-empty-title">{t('toolsList.noBoxes')}</div>
+          <div className="preview-empty-sub">{t('toolsList.noBoxesHint')}</div>
         </div>
       </div>
     );
   }
+
+  const selectedDisplay = getSourceDisplay(selected, t);
 
   return (
     <div
@@ -185,8 +215,8 @@ const ToolsListPage = (): React.JSX.Element => {
         onClick={() => setDrawerOpen((o) => !o)}
         type="button"
       >
-        <span className="browser-toggle-label">Box</span>
-        <span className="browser-toggle-current">{selected.name}</span>
+        <span className="browser-toggle-label">{t('toolsList.box')}</span>
+        <span className="browser-toggle-current">{selectedDisplay.name}</span>
         <span className="browser-toggle-chevron">
           <Chevron direction="down" />
         </span>
@@ -202,10 +232,10 @@ const ToolsListPage = (): React.JSX.Element => {
 
       {collapsed ? (
         <button
-          aria-label="Expand sidebar"
+          aria-label={t('toolsList.expandSidebar')}
           className="browser-expand"
           onClick={() => setCollapsed(false)}
-          title="Expand sidebar"
+          title={t('toolsList.expandSidebar')}
           type="button"
         >
           <Chevron direction="right" />
@@ -216,13 +246,13 @@ const ToolsListPage = (): React.JSX.Element => {
         <aside className="browser">
           <header className="browser-head">
             <div>
-              <h1 className="browser-title">Boxes</h1>
+              <h1 className="browser-title">{t('toolsList.boxes')}</h1>
             </div>
             <button
-              aria-label="Collapse sidebar"
+              aria-label={t('toolsList.collapseSidebar')}
               className="browser-collapse"
               onClick={() => setCollapsed(true)}
-              title="Collapse sidebar"
+              title={t('toolsList.collapseSidebar')}
               type="button"
             >
               <Chevron direction="left" />
@@ -231,14 +261,14 @@ const ToolsListPage = (): React.JSX.Element => {
           <div className="browser-search">
             <SearchIcon />
             <input
-              aria-label="Search boxes"
+              aria-label={t('toolsList.search')}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search boxes"
+              placeholder={t('toolsList.search')}
               value={query}
             />
             {query ? (
               <button
-                aria-label="Clear search"
+                aria-label={t('toolsList.clearSearch')}
                 className="browser-search-clear"
                 onClick={() => setQuery('')}
                 type="button"
@@ -252,30 +282,33 @@ const ToolsListPage = (): React.JSX.Element => {
             {grouped.map(([kind, items]) => (
               <div className="browser-group" key={kind}>
                 <div className="browser-group-head">
-                  <span>{kind}</span>
+                  <span>{getKindLabel(kind, t)}</span>
                   <span className="browser-group-count">{items.length}</span>
                 </div>
-                {items.map((b) => (
-                  <button
-                    className={`browser-row${b.name === selected.name ? ' active' : ''}`}
-                    key={b.name}
-                    onClick={() => handleSelect(b)}
-                    type="button"
-                  >
-                    <span aria-hidden="true" className="browser-row-tag">
-                      {b.tag ?? '·'}
-                    </span>
-                    <span className="browser-row-title">{b.name}</span>
-                    <span className="browser-row-chevron">
-                      <Chevron direction="right" />
-                    </span>
-                  </button>
-                ))}
+                {items.map((b) => {
+                  const display = getSourceDisplay(b, t);
+                  return (
+                    <button
+                      className={`browser-row${b.name === selected.name ? ' active' : ''}`}
+                      key={b.name}
+                      onClick={() => handleSelect(b)}
+                      type="button"
+                    >
+                      <span aria-hidden="true" className="browser-row-tag">
+                        {b.tag ?? '·'}
+                      </span>
+                      <span className="browser-row-title">{display.name}</span>
+                      <span className="browser-row-chevron">
+                        <Chevron direction="right" />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ))}
             {filteredSources.length === 0 ? (
               <div className="browser-empty">
-                No boxes match &ldquo;{query}&rdquo;.
+                {t('toolsList.noMatch', { query })}
               </div>
             ) : null}
           </div>
@@ -294,6 +327,8 @@ interface PreviewPaneProps {
 }
 
 const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
+  const { t } = useLocale();
+  const display = getSourceDisplay(source, t);
   const [input, setInput] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('input') ?? source.defaultInput ?? '';
@@ -308,19 +343,19 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
   return (
     <div className="preview-stack">
       <div className="preview-meta">
-        <h2 className="preview-title">{source.name}</h2>
-        {source.kind ? (
-          <span className="preview-kind">{source.kind}</span>
+        <h2 className="preview-title">{display.name}</h2>
+        {display.kind ? (
+          <span className="preview-kind">{display.kind}</span>
         ) : null}
       </div>
-      {source.description ? (
-        <p className="preview-desc">{source.description}</p>
+      {display.description ? (
+        <p className="preview-desc">{display.description}</p>
       ) : null}
 
       <div className="preview-col-head">
         <span aria-hidden="true" className="dot" />
-        <span>Input</span>
-        <span className="preview-hint">try your own — it updates live</span>
+        <span>{t('toolsList.previewInput')}</span>
+        <span className="preview-hint">{t('toolsList.previewHint')}</span>
         <ShareLinkButton
           data-testid="copy-tool-share-link"
           getShareLink={() =>
@@ -344,7 +379,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
 
       <div className="preview-col-head">
         <span aria-hidden="true" className="dot" />
-        <span>Output</span>
+        <span>{t('toolsList.previewOutput')}</span>
       </div>
       <div className="boxes">
         <MagicBox input={magicIn} sources={[source]} />

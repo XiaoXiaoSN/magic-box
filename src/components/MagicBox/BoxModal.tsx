@@ -1,6 +1,7 @@
 import type { Box as BoxType } from '@modules/Box';
 import CloseIcon from '@mui/icons-material/Close';
 import { Modal } from '@mui/material';
+import { useLocale } from '../../contexts/LocaleContext';
 
 interface BoxModalProps {
   box: BoxType | null;
@@ -10,6 +11,7 @@ interface BoxModalProps {
 }
 
 const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
+  const { t } = useLocale();
   const Comp = box?.boxTemplate;
   if (!box || !Comp) {
     return (
@@ -31,7 +33,7 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
     <Modal aria-labelledby="box-modal-title" onClose={onClose} open={open}>
       <div className="box-modal-root">
         <button
-          aria-label="Close modal backdrop"
+          aria-label={t('boxModal.closeBackdrop')}
           className="box-modal-overlay"
           onClick={onClose}
           tabIndex={-1}
@@ -47,7 +49,7 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
             </h3>
             {kind ? <span className="box-kind">{kind}</span> : null}
             <button
-              aria-label="Close"
+              aria-label={t('boxModal.close')}
               className="box-modal-close"
               onClick={onClose}
               type="button"

@@ -1,7 +1,6 @@
 import type React from 'react';
 import { Link, NavLink } from 'react-router-dom';
-
-const MagicBoxTitle = 'Magic Box';
+import { useLocale } from '../../contexts/LocaleContext';
 
 interface Props {
   children: React.ReactNode;
@@ -45,36 +44,39 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const BaseLayout = ({ children }: Props): React.JSX.Element => (
-  <div className="app">
-    <header className="topbar" data-testid="header">
-      <Link className="brand" to="/" title="Home">
-        <span aria-hidden="true" className="brand-mark">
-          <img alt="Magic Box" src="/images/logo-512.png" />
-        </span>
-        <span>{MagicBoxTitle}</span>
-      </Link>
-      <div className="topbar-right">
-        <NavLink
-          aria-label="List"
-          className={({ isActive }) => `nav-icon${isActive ? ' active' : ''}`}
-          title="List"
-          to="/list"
-        >
-          <ListIcon />
-        </NavLink>
-        <NavLink
-          aria-label="Settings"
-          className={({ isActive }) => `nav-icon${isActive ? ' active' : ''}`}
-          title="Settings"
-          to="/settings"
-        >
-          <SettingsIcon />
-        </NavLink>
-      </div>
-    </header>
-    <main className="main">{children}</main>
-  </div>
-);
+const BaseLayout = ({ children }: Props): React.JSX.Element => {
+  const { t } = useLocale();
+  return (
+    <div className="app">
+      <header className="topbar" data-testid="header">
+        <Link className="brand" to="/" title={t('nav.home')}>
+          <span aria-hidden="true" className="brand-mark">
+            <img alt={t('brand.title')} src="/images/logo-512.png" />
+          </span>
+          <span>{t('brand.title')}</span>
+        </Link>
+        <div className="topbar-right">
+          <NavLink
+            aria-label={t('nav.list')}
+            className={({ isActive }) => `nav-icon${isActive ? ' active' : ''}`}
+            title={t('nav.list')}
+            to="/list"
+          >
+            <ListIcon />
+          </NavLink>
+          <NavLink
+            aria-label={t('nav.settings')}
+            className={({ isActive }) => `nav-icon${isActive ? ' active' : ''}`}
+            title={t('nav.settings')}
+            to="/settings"
+          >
+            <SettingsIcon />
+          </NavLink>
+        </div>
+      </header>
+      <main className="main">{children}</main>
+    </div>
+  );
+};
 
 export default BaseLayout;

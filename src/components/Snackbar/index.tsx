@@ -1,5 +1,6 @@
 import { Alert, Snackbar } from '@mui/material';
 import { useEffect, useState } from 'react';
+import { useLocale } from '../../contexts/LocaleContext';
 
 interface Props {
   notify: number[];
@@ -7,6 +8,7 @@ interface Props {
 }
 
 const CustomizedSnackbar = ({ notify, text }: Props): React.JSX.Element => {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -28,14 +30,14 @@ const CustomizedSnackbar = ({ notify, text }: Props): React.JSX.Element => {
         severity="success"
         variant="filled"
       >
-        {text ?? 'Copied'}
+        {text ?? t('snackbar.copied')}
       </Alert>
     </Snackbar>
   );
 };
 
 CustomizedSnackbar.defaultProps = {
-  text: 'Copied',
+  text: undefined,
 };
 
 export default CustomizedSnackbar;

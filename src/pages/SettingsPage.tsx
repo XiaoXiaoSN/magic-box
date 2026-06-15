@@ -14,18 +14,18 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { patchLocalPrefs, readLocalPrefs } from '@functions/localPrefs';
 import { buildVersion } from '@global/buildInfo';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocale } from '../contexts/LocaleContext';
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { DEFAULT_LOCALE, type Locale } from '../i18n';
 import { boxSources } from '../modules/boxSources';
-
-const PREFS_KEY = 'mb_prefs';
 
 interface Prefs {
   theme: 'light' | 'dark' | 'system';
   density: 'comfortable' | 'compact';
-  locale: 'en' | 'tw';
   copyMode: 'enter' | 'paste' | 'off';
   analytics: boolean;
 }
@@ -33,19 +33,32 @@ interface Prefs {
 const DEFAULT_PREFS: Prefs = {
   theme: 'system',
   density: 'comfortable',
-  locale: 'en',
   copyMode: 'enter',
   analytics: false,
 };
 
+const isTheme = (value: unknown): value is Prefs['theme'] =>
+  value === 'light' || value === 'dark' || value === 'system';
+
+const isDensity = (value: unknown): value is Prefs['density'] =>
+  value === 'comfortable' || value === 'compact';
+
+const isCopyMode = (value: unknown): value is Prefs['copyMode'] =>
+  value === 'enter' || value === 'paste' || value === 'off';
+
 const loadPrefs = (): Prefs => {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) return DEFAULT_PREFS;
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
+  const prefs = readLocalPrefs();
+  return {
+    theme: isTheme(prefs.theme) ? prefs.theme : DEFAULT_PREFS.theme,
+    density: isDensity(prefs.density) ? prefs.density : DEFAULT_PREFS.density,
+    copyMode: isCopyMode(prefs.copyMode)
+      ? prefs.copyMode
+      : DEFAULT_PREFS.copyMode,
+    analytics:
+      typeof prefs.analytics === 'boolean'
+        ? prefs.analytics
+        : DEFAULT_PREFS.analytics,
+  };
 };
 
 const GripIcon = () => (
@@ -73,6 +86,7 @@ interface SortableRowProps {
 }
 
 const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
+  const { t } = useLocale();
   const {
     attributes,
     listeners,
@@ -101,7 +115,7 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       }}
     >
       <button
-        aria-label={`Drag to reorder ${box.id}`}
+        aria-label={t('settings.dragReorderLabel', { name: box.id })}
         className="dnd-grip"
         ref={setActivatorNodeRef}
         type="button"
@@ -119,7 +133,11 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       <span className="dnd-title">{box.id}</span>
       <span className="dnd-kind">{source?.kind ?? ''}</span>
       <button
-        aria-label={box.enabled ? `Disable ${box.id}` : `Enable ${box.id}`}
+        aria-label={
+          box.enabled
+            ? t('settings.disableBoxLabel', { name: box.id })
+            : t('settings.enableBoxLabel', { name: box.id })
+        }
         className={`toggle${box.enabled ? ' on' : ''}`}
         onClick={() => onToggle(box.id)}
         type="button"
@@ -198,17 +216,20 @@ interface ToggleProps {
   label?: string;
 }
 
-const Toggle = ({ checked, onChange, label }: ToggleProps) => (
-  <button
-    aria-label={label ?? 'Toggle'}
-    aria-pressed={checked}
-    className={`toggle${checked ? ' on' : ''}`}
-    onClick={() => onChange(!checked)}
-    type="button"
-  >
-    <span className="toggle-dot" />
-  </button>
-);
+const Toggle = ({ checked, onChange, label }: ToggleProps) => {
+  const { t } = useLocale();
+  return (
+    <button
+      aria-label={label ?? t('settings.toggle')}
+      aria-pressed={checked}
+      className={`toggle${checked ? ' on' : ''}`}
+      onClick={() => onChange(!checked)}
+      type="button"
+    >
+      <span className="toggle-dot" />
+    </button>
+  );
+};
 
 interface SelectProps<T extends string> {
   value: T;
@@ -248,6 +269,7 @@ const Shortcut = ({ keys, label }: { keys: string[]; label: string }) => (
 );
 
 const SettingsPage = (): React.JSX.Element => {
+  const { t, locale, setLocale } = useLocale();
   const { settings, updateSettings } = useSettings();
   const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>([]);
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
@@ -267,7 +289,7 @@ const SettingsPage = (): React.JSX.Element => {
 
   // Persist preferences locally. UI only — behavior wiring is deferred.
   useEffect(() => {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    patchLocalPrefs(prefs);
   }, [prefs]);
 
   const setPref = <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
@@ -325,13 +347,12 @@ const SettingsPage = (): React.JSX.Element => {
   const handleClearLocalData = () => {
     if (
       typeof window !== 'undefined' &&
-      !window.confirm(
-        'Clear all locally saved input, preferences, and order? This cannot be undone.',
-      )
+      !window.confirm(t('settings.clearConfirm'))
     ) {
       return;
     }
-    localStorage.clear();
+    window.localStorage.clear();
+    setLocale(DEFAULT_LOCALE);
     setPrefs(DEFAULT_PREFS);
     handleResetOrder();
   };
@@ -341,16 +362,14 @@ const SettingsPage = (): React.JSX.Element => {
       <div className="page-inner">
         <header className="page-head">
           <div>
-            <h1 className="page-title">Settings</h1>
-            <p className="page-sub">
-              Preferences are saved locally in your browser.
-            </p>
+            <h1 className="page-title">{t('settings.title')}</h1>
+            <p className="page-sub">{t('settings.subtitle')}</p>
           </div>
         </header>
 
         <Section
-          subtitle="Drag to reorder. Matches on the home screen appear in this order. Toggle off to hide a box."
-          title="Box order"
+          subtitle={t('settings.section.boxOrderHint')}
+          title={t('settings.section.boxOrder')}
         >
           <DndContext
             collisionDetection={closestCenter}
@@ -379,111 +398,117 @@ const SettingsPage = (): React.JSX.Element => {
             onClick={handleResetOrder}
             type="button"
           >
-            Reset to default
+            {t('settings.resetOrder')}
           </button>
         </Section>
 
-        <Section title="Appearance">
-          <Field hint="Match your OS or pick a fixed mode." label="Theme">
+        <Section title={t('settings.section.appearance')}>
+          <Field hint={t('settings.themeHint')} label={t('settings.theme')}>
             <Segmented
               onChange={(v) => setPref('theme', v)}
               options={[
-                { value: 'light', label: 'Light' },
-                { value: 'dark', label: 'Dark' },
-                { value: 'system', label: 'System' },
+                { value: 'light', label: t('settings.themeLight') },
+                { value: 'dark', label: t('settings.themeDark') },
+                { value: 'system', label: t('settings.themeSystem') },
               ]}
               value={prefs.theme}
             />
           </Field>
-          <Field hint="Compact fits more boxes per screen." label="Density">
+          <Field hint={t('settings.densityHint')} label={t('settings.density')}>
             <Segmented
               onChange={(v) => setPref('density', v)}
               options={[
-                { value: 'comfortable', label: 'Comfortable' },
-                { value: 'compact', label: 'Compact' },
+                {
+                  value: 'comfortable',
+                  label: t('settings.densityComfortable'),
+                },
+                { value: 'compact', label: t('settings.densityCompact') },
               ]}
               value={prefs.density}
             />
           </Field>
         </Section>
 
-        <Section title="Input &amp; Output">
+        <Section title={t('settings.section.io')}>
           <Field
-            hint="Used for human-readable cron and dates."
-            label="Language"
+            hint={t('settings.languageHint')}
+            label={t('settings.language')}
           >
-            <Select
-              onChange={(v) => setPref('locale', v)}
+            <Select<Locale>
+              onChange={setLocale}
               options={[
-                { value: 'en', label: 'English' },
-                { value: 'tw', label: '繁體中文' },
+                { value: 'en', label: t('settings.langEn') },
+                { value: 'tw', label: t('settings.langTw') },
               ]}
-              value={prefs.locale}
+              value={locale}
             />
           </Field>
           <Field
-            hint="What Enter does when focused on a box."
-            label="Enter behavior"
+            hint={t('settings.enterBehaviorHint')}
+            label={t('settings.enterBehavior')}
           >
             <Segmented
               onChange={(v) => setPref('copyMode', v)}
               options={[
-                { value: 'enter', label: 'Copy' },
-                { value: 'paste', label: 'Copy & paste back' },
-                { value: 'off', label: 'Off' },
+                { value: 'enter', label: t('settings.enterCopy') },
+                { value: 'paste', label: t('settings.enterPaste') },
+                { value: 'off', label: t('settings.enterOff') },
               ]}
               value={prefs.copyMode}
             />
           </Field>
         </Section>
 
-        <Section title="Shortcuts">
+        <Section title={t('settings.section.shortcuts')}>
           <div className="shortcut-list">
-            <Shortcut keys={['⌃', 'N']} label="Next box" />
-            <Shortcut keys={['⌃', '⇧', 'N']} label="Previous box" />
-            <Shortcut keys={['⌃', 'P']} label="Previous box (alt)" />
-            <Shortcut keys={['↵']} label="Copy selected output" />
-            <Shortcut keys={['⌘', '↵']} label="Paste output back into input" />
+            <Shortcut keys={['⌃', 'N']} label={t('settings.shortcutNext')} />
+            <Shortcut
+              keys={['⌃', '⇧', 'N']}
+              label={t('settings.shortcutPrev')}
+            />
+            <Shortcut keys={['⌃', 'P']} label={t('settings.shortcutPrevAlt')} />
+            <Shortcut keys={['↵']} label={t('settings.shortcutCopy')} />
+            <Shortcut keys={['⌘', '↵']} label={t('settings.shortcutPaste')} />
           </div>
         </Section>
 
-        <Section title="Privacy">
+        <Section title={t('settings.section.privacy')}>
           <Field
-            hint="Help improve MagicBox by sharing anonymous box-match stats. Never your input."
-            label="Anonymous usage"
+            hint={t('settings.analyticsHint')}
+            label={t('settings.analytics')}
           >
             <Toggle
               checked={prefs.analytics}
-              label="Anonymous usage"
+              label={t('settings.analytics')}
               onChange={(v) => setPref('analytics', v)}
             />
           </Field>
           <Field
-            hint="Removes saved input, preferences, order and history."
-            label="Clear local data"
+            hint={t('settings.clearDataHint')}
+            label={t('settings.clearData')}
           >
             <button
               className="btn-danger"
               onClick={handleClearLocalData}
               type="button"
             >
-              Clear
+              {t('settings.clear')}
             </button>
           </Field>
         </Section>
 
-        <Section title="About">
+        <Section title={t('settings.section.about')}>
           <div className="about">
             <div className="about-row">
-              <span>Version</span>
+              <span>{t('settings.version')}</span>
               <span className="mono">{buildVersion}</span>
             </div>
             <div className="about-row">
-              <span>License</span>
+              <span>{t('settings.license')}</span>
               <span className="mono">MIT</span>
             </div>
             <div className="about-row">
-              <span>Source</span>
+              <span>{t('settings.source')}</span>
               <a
                 className="about-link"
                 href="https://github.com/XiaoXiaoSN/magic-box"

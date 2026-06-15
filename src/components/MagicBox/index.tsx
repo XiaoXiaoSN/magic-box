@@ -10,6 +10,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import BoxCard from './BoxCard';
 import BoxModal from './BoxModal';
@@ -22,24 +23,21 @@ interface Props {
 }
 
 const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
+  const { t } = useLocale();
   if (trim(input) === '') {
     return (
       <div className="empty" data-testid="magic-box-empty">
         <div aria-hidden="true" className="empty-mark" />
-        <div className="empty-title">Start typing</div>
-        <div className="empty-sub">
-          MagicBox auto-detects formats and shows every useful transformation.
-        </div>
+        <div className="empty-title">{t('magicBox.emptyStartTitle')}</div>
+        <div className="empty-sub">{t('magicBox.emptyStartSub')}</div>
       </div>
     );
   }
   return (
     <div className="empty" data-testid="magic-box-empty">
       <div aria-hidden="true" className="empty-mark" />
-      <div className="empty-title">No matches</div>
-      <div className="empty-sub">
-        Try a different format — JSON, JWT, timestamp, cron, base64, math…
-      </div>
+      <div className="empty-title">{t('magicBox.emptyNoMatchesTitle')}</div>
+      <div className="empty-sub">{t('magicBox.emptyNoMatchesSub')}</div>
     </div>
   );
 };
