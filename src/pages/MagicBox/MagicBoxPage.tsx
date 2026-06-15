@@ -1,7 +1,9 @@
 import MagicBox from '@components/MagicBox';
+import ShareLinkButton from '@components/ShareLinkButton';
+import { buildShareLink } from '@functions/shareLink';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchHistory } from '../../hooks/useSearchHistory';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
+import { useSearchHistory } from '../../hooks/useSearchHistory';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
@@ -32,7 +34,10 @@ const formatRelativeTime = (timestamp: number): string => {
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
-  const [userInput, setUserInput] = useState('');
+  const [userInput, setUserInput] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('input') ?? params.get('i') ?? '';
+  });
   const [magicIn, setMagicIn] = useState('');
   const [resetCounter, setResetCounter] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -42,15 +47,9 @@ const MagicBoxPage = (): React.JSX.Element => {
 
   const { history, addEntry, removeEntry, clearHistory } = useSearchHistory();
 
-  // Hydrate input from query string on first load (?input=... or ?i=...) and
-  // focus the textarea so users can start typing without an extra click.
+  // Focus the textarea on first load so users can start typing without an
+  // extra click.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const seed = params.get('input') ?? params.get('i');
-    if (seed) {
-      setUserInput(seed);
-      if (inputRef.current) inputRef.current.value = seed;
-    }
     inputRef.current?.focus();
   }, []);
 
@@ -108,6 +107,12 @@ const MagicBoxPage = (): React.JSX.Element => {
                 ))}
               </span>
             ) : null}
+            <ShareLinkButton
+              data-testid="copy-share-link"
+              getShareLink={() =>
+                buildShareLink({ input: userInput, pathname: '/' })
+              }
+            />
             <button
               aria-label={historyOpen ? 'Close history' : 'Open history'}
               className={`history-toggle${historyOpen ? ' active' : ''}`}
