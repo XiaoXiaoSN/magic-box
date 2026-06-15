@@ -1,4 +1,6 @@
 import MagicBox from '@components/MagicBox';
+import ShareLinkButton from '@components/ShareLinkButton';
+import { buildShareLink } from '@functions/shareLink';
 import type { BoxSource } from '@modules/BoxSource';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -292,7 +294,10 @@ interface PreviewPaneProps {
 }
 
 const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
-  const [input, setInput] = useState(source.defaultInput ?? '');
+  const [input, setInput] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('input') ?? source.defaultInput ?? '';
+  });
   const [magicIn, setMagicIn] = useState('');
 
   useEffect(() => {
@@ -316,6 +321,16 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
         <span aria-hidden="true" className="dot" />
         <span>Input</span>
         <span className="preview-hint">try your own — it updates live</span>
+        <ShareLinkButton
+          data-testid="copy-tool-share-link"
+          getShareLink={() =>
+            buildShareLink({
+              box: source.name,
+              input,
+              pathname: '/list',
+            })
+          }
+        />
       </div>
       <div className="preview-input-card">
         <textarea
