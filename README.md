@@ -106,6 +106,24 @@ Based on matching methods, we can roughly classify Boxes into two types:
 </details>
 
 <details>
+<summary> <b>HashBox</b> </summary>
+
+| match rule                               | description                           | output           |
+| ---------------------------------------- | ------------------------------------- | ---------------- |
+| contains option `hash`, `sha1`, `sha256`, or `sha512` | compute cryptographic hash of the input | lowercase hex digest |
+
+| options  | description                              | example      |
+| -------- | ---------------------------------------- | ------------ |
+| `hash`   | compute SHA-1, SHA-256, and SHA-512      | `::hash`     |
+| `sha1`   | compute SHA-1 digest                     | `::sha1`     |
+| `sha256` | compute SHA-256 digest                   | `::sha256`   |
+| `sha512` | compute SHA-512 digest                   | `::sha512`   |
+
+MD5 is intentionally omitted — it is not available in Web Crypto, and adding an npm dependency for a broken algorithm is not worthwhile.
+
+</details>
+
+<details>
 <summary> <b>JWTBox</b> </summary>
 
 | match rule       | description                | output                  |

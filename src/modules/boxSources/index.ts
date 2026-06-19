@@ -7,6 +7,7 @@ import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import HashBoxSource from './HashBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
@@ -31,6 +32,7 @@ export const boxSources = [
   DataConverterBoxSource,
   DateCalculateBoxSource,
   GenerateQRCodeBoxSource,
+  HashBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
   MathExpressionBoxSource,
