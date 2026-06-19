@@ -124,6 +124,15 @@ describe('helper functions', () => {
       expect(isRFC3339('invalid-date')).toBe(false);
       expect(isRFC3339('')).toBe(false);
     });
+
+    it('should return false for multi-line input where only one line is a valid RFC3339 date', () => {
+      // the /m flag would make ^ and $ match per-line, causing a false positive here
+      expect(isRFC3339('not a date\n2024-01-01T00:00:00Z')).toBe(false);
+      expect(isRFC3339('2024-01-01T00:00:00Z\nnot a date')).toBe(false);
+      expect(
+        isRFC3339('garbage\n2024-12-15T19:34:57.530+08:00\nmore garbage'),
+      ).toBe(false);
+    });
   });
 
   describe('isBase64', () => {
@@ -139,6 +148,13 @@ describe('helper functions', () => {
       expect(isBase64('hello world')).toBe(false);
       expect(isBase64('SGVsbG8gV29ybGQ')).toBe(false); // Missing padding
       expect(isBase64('SGVsbG8gV29ybGQ===')).toBe(false); // Invalid padding
+    });
+
+    it('should return false for multi-line input where only one line is valid base64', () => {
+      // the /m flag would make ^ and $ match per-line, causing a false positive here
+      expect(isBase64('not base64!!!\nSGVsbG8gV29ybGQ=')).toBe(false);
+      expect(isBase64('SGVsbG8gV29ybGQ=\nnot base64!!!')).toBe(false);
+      expect(isBase64('garbage\ndGVzdA==\nmore garbage')).toBe(false);
     });
   });
 
