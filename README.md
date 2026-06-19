@@ -198,6 +198,24 @@ full design and roadmap, and
 </details>
 
 <details>
+<summary> <b>PasswordBox</b> </summary>
+
+| match rule                                    | description                                        | output |
+| --------------------------------------------- | -------------------------------------------------- | ------ |
+| contains option `password`, `pwd`, or `pass`  | generate 3 secure random password candidates       |        |
+
+| options                    | description                                      | example           |
+| -------------------------- | ------------------------------------------------ | ----------------- |
+| `password`, `pwd`, `pass`  | trigger; optionally set length (`::password=24`) | `::password=24`   |
+| `len`                      | password length (default: 16, range: 4–256)      | `::len=32`        |
+| `nosymbols`                | exclude symbol characters                        | `::nosymbols`     |
+| `nonumbers`                | exclude numeric characters                       | `::nonumbers`     |
+| `nolower`                  | exclude lowercase letters                        | `::nolower`       |
+| `noupper`                  | exclude uppercase letters                        | `::noupper`       |
+
+</details>
+
+<details>
 <summary> <b>ShortenURLBox</b> </summary>
 
 | match rule                          | description            | output                   |

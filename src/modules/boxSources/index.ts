@@ -14,6 +14,7 @@ import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
+import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
@@ -40,6 +41,7 @@ export const boxSources = [
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
+  PasswordBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
   ShortenURLBoxSource,
