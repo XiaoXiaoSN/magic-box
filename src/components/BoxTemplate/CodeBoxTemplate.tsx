@@ -9,15 +9,24 @@ interface HighlighterProps {
   dataTestId?: string;
 }
 
-// dynamic import to reduce bundle size
+// lazy-load the Light build so the highlighter stays out of the main bundle.
+// only the languages actually used by the app are registered, avoiding the
+// 500+ per-language chunks emitted when importing the full build.
 const LazyHighlighter = lazy(async () => {
-  const [highlighterModule, styleModule] = await Promise.all([
-    import('react-syntax-highlighter'),
-    import('react-syntax-highlighter/dist/esm/styles/hljs'),
-  ]);
+  const [{ Light: SyntaxHighlighter }, atomOneLight, json, yaml, xml] =
+    await Promise.all([
+      import('react-syntax-highlighter'),
+      import('react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light'),
+      import('react-syntax-highlighter/dist/esm/languages/hljs/json'),
+      import('react-syntax-highlighter/dist/esm/languages/hljs/yaml'),
+      import('react-syntax-highlighter/dist/esm/languages/hljs/xml'),
+    ]);
 
-  const SyntaxHighlighterComponent = highlighterModule.default;
-  const atomOneLight = styleModule.atomOneLight;
+  SyntaxHighlighter.registerLanguage('json', json.default);
+  SyntaxHighlighter.registerLanguage('yaml', yaml.default);
+  // xml covers HTML as well
+  SyntaxHighlighter.registerLanguage('xml', xml.default);
+  // hljs has no toml grammar; toml output falls back to plaintext highlighting
 
   return {
     default: ({
@@ -26,14 +35,15 @@ const LazyHighlighter = lazy(async () => {
       customStyle,
       dataTestId,
     }: HighlighterProps) => (
-      <SyntaxHighlighterComponent
+      <SyntaxHighlighter
         customStyle={customStyle}
         data-testid={dataTestId}
-        language={language}
-        style={atomOneLight}
+        // map toml to 'plaintext' since hljs has no toml grammar
+        language={language === 'toml' ? 'plaintext' : language}
+        style={atomOneLight.default}
       >
         {children}
-      </SyntaxHighlighterComponent>
+      </SyntaxHighlighter>
     ),
   };
 });
