@@ -45,6 +45,17 @@ Based on matching methods, we can roughly classify Boxes into two types:
 - Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
 
 <details>
+<summary> <b>ColorBox</b> </summary>
+
+| match rule                          | description                                        | example                  |
+| ----------------------------------- | -------------------------------------------------- | ------------------------ |
+| hex color (`#RGB`, `#RRGGBB`, `#RRGGBBAA`) | convert to HEX, RGB, and HSL              | `#ff6347`                |
+| `rgb()` / `rgba()`                  | convert to HEX, RGB, and HSL (alpha preserved)     | `rgb(255, 99, 71)`       |
+| `hsl()` / `hsla()`                  | convert to HEX, RGB, and HSL (alpha preserved)     | `hsl(9, 100%, 64%)`      |
+
+</details>
+
+<details>
 <summary> <b>Base64Box</b> </summary>
 
 | match rule                    | description   | output                     |

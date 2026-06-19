@@ -2,6 +2,7 @@ import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
+import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
@@ -26,6 +27,7 @@ import WordCountBoxSource from './WordCountBoxSource';
 // catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
 // stay below specific matches without needing per-box priority.
 export const boxSources = [
+  ColorBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
   CronExpressionBoxSource,
