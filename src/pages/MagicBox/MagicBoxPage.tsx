@@ -1,5 +1,6 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
+import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -8,19 +9,6 @@ import { useSearchHistory } from '../../hooks/useSearchHistory';
 import type { Translations } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
-
-// Strips inline ::option directives and surfaces them as chips so users can
-// see what flags will be applied without leaving the input.
-const parseOptionsForChips = (input: string) => {
-  const regex = /\n::(\w+)=?(\S*)/gm;
-  const opts: Record<string, string | true> = {};
-  for (const match of input.matchAll(regex)) {
-    const key = match[1].toLowerCase();
-    const value = match[2];
-    opts[key] = value || true;
-  }
-  return opts;
-};
 
 const formatRelativeTime = (
   timestamp: number,
