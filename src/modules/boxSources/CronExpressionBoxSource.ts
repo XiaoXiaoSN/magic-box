@@ -1,5 +1,6 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
+import { getLocale } from '@functions/runtimePrefs';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
@@ -46,7 +47,8 @@ export const CronExpressionBoxSource = {
     }
 
     try {
-      let locale = 'en';
+      // default to the active app locale; an inline `::locale=` option wins.
+      let locale = getLocale();
       if (options !== null) {
         const lang = extractOptionKeys(options, 'l', 'lang', 'locale');
         if (lang !== null && typeof lang === 'string') {

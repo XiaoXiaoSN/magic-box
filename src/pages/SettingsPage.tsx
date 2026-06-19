@@ -14,52 +14,23 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { patchLocalPrefs, readLocalPrefs } from '@functions/localPrefs';
 import { buildVersion } from '@global/buildInfo';
+import env from '@global/env';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
+import {
+  isValidServerUrl,
+  usePreferences,
+} from '../contexts/PreferencesContext';
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
+import {
+  isValidTimezoneOffset,
+  MAX_TIMEZONE_OFFSET,
+  MIN_TIMEZONE_OFFSET,
+} from '../functions/timezone';
 import { DEFAULT_LOCALE, type Locale } from '../i18n';
 import { boxSources } from '../modules/boxSources';
-
-interface Prefs {
-  theme: 'light' | 'dark' | 'system';
-  density: 'comfortable' | 'compact';
-  copyMode: 'enter' | 'paste' | 'off';
-  analytics: boolean;
-}
-
-const DEFAULT_PREFS: Prefs = {
-  theme: 'system',
-  density: 'comfortable',
-  copyMode: 'enter',
-  analytics: false,
-};
-
-const isTheme = (value: unknown): value is Prefs['theme'] =>
-  value === 'light' || value === 'dark' || value === 'system';
-
-const isDensity = (value: unknown): value is Prefs['density'] =>
-  value === 'comfortable' || value === 'compact';
-
-const isCopyMode = (value: unknown): value is Prefs['copyMode'] =>
-  value === 'enter' || value === 'paste' || value === 'off';
-
-const loadPrefs = (): Prefs => {
-  const prefs = readLocalPrefs();
-  return {
-    theme: isTheme(prefs.theme) ? prefs.theme : DEFAULT_PREFS.theme,
-    density: isDensity(prefs.density) ? prefs.density : DEFAULT_PREFS.density,
-    copyMode: isCopyMode(prefs.copyMode)
-      ? prefs.copyMode
-      : DEFAULT_PREFS.copyMode,
-    analytics:
-      typeof prefs.analytics === 'boolean'
-        ? prefs.analytics
-        : DEFAULT_PREFS.analytics,
-  };
-};
 
 const GripIcon = () => (
   <svg
@@ -255,6 +226,35 @@ const Select = <T extends string>({
   </select>
 );
 
+interface TextInputProps {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  invalid?: boolean;
+  ariaLabel: string;
+  inputMode?: 'text' | 'numeric' | 'url';
+}
+
+const TextInput = ({
+  value,
+  onChange,
+  placeholder,
+  invalid,
+  ariaLabel,
+  inputMode = 'text',
+}: TextInputProps) => (
+  <input
+    aria-invalid={invalid ?? false}
+    aria-label={ariaLabel}
+    className={`text-input${invalid ? ' is-invalid' : ''}`}
+    inputMode={inputMode}
+    onChange={(e) => onChange(e.target.value)}
+    placeholder={placeholder}
+    type="text"
+    value={value}
+  />
+);
+
 const Shortcut = ({ keys, label }: { keys: string[]; label: string }) => (
   <div className="shortcut-row">
     <span className="shortcut-label">{label}</span>
@@ -271,8 +271,40 @@ const Shortcut = ({ keys, label }: { keys: string[]; label: string }) => (
 const SettingsPage = (): React.JSX.Element => {
   const { t, locale, setLocale } = useLocale();
   const { settings, updateSettings } = useSettings();
+  const { prefs, setPref, resetPrefs } = usePreferences();
   const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>([]);
-  const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
+  // draft strings let the user type intermediate/invalid values; we only
+  // commit to prefs once the value parses/validates.
+  const [tzDraft, setTzDraft] = useState(String(prefs.timezoneOffset));
+  const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
+  const [shortenDraft, setShortenDraft] = useState(prefs.shortenUrl);
+
+  // resync drafts when prefs change out of band (e.g. clear local data).
+  useEffect(() => {
+    setTzDraft(String(prefs.timezoneOffset));
+    setToolboxDraft(prefs.toolboxUrl);
+    setShortenDraft(prefs.shortenUrl);
+  }, [prefs.timezoneOffset, prefs.toolboxUrl, prefs.shortenUrl]);
+
+  const tzInvalid = (() => {
+    const parsed = Number(tzDraft);
+    return tzDraft.trim() === '' || !isValidTimezoneOffset(parsed);
+  })();
+  const toolboxInvalid = !isValidServerUrl(toolboxDraft);
+  const shortenInvalid = !isValidServerUrl(shortenDraft);
+
+  const commitTimezone = (raw: string) => {
+    const parsed = Number(raw);
+    if (raw.trim() !== '' && isValidTimezoneOffset(parsed)) {
+      setPref('timezoneOffset', parsed);
+    }
+  };
+
+  const commitServerUrl = (key: 'toolboxUrl' | 'shortenUrl', raw: string) => {
+    if (isValidServerUrl(raw)) {
+      setPref(key, raw.trim());
+    }
+  };
 
   const sourceLookup = useMemo(
     () => new Map(boxSources.map((s) => [s.name, s])),
@@ -286,15 +318,6 @@ const SettingsPage = (): React.JSX.Element => {
     );
     setOrderedBoxes(arr);
   }, [settings]);
-
-  // Persist preferences locally. UI only — behavior wiring is deferred.
-  useEffect(() => {
-    patchLocalPrefs(prefs);
-  }, [prefs]);
-
-  const setPref = <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
-    setPrefs((p) => ({ ...p, [key]: value }));
-  };
 
   const persistOrder = (next: BoxSetting[]) => {
     const newSettings: Settings = { ...settings, boxes: { ...settings.boxes } };
@@ -353,7 +376,7 @@ const SettingsPage = (): React.JSX.Element => {
     }
     window.localStorage.clear();
     setLocale(DEFAULT_LOCALE);
-    setPrefs(DEFAULT_PREFS);
+    resetPrefs();
     handleResetOrder();
   };
 
@@ -455,6 +478,60 @@ const SettingsPage = (): React.JSX.Element => {
                 { value: 'off', label: t('settings.enterOff') },
               ]}
               value={prefs.copyMode}
+            />
+          </Field>
+          <Field
+            hint={t('settings.timezoneHint')}
+            label={t('settings.timezone')}
+          >
+            <TextInput
+              ariaLabel={t('settings.timezone')}
+              inputMode="numeric"
+              invalid={tzInvalid}
+              onChange={(v) => {
+                setTzDraft(v);
+                commitTimezone(v);
+              }}
+              placeholder={`${MIN_TIMEZONE_OFFSET}…${MAX_TIMEZONE_OFFSET}`}
+              value={tzDraft}
+            />
+          </Field>
+        </Section>
+
+        <Section
+          subtitle={t('settings.section.serverHint')}
+          title={t('settings.section.server')}
+        >
+          <Field
+            hint={t('settings.toolboxUrlHint')}
+            label={t('settings.toolboxUrl')}
+          >
+            <TextInput
+              ariaLabel={t('settings.toolboxUrl')}
+              inputMode="url"
+              invalid={toolboxInvalid}
+              onChange={(v) => {
+                setToolboxDraft(v);
+                commitServerUrl('toolboxUrl', v);
+              }}
+              placeholder={env.TOOLBOX_URL}
+              value={toolboxDraft}
+            />
+          </Field>
+          <Field
+            hint={t('settings.shortenUrlHint')}
+            label={t('settings.shortenUrl')}
+          >
+            <TextInput
+              ariaLabel={t('settings.shortenUrl')}
+              inputMode="url"
+              invalid={shortenInvalid}
+              onChange={(v) => {
+                setShortenDraft(v);
+                commitServerUrl('shortenUrl', v);
+              }}
+              placeholder={env.SHORTEN_URL}
+              value={shortenDraft}
             />
           </Field>
         </Section>

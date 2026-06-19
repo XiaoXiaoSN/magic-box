@@ -1,5 +1,11 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isNumeric } from '@functions/helper';
+import { getTimezoneOffset } from '@functions/runtimePrefs';
+import {
+  formatOffsetLabel,
+  shiftDateToOffset,
+  toOffsetISOString,
+} from '@functions/timezone';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
@@ -23,7 +29,7 @@ export const TimestampBoxSource = {
       return undefined;
     }
 
-    const twTimezoneOffset = 8 * 60 * 60 * 1000;
+    const offset = getTimezoneOffset();
     const minTimestamp = new Date('1600-01-01T00:00:00');
     const maxTimestamp = new Date('2099-12-31T23:59:59');
 
@@ -43,12 +49,12 @@ export const TimestampBoxSource = {
         // guess the big number is a timestamp in ms, convert ms to sec
         date = new Date(inputNumber);
         if (maxTimestamp >= date && date >= minTimestamp) {
-          return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
+          return { date, twDate: shiftDateToOffset(date, offset) };
         }
         return undefined;
       }
 
-      return { date, twDate: new Date(date.getTime() + twTimezoneOffset) };
+      return { date, twDate: shiftDateToOffset(date, offset) };
     } catch {
       /* */
     }
@@ -63,6 +69,7 @@ export const TimestampBoxSource = {
     }
 
     const { date, twDate } = match;
+    const offset = getTimezoneOffset();
 
     const resp = [];
     if (date.getTime() > 0) {
@@ -77,8 +84,8 @@ export const TimestampBoxSource = {
     if (twDate.getTime() > 0) {
       resp.push(
         new BoxBuilder(
-          'RFC 3339 (UTC+8)',
-          twDate.toISOString().replace('Z', '+08:00'),
+          `RFC 3339 (${formatOffsetLabel(offset)})`,
+          toOffsetISOString(date, offset),
         )
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)

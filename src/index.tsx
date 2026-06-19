@@ -6,7 +6,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
+import { loadPrefs } from './contexts/PreferencesContext';
+import { isAnalyticsEnabled, setRuntimePrefs } from './functions/runtimePrefs';
 import './index.css';
+
+// seed runtime prefs and theme/density before first paint so plain modules
+// (box sources, telemetry gate) read user values and there is no theme flash.
+const initialPrefs = loadPrefs();
+setRuntimePrefs({
+  timezoneOffset: initialPrefs.timezoneOffset,
+  toolboxUrl: initialPrefs.toolboxUrl,
+  shortenUrl: initialPrefs.shortenUrl,
+  analytics: initialPrefs.analytics,
+});
+document.documentElement.dataset.theme = initialPrefs.theme;
+document.documentElement.dataset.density = initialPrefs.density;
 
 // defer firebase init until the browser is idle so the analytics SDK
 // (~150KB gzipped) does not block first paint.
@@ -41,6 +55,12 @@ init({
   sendDefaultPii: true,
   // Enable logs to be sent to Sentry
   _experiments: { enableLogs: true },
+
+  // honor the "anonymous usage" toggle at runtime: drop every event/transaction
+  // unless the user has opted in. reads the live runtime flag so toggling the
+  // setting takes effect without a reload.
+  beforeSend: (event) => (isAnalyticsEnabled() ? event : null),
+  beforeSendTransaction: (event) => (isAnalyticsEnabled() ? event : null),
 });
 
 const root = ReactDOM.createRoot(

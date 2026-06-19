@@ -30,6 +30,17 @@ const zhTW: Translations = {
   'settings.enterCopy': '複製',
   'settings.enterPaste': '複製並貼回',
   'settings.enterOff': '關閉',
+  'settings.timezone': '預設時區',
+  'settings.timezoneHint':
+    '以小時為單位的 UTC 偏移（例如 8），預設套用至時間 Box。',
+  'settings.section.server': '伺服器',
+  'settings.section.serverHint': '覆寫後端主機位址。留空則使用預設值。',
+  'settings.toolboxUrl': 'Toolbox 網址',
+  'settings.toolboxUrlHint':
+    '縮網址 API 的主機位址。必須是有效的 http(s) 網址或留空。',
+  'settings.shortenUrl': '縮網址服務網址',
+  'settings.shortenUrlHint':
+    '提供短連結的主機位址。必須是有效的 http(s) 網址或留空。',
   'settings.section.shortcuts': '快捷鍵',
   'settings.shortcutNext': '下一個 Box',
   'settings.shortcutPrev': '上一個 Box',

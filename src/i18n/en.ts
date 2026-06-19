@@ -28,6 +28,18 @@ const en = {
   'settings.enterCopy': 'Copy',
   'settings.enterPaste': 'Copy & paste back',
   'settings.enterOff': 'Off',
+  'settings.timezone': 'Default timezone',
+  'settings.timezoneHint':
+    'UTC offset in hours (e.g. 8) applied to time boxes by default.',
+  'settings.section.server': 'Server',
+  'settings.section.serverHint':
+    'Override backend hosts. Leave blank to use the defaults.',
+  'settings.toolboxUrl': 'Toolbox URL',
+  'settings.toolboxUrlHint':
+    'Host for the shorten-URL API. Must be a valid http(s) URL or blank.',
+  'settings.shortenUrl': 'Shortener URL',
+  'settings.shortenUrlHint':
+    'Host that serves generated short links. Must be a valid http(s) URL or blank.',
   'settings.section.shortcuts': 'Shortcuts',
   'settings.shortcutNext': 'Next box',
   'settings.shortcutPrev': 'Previous box',

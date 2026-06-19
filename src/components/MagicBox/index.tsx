@@ -12,6 +12,7 @@ import React, {
   useState,
 } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
+import { usePreferences } from '../../contexts/PreferencesContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import BoxCard from './BoxCard';
 import BoxModal from './BoxModal';
@@ -57,6 +58,9 @@ const MagicBox = ({
 
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const { filteredBoxSources } = useSettings();
+  const {
+    prefs: { copyMode },
+  } = usePreferences();
 
   useEffect(() => {
     if (resetTrigger !== undefined) {
@@ -215,6 +219,8 @@ const MagicBox = ({
       }
 
       if (e.key === 'Enter' && !isCtrl) {
+        // honor the configured enter behavior: copy, copy & paste, or off.
+        if (copyMode === 'off') return;
         if (boxes.length === 0) return;
         const selected = boxes[selectedIndex];
         if (!selected) return;
@@ -228,13 +234,16 @@ const MagicBox = ({
         if (stdout) {
           copyText(stdout);
           selected.props.onClick(stdout);
+          if (copyMode === 'paste') {
+            pasteAsInput(stdout);
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [boxes, selectedIndex, copyText, onPasteInput]);
+  }, [boxes, selectedIndex, copyText, onPasteInput, copyMode]);
 
   const setItemRef = useCallback(
     (idx: number) => (el: HTMLDivElement | null) => {
