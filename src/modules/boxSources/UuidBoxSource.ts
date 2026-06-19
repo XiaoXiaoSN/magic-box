@@ -6,6 +6,39 @@ const PriorityUuidBox = 10;
 
 type Match = boolean;
 
+// fallback for non-secure contexts (plain HTTP) where crypto.randomUUID is
+// unavailable — uses getRandomValues when possible for cryptographic quality.
+function generateUuidV4(): string {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return crypto.randomUUID();
+  }
+
+  const bytes = new Uint8Array(16);
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.getRandomValues === 'function'
+  ) {
+    crypto.getRandomValues(bytes);
+  } else {
+    // last-resort fallback when the Web Crypto API is entirely absent
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
+  // set version (4) and variant bits per RFC 4122
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join(
+    '',
+  );
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 export const UuidBoxSource = {
   name: 'UUID',
   description: 'Generate a fresh UUID v4, uppercase optional.',
@@ -34,7 +67,7 @@ export const UuidBoxSource = {
       return [];
     }
 
-    let uuid: string = crypto.randomUUID();
+    let uuid: string = generateUuidV4();
     if (options && (options.uppercase || options.upper)) {
       uuid = uuid.toUpperCase();
     }

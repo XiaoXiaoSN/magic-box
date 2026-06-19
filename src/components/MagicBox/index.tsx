@@ -118,16 +118,22 @@ const MagicBox = ({
     const [input, options] = parseInput(magicIn);
 
     const promises = boxSources.map(async (boxSource) => {
-      const generated = await boxSource.generateBoxes(input, options);
-      // enrich each box with its source's tag/kind so the chrome can render them
-      return generated.map((b) => ({
-        ...b,
-        props: {
-          ...b.props,
-          tag: b.props.tag ?? boxSource.tag,
-          kind: b.props.kind ?? boxSource.kind,
-        },
-      }));
+      // isolate each source so one failure never suppresses results from others
+      try {
+        const generated = await boxSource.generateBoxes(input, options);
+        // enrich each box with its source's tag/kind so the chrome can render them
+        return generated.map((b) => ({
+          ...b,
+          props: {
+            ...b.props,
+            tag: b.props.tag ?? boxSource.tag,
+            kind: b.props.kind ?? boxSource.kind,
+          },
+        }));
+      } catch (err) {
+        console.error(`[MagicBox] boxSource "${boxSource.name}" threw:`, err);
+        return [];
+      }
     });
 
     Promise.all(promises).then((resultBoxes) => {
