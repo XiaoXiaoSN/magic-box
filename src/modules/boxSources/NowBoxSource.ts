@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { getTimezoneOffset } from '@functions/runtimePrefs';
 import {
@@ -55,7 +54,6 @@ export const NowBoxSource = {
     const offset = getTimezoneOffset();
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
@@ -63,12 +61,10 @@ export const NowBoxSource = {
         `RFC 3339 (${formatOffsetLabel(offset)})`,
         toOffsetISOString(date, offset),
       )
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
       new BoxBuilder('Timestamp (s)', (timestamp / 1000).toString())
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isNumeric } from '@functions/helper';
 import { getTimezoneOffset } from '@functions/runtimePrefs';
 import {
@@ -75,7 +74,6 @@ export const TimestampBoxSource = {
     if (date.getTime() > 0) {
       resp.push(
         new BoxBuilder('RFC 3339', date.toISOString())
-          .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -87,7 +85,6 @@ export const TimestampBoxSource = {
           `RFC 3339 (${formatOffsetLabel(offset)})`,
           toOffsetISOString(date, offset),
         )
-          .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

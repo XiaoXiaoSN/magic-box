@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { CronExpressionBoxSource } from '../CronExpressionBoxSource';
@@ -48,7 +47,7 @@ describe('CronExpressionBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Cron Expression');
       expect(boxes[0].props.plaintextOutput).toBe('Every minute');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBeUndefined();
     });
   });
 });

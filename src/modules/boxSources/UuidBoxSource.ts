@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
@@ -74,7 +73,6 @@ export const UuidBoxSource = {
 
     return [
       new BoxBuilder('UUID', uuid)
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

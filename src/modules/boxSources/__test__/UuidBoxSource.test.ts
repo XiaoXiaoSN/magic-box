@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { afterEach, expect, vi } from 'vitest';
 
 import { UuidBoxSource } from '../UuidBoxSource';
@@ -46,7 +45,7 @@ describe('UuidBoxSource', () => {
       expect(box.props.name).toBe('UUID');
       expect(box.props.plaintextOutput).toMatch(validUUIDv4Regex);
       expect(box.props.plaintextOutput.length).toBe(36);
-      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBeUndefined();
     });
 
     it('should generate different UUIDs for each call', async () => {

@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
@@ -106,7 +105,6 @@ export const ReadableBytesBoxSource = {
     const { decodedText } = match;
     return [
       new BoxBuilder('ByteArray to String', decodedText)
-        .setTemplate(DefaultBoxTemplate)
         .setPriority(this.priority)
         .build(),
     ];

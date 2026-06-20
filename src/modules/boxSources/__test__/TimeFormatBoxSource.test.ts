@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { TimeFormatBoxSource } from '../TimeFormatBoxSource';
@@ -45,13 +44,13 @@ describe('TimeFormatBoxSource', () => {
       expect(boxes[0].props.name).toBe('timestamp (s)');
       expect(boxes[0].props.plaintextOutput).toBe('1734262497.53');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBeUndefined();
 
       // timestamp (ms) box
       expect(boxes[1].props.name).toBe('timestamp (ms)');
       expect(boxes[1].props.plaintextOutput).toBe('1734262497530');
       expect(boxes[1].props.priority).toBe(10);
-      expect(boxes[1].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[1].boxTemplate).toBeUndefined();
     });
   });
 });
