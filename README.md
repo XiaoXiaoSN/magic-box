@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>NumberFormatBox</b> </summary>
+
+| match rule     | description                                    | example                |
+| -------------- | ---------------------------------------------- | ---------------------- |
+| `::numformat`  | grouped, compact, and scientific number formats | `1234567.89 ::numformat` |
+
+</details>
+
+<details>
+<summary> <b>PasswordStrengthBox</b> </summary>
+
+| match rule    | description                              | example               |
+| ------------- | ---------------------------------------- | --------------------- |
+| `::strength`  | estimate password entropy bits + rating  | `Tr0ub4dour ::strength` |
+
+</details>
+
+<details>
+<summary> <b>IPv6Box</b> </summary>
+
+| match rule | description                       | example            |
+| ---------- | --------------------------------- | ------------------ |
+| `::ipv6`   | expand and compress an IPv6 address (RFC 5952) | `2001:db8::1 ::ipv6` |
+
+</details>
+
+<details>
+<summary> <b>HttpHeadersBox</b> </summary>
+
+| match rule   | description                          | example                                  |
+| ------------ | ------------------------------------ | ---------------------------------------- |
+| `::headers`  | parse a raw HTTP header block        | `Content-Type: application/json ::headers` |
+
+</details>
+
+<details>
+<summary> <b>EmailParseBox</b> </summary>
+
+| match rule | description                                 | example                       |
+| ---------- | ------------------------------------------- | ----------------------------- |
+| `::email`  | validate + split local/domain/TLD/tag       | `john+news@mail.example.com ::email` |
+
+</details>
+
+<details>
+<summary> <b>WhitespaceCleanBox</b> </summary>
+
+| match rule | description                                       | example              |
+| ---------- | ------------------------------------------------- | -------------------- |
+| `::clean`  | trim lines, collapse whitespace, drop blank lines | `  a   b  ::clean`   |
+
+</details>
+
+<details>
+<summary> <b>UuidV7Box</b> </summary>
+
+| match rule  | description                              | example       |
+| ----------- | ---------------------------------------- | ------------- |
+| `::uuidv7`  | generate a time-ordered UUID v7 (RFC 9562) | `::uuidv7`   |
+
+</details>
+
+<details>
+<summary> <b>MarkdownTableBox</b> </summary>
+
+| match rule   | description                                  | example                       |
+| ------------ | -------------------------------------------- | ----------------------------- |
+| `::mdtable`  | convert CSV or a JSON array to a Markdown table | `name,age\nAlice,30 ::mdtable` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
