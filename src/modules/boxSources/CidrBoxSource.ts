@@ -115,7 +115,7 @@ export const CidrBoxSource = {
       new BoxBuilder('CIDR', '')
         .setOptions(options)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

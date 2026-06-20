@@ -17,12 +17,14 @@ function rotateChar(ch: string, shift: number): string {
   return ch;
 }
 
-// applies a caesar shift to every character of the input string
+// applies a caesar shift to every character of the input string;
+// accumulates char-by-char to avoid a full intermediate array allocation
 function caesarShift(text: string, shift: number): string {
-  return text
-    .split('')
-    .map((ch) => rotateChar(ch, shift))
-    .join('');
+  let out = '';
+  for (const ch of text) {
+    out += rotateChar(ch, shift);
+  }
+  return out;
 }
 
 export const CaesarCipherBoxSource = {

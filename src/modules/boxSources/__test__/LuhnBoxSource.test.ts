@@ -75,5 +75,15 @@ describe('LuhnBoxSource', () => {
         Brand: 'Discover',
       });
     });
+
+    it('detects 2-series Mastercard at both range bounds (2221-2720)', async () => {
+      for (const num of ['2221000000000009', '2720000000000005']) {
+        const boxes = await LuhnBoxSource.generateBoxes(num, { luhn: true });
+        expect(boxes[0].props.options).toMatchObject({
+          Valid: 'true',
+          Brand: 'Mastercard',
+        });
+      }
+    });
   });
 });

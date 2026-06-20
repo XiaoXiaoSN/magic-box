@@ -6,6 +6,9 @@ const Priority = 10;
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
+// char → 5-bit value, built once for an O(1) decode lookup
+const DECODE_MAP = new Map([...ALPHABET].map((ch, i) => [ch, i]));
+
 // encodes raw bytes to RFC 4648 Base32 with padding
 function encodeBytes(bytes: Uint8Array): string {
   let bits = 0;
@@ -33,27 +36,29 @@ function encodeBytes(bytes: Uint8Array): string {
   return output;
 }
 
-// decodes a RFC 4648 Base32 string to raw bytes; returns null on invalid input
+// decodes a RFC 4648 Base32 string to raw bytes in a single pass; returns null
+// on an invalid character or non-zero padding bits (RFC 4648 §6)
 function decodeToBytes(input: string): Uint8Array | null {
   const normalized = input.replace(/\s/g, '').toUpperCase().replace(/=+$/, '');
-
-  for (const ch of normalized) {
-    if (!ALPHABET.includes(ch)) {
-      return null;
-    }
-  }
 
   const bytes: number[] = [];
   let bits = 0;
   let value = 0;
 
   for (const ch of normalized) {
-    value = (value << 5) | ALPHABET.indexOf(ch);
+    const idx = DECODE_MAP.get(ch);
+    if (idx === undefined) return null;
+    value = (value << 5) | idx;
     bits += 5;
     if (bits >= 8) {
       bits -= 8;
       bytes.push((value >>> bits) & 0xff);
     }
+  }
+
+  // the leftover low bits must be zero, otherwise the input is malformed
+  if (bits > 0 && (value & ((1 << bits) - 1)) !== 0) {
+    return null;
   }
 
   return new Uint8Array(bytes);

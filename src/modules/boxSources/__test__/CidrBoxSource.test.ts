@@ -87,4 +87,15 @@ describe('CidrBoxSource', () => {
       expect(boxes).toHaveLength(1);
     });
   });
+
+  describe('generateBoxes — /0 default route', () => {
+    it('computes the all-internet subnet (guards the 32-bit shift edge case)', async () => {
+      const boxes = await CidrBoxSource.generateBoxes('0.0.0.0/0');
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Netmask).toBe('0.0.0.0');
+      expect(opts.Wildcard).toBe('255.255.255.255');
+      expect(opts['Total Addresses']).toBe('4294967296');
+    });
+  });
 });

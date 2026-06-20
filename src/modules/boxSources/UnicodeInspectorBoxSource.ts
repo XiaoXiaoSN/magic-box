@@ -6,6 +6,9 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_CHARS = 256;
 
+// reused across the per-character utf-8 lookups
+const ENCODER = new TextEncoder();
+
 // format a code point as U+XXXX (uppercase, minimum 4 hex digits)
 function formatCodePoint(cp: number): string {
   return `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`;
@@ -13,7 +16,7 @@ function formatCodePoint(cp: number): string {
 
 // encode a single code point's UTF-8 bytes as space-separated lowercase 2-digit hex
 function utf8Hex(ch: string): string {
-  return Array.from(new TextEncoder().encode(ch))
+  return Array.from(ENCODER.encode(ch))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join(' ');
 }

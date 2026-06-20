@@ -25,6 +25,9 @@ function fromCelsius(c: number): {
 
 const INPUT_REGEX = /^(-?\d+(?:\.\d+)?)\s*([cCfFkK])?$/;
 
+// absolute zero in celsius; nothing colder is physically meaningful
+const ABSOLUTE_ZERO_C = -273.15;
+
 export const TemperatureBoxSource = {
   name: 'Temperature',
   description:
@@ -63,6 +66,9 @@ export const TemperatureBoxSource = {
       celsius = value;
     }
 
+    // reject temperatures below absolute zero (physically impossible)
+    if (celsius < ABSOLUTE_ZERO_C) return [];
+
     const { celsius: c, fahrenheit: f, kelvin: k } = fromCelsius(celsius);
 
     const kvOptions: Record<string, string> = {
@@ -75,7 +81,7 @@ export const TemperatureBoxSource = {
       new BoxBuilder('Temperature', '')
         .setOptions(kvOptions)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

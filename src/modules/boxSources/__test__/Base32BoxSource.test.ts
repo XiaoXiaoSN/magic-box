@@ -110,6 +110,15 @@ describe('Base32BoxSource', () => {
       });
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
     });
+
+    it('rejects non-zero padding bits per RFC 4648 §6 (AR====== )', async () => {
+      // 'AQ======' is the canonical encoding of byte 0x04; 'AR======' carries
+      // the same bytes but with dirty padding bits and must not decode
+      const boxes = await Base32BoxSource.generateBoxes('AR======', {
+        base32decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
+    });
   });
 
   describe('generateBoxes - encode and decode together', () => {
