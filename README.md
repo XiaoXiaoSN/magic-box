@@ -297,6 +297,82 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>CaseConverterBox</b> </summary>
+
+| match rule | description                                                                                          | example                       |
+| ---------- | --------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `::case`   | convert text to camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, Title/Sentence | `hello world foo bar ::case` |
+
+</details>
+
+<details>
+<summary> <b>HtmlEntityBox</b> </summary>
+
+| match rule       | description                                  | example                                  |
+| ---------------- | -------------------------------------------- | ---------------------------------------- |
+| `::htmlencode`   | encode text to HTML entities                 | `<div>Tom & Jerry</div> ::htmlencode`    |
+| `::htmldecode`   | decode HTML entities (named + numeric)       | `&lt;b&gt;hi&lt;/b&gt; ::htmldecode`     |
+| `::htmlentity`   | show both encode and decode                  | `<a> ::htmlentity`                       |
+
+</details>
+
+<details>
+<summary> <b>NumberBaseBox</b> </summary>
+
+| match rule | description                                            | example          |
+| ---------- | ----------------------------------------------------- | ---------------- |
+| `::base`   | show integer in decimal, hex, octal, binary (BigInt)  | `255 ::base`, `0xff ::base` |
+
+</details>
+
+<details>
+<summary> <b>LoremIpsumBox</b> </summary>
+
+| match rule    | description                          | example         |
+| ------------- | ------------------------------------ | --------------- |
+| `::lorem`     | generate N paragraphs (default 3)    | `::lorem=2`     |
+| `::words`     | generate N words                     | `::words=5`     |
+
+</details>
+
+<details>
+<summary> <b>SlugifyBox</b> </summary>
+
+| match rule | description                                            | example                       |
+| ---------- | ----------------------------------------------------- | ----------------------------- |
+| `::slug`   | lowercase hyphenated URL slug, diacritics removed     | `Héllo World! Foo_Bar ::slug` |
+
+</details>
+
+<details>
+<summary> <b>RomanNumeralBox</b> </summary>
+
+| match rule | description                                       | example         |
+| ---------- | ------------------------------------------------- | --------------- |
+| `::roman`  | integer (1-3999) ⇄ Roman numeral, auto-direction  | `2024 ::roman`, `MMXXIV ::roman` |
+
+</details>
+
+<details>
+<summary> <b>ChmodBox</b> </summary>
+
+| match rule | description                                          | example                  |
+| ---------- | --------------------------------------------------- | ------------------------ |
+| `::chmod`  | Unix permissions octal ⇄ symbolic (incl. special bits) | `755 ::chmod`, `rwxr-xr-x ::chmod` |
+
+</details>
+
+<details>
+<summary> <b>MorseCodeBox</b> </summary>
+
+| match rule       | description                  | example                    |
+| ---------------- | ---------------------------- | -------------------------- |
+| `::morse`        | encode text to Morse code    | `SOS ::morse`              |
+| `::morsedecode`  | decode Morse code to text    | `... --- ... ::morsedecode` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
