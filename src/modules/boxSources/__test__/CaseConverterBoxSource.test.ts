@@ -75,6 +75,35 @@ describe('CaseConverterBoxSource', () => {
       expect(opts.CONSTANT_CASE).toBe('HELLO_WORLD_FOO');
     });
 
+    it('splits acronym boundaries (XMLParser, myHTTPSClient)', async () => {
+      const xml = await CaseConverterBoxSource.generateBoxes('XMLParser', {
+        case: true,
+      });
+      expect((xml[0].props.options as Record<string, string>).camelCase).toBe(
+        'xmlParser',
+      );
+
+      const https = await CaseConverterBoxSource.generateBoxes(
+        'myHTTPSClient',
+        {
+          case: true,
+        },
+      );
+      expect((https[0].props.options as Record<string, string>).camelCase).toBe(
+        'myHttpsClient',
+      );
+    });
+
+    it('tokenizes a long uppercase run in linear time (ReDoS guard)', async () => {
+      // the old /([A-Z]+)([A-Z][a-z])/g regex took ~7s on 100k uppercase chars;
+      // the lookahead form is linear, so this resolves well under the test timeout
+      const boxes = await CaseConverterBoxSource.generateBoxes(
+        `${'A'.repeat(100_000)}b`,
+        { case: true },
+      );
+      expect(boxes).toHaveLength(1);
+    });
+
     it('plaintextOutput lists all conversions as key: value lines', async () => {
       const boxes = await CaseConverterBoxSource.generateBoxes('hello world', {
         case: true,

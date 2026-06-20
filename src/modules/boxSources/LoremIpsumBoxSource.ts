@@ -136,7 +136,7 @@ export const LoremIpsumBoxSource = {
     return [
       new BoxBuilder('Lorem Ipsum', output)
         .setTemplate(CodeBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

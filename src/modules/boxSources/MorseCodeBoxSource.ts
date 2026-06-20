@@ -119,7 +119,7 @@ export const MorseCodeBoxSource = {
         new BoxBuilder('Morse Code (Encode)', encode(input))
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       );
     }
@@ -129,7 +129,7 @@ export const MorseCodeBoxSource = {
         new BoxBuilder('Morse Code (Decode)', decode(input))
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       );
     }

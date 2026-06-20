@@ -16,15 +16,21 @@ export async function runBoxes(
 
   const grouped = await Promise.all(
     sources.map(async (source) => {
-      const generated = await source.generateBoxes(input, options);
-      return generated.map((box) => ({
-        ...box,
-        props: {
-          ...box.props,
-          tag: box.props.tag ?? source.tag,
-          kind: box.props.kind ?? source.kind,
-        },
-      }));
+      // isolate each source like the web pipeline: a throwing source must not
+      // wipe out every other source's output
+      try {
+        const generated = await source.generateBoxes(input, options);
+        return generated.map((box) => ({
+          ...box,
+          props: {
+            ...box.props,
+            tag: box.props.tag ?? source.tag,
+            kind: box.props.kind ?? source.kind,
+          },
+        }));
+      } catch {
+        return [];
+      }
     }),
   );
 

@@ -27,7 +27,7 @@ function decodeHtml(input: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&apos;/g, "'")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) =>
+    .replace(/&#[xX]([0-9a-fA-F]+);/g, (match, hex) =>
       fromCodePointSafe(Number.parseInt(hex, 16), match),
     )
     .replace(/&#(\d+);/g, (match, dec) =>

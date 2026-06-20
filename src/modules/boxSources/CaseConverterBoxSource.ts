@@ -10,8 +10,10 @@ function tokenize(input: string): string[] {
   // insert a space before every uppercase letter that follows a lowercase letter or digit (camelCase boundary)
   const expanded = input
     .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-    // insert a space before a run of uppercase letters followed by a lowercase letter (e.g. XMLParser → XML Parser)
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+    // split an acronym from a following word (XMLParser → XML Parser); the
+    // fixed-width lookahead avoids the catastrophic backtracking that
+    // `([A-Z]+)([A-Z][a-z])` exhibits on long uppercase runs (ReDoS)
+    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ');
 
   return expanded
     .split(/[\s\-_.]+/)

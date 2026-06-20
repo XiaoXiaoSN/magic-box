@@ -73,7 +73,7 @@ export const RomanNumeralBoxSource = {
       return [
         new BoxBuilder('Roman Numeral', roman)
           .setTemplate(DefaultBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -86,7 +86,7 @@ export const RomanNumeralBoxSource = {
       return [
         new BoxBuilder('Roman Numeral', String(n))
           .setTemplate(DefaultBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }

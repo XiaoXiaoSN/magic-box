@@ -13,6 +13,10 @@ function parseIntegerInput(raw: string): bigint | null {
   const negative = s.startsWith('-');
   const abs = negative ? s.slice(1) : s;
 
+  // bound the digit count: BigInt parse/format is O(n^2) for non-power-of-two
+  // bases, so an unbounded string would freeze the main thread (DoS)
+  if (abs.length > 1024) return null;
+
   // BigInt() treats a leading zero as decimal, so rewrite classic C-style octal
   // (e.g. 0755) to the explicit 0o form before parsing
   const normalized = /^0[0-7]+$/.test(abs) ? `0o${abs.slice(1)}` : abs;

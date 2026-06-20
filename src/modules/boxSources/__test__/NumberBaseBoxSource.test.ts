@@ -88,6 +88,13 @@ describe('NumberBaseBoxSource', () => {
     expect(opts.Hexadecimal).toBe('0x1ed');
   });
 
+  it('rejects oversized input to avoid quadratic BigInt work (DoS guard)', async () => {
+    const boxes = await NumberBaseBoxSource.generateBoxes('9'.repeat(2000), {
+      base: true,
+    });
+    expect(boxes).toHaveLength(0);
+  });
+
   it('handles zero', async () => {
     const boxes = await NumberBaseBoxSource.generateBoxes('0', { base: true });
     const opts = boxes[0].props.options as Record<string, string>;

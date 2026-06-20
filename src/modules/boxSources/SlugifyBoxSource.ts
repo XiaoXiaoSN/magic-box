@@ -5,10 +5,11 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
-// unicode combining marks range (diacritics produced by NFKD decomposition)
-const COMBINING_MARKS = /[̀-ͯ]/g;
+// every nonspacing combining mark (diacritics produced by NFKD decomposition);
+// \p{Mn} covers Latin, Greek, Cyrillic and the extended/supplement blocks
+const COMBINING_MARKS = /\p{Mn}/gu;
 
-/** converts text to a lowercase, hyphen-separated URL slug with diacritics removed */
+// converts text to a lowercase, hyphen-separated URL slug with diacritics removed
 function slugify(input: string): string {
   return input
     .normalize('NFKD')
