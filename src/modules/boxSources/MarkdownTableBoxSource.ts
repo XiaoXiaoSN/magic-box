@@ -63,10 +63,9 @@ function buildMarkdownTable(headers: string[], rows: string[][]): string {
   return [headerRow, separatorRow, ...dataRows].join('\n');
 }
 
-function buildErrorBox(options: BoxOptions): Box {
+function buildErrorBox(): Box {
   return new BoxBuilder('Markdown Table', 'Error: could not parse input.')
     .setTemplate(CodeBoxTemplate)
-    .setOptions(options)
     .setPriority(Priority)
     .build();
 }
@@ -97,7 +96,7 @@ export const MarkdownTableBoxSource = {
       try {
         parsed = JSON.parse(trimmed);
       } catch {
-        return [buildErrorBox(options)];
+        return [buildErrorBox()];
       }
 
       if (
@@ -106,7 +105,7 @@ export const MarkdownTableBoxSource = {
         typeof parsed[0] !== 'object' ||
         parsed[0] === null
       ) {
-        return [buildErrorBox(options)];
+        return [buildErrorBox()];
       }
 
       // collect headers in first-seen order across all objects
@@ -127,10 +126,10 @@ export const MarkdownTableBoxSource = {
     } else {
       // parse as CSV
       const lines = trimmed.split('\n').filter((l) => l.trim() !== '');
-      if (lines.length < 1) return [buildErrorBox(options)];
+      if (lines.length < 1) return [buildErrorBox()];
 
       const headerLine = parseCsvRow(lines[0]);
-      if (headerLine.length === 0) return [buildErrorBox(options)];
+      if (headerLine.length === 0) return [buildErrorBox()];
 
       headers = headerLine;
       rows = lines.slice(1).map((line) => {
@@ -141,16 +140,15 @@ export const MarkdownTableBoxSource = {
       });
     }
 
-    if (rows.length === 0) return [buildErrorBox(options)];
+    if (rows.length === 0) return [buildErrorBox()];
 
     const output = buildMarkdownTable(headers, rows);
 
     return [
       new BoxBuilder('Markdown Table', output)
         .setTemplate(CodeBoxTemplate)
-        .setOptions(options)
         .setShowExpandButton(true)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

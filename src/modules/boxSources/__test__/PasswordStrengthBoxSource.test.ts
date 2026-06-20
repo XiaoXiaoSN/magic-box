@@ -44,8 +44,8 @@ describe('PasswordStrengthBoxSource', () => {
     });
     expect(boxes).toHaveLength(1);
     const opts = boxes[0].props.options as Record<string, string>;
-    // lowercase(26) + uppercase(26) + digits(10) + symbols(33) = 95
-    expect(opts['Charset Size']).toBe('95');
+    // lowercase(26) + uppercase(26) + digits(10) + symbols(32) = 94
+    expect(opts['Charset Size']).toBe('94');
     expect(opts.Length).toBe('4');
   });
 

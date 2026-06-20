@@ -83,4 +83,19 @@ describe('IPv6BoxSource', () => {
     expect(boxes[0].props.name).toBe('IPv6');
     expect(boxes[0].props.priority).toBe(20);
   });
+
+  it('rejects :: that represents zero groups (RFC 4291)', async () => {
+    // both halves already total 8 groups, so :: stands for nothing — invalid
+    for (const bad of ['1:2:3:4:5:6:7:8::', '1:2:3:4:5:6::7:8']) {
+      const boxes = await IPv6BoxSource.generateBoxes(bad, { ipv6: true });
+      expect(boxes).toHaveLength(0);
+    }
+  });
+
+  it('handles :: (unspecified address)', async () => {
+    const boxes = await IPv6BoxSource.generateBoxes('::', { ipv6: true });
+    const opts = boxes[0].props.options as Record<string, string>;
+    expect(opts.Expanded).toBe('0000:0000:0000:0000:0000:0000:0000:0000');
+    expect(opts.Compressed).toBe('::');
+  });
 });

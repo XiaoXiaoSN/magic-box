@@ -10,8 +10,8 @@ const MAX_INPUT = 10_000;
 const POOL_LOWERCASE = 26;
 const POOL_UPPERCASE = 26;
 const POOL_DIGITS = 10;
-// printable ASCII symbols: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ (33 chars)
-const POOL_SYMBOLS = 33;
+// printable ASCII symbols: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ (32 chars)
+const POOL_SYMBOLS = 32;
 // conservative estimate for non-ASCII characters (e.g. unicode, emoji)
 const POOL_NON_ASCII = 100;
 

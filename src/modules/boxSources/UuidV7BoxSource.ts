@@ -9,13 +9,15 @@ const Priority = 10;
 function generateUuidV7(): string {
   const bytes = new Uint8Array(16);
 
-  // embed the current time in the high 48 bits (bytes 0-5)
+  // embed the current time in the high 48 bits (bytes 0-5), most significant
+  // first; Math.floor keeps the byte extraction explicit (values exceed int32,
+  // so a bare `& 0xff` would rely on ToInt32 wrapping)
   const now = Date.now();
-  bytes[0] = (now / 0x10000000000) & 0xff;
-  bytes[1] = (now / 0x100000000) & 0xff;
-  bytes[2] = (now / 0x1000000) & 0xff;
-  bytes[3] = (now / 0x10000) & 0xff;
-  bytes[4] = (now / 0x100) & 0xff;
+  bytes[0] = Math.floor(now / 0x10000000000) & 0xff;
+  bytes[1] = Math.floor(now / 0x100000000) & 0xff;
+  bytes[2] = Math.floor(now / 0x1000000) & 0xff;
+  bytes[3] = Math.floor(now / 0x10000) & 0xff;
+  bytes[4] = Math.floor(now / 0x100) & 0xff;
   bytes[5] = now & 0xff;
 
   // fill bytes 6-15 with random data

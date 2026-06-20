@@ -20,8 +20,10 @@ function expandIPv6(address: string): string | null {
     left = halves[0] ? halves[0].split(':') : [];
     right = halves[1] ? halves[1].split(':') : [];
 
+    // a "::" must stand for at least one zero group (RFC 4291 §2.2), so the two
+    // halves cannot already total 8 groups
     const missing = 8 - left.length - right.length;
-    if (missing < 0) return null;
+    if (missing < 1) return null;
 
     const middle = Array(missing).fill('0000');
     const groups = [...left, ...middle, ...right];

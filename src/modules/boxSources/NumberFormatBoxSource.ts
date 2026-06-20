@@ -24,6 +24,8 @@ export const NumberFormatBoxSource = {
     if (!hasOptionKeys(options, 'numformat', 'numfmt')) return [];
 
     const raw = trim(input);
+    // no legitimate number literal is this long; bound regex + Intl work
+    if (raw.length > 100) return [];
     if (!numberPattern.test(raw)) return [];
 
     const n = Number.parseFloat(raw);
