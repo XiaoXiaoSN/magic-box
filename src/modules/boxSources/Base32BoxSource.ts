@@ -6,6 +6,9 @@ const Priority = 10;
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
+// bound synchronous work; input is seeded from a ?input= url param with no cap
+const MAX_INPUT = 100_000;
+
 // char → 5-bit value, built once for an O(1) decode lookup
 const DECODE_MAP = new Map([...ALPHABET].map((ch, i) => [ch, i]));
 
@@ -40,6 +43,10 @@ function encodeBytes(bytes: Uint8Array): string {
 // on an invalid character or non-zero padding bits (RFC 4648 §6)
 function decodeToBytes(input: string): Uint8Array | null {
   const normalized = input.replace(/\s/g, '').toUpperCase().replace(/=+$/, '');
+
+  // valid base32 quanta leave 0/2/4/5/7 chars; 1/3/6 cannot form whole bytes
+  const remainder = normalized.length % 8;
+  if (remainder === 1 || remainder === 3 || remainder === 6) return null;
 
   const bytes: number[] = [];
   let bits = 0;
@@ -79,6 +86,7 @@ export const Base32BoxSource = {
     const wantEncode = hasOptionKeys(options, 'base32', 'base32encode');
     const wantDecode = hasOptionKeys(options, 'base32decode');
     if (!wantEncode && !wantDecode) return [];
+    if (input.length > MAX_INPUT) return [];
 
     const boxes: Box[] = [];
 

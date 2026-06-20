@@ -5,6 +5,9 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
+// bound synchronous work; input is seeded from a ?input= url param with no cap
+const MAX_INPUT = 100_000;
+
 // rotates a single ASCII letter by shift positions, preserving case; non-letters pass through unchanged
 function rotateChar(ch: string, shift: number): string {
   const code = ch.charCodeAt(0);
@@ -42,6 +45,7 @@ export const CaesarCipherBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'rot13', 'caesar')) return [];
     if (!isString(input) || input.length === 0) return [];
+    if (input.length > MAX_INPUT) return [];
 
     // rot13 always wins; otherwise parse the caesar= value
     let shift: number;

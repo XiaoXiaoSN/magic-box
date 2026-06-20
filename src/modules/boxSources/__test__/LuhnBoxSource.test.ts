@@ -85,5 +85,22 @@ describe('LuhnBoxSource', () => {
         });
       }
     });
+
+    it('detects Discover in the 622126-622925 IIN range', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('6222000000000009', {
+        luhn: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Valid: 'true',
+        Brand: 'Discover',
+      });
+    });
+
+    it('rejects digit strings longer than 30 (no real card is that long)', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('1'.repeat(40), {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(0);
+    });
   });
 });

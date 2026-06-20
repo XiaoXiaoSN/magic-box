@@ -44,6 +44,8 @@ export const TemperatureBoxSource = {
     if (!hasOptionKeys(options, 'temp', 'temperature')) return [];
 
     const trimmed = trim(input);
+    // no valid temperature string is this long; bound regex work
+    if (trimmed.length > 50) return [];
     const match = INPUT_REGEX.exec(trimmed);
     if (!match) return [];
 

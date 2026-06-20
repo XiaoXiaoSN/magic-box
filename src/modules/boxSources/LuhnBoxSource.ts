@@ -34,10 +34,12 @@ const BRAND_RULES: BrandRule[] = [
       const prefix4 = d.slice(0, 4);
       const prefix3 = d.slice(0, 3);
       const prefix2 = d.slice(0, 2);
+      const prefix6 = Number.parseInt(d.slice(0, 6), 10);
       return (
         prefix4 === '6011' ||
         prefix2 === '65' ||
-        (prefix3 >= '644' && prefix3 <= '649')
+        (prefix3 >= '644' && prefix3 <= '649') ||
+        (prefix6 >= 622126 && prefix6 <= 622925)
       );
     },
   },
@@ -89,8 +91,10 @@ export const LuhnBoxSource = {
 
     const digits = trim(input).replace(/[\s-]/g, '');
 
-    // require all digits and minimum viable length
-    if (digits.length < 2 || !/^\d+$/.test(digits)) return [];
+    // no real card number exceeds 19 digits; the 30-cap also bounds work
+    if (digits.length < 2 || digits.length > 30 || !/^\d+$/.test(digits)) {
+      return [];
+    }
 
     const valid = luhn(digits);
     const brand = valid ? detectBrand(digits) : 'Unknown';

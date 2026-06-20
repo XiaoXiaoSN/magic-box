@@ -119,6 +119,16 @@ describe('Base32BoxSource', () => {
       });
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
     });
+
+    it('rejects structurally impossible lengths (chars % 8 in {1,3,6})', async () => {
+      // 1, 3 and 6 base32 chars cannot encode a whole number of bytes
+      for (const bad of ['A', 'MAA', 'MZXW6Y']) {
+        const boxes = await Base32BoxSource.generateBoxes(bad, {
+          base32decode: true,
+        });
+        expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
+      }
+    });
   });
 
   describe('generateBoxes - encode and decode together', () => {

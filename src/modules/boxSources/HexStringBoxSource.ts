@@ -4,6 +4,9 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
+// bound synchronous work; input is seeded from a ?input= url param with no cap
+const MAX_INPUT = 100_000;
+
 // encode a UTF-8 string to lowercase hex bytes with no separator
 function encodeToHex(input: string): string {
   const bytes = new TextEncoder().encode(input);
@@ -41,6 +44,7 @@ export const HexStringBoxSource = {
     const wantEncode = hasOptionKeys(options, 'hex', 'hexencode');
     const wantDecode = hasOptionKeys(options, 'hexdecode');
     if (!wantEncode && !wantDecode) return [];
+    if (input.length > MAX_INPUT) return [];
 
     const boxes: Box[] = [];
 
