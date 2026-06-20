@@ -42,7 +42,7 @@ export function isRFC3339(str: unknown): boolean {
   }
 
   const re =
-    /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/gm;
+    /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/i;
   return !!(str as string).match(re);
 }
 
@@ -59,8 +59,7 @@ export function isBase64(str: string): boolean {
    *   )?                         # , or nothing
    *   $                          # End of input
    */
-  const re =
-    /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/m;
+  const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
   if (str === '' || str.trim() === '') {
     return false;
   }
