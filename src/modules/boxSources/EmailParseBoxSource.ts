@@ -43,7 +43,11 @@ export const EmailParseBoxSource = {
 
     // extract +tag sub-address from local part (everything after the first '+')
     const plusIndex = local.indexOf('+');
-    const tag = plusIndex !== -1 ? local.slice(plusIndex + 1) : null;
+    // only treat it as a tag when there's something after the '+'
+    const tag =
+      plusIndex !== -1 && plusIndex < local.length - 1
+        ? local.slice(plusIndex + 1)
+        : null;
 
     // TLD is the last dot-segment of the domain
     const tld = domain.slice(domain.lastIndexOf('.') + 1);

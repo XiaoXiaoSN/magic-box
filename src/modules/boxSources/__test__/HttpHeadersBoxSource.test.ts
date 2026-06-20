@@ -80,5 +80,15 @@ describe('HttpHeadersBoxSource', () => {
       );
       expect(boxes).toHaveLength(0);
     });
+
+    it('merges case-insensitive duplicate header names (RFC 9110)', async () => {
+      const boxes = await HttpHeadersBoxSource.generateBoxes(
+        'Set-Cookie: a=1\nset-cookie: b=2',
+        { headers: true },
+      );
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts['Set-Cookie']).toBe('a=1, b=2');
+      expect(opts['set-cookie']).toBeUndefined();
+    });
   });
 });

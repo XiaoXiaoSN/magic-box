@@ -5,6 +5,10 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
+// the byte cap doesn't bound the table shape; rows x cols is what drives work,
+// so cap dimensions to keep the build linear and avoid an O(rows x cols) freeze
+const MAX_COLS = 256;
+const MAX_ROWS = 5_000;
 
 // parse a single CSV row, handling double-quoted fields with embedded commas
 function parseCsvRow(line: string): string[] {
@@ -99,23 +103,27 @@ export const MarkdownTableBoxSource = {
         return [buildErrorBox()];
       }
 
+      // every element must be a plain object, not just the first
       if (
         !Array.isArray(parsed) ||
         parsed.length === 0 ||
-        typeof parsed[0] !== 'object' ||
-        parsed[0] === null
+        parsed.length > MAX_ROWS ||
+        !parsed.every(
+          (o) => typeof o === 'object' && o !== null && !Array.isArray(o),
+        )
       ) {
         return [buildErrorBox()];
       }
 
       // collect headers in first-seen order across all objects
-      const headerSet = new Map<string, true>();
+      const headerSet = new Set<string>();
       for (const obj of parsed as Record<string, unknown>[]) {
         for (const key of Object.keys(obj)) {
-          headerSet.set(key, true);
+          headerSet.add(key);
         }
       }
-      headers = [...headerSet.keys()];
+      headers = [...headerSet];
+      if (headers.length > MAX_COLS) return [buildErrorBox()];
 
       rows = (parsed as Record<string, unknown>[]).map((obj) =>
         headers.map((h) => {
@@ -126,10 +134,14 @@ export const MarkdownTableBoxSource = {
     } else {
       // parse as CSV
       const lines = trimmed.split('\n').filter((l) => l.trim() !== '');
-      if (lines.length < 1) return [buildErrorBox()];
+      if (lines.length < 1 || lines.length > MAX_ROWS + 1) {
+        return [buildErrorBox()];
+      }
 
       const headerLine = parseCsvRow(lines[0]);
-      if (headerLine.length === 0) return [buildErrorBox()];
+      if (headerLine.length === 0 || headerLine.length > MAX_COLS) {
+        return [buildErrorBox()];
+      }
 
       headers = headerLine;
       rows = lines.slice(1).map((line) => {

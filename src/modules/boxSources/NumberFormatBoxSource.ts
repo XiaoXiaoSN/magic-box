@@ -30,7 +30,11 @@ export const NumberFormatBoxSource = {
 
     const n = Number.parseFloat(raw);
 
-    const grouped = n.toLocaleString('en-US');
+    // group via BigInt for integers (exact for any size) and keep all decimals
+    // for fractions (toLocaleString defaults to rounding at 3 places)
+    const grouped = raw.includes('.')
+      ? n.toLocaleString('en-US', { maximumFractionDigits: 20 })
+      : BigInt(raw).toLocaleString('en-US');
     const compact = new Intl.NumberFormat('en-US', {
       notation: 'compact',
     }).format(n);

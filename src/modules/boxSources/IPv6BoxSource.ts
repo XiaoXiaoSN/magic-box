@@ -106,6 +106,8 @@ export const IPv6BoxSource = {
     if (!hasOptionKeys(options, 'ipv6')) return [];
 
     const raw = trim(input);
+    // a valid IPv6 literal is <= 45 chars; bound the split() allocation
+    if (raw.length > 64) return [];
     const expanded = expandIPv6(raw);
     if (expanded === null) return [];
 

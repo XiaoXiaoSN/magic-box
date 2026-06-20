@@ -75,5 +75,31 @@ describe('MarkdownTableBoxSource', () => {
         '| name | note |\n| --- | --- |\n| Alice | hello, world |',
       );
     });
+
+    it('unions keys across heterogeneous JSON objects', async () => {
+      const boxes = await MarkdownTableBoxSource.generateBoxes(
+        '[{"a":1,"b":2},{"a":3,"c":4}]',
+        { mdtable: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '| a | b | c |\n| --- | --- | --- |\n| 1 | 2 |  |\n| 3 |  | 4 |',
+      );
+    });
+
+    it('returns an error box when a JSON element is not an object', async () => {
+      const boxes = await MarkdownTableBoxSource.generateBoxes(
+        '[{"a":1},null,"str"]',
+        { mdtable: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toMatch(/error/i);
+    });
+
+    it('rejects a table with too many columns (DoS guard)', async () => {
+      const header = Array.from({ length: 300 }, (_, i) => `c${i}`).join(',');
+      const boxes = await MarkdownTableBoxSource.generateBoxes(`${header}\nx`, {
+        mdtable: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/error/i);
+    });
   });
 });

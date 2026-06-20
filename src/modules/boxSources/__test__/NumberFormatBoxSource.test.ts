@@ -65,5 +65,22 @@ describe('NumberFormatBoxSource', () => {
       expect(opts.Scientific).toBe('1.234567e+6');
       expect(opts.Plain).toBe('1234567');
     });
+
+    it('does not round fractional digits in Grouped', async () => {
+      const boxes = await NumberFormatBoxSource.generateBoxes('1234.56789', {
+        numformat: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Grouped).toBe('1,234.56789');
+    });
+
+    it('preserves precision of very large integers via BigInt', async () => {
+      const boxes = await NumberFormatBoxSource.generateBoxes(
+        '123456789012345678901234567890',
+        { numformat: true },
+      );
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Grouped).toBe('123,456,789,012,345,678,901,234,567,890');
+    });
   });
 });

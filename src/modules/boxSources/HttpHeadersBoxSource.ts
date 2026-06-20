@@ -23,8 +23,10 @@ export const HttpHeadersBoxSource = {
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    // accumulate header values, merging repeated names with ', '
-    const headers: Record<string, string> = {};
+    // accumulate header values, merging repeated names with ', '. HTTP field
+    // names are case-insensitive (RFC 9110), so dedupe by lowercased name while
+    // preserving the first-seen display casing
+    const headers = new Map<string, { name: string; value: string }>();
 
     for (const rawLine of input.split(/\r?\n/)) {
       const line = rawLine.trim();
@@ -39,18 +41,25 @@ export const HttpHeadersBoxSource = {
 
       if (name.length === 0) continue;
 
-      if (Object.hasOwn(headers, name)) {
-        headers[name] = `${headers[name]}, ${value}`;
+      const key = name.toLowerCase();
+      const existing = headers.get(key);
+      if (existing) {
+        existing.value = `${existing.value}, ${value}`;
       } else {
-        headers[name] = value;
+        headers.set(key, { name, value });
       }
     }
 
-    if (Object.keys(headers).length === 0) return [];
+    if (headers.size === 0) return [];
+
+    const output: Record<string, string> = {};
+    for (const { name, value } of headers.values()) {
+      output[name] = value;
+    }
 
     return [
       new BoxBuilder('HTTP Headers', '')
-        .setOptions(headers)
+        .setOptions(output)
         .setTemplate(KeyValueBoxTemplate)
         .setPriority(this.priority)
         .build(),
