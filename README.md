@@ -297,6 +297,80 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Base85Box</b> </summary>
+
+| match rule        | description                       | example          |
+| ----------------- | --------------------------------- | ---------------- |
+| `::base85`        | Ascii85 (Base85) encode           | `hello ::base85` |
+| `::base85decode`  | Ascii85 decode back to text       | `BOu!rDZ ::base85decode` |
+
+</details>
+
+<details>
+<summary> <b>BinaryTextBox</b> </summary>
+
+| match rule       | description                          | example       |
+| ---------------- | ------------------------------------ | ------------- |
+| `::binary`       | text → 8-bit binary (per UTF-8 byte) | `hi ::binary` |
+| `::binarydecode` | binary → text                        | `01101000 01101001 ::binarydecode` |
+
+</details>
+
+<details>
+<summary> <b>NatoPhoneticBox</b> </summary>
+
+| match rule | description                            | example         |
+| ---------- | -------------------------------------- | --------------- |
+| `::nato`   | spell text in the NATO phonetic alphabet | `AB12 ::nato` |
+
+</details>
+
+<details>
+<summary> <b>RegexEscapeBox</b> </summary>
+
+| match rule        | description                                | example                  |
+| ----------------- | ------------------------------------------ | ------------------------ |
+| `::regexescape`   | escape regex metacharacters (match literally) | `a.b*c(d) ::regexescape` |
+
+</details>
+
+<details>
+<summary> <b>UrlParseBox</b> </summary>
+
+| match rule     | description                                       | example                                  |
+| -------------- | ------------------------------------------------- | ---------------------------------------- |
+| `::urlparse`   | break a URL into protocol/host/port/path/query/hash | `https://example.com:8080/a?x=1 ::urlparse` |
+
+</details>
+
+<details>
+<summary> <b>JsonSortKeysBox</b> </summary>
+
+| match rule    | description                                | example                       |
+| ------------- | ------------------------------------------ | ----------------------------- |
+| `::sortkeys`  | recursively sort JSON object keys + pretty-print | `{"b":1,"a":2} ::sortkeys` |
+
+</details>
+
+<details>
+<summary> <b>TextReverseBox</b> </summary>
+
+| match rule   | description                              | example            |
+| ------------ | ---------------------------------------- | ------------------ |
+| `::reverse`  | reverse the characters (Unicode-aware)   | `hello ::reverse`  |
+
+</details>
+
+<details>
+<summary> <b>StripTagsBox</b> </summary>
+
+| match rule     | description                          | example                          |
+| -------------- | ------------------------------------ | -------------------------------- |
+| `::striptags`  | remove HTML tags, keep text content  | `<p>Hello <b>world</b></p> ::striptags` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
