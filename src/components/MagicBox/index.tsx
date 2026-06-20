@@ -1,7 +1,8 @@
 import CustomizedSnackbar from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
-import type { BoxOptions, Box as BoxType } from '@modules/Box';
+import { parseInput } from '@functions/parseOptions';
+import type { Box as BoxType } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 import React, {
   useCallback,
@@ -40,30 +41,6 @@ const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
       <div className="empty-sub">{t('magicBox.emptyNoMatchesSub')}</div>
     </div>
   );
-};
-
-// Parses input text and inline `::option=value` directives.
-// Example:
-//   Hello World
-//   ::option1
-//   ::Option3=value
-// becomes input='Hello World' / options={option1:true, option3:'value'}.
-const parseInput = (input: string): [string, BoxOptions] => {
-  const regex = /\n::(\w+)=?(.*)/gm;
-  const matches = Array.from(input.matchAll(regex), (match) => [
-    match[1],
-    match[2],
-  ]);
-
-  const initOptions: BoxOptions = {};
-  const options = matches.reduce((opts, [key, value]) => {
-    const updatedOpts = opts;
-    updatedOpts[key.toLowerCase()] = value || true;
-    return updatedOpts;
-  }, initOptions);
-
-  const replacedInput = input.replaceAll(regex, '');
-  return [replacedInput, options];
 };
 
 const MagicBox = ({
