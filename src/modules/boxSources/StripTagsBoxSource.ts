@@ -6,25 +6,37 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
-// map of the most common HTML entities to their decoded characters;
-// &amp; must be decoded last to avoid double-decoding
+// common named entities; &amp; is handled last (below) to avoid double-decoding
 const ENTITY_MAP: [RegExp, string][] = [
   [/&lt;/g, '<'],
   [/&gt;/g, '>'],
   [/&quot;/g, '"'],
   [/&#39;|&apos;/g, "'"],
   [/&nbsp;/g, ' '],
-  [/&amp;/g, '&'],
 ];
 
 // [^>]* is a negated character class — linear, no catastrophic backtracking
 const TAG_REGEX = /<[^>]*>/g;
+
+// out-of-range code points (> U+10FFFF) would throw, so leave them verbatim
+function fromCodePointSafe(codePoint: number, original: string): string {
+  return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : original;
+}
 
 function decodeEntities(text: string): string {
   let result = text;
   for (const [pattern, replacement] of ENTITY_MAP) {
     result = result.replace(pattern, replacement);
   }
+  // numeric character references (decimal and hex), then &amp; last
+  result = result
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, hex) =>
+      fromCodePointSafe(Number.parseInt(hex, 16), m),
+    )
+    .replace(/&#([0-9]+);/g, (m, dec) =>
+      fromCodePointSafe(Number.parseInt(dec, 10), m),
+    )
+    .replace(/&amp;/g, '&');
   return result;
 }
 

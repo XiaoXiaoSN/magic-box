@@ -4,6 +4,15 @@ import { JsonSortKeysBoxSource } from '../JsonSortKeysBoxSource';
 
 describe('JsonSortKeysBoxSource', () => {
   describe('generateBoxes', () => {
+    it('returns [] for empty or whitespace input (no spurious error box)', async () => {
+      expect(
+        await JsonSortKeysBoxSource.generateBoxes('', { sortkeys: true }),
+      ).toHaveLength(0);
+      expect(
+        await JsonSortKeysBoxSource.generateBoxes('   ', { sortkeys: true }),
+      ).toHaveLength(0);
+    });
+
     it('returns empty array when sortkeys option is absent', async () => {
       const boxes = await JsonSortKeysBoxSource.generateBoxes(
         '{"b":1,"a":2}',

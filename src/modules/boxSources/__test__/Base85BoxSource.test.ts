@@ -15,6 +15,16 @@ describe('Base85BoxSource', () => {
     });
   });
 
+  describe('generateBoxes - invalid decode', () => {
+    it('rejects a single-char group (invalid Ascii85 length)', async () => {
+      const boxes = await Base85BoxSource.generateBoxes('A', {
+        base85decode: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
+    });
+  });
+
   describe('generateBoxes - encode (::base85)', () => {
     it('returns one encode box for ::base85 option', async () => {
       const boxes = await Base85BoxSource.generateBoxes('hello', {

@@ -32,7 +32,7 @@ export const UrlParseBoxSource = {
       // invalid url — return a descriptive error box
       const box = new BoxBuilder('URL Parse', `Invalid URL: ${raw}`)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build();
       return [box];
     }
@@ -63,7 +63,7 @@ export const UrlParseBoxSource = {
     const box = new BoxBuilder('URL Parse', '')
       .setOptions(kv)
       .setTemplate(KeyValueBoxTemplate)
-      .setPriority(Priority)
+      .setPriority(this.priority)
       .build();
 
     return [box];

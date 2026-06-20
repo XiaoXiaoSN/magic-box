@@ -84,5 +84,20 @@ describe('StripTagsBoxSource', () => {
       expect(boxes[0].props.name).toBe('Strip HTML Tags');
       expect(boxes[0].props.priority).toBe(10);
     });
+
+    it('decodes decimal and hex numeric character references', async () => {
+      const boxes = await StripTagsBoxSource.generateBoxes(
+        '<p>&#65;&#x42; &#33; C</p>',
+        { striptags: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('AB ! C');
+    });
+
+    it('leaves out-of-range numeric references verbatim (no throw)', async () => {
+      const boxes = await StripTagsBoxSource.generateBoxes('&#x110000;', {
+        striptags: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('&#x110000;');
+    });
   });
 });

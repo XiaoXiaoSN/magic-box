@@ -38,6 +38,8 @@ export const JsonSortKeysBoxSource = {
     if (input.length > MAX_INPUT) return [];
 
     const trimmed = trim(input);
+    // no box for empty input — avoids a spurious error while the user types
+    if (trimmed.length === 0) return [];
     let output: string;
     try {
       const parsed = JSON.parse(trimmed);
