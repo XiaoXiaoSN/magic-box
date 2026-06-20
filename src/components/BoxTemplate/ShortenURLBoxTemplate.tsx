@@ -1,5 +1,5 @@
 import { isString } from '@functions/helper';
-import env from '@global/env';
+import { getToolboxUrl } from '@functions/runtimePrefs';
 import type { BoxProps } from '@modules/Box';
 import { memo, useCallback, useEffect, useState } from 'react';
 
@@ -9,7 +9,8 @@ const ShortenURLBoxTemplate = memo(
 
     const getShortenURL = useCallback(
       async (inputURL: string): Promise<void> => {
-        const resp = await fetch(`${env.TOOLBOX_URL}/api/v1/surl`, {
+        const toolboxUrl = getToolboxUrl();
+        const resp = await fetch(`${toolboxUrl}/api/v1/surl`, {
           method: 'POST',
           body: JSON.stringify({ url: inputURL }),
         });
@@ -26,7 +27,7 @@ const ShortenURLBoxTemplate = memo(
           throw Error('The "Shorten URL" not response as expected');
         }
 
-        setShortURL(`${env.TOOLBOX_URL}/${result.shorten}`);
+        setShortURL(`${toolboxUrl}/${result.shorten}`);
       },
       [],
     );

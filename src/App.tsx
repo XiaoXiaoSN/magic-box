@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
 import { LocaleProvider } from './contexts/LocaleContext';
+import { PreferencesProvider } from './contexts/PreferencesContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 const MagicBoxPage = lazy(async () => import('@pages/MagicBox'));
@@ -14,20 +15,22 @@ const renderLoader = () => <div className="loader" />;
 
 const App = (): React.JSX.Element => (
   <LocaleProvider>
-    <SettingsProvider>
-      <Router>
-        <BaseLayout>
-          <Suspense fallback={renderLoader()}>
-            <Routes>
-              <Route element={<MagicBoxPage />} path="/" />
-              <Route element={<ToolsListPage />} path="/list" />
-              <Route element={<SettingsPage />} path="/settings" />
-            </Routes>
-          </Suspense>
-          <PwaUpdatePrompt />
-        </BaseLayout>
-      </Router>
-    </SettingsProvider>
+    <PreferencesProvider>
+      <SettingsProvider>
+        <Router>
+          <BaseLayout>
+            <Suspense fallback={renderLoader()}>
+              <Routes>
+                <Route element={<MagicBoxPage />} path="/" />
+                <Route element={<ToolsListPage />} path="/list" />
+                <Route element={<SettingsPage />} path="/settings" />
+              </Routes>
+            </Suspense>
+            <PwaUpdatePrompt />
+          </BaseLayout>
+        </Router>
+      </SettingsProvider>
+    </PreferencesProvider>
   </LocaleProvider>
 );
 

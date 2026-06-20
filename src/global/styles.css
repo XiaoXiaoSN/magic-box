@@ -27,6 +27,70 @@
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --topbar-h: 56px;
+  /* density-driven row gap; compact tightens it (see [data-density]). */
+  --density-gap: 12px;
+  --density-pad: 16px;
+}
+
+/* dark palette tokens. applied for an explicit dark choice (.dark-theme /
+   [data-theme="dark"]) and, via the media query below, for system mode. */
+.dark-theme,
+:root[data-theme="dark"] {
+  --bg: #0b1120;
+  --bg-elev: #131b2e;
+  --ink: #e8edf5;
+  --ink-2: #c2ccda;
+  --ink-3: #8b97a8;
+  --ink-4: #64718a;
+  --line: #233047;
+  --line-2: #2f3e59;
+  --muted: #1a2436;
+  --muted-2: #233047;
+  --accent: #5b8bf5;
+  --accent-soft: #1b2c4d;
+  --accent-ink: #93b4fb;
+  --danger: #f0616d;
+  --success: #34c97f;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg:
+    0 16px 40px -12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+
+/* system theme follows the OS only when no explicit light/dark is chosen. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --bg: #0b1120;
+    --bg-elev: #131b2e;
+    --ink: #e8edf5;
+    --ink-2: #c2ccda;
+    --ink-3: #8b97a8;
+    --ink-4: #64718a;
+    --line: #233047;
+    --line-2: #2f3e59;
+    --muted: #1a2436;
+    --muted-2: #233047;
+    --accent: #5b8bf5;
+    --accent-soft: #1b2c4d;
+    --accent-ink: #93b4fb;
+    --danger: #f0616d;
+    --success: #34c97f;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md:
+      0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-lg:
+      0 16px 40px -12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+}
+
+/* compact density tightens shared spacing tokens used by lists and cards. */
+:root[data-density="compact"] {
+  --density-gap: 6px;
+  --density-pad: 10px;
+  --radius: 8px;
+  --radius-lg: 10px;
 }
 
 *,
@@ -606,7 +670,7 @@ pre,
 .boxes {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--density-gap);
 }
 
 .empty {
@@ -1702,6 +1766,33 @@ pre,
   font-weight: 500;
 }
 
+.text-input {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  min-width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.text-input::placeholder {
+  color: var(--ink-4);
+  font-weight: 400;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.text-input.is-invalid {
+  border-color: var(--danger);
+}
+
 .shortcut-list {
   display: flex;
   flex-direction: column;
@@ -1929,4 +2020,12 @@ pre,
   .dnd-row {
     grid-template-columns: 20px 28px 24px minmax(0, 1fr) 32px;
   }
+}
+
+/* compact density tightens box card padding to fit more per screen. placed
+   last so it overrides the base .box-head/.box-body rules above. */
+:root[data-density="compact"] .box-head,
+:root[data-density="compact"] .box-body {
+  padding-top: 7px;
+  padding-bottom: 7px;
 }

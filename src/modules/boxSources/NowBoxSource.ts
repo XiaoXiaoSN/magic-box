@@ -1,5 +1,11 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
+import { getTimezoneOffset } from '@functions/runtimePrefs';
+import {
+  formatOffsetLabel,
+  shiftDateToOffset,
+  toOffsetISOString,
+} from '@functions/timezone';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
@@ -28,9 +34,10 @@ export const NowBoxSource = {
 
     if (regularInput === 'now') {
       const timestamp = Date.now();
-      const tzOffset = 8 * 60 * 60 * 1000;
       const date = new Date(timestamp);
-      const twDate = new Date(timestamp + tzOffset);
+      // `twDate` keeps its name for back-compat but now follows the configured
+      // default timezone offset rather than a hardcoded +8.
+      const twDate = shiftDateToOffset(date, getTimezoneOffset());
 
       return { timestamp, date, twDate };
     }
@@ -44,7 +51,8 @@ export const NowBoxSource = {
       return [];
     }
 
-    const { timestamp, date, twDate } = match;
+    const { timestamp, date } = match;
+    const offset = getTimezoneOffset();
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
         .setTemplate(DefaultBoxTemplate)
@@ -52,8 +60,8 @@ export const NowBoxSource = {
         .setPriority(this.priority)
         .build(),
       new BoxBuilder(
-        'RFC 3339 (UTC+8)',
-        twDate.toISOString().replace('Z', '+08:00'),
+        `RFC 3339 (${formatOffsetLabel(offset)})`,
+        toOffsetISOString(date, offset),
       )
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)

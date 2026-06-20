@@ -1,6 +1,6 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
-import env from '@global/env';
+import { getShortenUrl, getToolboxUrl } from '@functions/runtimePrefs';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
@@ -24,8 +24,8 @@ export const ShortenURLBoxSource = {
     inputURL: string,
     shorten: string | null,
   ): Promise<string> {
-    const toolBoxHost = env.TOOLBOX_URL;
-    const shortenURLHost = env.SHORTEN_URL;
+    const toolBoxHost = getToolboxUrl();
+    const shortenURLHost = getShortenUrl();
 
     const resp = await fetch(`${toolBoxHost}/api/v1/surl`, {
       method: 'POST',

@@ -1,3 +1,4 @@
+import { setRuntimePrefs } from '@functions/runtimePrefs';
 import {
   createContext,
   useCallback,
@@ -14,6 +15,10 @@ import {
   type Translations,
   translations,
 } from '../i18n';
+
+// translate the app locale code into the identifier cronstrue/i18n expects.
+const toRuntimeLocale = (locale: Locale): string =>
+  locale === 'tw' ? 'zh_TW' : 'en';
 
 interface LocaleContextType {
   locale: Locale;
@@ -43,6 +48,9 @@ export const LocaleProvider: React.FC<LocaleProviderProps> = ({ children }) => {
 
   useEffect(() => {
     document.documentElement.lang = locale === 'tw' ? 'zh-TW' : 'en';
+    // mirror the active locale into the runtime singleton so non-react box
+    // sources (e.g. cron) can emit localized output without an inline option.
+    setRuntimePrefs({ locale: toRuntimeLocale(locale) });
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {
