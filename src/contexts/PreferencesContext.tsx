@@ -35,7 +35,7 @@ export const DEFAULT_PREFS: Prefs = {
   theme: 'system',
   density: 'comfortable',
   copyMode: 'enter',
-  analytics: false,
+  analytics: true,
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
   toolboxUrl: '',
   shortenUrl: '',

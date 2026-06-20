@@ -17,7 +17,7 @@ describe('runtimePrefs', () => {
       timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
       toolboxUrl: '',
       shortenUrl: '',
-      analytics: false,
+      analytics: true,
       locale: 'en',
     });
   });
@@ -47,9 +47,9 @@ describe('runtimePrefs', () => {
   });
 
   it('exposes the analytics gate and locale', () => {
-    expect(isAnalyticsEnabled()).toBe(false);
-    setRuntimePrefs({ analytics: true, locale: 'zh_TW' });
     expect(isAnalyticsEnabled()).toBe(true);
+    setRuntimePrefs({ analytics: false, locale: 'zh_TW' });
+    expect(isAnalyticsEnabled()).toBe(false);
     expect(getLocale()).toBe('zh_TW');
   });
 });
