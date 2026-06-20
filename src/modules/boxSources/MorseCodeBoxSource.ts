@@ -4,7 +4,7 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
-// ITU-R M.1677-1 standard Morse code table
+// ITU-R M.1677-1 morse code table plus common non-standard extensions ($)
 const MORSE_ENCODE: Record<string, string> = {
   A: '.-',
   B: '-...',

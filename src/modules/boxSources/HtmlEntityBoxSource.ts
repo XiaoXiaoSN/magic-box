@@ -14,6 +14,12 @@ function encodeHtml(input: string): string {
     .replace(/'/g, '&#39;');
 }
 
+// map a numeric entity to its character; out-of-range code points (> U+10FFFF)
+// are left as the original entity text instead of throwing a RangeError
+function fromCodePointSafe(codePoint: number, original: string): string {
+  return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : original;
+}
+
 // decode named and numeric entities; &amp; goes last to prevent over-decoding
 function decodeHtml(input: string): string {
   return input
@@ -21,10 +27,12 @@ function decodeHtml(input: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&apos;/g, "'")
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
-      String.fromCodePoint(parseInt(hex, 16)),
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) =>
+      fromCodePointSafe(Number.parseInt(hex, 16), match),
     )
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&#(\d+);/g, (match, dec) =>
+      fromCodePointSafe(Number.parseInt(dec, 10), match),
+    )
     .replace(/&amp;/g, '&');
 }
 

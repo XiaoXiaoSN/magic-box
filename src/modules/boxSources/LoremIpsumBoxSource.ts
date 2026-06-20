@@ -98,7 +98,7 @@ function parseCount(
   max: number,
 ): number {
   if (value === true) return defaultValue;
-  const n = parseInt(value as string, 10);
+  const n = Number.parseInt(value as string, 10);
   if (Number.isNaN(n) || n <= 0) return defaultValue;
   return Math.min(n, max);
 }
@@ -137,8 +137,6 @@ export const LoremIpsumBoxSource = {
       new BoxBuilder('Lorem Ipsum', output)
         .setTemplate(CodeBoxTemplate)
         .setPriority(Priority)
-        .setTag('¶')
-        .setKind('Generate')
         .build(),
     ];
   },

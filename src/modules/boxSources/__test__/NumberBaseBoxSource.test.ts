@@ -78,4 +78,21 @@ describe('NumberBaseBoxSource', () => {
     const boxes = await NumberBaseBoxSource.generateBoxes('1', { base: true });
     expect(boxes[0].props.name).toBe('Number Base');
   });
+
+  it('treats classic leading-zero input as octal (0755 -> 493)', async () => {
+    const boxes = await NumberBaseBoxSource.generateBoxes('0755', {
+      base: true,
+    });
+    const opts = boxes[0].props.options as Record<string, string>;
+    expect(opts.Decimal).toBe('493');
+    expect(opts.Hexadecimal).toBe('0x1ed');
+  });
+
+  it('handles zero', async () => {
+    const boxes = await NumberBaseBoxSource.generateBoxes('0', { base: true });
+    const opts = boxes[0].props.options as Record<string, string>;
+    expect(opts.Decimal).toBe('0');
+    expect(opts.Hexadecimal).toBe('0x0');
+    expect(opts.Binary).toBe('0b0');
+  });
 });

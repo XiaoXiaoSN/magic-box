@@ -142,4 +142,21 @@ describe('HtmlEntityBoxSource', () => {
       expect(typeof HtmlEntityBoxSource.priority).toBe('number');
     });
   });
+
+  describe('numeric entity edge cases', () => {
+    it('decodes in-range numeric entities', async () => {
+      const boxes = await HtmlEntityBoxSource.generateBoxes('&#65;&#x42;', {
+        htmldecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('AB');
+    });
+
+    it('leaves out-of-range code points untouched instead of throwing', async () => {
+      const boxes = await HtmlEntityBoxSource.generateBoxes(
+        '&#x110000;&#2147483647;',
+        { htmldecode: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('&#x110000;&#2147483647;');
+    });
+  });
 });

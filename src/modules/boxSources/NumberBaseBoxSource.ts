@@ -13,9 +13,13 @@ function parseIntegerInput(raw: string): bigint | null {
   const negative = s.startsWith('-');
   const abs = negative ? s.slice(1) : s;
 
+  // BigInt() treats a leading zero as decimal, so rewrite classic C-style octal
+  // (e.g. 0755) to the explicit 0o form before parsing
+  const normalized = /^0[0-7]+$/.test(abs) ? `0o${abs.slice(1)}` : abs;
+
   // BigInt() natively handles 0x/0o/0b/decimal literals
   try {
-    const value = BigInt(abs);
+    const value = BigInt(normalized);
     return negative ? -value : value;
   } catch {
     return null;

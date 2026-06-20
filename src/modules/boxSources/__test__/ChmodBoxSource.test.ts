@@ -103,6 +103,21 @@ describe('ChmodBoxSource', () => {
     });
   });
 
+  describe('symbolic structural validation', () => {
+    it('rejects character-allowlist garbage that is not a valid permission string', async () => {
+      for (const bad of ['xxxxxxxxx', 'sssssssss', 'rr-r--r--']) {
+        const boxes = await ChmodBoxSource.generateBoxes(bad, { chmod: true });
+        expect(boxes).toHaveLength(0);
+      }
+    });
+
+    it('converts setgid-only octal input', async () => {
+      const boxes = await ChmodBoxSource.generateBoxes('2755', { chmod: true });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Symbolic).toBe('rwxr-sr-x');
+    });
+  });
+
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(ChmodBoxSource.name).toBe('Chmod');

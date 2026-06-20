@@ -74,7 +74,8 @@ function symbolicToOctal(sym: string): string {
 }
 
 const OCTAL_RE = /^[0-7]{3,4}$/;
-const SYMBOLIC_RE = /^[rwxsStT-]{9}$/;
+// positional grammar: r/w on fixed slots, execute slots also carry special bits
+const SYMBOLIC_RE = /^[r-][w-][xsS-][r-][w-][xsS-][r-][w-][xtT-]$/;
 
 export const ChmodBoxSource = {
   name: 'Chmod',
