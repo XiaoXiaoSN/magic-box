@@ -5,10 +5,12 @@ import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useEffect, useRef, useState } from 'react';
+import { useLocale } from '../../contexts/LocaleContext';
 
 const checkIntervalMs = 60 * 60 * 1000;
 
 const PwaUpdatePrompt = (): React.JSX.Element | null => {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const updateIntervalId = useRef<ReturnType<typeof setInterval> | null>(null);
   const {
@@ -63,8 +65,8 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
         }}
       >
         <Stack spacing={0.5}>
-          <Typography variant="body2">New version available.</Typography>
-          <Typography variant="caption">Refresh to update the app.</Typography>
+          <Typography variant="body2">{t('pwa.newVersion')}</Typography>
+          <Typography variant="caption">{t('pwa.refreshHint')}</Typography>
         </Stack>
         <Button
           color="inherit"
@@ -72,10 +74,10 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
           size="small"
           variant="outlined"
         >
-          Refresh
+          {t('pwa.refresh')}
         </Button>
         <Button color="inherit" onClick={() => setOpen(false)} size="small">
-          Later
+          {t('pwa.later')}
         </Button>
       </Stack>
     </Snackbar>

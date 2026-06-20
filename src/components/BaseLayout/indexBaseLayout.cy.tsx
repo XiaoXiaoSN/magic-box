@@ -1,16 +1,19 @@
 import { mount } from 'cypress/react';
 import { MemoryRouter } from 'react-router-dom';
+import { LocaleProvider } from '../../contexts/LocaleContext';
 
 import BaseLayout from './index';
 
 describe('<BaseLayout />', () => {
   it('renders', () => {
     mount(
-      <MemoryRouter>
-        <BaseLayout>
-          <p data-testid="test">test</p>
-        </BaseLayout>
-      </MemoryRouter>,
+      <LocaleProvider>
+        <MemoryRouter>
+          <BaseLayout>
+            <p data-testid="test">test</p>
+          </BaseLayout>
+        </MemoryRouter>
+      </LocaleProvider>,
     );
 
     cy.get('[data-testid="test"]').should('have.text', 'test');

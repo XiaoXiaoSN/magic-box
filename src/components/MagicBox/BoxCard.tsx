@@ -1,5 +1,6 @@
 import type { Box as BoxType } from '@modules/Box';
 import { forwardRef, useCallback, useState } from 'react';
+import { useLocale } from '../../contexts/LocaleContext';
 
 const ExpandIcon = () => (
   <svg
@@ -32,6 +33,7 @@ const COPIED_TIMEOUT_MS = 1200;
 
 const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
   ({ box, selected, onSelect, onCopy, onExpand }, ref) => {
+    const { t } = useLocale();
     const [justCopied, setJustCopied] = useState(false);
     const { name, plaintextOutput, options, priority, tag, kind, onClick } =
       box.props;
@@ -99,16 +101,16 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
               className="box-copy"
               onClick={handleCopy}
               type="button"
-              aria-label={`Copy ${name} output`}
+              aria-label={t('boxCard.copyLabel', { name })}
             >
-              {justCopied ? 'Copied' : 'Copy'}
+              {justCopied ? t('boxCard.copied') : t('boxCard.copy')}
             </button>
             {showExpand ? (
               <button
-                aria-label={`Expand ${name}`}
+                aria-label={t('boxCard.expandLabel', { name })}
                 className="box-expand"
                 onClick={handleExpand}
-                title="Expand"
+                title={t('boxCard.expand')}
                 type="button"
               >
                 <ExpandIcon />

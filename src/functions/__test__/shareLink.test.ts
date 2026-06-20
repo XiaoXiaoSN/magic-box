@@ -3,29 +3,48 @@ import { buildShareLink } from '../shareLink';
 
 describe('buildShareLink', () => {
   it('returns the base pathname when no optional params given', () => {
-    const result = buildShareLink({ pathname: '/', origin: 'http://localhost:3000' });
+    const result = buildShareLink({
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
     expect(result).toBe('http://localhost:3000/');
   });
 
   it('includes box param when provided', () => {
-    const result = buildShareLink({ box: 'JWT Decode', pathname: '/list', origin: 'http://localhost:3000' });
+    const result = buildShareLink({
+      box: 'JWT Decode',
+      pathname: '/list',
+      origin: 'http://localhost:3000',
+    });
     const url = new URL(result);
     expect(url.pathname).toBe('/list');
     expect(url.searchParams.get('box')).toBe('JWT Decode');
   });
 
   it('includes input param when provided', () => {
-    const result = buildShareLink({ input: 'hello', pathname: '/', origin: 'http://localhost:3000' });
+    const result = buildShareLink({
+      input: 'hello',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
     expect(new URL(result).searchParams.get('input')).toBe('hello');
   });
 
   it('omits box param when empty string', () => {
-    const result = buildShareLink({ box: '', pathname: '/', origin: 'http://localhost:3000' });
+    const result = buildShareLink({
+      box: '',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
     expect(new URL(result).searchParams.has('box')).toBe(false);
   });
 
   it('omits input param when empty string', () => {
-    const result = buildShareLink({ input: '', pathname: '/', origin: 'http://localhost:3000' });
+    const result = buildShareLink({
+      input: '',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
     expect(new URL(result).searchParams.has('input')).toBe(false);
   });
 

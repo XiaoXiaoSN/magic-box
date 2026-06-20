@@ -2,8 +2,10 @@ import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
 import { buildShareLink } from '@functions/shareLink';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
+import type { Translations } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
@@ -20,20 +22,26 @@ const parseOptionsForChips = (input: string) => {
   return opts;
 };
 
-/** Format a timestamp as a human-readable relative time string. */
-const formatRelativeTime = (timestamp: number): string => {
+const formatRelativeTime = (
+  timestamp: number,
+  t: (
+    key: keyof Translations,
+    params?: Record<string, string | number>,
+  ) => string,
+): string => {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return t('time.justNow');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t('time.minutesAgo', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('time.hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return t('time.daysAgo', { n: days });
   return new Date(timestamp).toLocaleDateString();
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
+  const { t } = useLocale();
   const [userInput, setUserInput] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('input') ?? params.get('i') ?? '';
@@ -91,7 +99,7 @@ const MagicBoxPage = (): React.JSX.Element => {
         <div className="home-col">
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
-            <span>Input</span>
+            <span>{t('magicBox.input')}</span>
             {optionChips.length > 0 ? (
               <span className="input-options" data-testid="input-options">
                 {optionChips.map(([k, v]) => (
@@ -114,7 +122,11 @@ const MagicBoxPage = (): React.JSX.Element => {
               }
             />
             <button
-              aria-label={historyOpen ? 'Close history' : 'Open history'}
+              aria-label={
+                historyOpen
+                  ? t('magicBox.closeHistory')
+                  : t('magicBox.openHistory')
+              }
               className={`history-toggle${historyOpen ? ' active' : ''}`}
               data-testid="history-toggle"
               onClick={() => setHistoryOpen((o) => !o)}
@@ -156,11 +168,13 @@ const MagicBoxPage = (): React.JSX.Element => {
                               : item.input}
                           </span>
                           <span className="history-item-time">
-                            {formatRelativeTime(item.timestamp)}
+                            {formatRelativeTime(item.timestamp, t)}
                           </span>
                         </button>
                         <button
-                          aria-label={`Delete history entry: ${item.input.slice(0, 30)}`}
+                          aria-label={t('magicBox.deleteEntry', {
+                            input: item.input.slice(0, 30),
+                          })}
                           className="history-item-del"
                           onClick={() => removeEntry(item.id)}
                           type="button"
@@ -175,11 +189,11 @@ const MagicBoxPage = (): React.JSX.Element => {
                     onClick={clearHistory}
                     type="button"
                   >
-                    Clear history
+                    {t('magicBox.clearHistory')}
                   </button>
                 </>
               ) : (
-                <div className="history-empty">No history yet</div>
+                <div className="history-empty">{t('magicBox.noHistory')}</div>
               )}
             </div>
           ) : null}
@@ -191,7 +205,7 @@ const MagicBoxPage = (): React.JSX.Element => {
               name="magicInput"
               onChange={(e) => setUserInput(e.target.value)}
               onFocus={() => setResetCounter((c) => c + 1)}
-              placeholder="Paste anything — a timestamp, JWT, JSON, cron, math expression…"
+              placeholder={t('magicBox.placeholder')}
               rows={8}
               spellCheck={false}
               value={userInput}
@@ -205,14 +219,14 @@ const MagicBoxPage = (): React.JSX.Element => {
         <div className="home-col">
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
-            <span>Output</span>
+            <span>{t('magicBox.output')}</span>
             <span className="swap">
               <span className="kbd">⌃</span>
               <span className="kbd">N</span>
-              <span className="swap-label">next</span>
+              <span className="swap-label">{t('magicBox.next')}</span>
               <span className="swap-sep" />
               <span className="kbd">↵</span>
-              <span className="swap-label">copy</span>
+              <span className="swap-label">{t('magicBox.copy')}</span>
             </span>
           </div>
           <div className="boxes" data-testid="magic-output">

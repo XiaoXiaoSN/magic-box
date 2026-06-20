@@ -1,6 +1,7 @@
 import type { Box, BoxProps } from '@modules/Box';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { LocaleProvider } from '../../contexts/LocaleContext';
 
 import BoxModal from './BoxModal';
 
@@ -25,7 +26,9 @@ describe('<BoxModal />', () => {
     const onClose = vi.fn();
 
     render(
-      <BoxModal box={box} onClose={onClose} onCopy={vi.fn()} open={true} />,
+      <LocaleProvider>
+        <BoxModal box={box} onClose={onClose} onCopy={vi.fn()} open={true} />
+      </LocaleProvider>,
     );
 
     fireEvent.click(
@@ -39,7 +42,9 @@ describe('<BoxModal />', () => {
     const onClose = vi.fn();
 
     render(
-      <BoxModal box={box} onClose={onClose} onCopy={vi.fn()} open={true} />,
+      <LocaleProvider>
+        <BoxModal box={box} onClose={onClose} onCopy={vi.fn()} open={true} />
+      </LocaleProvider>,
     );
 
     fireEvent.click(screen.getByTestId('modal-content'));

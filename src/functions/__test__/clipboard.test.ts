@@ -1,15 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import copyTextToClipboard from '../clipboard';
 
+type ExecCommand = (
+  commandId: string,
+  showUI?: boolean,
+  value?: string,
+) => boolean;
+
+const installExecCommand = () => {
+  const execCommand = vi.fn<ExecCommand>().mockReturnValue(true);
+  Object.defineProperty(document, 'execCommand', {
+    value: execCommand,
+    configurable: true,
+  });
+  return execCommand;
+};
+
 describe('copyTextToClipboard', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    // jsdom doesn't implement execCommand — shim it
-    (document as any).execCommand = vi.fn().mockReturnValue(true);
+    installExecCommand();
   });
 
   it('uses fallback when navigator.clipboard is unavailable', async () => {
-    const exec = vi.spyOn(document as any, 'execCommand').mockReturnValue(true);
+    const exec = installExecCommand();
     Object.defineProperty(navigator, 'clipboard', {
       value: undefined,
       configurable: true,
@@ -22,7 +36,7 @@ describe('copyTextToClipboard', () => {
   });
 
   it('uses fallback when not in secure context', async () => {
-    const exec = vi.spyOn(document as any, 'execCommand').mockReturnValue(true);
+    const exec = installExecCommand();
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
@@ -57,7 +71,7 @@ describe('copyTextToClipboard', () => {
 
   it('falls back to execCommand when writeText rejects', async () => {
     const writeText = vi.fn().mockRejectedValue(new Error('fail'));
-    const exec = vi.spyOn(document as any, 'execCommand').mockReturnValue(true);
+    const exec = installExecCommand();
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
       configurable: true,
@@ -74,7 +88,7 @@ describe('copyTextToClipboard', () => {
   });
 
   it('cleans up the textarea node after fallback', async () => {
-    vi.spyOn(document as any, 'execCommand').mockReturnValue(true);
+    installExecCommand();
     Object.defineProperty(navigator, 'clipboard', {
       value: undefined,
       configurable: true,
