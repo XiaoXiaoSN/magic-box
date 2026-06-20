@@ -1,5 +1,5 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import { expect } from 'vitest';
+import { afterEach, expect, vi } from 'vitest';
 
 import { UuidBoxSource } from '../UuidBoxSource';
 
@@ -69,6 +69,59 @@ describe('UuidBoxSource', () => {
           uppercase: true,
         });
         expect(boxes[0].props.plaintextOutput).toMatch(/^[0-9A-F-]+$/);
+      });
+    });
+
+    describe('crypto fallback paths', () => {
+      // save originals
+      const originalRandomUUID = crypto.randomUUID;
+      const originalGetRandomValues = crypto.getRandomValues;
+
+      afterEach(() => {
+        // restore after each test
+        Object.defineProperty(crypto, 'randomUUID', {
+          value: originalRandomUUID,
+          writable: true,
+          configurable: true,
+        });
+        Object.defineProperty(crypto, 'getRandomValues', {
+          value: originalGetRandomValues,
+          writable: true,
+          configurable: true,
+        });
+      });
+
+      it('falls back to getRandomValues when randomUUID is undefined, producing a valid v4 UUID', async () => {
+        Object.defineProperty(crypto, 'randomUUID', {
+          value: undefined,
+          writable: true,
+          configurable: true,
+        });
+
+        const boxes = await UuidBoxSource.generateBoxes('uuid');
+        expect(boxes).toHaveLength(1);
+        expect(boxes[0].props.plaintextOutput).toMatch(validUUIDv4Regex);
+      });
+
+      it('falls back to Math.random when both randomUUID and getRandomValues are undefined, producing a valid v4 UUID', async () => {
+        Object.defineProperty(crypto, 'randomUUID', {
+          value: undefined,
+          writable: true,
+          configurable: true,
+        });
+        Object.defineProperty(crypto, 'getRandomValues', {
+          value: undefined,
+          writable: true,
+          configurable: true,
+        });
+
+        const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
+        const boxes = await UuidBoxSource.generateBoxes('uuid');
+        expect(boxes).toHaveLength(1);
+        expect(boxes[0].props.plaintextOutput).toMatch(validUUIDv4Regex);
+
+        mathRandomSpy.mockRestore();
       });
     });
   });
