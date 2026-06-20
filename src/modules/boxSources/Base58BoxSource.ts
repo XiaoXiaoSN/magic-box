@@ -24,8 +24,10 @@ function base58EncodeBytes(bytes: Uint8Array): string {
     leadingZeros++;
   }
 
-  // mutable working copy; each element is a base-256 digit
-  const digits = Array.from(bytes);
+  // working copy excluding leading zero bytes; an all-zero input leaves this
+  // empty so the loop never runs and we return only the '1' padding (otherwise
+  // the division emits a spurious extra '1' and breaks the round-trip)
+  const digits = Array.from(bytes.subarray(leadingZeros));
   let result = '';
 
   while (digits.length > 0) {

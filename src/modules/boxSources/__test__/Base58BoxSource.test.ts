@@ -92,6 +92,32 @@ describe('Base58BoxSource', () => {
     });
   });
 
+  describe('generateBoxes - leading zero bytes', () => {
+    const NUL = String.fromCharCode(0);
+
+    it('encodes a single NUL byte to exactly "1" and round-trips', async () => {
+      const enc = await Base58BoxSource.generateBoxes(NUL, { base58: true });
+      expect(enc[0].props.plaintextOutput).toBe('1');
+
+      const dec = await Base58BoxSource.generateBoxes('1', {
+        base58decode: true,
+      });
+      expect(dec[0].props.plaintextOutput).toBe(NUL);
+    });
+
+    it('preserves a leading NUL before a printable byte', async () => {
+      const enc = await Base58BoxSource.generateBoxes(`${NUL}A`, {
+        base58: true,
+      });
+      const encoded = enc[0].props.plaintextOutput;
+      expect(encoded.startsWith('1')).toBe(true);
+      const dec = await Base58BoxSource.generateBoxes(encoded, {
+        base58decode: true,
+      });
+      expect(dec[0].props.plaintextOutput).toBe(`${NUL}A`);
+    });
+  });
+
   describe('generateBoxes - both options', () => {
     it('returns 2 boxes when both encode and decode options are set', async () => {
       const boxes = await Base58BoxSource.generateBoxes('Hello World!', {

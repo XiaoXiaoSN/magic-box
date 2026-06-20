@@ -28,9 +28,16 @@ function parseQueryString(raw: string): Record<string, string | string[]> {
   const params = new URLSearchParams(stripped);
   const result: Record<string, string | string[]> = {};
 
-  for (const key of params.keys()) {
-    const values = params.getAll(key);
-    result[key] = values.length === 1 ? values[0] : values;
+  // single entries() pass — calling getAll() inside a keys() loop would be O(k^2)
+  for (const [key, value] of params.entries()) {
+    const existing = result[key];
+    if (existing === undefined) {
+      result[key] = value;
+    } else if (Array.isArray(existing)) {
+      existing.push(value);
+    } else {
+      result[key] = [existing, value];
+    }
   }
   return result;
 }

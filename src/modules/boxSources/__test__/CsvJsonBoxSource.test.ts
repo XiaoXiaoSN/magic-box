@@ -87,5 +87,24 @@ describe('CsvJsonBoxSource', () => {
       expect(boxes[0].props.name).toBe('JSON → CSV');
       expect(boxes[0].props.plaintextOutput).toMatch(/error/i);
     });
+
+    it('keeps a newline embedded in a quoted CSV field as one row', async () => {
+      const input = 'name,note\n"a\nb",x';
+      const boxes = await CsvJsonBoxSource.generateBoxes(input, { csv: true });
+      const parsed = JSON.parse(boxes[0].props.plaintextOutput);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].name).toBe('a\nb');
+      expect(parsed[0].note).toBe('x');
+    });
+
+    it('unions heterogeneous keys (first-seen order, missing → empty)', async () => {
+      const boxes = await CsvJsonBoxSource.generateBoxes('[{"a":1},{"b":2}]', {
+        csv: true,
+      });
+      const lines = boxes[0].props.plaintextOutput.split('\n');
+      expect(lines[0]).toBe('a,b');
+      expect(lines[1]).toBe('1,');
+      expect(lines[2]).toBe(',2');
+    });
   });
 });
