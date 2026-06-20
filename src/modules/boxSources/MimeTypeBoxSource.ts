@@ -89,7 +89,7 @@ export const MimeTypeBoxSource = {
               Extensions: 'No matching extensions found',
             })
             .setTemplate(KeyValueBoxTemplate)
-            .setPriority(Priority)
+            .setPriority(this.priority)
             .build(),
         ];
       }
@@ -97,7 +97,7 @@ export const MimeTypeBoxSource = {
         new BoxBuilder('MIME Type', '')
           .setOptions({ 'MIME Type': s, Extensions: exts.join(', ') })
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -109,7 +109,7 @@ export const MimeTypeBoxSource = {
         new BoxBuilder('MIME Type', '')
           .setOptions({ Extension: s, 'MIME Type': 'Unknown extension' })
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -117,7 +117,7 @@ export const MimeTypeBoxSource = {
       new BoxBuilder('MIME Type', '')
         .setOptions({ Extension: s, 'MIME Type': mime })
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

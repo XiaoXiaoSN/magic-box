@@ -42,9 +42,9 @@ describe('ByteLengthBoxSource', () => {
     expect(boxes).toHaveLength(1);
   });
 
-  it('handles ascii string with ::len alias', async () => {
+  it('does not trigger on the generic ::len key (reserved for clarity)', async () => {
     const boxes = await ByteLengthBoxSource.generateBoxes('abc', { len: true });
-    expect(boxes).toHaveLength(1);
+    expect(boxes).toHaveLength(0);
   });
 
   it('correctly counts héllo (é is 1 code point, 2 UTF-8 bytes)', async () => {

@@ -34,7 +34,7 @@ export const ByteLengthBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'bytelen', 'bytelength', 'len')) return [];
+    if (!hasOptionKeys(options, 'bytelen', 'bytelength')) return [];
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 

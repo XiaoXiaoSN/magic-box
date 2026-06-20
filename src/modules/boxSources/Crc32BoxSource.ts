@@ -44,7 +44,7 @@ export const Crc32BoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'crc32', 'crc')) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (input.length === 0 || input.length > MAX_INPUT) return [];
 
     const checksum = crc32(input);
     const hex = checksum.toString(16).padStart(8, '0');

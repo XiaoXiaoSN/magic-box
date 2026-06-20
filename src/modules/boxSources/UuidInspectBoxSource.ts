@@ -15,6 +15,9 @@ const VERSION_LABELS: Record<number, string> = {
   3: 'name-based MD5',
   4: 'random',
   5: 'name-based SHA-1',
+  6: 'reordered time (RFC 9562)',
+  7: 'Unix epoch ms (RFC 9562)',
+  8: 'custom (RFC 9562)',
 };
 
 // determine RFC 4122 variant from the high bits of the variant octet

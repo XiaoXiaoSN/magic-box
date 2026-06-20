@@ -102,7 +102,7 @@ export const HttpStatusBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'httpstatus', 'http')) return [];
+    if (!hasOptionKeys(options, 'httpstatus')) return [];
 
     const trimmed = trim(input);
     // only accept a 3-digit code in the 1xx–5xx range

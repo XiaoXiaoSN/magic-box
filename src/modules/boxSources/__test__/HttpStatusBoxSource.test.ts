@@ -129,17 +129,12 @@ describe('HttpStatusBoxSource', () => {
     });
   });
 
-  describe('::http trigger (alias)', () => {
-    it('also works with ::http option key', async () => {
+  describe('generic ::http key is not claimed', () => {
+    it('does not trigger on ::http (reserved for a future http tool)', async () => {
       const boxes = await HttpStatusBoxSource.generateBoxes('200', {
         http: true,
       });
-      expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.options).toMatchObject({
-        Code: '200',
-        Name: 'OK',
-        Category: 'Success',
-      });
+      expect(boxes).toHaveLength(0);
     });
   });
 
