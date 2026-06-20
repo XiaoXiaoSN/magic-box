@@ -1,0 +1,79 @@
+import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import { describe, expect, it } from 'vitest';
+
+import { LuhnBoxSource } from '../LuhnBoxSource';
+
+describe('LuhnBoxSource', () => {
+  describe('generateBoxes', () => {
+    it('returns [] when ::luhn option is absent', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes(
+        '4111 1111 1111 1111',
+        null,
+      );
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('returns [] for non-digit input', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('hello', { luhn: true });
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('validates Visa test number as valid', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('4111 1111 1111 1111', {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Luhn Check');
+      expect(boxes[0].props.options).toMatchObject({
+        Number: '4111111111111111',
+        Valid: 'true',
+        Brand: 'Visa',
+      });
+      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+    });
+
+    it('flags an invalid Visa number', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('4111 1111 1111 1112', {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Valid: 'false',
+      });
+    });
+
+    it('detects Mastercard brand (5500 0000 0000 0004)', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('5500 0000 0000 0004', {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Valid: 'true',
+        Brand: 'Mastercard',
+      });
+    });
+
+    it('detects Amex brand (378282246310005)', async () => {
+      // 378282246310005 is the standard Amex test card number
+      const boxes = await LuhnBoxSource.generateBoxes('378282246310005', {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Valid: 'true',
+        Brand: 'Amex',
+      });
+    });
+
+    it('detects Discover brand (6011000000000004)', async () => {
+      const boxes = await LuhnBoxSource.generateBoxes('6011000000000004', {
+        luhn: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Valid: 'true',
+        Brand: 'Discover',
+      });
+    });
+  });
+});

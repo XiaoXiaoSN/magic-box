@@ -297,6 +297,81 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Base32Box</b> </summary>
+
+| match rule         | description                   | example              |
+| ------------------ | ----------------------------- | -------------------- |
+| `::base32`         | RFC 4648 Base32 encode        | `hello ::base32`     |
+| `::base32decode`   | Base32 decode back to text    | `NBSWY3DP ::base32decode` |
+
+</details>
+
+<details>
+<summary> <b>HexStringBox</b> </summary>
+
+| match rule     | description                          | example          |
+| -------------- | ------------------------------------ | ---------------- |
+| `::hex`        | encode text to UTF-8 hex bytes       | `hi ::hex`       |
+| `::hexdecode`  | decode a hex string back to text     | `6869 ::hexdecode` |
+
+</details>
+
+<details>
+<summary> <b>CaesarCipherBox</b> </summary>
+
+| match rule     | description                       | example                    |
+| -------------- | --------------------------------- | -------------------------- |
+| `::rot13`      | rotate letters by 13 (ROT13)      | `Hello, World! ::rot13`    |
+| `::caesar=N`   | rotate letters by N (wraps, signed) | `abc ::caesar=3`         |
+
+</details>
+
+<details>
+<summary> <b>CidrBox</b> </summary>
+
+| match rule        | description                                          | example            |
+| ----------------- | --------------------------------------------------- | ------------------ |
+| `a.b.c.d/p`       | IPv4 subnet: network, broadcast, mask, host range, counts | `192.168.1.0/24` |
+
+</details>
+
+<details>
+<summary> <b>LuhnBox</b> </summary>
+
+| match rule | description                                         | example                       |
+| ---------- | -------------------------------------------------- | ----------------------------- |
+| `::luhn`   | validate via Luhn (mod 10) + detect card brand      | `4111 1111 1111 1111 ::luhn`  |
+
+</details>
+
+<details>
+<summary> <b>TemperatureBox</b> </summary>
+
+| match rule | description                            | example         |
+| ---------- | -------------------------------------- | --------------- |
+| `::temp`   | convert between Celsius, Fahrenheit, Kelvin | `100C ::temp`, `98.6F ::temp` |
+
+</details>
+
+<details>
+<summary> <b>NanoIDBox</b> </summary>
+
+| match rule    | description                              | example         |
+| ------------- | ---------------------------------------- | --------------- |
+| `::nanoid`    | generate a URL-safe NanoID (default 21)  | `::nanoid=10`   |
+
+</details>
+
+<details>
+<summary> <b>UnicodeInspectorBox</b> </summary>
+
+| match rule   | description                                       | example            |
+| ------------ | ------------------------------------------------- | ------------------ |
+| `::unicode`  | per-character code point, UTF-8 and UTF-16 bytes  | `A€😀 ::unicode`   |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
