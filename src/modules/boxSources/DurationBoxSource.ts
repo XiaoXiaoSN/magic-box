@@ -25,7 +25,9 @@ function decompose(total: number): DurationParts {
   const hours = Math.floor(afterDays / SECONDS_PER_HOUR);
   const afterHours = afterDays - hours * SECONDS_PER_HOUR;
   const minutes = Math.floor(afterHours / SECONDS_PER_MINUTE);
-  const seconds = afterHours - minutes * SECONDS_PER_MINUTE;
+  // round to 3 decimals so fractional input doesn't surface float noise (1.900000000000091)
+  const seconds =
+    Math.round((afterHours - minutes * SECONDS_PER_MINUTE) * 1000) / 1000;
   return { days, hours, minutes, seconds, totalSeconds: total };
 }
 

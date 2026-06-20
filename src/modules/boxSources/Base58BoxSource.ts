@@ -3,7 +3,9 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
-const MAX_INPUT = 100_000;
+// base58 long-division is O(n²); base58 is meant for small blobs (keys, hashes,
+// addresses), so a low cap keeps worst-case work sub-millisecond
+const MAX_INPUT = 1_024;
 
 // bitcoin alphabet: excludes 0, O, I, l to avoid visual ambiguity
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';

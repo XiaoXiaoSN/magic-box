@@ -2,7 +2,9 @@ import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
+// higher than the generic converters: hmac is always opt-in via an explicit key
 const Priority = 20;
+const MAX_INPUT = 100_000;
 
 // supported HMAC hash algorithms
 type HmacHash = 'SHA-1' | 'SHA-256' | 'SHA-512';
@@ -13,10 +15,12 @@ interface HmacAlgorithmEntry {
   label: string;
 }
 
+// hmac-prefixed selectors so they don't collide with HashBoxSource's
+// ::sha1/::sha256/::sha512 trigger keys
 const HMAC_ALGORITHMS: HmacAlgorithmEntry[] = [
-  { hash: 'SHA-1', optionKeys: ['sha1'], label: 'SHA1' },
-  { hash: 'SHA-256', optionKeys: ['sha256'], label: 'SHA256' },
-  { hash: 'SHA-512', optionKeys: ['sha512'], label: 'SHA512' },
+  { hash: 'SHA-1', optionKeys: ['hmac-sha1'], label: 'SHA1' },
+  { hash: 'SHA-256', optionKeys: ['hmac-sha256'], label: 'SHA256' },
+  { hash: 'SHA-512', optionKeys: ['hmac-sha512'], label: 'SHA512' },
 ];
 
 function bufToHex(buf: ArrayBuffer): string {
@@ -57,7 +61,7 @@ function resolveAlgorithm(options: BoxOptions): HmacAlgorithmEntry {
 export const HmacBoxSource = {
   name: 'HMAC',
   description:
-    'Compute an HMAC (SHA-256 by default) of the input using a key. e.g. "msg ::hmac=secret".',
+    'Compute an HMAC (SHA-256 by default) of the input using a key. e.g. "msg ::hmac=secret". Pick the hash with ::hmac-sha1 / ::hmac-sha512.',
   defaultInput: 'The quick brown fox ::hmac=key',
   tag: '#',
   kind: 'Hash',
@@ -68,6 +72,7 @@ export const HmacBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'hmac')) return [];
+    if (input.length > MAX_INPUT) return [];
 
     // guard: crypto.subtle requires a secure context
     if (typeof crypto === 'undefined' || !crypto.subtle) {

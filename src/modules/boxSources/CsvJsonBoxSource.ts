@@ -205,7 +205,7 @@ export const CsvJsonBoxSource = {
 
     // treat as CSV → JSON
     try {
-      const output = csvToJson(input);
+      const output = csvToJson(trimmed);
       return [
         new BoxBuilder('CSV → JSON', output)
           .setTemplate(CodeBoxTemplate)

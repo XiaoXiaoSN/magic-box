@@ -132,7 +132,17 @@ export const NumberToWordsBoxSource = {
     const digits = negative ? raw.slice(1) : raw;
 
     const words = bigIntToWords(BigInt(digits));
-    if (!words) return [];
+    if (!words) {
+      return [
+        new BoxBuilder(
+          'Number to Words',
+          'number exceeds the maximum supported scale (999 quintillion)',
+        )
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
 
     const output = negative ? `negative ${words}` : words;
 

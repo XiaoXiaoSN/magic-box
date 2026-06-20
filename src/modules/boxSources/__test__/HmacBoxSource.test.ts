@@ -48,22 +48,31 @@ describe('HmacBoxSource', () => {
   });
 
   describe('generateBoxes - algorithm selection', () => {
-    it('uses SHA-1 when ::sha1 option is set', async () => {
+    it('uses SHA-1 when ::hmac-sha1 option is set', async () => {
       const boxes = await HmacBoxSource.generateBoxes('msg', {
         hmac: 'secret',
-        sha1: true,
+        'hmac-sha1': true,
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toMatch(/SHA1/i);
     });
 
-    it('uses SHA-512 when ::sha512 option is set', async () => {
+    it('uses SHA-512 when ::hmac-sha512 option is set', async () => {
       const boxes = await HmacBoxSource.generateBoxes('msg', {
         hmac: 'secret',
-        sha512: true,
+        'hmac-sha512': true,
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toMatch(/SHA512/i);
+    });
+
+    it('does not select an algorithm from bare ::sha256 (avoids HashBox collision)', async () => {
+      const boxes = await HmacBoxSource.generateBoxes('msg', {
+        hmac: 'secret',
+        sha256: true,
+      });
+      // bare ::sha* no longer selects; default SHA-256 still applies
+      expect(boxes[0].props.name).toMatch(/SHA256/i);
     });
   });
 

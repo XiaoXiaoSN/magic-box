@@ -64,6 +64,15 @@ describe('DurationBoxSource', () => {
       expect(opts.Human).toBe('1d 2h 3m 4s');
     });
 
+    it('rounds fractional seconds without floating-point noise', async () => {
+      const boxes = await DurationBoxSource.generateBoxes('3661.9', {
+        duration: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Human).toBe('1h 1m 1.9s');
+      expect(opts.Seconds).toBe('1.9');
+    });
+
     it('uses KeyValueBoxTemplate', async () => {
       const boxes = await DurationBoxSource.generateBoxes('3661', {
         duration: true,

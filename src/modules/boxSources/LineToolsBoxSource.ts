@@ -6,9 +6,12 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
-// strip trailing \r from each line to tolerate CRLF input
+// split into lines, stripping trailing \r (CRLF) and dropping the single empty
+// element a trailing newline would otherwise produce
 function splitLines(input: string): string[] {
-  return input.split('\n').map((line) => line.replace(/\r$/, ''));
+  const lines = input.split('\n').map((line) => line.replace(/\r$/, ''));
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  return lines;
 }
 
 export const LineToolsBoxSource = {
