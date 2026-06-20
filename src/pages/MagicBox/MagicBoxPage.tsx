@@ -2,7 +2,14 @@ import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
 import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
@@ -40,6 +47,9 @@ const MagicBoxPage = (): React.JSX.Element => {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastRecordedRef = useRef<string>('');
+  // caret index to restore after a programmatic (non-typing) value update;
+  // null means "leave the caret where the browser puts it" (normal typing).
+  const pendingCaretRef = useRef<number | null>(null);
 
   const { history, addEntry, removeEntry, clearHistory } = useSearchHistory();
 
@@ -69,14 +79,39 @@ const MagicBoxPage = (): React.JSX.Element => {
     [userInput],
   );
 
-  const handleScannedInput = (value: string) => {
+  // After a programmatic value replacement, the controlled textarea re-renders
+  // with the new value but the browser would otherwise leave the caret at a
+  // stale offset. Restore the intended caret position once the DOM reflects
+  // the new value, using the ref only for selection (never as the value
+  // source). Runs synchronously before paint to avoid a visible caret jump.
+  // userInput is the intended trigger: the effect reads refs but must re-run
+  // after every value commit so the caret is restored against the freshly
+  // rendered DOM value.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: userInput is a deliberate trigger, not a read dependency
+  useLayoutEffect(() => {
+    const caret = pendingCaretRef.current;
+    if (caret === null) return;
+    pendingCaretRef.current = null;
+    const el = inputRef.current;
+    if (!el) return;
+    const pos = Math.min(caret, el.value.length);
+    el.setSelectionRange(pos, pos);
+  }, [userInput]);
+
+  // Replaces the whole input programmatically (QR scan, history pick, paste
+  // back). Marks the caret to land at the end of the inserted text so the
+  // next keystroke continues naturally.
+  const replaceInput = (value: string) => {
+    pendingCaretRef.current = value.length;
     setUserInput(value);
-    if (inputRef.current) inputRef.current.value = value;
+  };
+
+  const handleScannedInput = (value: string) => {
+    replaceInput(value);
   };
 
   const handleHistorySelect = (input: string) => {
-    setUserInput(input);
-    if (inputRef.current) inputRef.current.value = input;
+    replaceInput(input);
     setHistoryOpen(false);
     inputRef.current?.focus();
   };
@@ -221,8 +256,7 @@ const MagicBoxPage = (): React.JSX.Element => {
             <MagicBox
               input={magicIn}
               onPasteInput={(val: string) => {
-                setUserInput(val);
-                if (inputRef.current) inputRef.current.value = val;
+                replaceInput(val);
               }}
               resetTrigger={resetCounter}
             />
