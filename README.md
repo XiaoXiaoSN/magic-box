@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>HttpStatusBox</b> </summary>
+
+| match rule       | description                                  | example            |
+| ---------------- | -------------------------------------------- | ------------------ |
+| `::httpstatus`   | look up an HTTP status code's name & category | `404 ::httpstatus` |
+
+</details>
+
+<details>
+<summary> <b>MimeTypeBox</b> </summary>
+
+| match rule | description                                | example         |
+| ---------- | ------------------------------------------ | --------------- |
+| `::mime`   | extension ⇄ MIME type lookup               | `png ::mime`, `application/json ::mime` |
+
+</details>
+
+<details>
+<summary> <b>Crc32Box</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::crc32`   | CRC-32 (IEEE) checksum (hex + decimal) | `hello ::crc32` |
+
+</details>
+
+<details>
+<summary> <b>HexDumpBox</b> </summary>
+
+| match rule    | description                                  | example                    |
+| ------------- | -------------------------------------------- | -------------------------- |
+| `::hexdump`   | canonical hexdump (offset, hex bytes, ASCII) | `Hello, World! ::hexdump`  |
+
+</details>
+
+<details>
+<summary> <b>AspectRatioBox</b> </summary>
+
+| match rule | description                              | example              |
+| ---------- | ---------------------------------------- | -------------------- |
+| `::ratio`  | simplify width×height to an aspect ratio | `1920x1080 ::ratio`  |
+
+</details>
+
+<details>
+<summary> <b>ByteLengthBox</b> </summary>
+
+| match rule    | description                                       | example            |
+| ------------- | ------------------------------------------------- | ------------------ |
+| `::bytelen`   | count UTF-16 units, code points, UTF-8 bytes, graphemes | `héllo 😀 ::bytelen` |
+
+</details>
+
+<details>
+<summary> <b>UuidInspectBox</b> </summary>
+
+| match rule     | description                          | example                                       |
+| -------------- | ------------------------------------ | --------------------------------------------- |
+| `::uuidinfo`   | report a UUID's version and variant  | `550e8400-e29b-41d4-a716-446655440000 ::uuidinfo` |
+
+</details>
+
+<details>
+<summary> <b>JsonMinifyBox</b> </summary>
+
+| match rule    | description                                | example                       |
+| ------------- | ------------------------------------------ | ----------------------------- |
+| `::jsonmin`   | minify JSON (strip insignificant whitespace) | `{ "a": 1 } ::jsonmin`      |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
