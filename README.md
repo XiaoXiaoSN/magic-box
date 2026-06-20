@@ -297,6 +297,81 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>CsvJsonBox</b> </summary>
+
+| match rule | description                                  | example                          |
+| ---------- | -------------------------------------------- | -------------------------------- |
+| `::csv`    | CSV ⇄ JSON array of objects (auto-direction) | `name,age\nAlice,30 ::csv`       |
+
+</details>
+
+<details>
+<summary> <b>QueryStringBox</b> </summary>
+
+| match rule       | description                              | example            |
+| ---------------- | ---------------------------------------- | ------------------ |
+| `::qs`           | query string ⇄ JSON (repeated keys → array) | `a=1&b=2&b=3 ::qs` |
+
+</details>
+
+<details>
+<summary> <b>DurationBox</b> </summary>
+
+| match rule    | description                                   | example           |
+| ------------- | --------------------------------------------- | ----------------- |
+| `::duration`  | humanize a number of seconds (d/h/m/s)        | `3661 ::duration` |
+
+</details>
+
+<details>
+<summary> <b>HmacBox</b> </summary>
+
+| match rule    | description                                       | example                       |
+| ------------- | ------------------------------------------------- | ----------------------------- |
+| `::hmac=key`  | compute HMAC (SHA-256 default; ::sha1/::sha512)   | `message ::hmac=secret`       |
+
+</details>
+
+<details>
+<summary> <b>NumberToWordsBox</b> </summary>
+
+| match rule    | description                       | example            |
+| ------------- | --------------------------------- | ------------------ |
+| `::numwords`  | spell an integer in English words | `1234 ::numwords`  |
+
+</details>
+
+<details>
+<summary> <b>LineToolsBox</b> </summary>
+
+| match rule        | description                  | example                       |
+| ----------------- | ---------------------------- | ----------------------------- |
+| `::sortlines`     | sort lines ascending         | `banana\napple ::sortlines`   |
+| `::uniquelines`   | drop duplicate lines (keep order) | `a\nb\na ::uniquelines`  |
+| `::reverselines`  | reverse line order           | `1\n2\n3 ::reverselines`      |
+
+</details>
+
+<details>
+<summary> <b>ULIDBox</b> </summary>
+
+| match rule | description                                       | example     |
+| ---------- | ------------------------------------------------- | ----------- |
+| `::ulid`   | generate a 26-char sortable ULID (time + random)  | `::ulid`    |
+
+</details>
+
+<details>
+<summary> <b>Base58Box</b> </summary>
+
+| match rule        | description                          | example                  |
+| ----------------- | ------------------------------------ | ------------------------ |
+| `::base58`        | Base58 encode (Bitcoin alphabet)     | `Hello World! ::base58`  |
+| `::base58decode`  | Base58 decode back to text           | `2NEpo7TZRRrLZSi2U ::base58decode` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
