@@ -47,14 +47,7 @@ function generatePassword(length: number, classes: CharClasses): string {
     }
   }
 
-  // guarantee at least one character from each enabled class by replacing
-  // random positions — shuffle first so the mandatory chars are spread evenly
-  const shuffleBuf = new Uint32Array(chars.length);
-  crypto.getRandomValues(shuffleBuf);
-  chars.sort(
-    (_, __) => shuffleBuf[chars.indexOf(_)] - shuffleBuf[chars.indexOf(__)],
-  );
-
+  // guarantee at least one character from each enabled class by replacing random positions
   const mandatory: string[] = [];
   const classCharsets: string[] = [];
   if (classes.upper) classCharsets.push(CHARSET_UPPER);
