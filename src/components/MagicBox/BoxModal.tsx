@@ -1,3 +1,4 @@
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box as BoxType } from '@modules/Box';
 import CloseIcon from '@mui/icons-material/Close';
 import { Modal } from '@mui/material';
@@ -12,7 +13,8 @@ interface BoxModalProps {
 
 const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
   const { t } = useLocale();
-  const Comp = box?.boxTemplate;
+  // headless boxSources leave `boxTemplate` undefined; fall back to the default.
+  const Comp = box ? (box.boxTemplate ?? DefaultBoxTemplate) : null;
   if (!box || !Comp) {
     return (
       <Modal aria-labelledby="box-modal-title" onClose={onClose} open={open}>

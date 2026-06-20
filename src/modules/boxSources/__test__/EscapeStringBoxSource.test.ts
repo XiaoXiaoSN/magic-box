@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { EscapeStringBoxSource } from '../EscapeStringBoxSource';
@@ -97,7 +96,7 @@ describe('EscapeStringBoxSource', () => {
         '{"message":"something here"}',
       );
       expect(boxes[0].props.priority).toBe(15);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBeUndefined();
     });
 
     it('should generate box stripping ANSI codes', async () => {

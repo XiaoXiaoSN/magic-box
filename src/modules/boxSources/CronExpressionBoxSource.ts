@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { getLocale } from '@functions/runtimePrefs';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -85,7 +84,6 @@ export const CronExpressionBoxSource = {
     const { answer } = match;
     return [
       new BoxBuilder('Cron Expression', answer)
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

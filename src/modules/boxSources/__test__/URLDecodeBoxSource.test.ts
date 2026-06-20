@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { URLDecodeBoxSource } from '../URLDecodeBoxSource';
@@ -56,7 +55,7 @@ describe('URLDecodeBoxSource', () => {
         'https://example.com/path?query=hello world',
       );
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].boxTemplate).toBeUndefined();
     });
   });
 });

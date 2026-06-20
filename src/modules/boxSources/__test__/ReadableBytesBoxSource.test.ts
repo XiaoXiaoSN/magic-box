@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { ReadableBytesBoxSource } from '../ReadableBytesBoxSource';
@@ -96,7 +95,7 @@ describe('ReadableBytesBoxSource', () => {
       expect(box.props.name).toBe('ByteArray to String');
       expect(box.props.plaintextOutput).toBe('Hello');
       expect(box.props.priority).toBe(10);
-      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBeUndefined();
     });
 
     it('should generate box for utf-8 emoji', async () => {

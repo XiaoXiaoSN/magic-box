@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
@@ -46,7 +45,6 @@ export const URLDecodeBoxSource = {
     const { decodedText } = match;
     return [
       new BoxBuilder('URLEncoding Decode', decodedText)
-        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

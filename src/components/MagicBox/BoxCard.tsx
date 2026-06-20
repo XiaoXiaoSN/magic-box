@@ -1,3 +1,4 @@
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box as BoxType } from '@modules/Box';
 import { forwardRef, useCallback, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -71,7 +72,9 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
       }
     };
 
-    const Comp = box.boxTemplate;
+    // headless boxSources leave `boxTemplate` undefined; the web layer renders
+    // them with the default template.
+    const Comp = box.boxTemplate ?? DefaultBoxTemplate;
 
     return (
       // biome-ignore lint/a11y/useSemanticElements: outer needs nested buttons (Copy / Expand), so it cannot itself be a <button>.

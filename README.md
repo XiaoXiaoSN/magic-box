@@ -339,6 +339,47 @@ firebase init
 firebase deploy
 ```
 
+## Terminal UI (TUI) 🖥️
+
+Magic Box ships an experimental terminal UI built with [ink](https://github.com/vadimdemedes/ink) (React for the terminal). It runs a subset of boxes headlessly in Node — no browser, no WASM, no network.
+
+### Usage
+
+```bash
+# pass input as a CLI argument
+bun run tui "uuid"
+
+# pipe input via stdin
+echo "1700000000" | bun run tui
+
+# inline ::option directives work too (newline-separated)
+printf 'uuid\n::uppercase' | bun run tui
+
+# no argument and a TTY → interactive prompt (type and press Enter)
+bun run tui
+```
+
+A `magic-box-tui` bin is also exposed via `package.json`'s `bin` field.
+
+### How it works
+
+The box-generation core (`src/modules/Box.ts`, `BoxBuilder`, `BoxSource`) is framework-agnostic: it no longer imports any React/MUI template. Each box carries `name` / `plaintextOutput` / `tag` / `kind` / `options` and leaves `boxTemplate` undefined; the web layer (`BoxCard` / `BoxModal`) falls back to `DefaultBoxTemplate`, while the TUI simply renders `plaintextOutput`. This lets the headless sources import cleanly under Node with zero MUI in the module graph (`src/tui/`).
+
+### Foundation limitations
+
+This is a foundation, not full parity. The TUI runs only node-safe sources (`src/tui/sources.ts`):
+
+| Enabled | Excluded | Reason for exclusion |
+| --- | --- | --- |
+| Escape String, Cron, Date Calculate, Now, Random Integer, Readable Bytes, Time Format, Timestamp, URL Decode, UUID | Base64 (encode/decode) | depends on the `base64-box` WASM module |
+| | Math Expression | depends on the `math-box` WASM module |
+| | Data Converter, JWT | render via `CodeBoxTemplate` (React/MUI) |
+| | Generate QR Code | renders via `QRCodeBoxTemplate` (React/MUI, browser canvas) |
+| | K8s Secret, Word Count | render via `KeyValueBoxTemplate` (React/MUI) |
+| | My IP, Shorten URL | perform network `fetch` |
+
+Excluded sources can be added later by giving them plaintext-only headless paths (e.g. WASM bindings loaded from disk, or rendering their `plaintextOutput` without the React template).
+
 ## License 📃
 
 Magic Box is licensed under MIT and Apache 2.0 dual-licensed.

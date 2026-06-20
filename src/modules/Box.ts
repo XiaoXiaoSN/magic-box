@@ -1,4 +1,7 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
+// note: this module is intentionally framework-agnostic. it must NOT import any
+// react/mui template so that boxSources can run headlessly in node (e.g. the TUI).
+// the web layer (BoxCard/BoxModal) supplies DefaultBoxTemplate when a box leaves
+// `boxTemplate` undefined.
 
 export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
@@ -50,7 +53,9 @@ export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
 
 export interface Box {
   props: BoxProps;
-  boxTemplate: BoxTemplate;
+  // optional: when undefined the web layer falls back to DefaultBoxTemplate.
+  // headless consumers (TUI) ignore this and render `props.plaintextOutput`.
+  boxTemplate?: BoxTemplate;
 }
 
 export class BoxBuilder {
@@ -114,7 +119,7 @@ export class BoxBuilder {
         tag: this.tag,
         kind: this.kind,
       },
-      boxTemplate: this.boxTemplate ?? DefaultBoxTemplate,
+      boxTemplate: this.boxTemplate,
     };
   }
 }

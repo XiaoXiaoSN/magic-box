@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { RandomIntegerBoxSource } from '../RandomIntegerBoxSource';
@@ -69,7 +68,7 @@ describe('RandomIntegerBoxSource', () => {
       const value = parseInt(box.props.plaintextOutput, 10);
       expect(value).toBeGreaterThanOrEqual(0);
       expect(value).toBeLessThanOrEqual(100);
-      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
+      expect(box.boxTemplate).toBeUndefined();
     });
 
     it('should generate box with custom range', async () => {
