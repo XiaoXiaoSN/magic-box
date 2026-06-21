@@ -107,5 +107,19 @@ describe('GrayCodeBoxSource', () => {
       });
       expect(boxes[0].props.plaintextOutput).toBe('4');
     });
+
+    it('round-trips a value beyond MAX_SAFE_INTEGER (BigInt-exact)', async () => {
+      const big = '9007199254740993'; // 2^53 + 1
+      const enc = await GrayCodeBoxSource.generateBoxes(big, { gray: true });
+      const gray = (enc[0].props.options as Record<string, string>)[
+        'Gray (binary)'
+      ];
+      const dec = await GrayCodeBoxSource.generateBoxes(gray, {
+        graydecode: true,
+      });
+      expect((dec[0].props.options as Record<string, string>).Decimal).toBe(
+        big,
+      );
+    });
   });
 });

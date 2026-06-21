@@ -59,6 +59,8 @@ export const RadixBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'radix', 'baseconvert')) return [];
+    // BigInt base parsing is O(digits^2); bound it (input is uncapped ?input=)
+    if (input.length > 4_000) return [];
 
     const rawSpec = extractOptionKeys(options, 'radix', 'baseconvert');
 

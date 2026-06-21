@@ -4,6 +4,8 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
+// bound BigInt cost; input is seeded from a ?input= url param with no cap
+const MAX_INPUT = 10_000;
 
 // encode: n XOR (n >> 1) produces the gray code for integer n
 function encodeGray(n: bigint): bigint {
@@ -37,6 +39,7 @@ export const GrayCodeBoxSource = {
     const wantEncode = hasOptionKeys(options, 'gray', 'graycode');
     const wantDecode = hasOptionKeys(options, 'graydecode');
     if (!wantEncode && !wantDecode) return [];
+    if (input.length > MAX_INPUT) return [];
 
     const raw = trim(input);
 
@@ -44,7 +47,9 @@ export const GrayCodeBoxSource = {
       // accept only non-negative decimal integers
       if (!/^\d+$/.test(raw)) return [];
 
-      const n = BigInt(Number.parseInt(raw, 10));
+      // BigInt straight from the validated string — Number.parseInt would round
+      // anything above 2^53 to a wrong value
+      const n = BigInt(raw);
       const gray = encodeGray(n);
 
       const box = new BoxBuilder('Gray Code', gray.toString(2))
