@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>VerhoeffBox</b> </summary>
+
+| match rule    | description                          | example          |
+| ------------- | ------------------------------------ | ---------------- |
+| `::verhoeff`  | Verhoeff check digit compute/validate | `236 ::verhoeff` |
+
+</details>
+
+<details>
+<summary> <b>Fletcher16Box</b> </summary>
+
+| match rule       | description                          | example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `::fletcher16`   | Fletcher-16 checksum                 | `abcde ::fletcher16` |
+
+</details>
+
+<details>
+<summary> <b>JsonSortKeysBox</b> </summary>
+
+| match rule    | description                          | example                  |
+| ------------- | ------------------------------------ | ------------------------ |
+| `::jsonsort`  | recursively sort JSON object keys (`=desc`) | `{"b":1,"a":2} ::jsonsort` |
+
+</details>
+
+<details>
+<summary> <b>CsvToMarkdownBox</b> </summary>
+
+| match rule  | description                          | example                       |
+| ----------- | ------------------------------------ | ----------------------------- |
+| `::csvmd`   | CSV → Markdown table                 | `name,age`<br>`Alice,30 ::csvmd` |
+
+</details>
+
+<details>
+<summary> <b>JsonSchemaBox</b> </summary>
+
+| match rule       | description                          | example                  |
+| ---------------- | ------------------------------------ | ------------------------ |
+| `::jsonschema`   | infer a JSON Schema (draft-07)       | `{"id":1} ::jsonschema`  |
+
+</details>
+
+<details>
+<summary> <b>RegexEscapeBox</b> </summary>
+
+| match rule        | description                          | example               |
+| ----------------- | ------------------------------------ | --------------------- |
+| `::regexescape`   | escape a literal for use in a regex  | `a.b*c ::regexescape` |
+
+</details>
+
+<details>
+<summary> <b>GlobToRegexBox</b> </summary>
+
+| match rule        | description                          | example                  |
+| ----------------- | ------------------------------------ | ------------------------ |
+| `::glob2regex`    | convert a shell glob to a regex      | `src/**/*.ts ::glob2regex` |
+
+</details>
+
+<details>
+<summary> <b>OnColorBox</b> </summary>
+
+| match rule   | description                          | example            |
+| ------------ | ------------------------------------ | ------------------ |
+| `::oncolor`  | readable text color (black/white) for a background | `#3498db ::oncolor` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
