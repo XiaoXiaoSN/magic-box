@@ -297,6 +297,82 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>IbanBox</b> </summary>
+
+| match rule | description                          | example                           |
+| ---------- | ------------------------------------ | --------------------------------- |
+| `::iban`   | validate an IBAN (mod-97) + country  | `GB82 WEST 1234 5698 7654 32 ::iban` |
+
+</details>
+
+<details>
+<summary> <b>JsonFlattenBox</b> </summary>
+
+| match rule     | description                              | example                       |
+| -------------- | ---------------------------------------- | ----------------------------- |
+| `::flatten`    | flatten nested JSON to dot/bracket keys  | `{"a":{"b":1}} ::flatten`     |
+| `::unflatten`  | rebuild nested JSON from dot keys         | `{"a.b":1} ::unflatten`       |
+
+</details>
+
+<details>
+<summary> <b>TimezoneConvertBox</b> </summary>
+
+| match rule          | description                              | example                                  |
+| ------------------- | ---------------------------------------- | ---------------------------------------- |
+| `::tzconvert=ZONE`  | show a time in a target IANA timezone    | `2024-01-01T12:00:00Z ::tzconvert=Asia/Tokyo` |
+
+</details>
+
+<details>
+<summary> <b>PxRemBox</b> </summary>
+
+| match rule  | description                              | example          |
+| ----------- | ---------------------------------------- | ---------------- |
+| `::pxrem`   | convert between px and rem (base 16)     | `24px ::pxrem`   |
+
+</details>
+
+<details>
+<summary> <b>DotEnvBox</b> </summary>
+
+| match rule   | description                          | example                  |
+| ------------ | ------------------------------------ | ------------------------ |
+| `::dotenv`   | .env ⇄ JSON (auto-direction)         | `API_KEY=abc ::dotenv`   |
+
+</details>
+
+<details>
+<summary> <b>A1Z26Box</b> </summary>
+
+| match rule        | description                          | example              |
+| ----------------- | ------------------------------------ | -------------------- |
+| `::a1z26`         | letters → position numbers (A=1..Z=26) | `hello ::a1z26`    |
+| `::a1z26decode`   | numbers → letters                    | `8-5-12-12-15 ::a1z26decode` |
+
+</details>
+
+<details>
+<summary> <b>FullwidthBox</b> </summary>
+
+| match rule      | description                          | example               |
+| --------------- | ------------------------------------ | --------------------- |
+| `::fullwidth`   | ASCII → fullwidth Unicode            | `Hello 123 ::fullwidth` |
+| `::halfwidth`   | fullwidth → ASCII                    | `Ｈｉ ::halfwidth`     |
+
+</details>
+
+<details>
+<summary> <b>BaconCipherBox</b> </summary>
+
+| match rule       | description                          | example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `::bacon`        | Baconian cipher (5-letter A/B groups) | `hello ::bacon`   |
+| `::bacondecode`  | decode Baconian back to text          | `aabbb aabaa ababb ababb abbba ::bacondecode` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
