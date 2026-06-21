@@ -171,10 +171,15 @@ export const JwtVerifyBoxSource = {
       expired = payload.exp < Math.floor(Date.now() / 1000) ? 'true' : 'false';
     }
 
+    // keep the k:v value short; long payloads are truncated with an ellipsis
+    const payloadStr = JSON.stringify(payload);
+    const payloadDisplay =
+      payloadStr.length > 200 ? `${payloadStr.slice(0, 197)}...` : payloadStr;
+
     const data: Record<string, string> = {
       Signature: signatureValid ? 'valid' : 'invalid',
       Algorithm: String(header.alg),
-      Payload: JSON.stringify(payload),
+      Payload: payloadDisplay,
       Expired: expired,
     };
 

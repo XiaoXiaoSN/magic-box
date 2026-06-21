@@ -47,7 +47,7 @@ export const DammBoxSource = {
 
     const cleaned = trim(input);
 
-    if (!/^\d+$/.test(cleaned) || cleaned.length === 0) {
+    if (!/^\d+$/.test(cleaned)) {
       const reason = 'Input must contain digits only (0–9).';
       return [
         new BoxBuilder('Damm Check', reason)

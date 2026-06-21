@@ -9,7 +9,7 @@ const MAX_INPUT = 20_000;
 export const HammingDistanceBoxSource = {
   name: 'Hamming Distance',
   description:
-    'Hamming distance between two equal-length strings (newline-separated).',
+    'Hamming distance between two equal-length strings (newline-separated, by UTF-16 code unit).',
   defaultInput: 'karolin\nkathrin ::hamming',
   tag: '#',
   kind: 'Analyze',

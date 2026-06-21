@@ -74,6 +74,7 @@ export const EmailParseBoxSource = {
     };
 
     if (parsed.tag !== null) {
+      kv.Base = parsed.baseLocal;
       kv.Tag = parsed.tag;
     }
 

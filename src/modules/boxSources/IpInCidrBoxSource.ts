@@ -112,12 +112,13 @@ export const IpInCidrBoxSource = {
       ];
     }
 
-    const { mask, network, broadcast } = parsed;
+    const { prefix, mask, network, broadcast } = parsed;
     const inRange = (ipInt & mask) >>> 0 === network;
 
     const kvOptions: Record<string, string> = {
       IP: ipStr,
-      CIDR: cidrRaw as string,
+      // show the canonical network/prefix form, not the raw input
+      CIDR: `${uint32ToIp(network)}/${prefix}`,
       Network: uint32ToIp(network),
       Broadcast: uint32ToIp(broadcast),
       'In Range': String(inRange),
