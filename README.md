@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>JwtVerifyBox</b> </summary>
+
+| match rule          | description                          | example                       |
+| ------------------- | ------------------------------------ | ----------------------------- |
+| `::jwtverify=SECRET`| verify an HS256 JWT signature        | `<token> ::jwtverify=secret`  |
+
+</details>
+
+<details>
+<summary> <b>EmailParseBox</b> </summary>
+
+| match rule       | description                          | example                       |
+| ---------------- | ------------------------------------ | ----------------------------- |
+| `::emailparse`   | parse email into local/domain/TLD    | `a+tag@b.example.com ::emailparse` |
+
+</details>
+
+<details>
+<summary> <b>MimeTypeBox</b> </summary>
+
+| match rule     | description                          | example          |
+| -------------- | ------------------------------------ | ---------------- |
+| `::mimetype`   | extension ⇄ MIME type                | `png ::mimetype` |
+
+</details>
+
+<details>
+<summary> <b>IpInCidrBox</b> </summary>
+
+| match rule          | description                          | example                          |
+| ------------------- | ------------------------------------ | -------------------------------- |
+| `::ipincidr=CIDR`   | is an IPv4 address within a CIDR     | `10.0.0.5 ::ipincidr=10.0.0.0/24` |
+
+</details>
+
+<details>
+<summary> <b>ShannonEntropyBox</b> </summary>
+
+| match rule   | description                          | example               |
+| ------------ | ------------------------------------ | --------------------- |
+| `::entropy`  | Shannon entropy (bits/symbol)        | `aaaabbbbcccd ::entropy` |
+
+</details>
+
+<details>
+<summary> <b>HammingDistanceBox</b> </summary>
+
+| match rule   | description                          | example                       |
+| ------------ | ------------------------------------ | ----------------------------- |
+| `::hamming`  | Hamming distance of two equal-length lines | `karolin`<br>`kathrin ::hamming` |
+
+</details>
+
+<details>
+<summary> <b>UnicodeNormalizeBox</b> </summary>
+
+| match rule        | description                          | example                  |
+| ----------------- | ------------------------------------ | ------------------------ |
+| `::normalize=FORM`| Unicode normalize (NFC/NFD/NFKC/NFKD) | `café ::normalize=nfd`  |
+
+</details>
+
+<details>
+<summary> <b>DammBox</b> </summary>
+
+| match rule  | description                          | example         |
+| ----------- | ------------------------------------ | --------------- |
+| `::damm`    | Damm check digit compute/validate    | `572 ::damm`    |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x

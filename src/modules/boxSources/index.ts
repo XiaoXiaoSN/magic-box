@@ -4,22 +4,30 @@ import {
 } from './Base64BoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
+import DammBoxSource from './DammBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
+import EmailParseBoxSource from './EmailParseBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import HammingDistanceBoxSource from './HammingDistanceBoxSource';
 import HashBoxSource from './HashBoxSource';
+import IpInCidrBoxSource from './IpInCidrBoxSource';
 import JWTBoxSource from './JWTBoxSource';
+import JwtVerifyBoxSource from './JwtVerifyBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
+import MimeTypeBoxSource from './MimeTypeBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import ShannonEntropyBoxSource from './ShannonEntropyBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
+import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
@@ -32,20 +40,28 @@ export const boxSources = [
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
   CronExpressionBoxSource,
+  DammBoxSource,
   DataConverterBoxSource,
   DateCalculateBoxSource,
+  EmailParseBoxSource,
   GenerateQRCodeBoxSource,
+  HammingDistanceBoxSource,
   HashBoxSource,
+  IpInCidrBoxSource,
+  JwtVerifyBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
   MathExpressionBoxSource,
+  MimeTypeBoxSource,
   MyIPBoxSource,
   NowBoxSource,
   PasswordBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
+  ShannonEntropyBoxSource,
   ShortenURLBoxSource,
   TimeFormatBoxSource,
+  UnicodeNormalizeBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,
   TimestampBoxSource,
