@@ -1,3 +1,4 @@
+import Adler32BoxSource from './Adler32BoxSource';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
@@ -6,15 +7,22 @@ import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
+import DurationParseBoxSource from './DurationParseBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
+import FrequencyBoxSource from './FrequencyBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import GrayCodeBoxSource from './GrayCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
+import IsbnBoxSource from './IsbnBoxSource';
+import JsonPointerBoxSource from './JsonPointerBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PunycodeBoxSource from './PunycodeBoxSource';
+import RadixBoxSource from './RadixBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
@@ -31,17 +39,25 @@ export const boxSources = [
   ColorBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
+  Adler32BoxSource,
   CronExpressionBoxSource,
   DataConverterBoxSource,
   DateCalculateBoxSource,
+  DurationParseBoxSource,
+  FrequencyBoxSource,
   GenerateQRCodeBoxSource,
+  GrayCodeBoxSource,
   HashBoxSource,
+  IsbnBoxSource,
+  JsonPointerBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
   PasswordBoxSource,
+  PunycodeBoxSource,
+  RadixBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
   ShortenURLBoxSource,

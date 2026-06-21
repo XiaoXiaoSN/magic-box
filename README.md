@@ -297,6 +297,80 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>PunycodeBox</b> </summary>
+
+| match rule           | description                          | example                  |
+| -------------------- | ------------------------------------ | ------------------------ |
+| `::punycode`         | IDN → Punycode (xn--) ASCII form     | `münchen.de ::punycode`  |
+| `::punycodedecode`   | Punycode → Unicode domain            | `xn--mnchen-3ya.de ::punycodedecode` |
+
+</details>
+
+<details>
+<summary> <b>RadixBox</b> </summary>
+
+| match rule          | description                              | example              |
+| ------------------- | ---------------------------------------- | -------------------- |
+| `::radix=FROM:TO`   | convert an integer between bases 2–36    | `ff ::radix=16:2`    |
+
+</details>
+
+<details>
+<summary> <b>DurationParseBox</b> </summary>
+
+| match rule         | description                              | example               |
+| ------------------ | ---------------------------------------- | --------------------- |
+| `::parseduration`  | parse "1h30m" etc. into total seconds    | `1h30m20s ::parseduration` |
+
+</details>
+
+<details>
+<summary> <b>IsbnBox</b> </summary>
+
+| match rule | description                          | example                       |
+| ---------- | ------------------------------------ | ----------------------------- |
+| `::isbn`   | validate ISBN-10 / ISBN-13 + check digit | `978-0-306-40615-7 ::isbn` |
+
+</details>
+
+<details>
+<summary> <b>Adler32Box</b> </summary>
+
+| match rule    | description                       | example                |
+| ------------- | --------------------------------- | ---------------------- |
+| `::adler32`   | Adler-32 checksum (hex + decimal) | `Wikipedia ::adler32`  |
+
+</details>
+
+<details>
+<summary> <b>JsonPointerBox</b> </summary>
+
+| match rule              | description                           | example                            |
+| ----------------------- | ------------------------------------- | ---------------------------------- |
+| `::jsonpointer=POINTER` | resolve an RFC 6901 JSON Pointer      | `{"a":{"b":[10,20]}} ::jsonpointer=/a/b/1` |
+
+</details>
+
+<details>
+<summary> <b>FrequencyBox</b> </summary>
+
+| match rule  | description                              | example              |
+| ----------- | ---------------------------------------- | -------------------- |
+| `::freq`    | character frequency analysis, sorted     | `hello world ::freq` |
+
+</details>
+
+<details>
+<summary> <b>GrayCodeBox</b> </summary>
+
+| match rule       | description                          | example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `::gray`         | integer → Gray code                  | `4 ::gray`         |
+| `::graydecode`   | Gray code (binary) → integer         | `110 ::graydecode` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
