@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Base32Box</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::base32`   | RFC 4648 Base32 (`::base32decode` to decode) | `hello ::base32` |
+
+</details>
+
+<details>
+<summary> <b>EnergyConvertBox</b> </summary>
+
+| match rule  | description                          | example            |
+| ----------- | ------------------------------------ | ------------------ |
+| `::energy`  | J/kJ/cal/kcal/Wh/kWh/BTU/eV          | `1 kWh ::energy`   |
+
+</details>
+
+<details>
+<summary> <b>PowerConvertBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::power`   | W/kW/MW/hp/PS/BTU·h⁻¹                 | `100 hp ::power` |
+
+</details>
+
+<details>
+<summary> <b>FactorialBox</b> </summary>
+
+| match rule     | description                          | example            |
+| -------------- | ------------------------------------ | ------------------ |
+| `::factorial`  | n! exactly (BigInt)                  | `20 ::factorial`   |
+
+</details>
+
+<details>
+<summary> <b>CombinationsBox</b> </summary>
+
+| match rule  | description                          | example         |
+| ----------- | ------------------------------------ | --------------- |
+| `::ncr`     | C(n,r) + P(n,r) exactly              | `52 5 ::ncr`    |
+
+</details>
+
+<details>
+<summary> <b>QuadraticBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::quadratic`  | solve ax² + bx + c = 0 (real/complex) | `1 -3 2 ::quadratic` |
+
+</details>
+
+<details>
+<summary> <b>Ipv6Box</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::ipv6`    | expand + compress IPv6 (RFC 5952)    | `2001:db8::1 ::ipv6` |
+
+</details>
+
+<details>
+<summary> <b>FibonacciBox</b> </summary>
+
+| match rule  | description                          | example       |
+| ----------- | ------------------------------------ | ------------- |
+| `::fib`     | nth Fibonacci number (BigInt)        | `100 ::fib`   |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
