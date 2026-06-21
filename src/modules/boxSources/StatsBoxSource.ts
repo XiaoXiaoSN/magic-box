@@ -24,7 +24,11 @@ function fmt(n: number): string {
   // toPrecision can produce e-notation; use toFixed for reasonable range
   const s = n.toFixed(6);
   // strip trailing zeros after the decimal point
-  return s.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  const stripped = s.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+  // a tiny non-zero value rounds to "0" at 6 decimals — fall back to
+  // significant-figure notation so it isn't shown as exactly zero
+  if (stripped === '0' && n !== 0) return n.toPrecision(4);
+  return stripped;
 }
 
 // computes population variance of an array with a known mean
@@ -126,7 +130,9 @@ export const StatsBoxSource = {
       Max: fmt(max),
       Range: fmt(range),
       Variance: fmt(variance),
-      'Std Dev': fmt(stdDev),
+      'Std Dev (pop)': fmt(stdDev),
+      'Std Dev (sample)':
+        count > 1 ? fmt(Math.sqrt((variance * count) / (count - 1))) : 'n/a',
     };
 
     return [

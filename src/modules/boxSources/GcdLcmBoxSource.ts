@@ -62,7 +62,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -81,7 +81,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -92,7 +92,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }

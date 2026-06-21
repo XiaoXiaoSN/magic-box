@@ -65,6 +65,15 @@ export const ModPowBoxSource = {
       ];
     }
 
+    // cap operand magnitude: square-and-multiply does O(log exp) BigInt
+    // multiplications over the modulus; huge operands would stall the main
+    // thread synchronously on every keystroke (input is the URL ?input= param)
+    if (tokens.some((t) => t.replace(/^-/, '').length > 100)) {
+      return [
+        makeErrorBox('Each operand must be at most 100 digits.', this.priority),
+      ];
+    }
+
     const base = BigInt(tokens[0]);
     const exponent = BigInt(tokens[1]);
     const modulus = BigInt(tokens[2]);

@@ -134,6 +134,22 @@ describe('ModPowBoxSource', () => {
         modpow: true,
       });
       const text = boxes[0].props.plaintextOutput;
+      expect(text).toContain('Result: 445');
+    });
+
+    it('rejects operands longer than 100 digits (DoS guard)', async () => {
+      const huge = '9'.repeat(200);
+      const boxes = await ModPowBoxSource.generateBoxes(`2 ${huge} ${huge}`, {
+        modpow: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/100 digits/);
+    });
+
+    it('plaintextOutput keeps the base/exponent/modulus lines', async () => {
+      const boxes = await ModPowBoxSource.generateBoxes('4 13 497', {
+        modpow: true,
+      });
+      const text = boxes[0].props.plaintextOutput;
       expect(text).toContain('Base: 4');
       expect(text).toContain('Exponent: 13');
       expect(text).toContain('Modulus: 497');

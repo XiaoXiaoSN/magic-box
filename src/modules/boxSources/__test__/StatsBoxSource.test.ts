@@ -43,7 +43,7 @@ describe('StatsBoxSource', () => {
       expect(opts.Max).toBe('9');
       expect(opts.Range).toBe('7');
       expect(opts.Variance).toBe('4');
-      expect(opts['Std Dev']).toBe('2');
+      expect(opts['Std Dev (pop)']).toBe('2');
     });
 
     it('accepts ::statistics alias', async () => {
@@ -59,7 +59,8 @@ describe('StatsBoxSource', () => {
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Count).toBe('1');
       expect(opts.Mean).toBe('5');
-      expect(opts['Std Dev']).toBe('0');
+      expect(opts['Std Dev (pop)']).toBe('0');
+      expect(opts['Std Dev (sample)']).toBe('n/a');
       expect(opts.Variance).toBe('0');
     });
 
@@ -122,7 +123,7 @@ describe('StatsBoxSource', () => {
       );
       const text = boxes[0].props.plaintextOutput;
       expect(text).toContain('Mean: 5');
-      expect(text).toContain('Std Dev: 2');
+      expect(text).toContain('Std Dev (pop): 2');
     });
   });
 });

@@ -23,8 +23,11 @@ const TO_PA: Record<string, number> = {
 // output unit labels in display order
 const OUTPUT_UNITS: Array<[string, string]> = [
   ['Pa', 'pa'],
+  ['hPa', 'hpa'],
   ['kPa', 'kpa'],
+  ['MPa', 'mpa'],
   ['bar', 'bar'],
+  ['mbar', 'mbar'],
   ['psi', 'psi'],
   ['atm', 'atm'],
   ['mmHg', 'mmhg'],
