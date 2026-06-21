@@ -297,6 +297,80 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>NanoIdBox</b> </summary>
+
+| match rule  | description                          | example      |
+| ----------- | ------------------------------------ | ------------ |
+| `::nanoid`  | generate a URL-safe NanoID (`=length`) | `::nanoid`  |
+
+</details>
+
+<details>
+<summary> <b>Base62Box</b> </summary>
+
+| match rule        | description                          | example              |
+| ----------------- | ------------------------------------ | -------------------- |
+| `::base62`        | encode an integer to Base62          | `123456789 ::base62` |
+| `::base62decode`  | decode Base62 to a number            | `8M0kX ::base62decode` |
+
+</details>
+
+<details>
+<summary> <b>CssColorNameBox</b> </summary>
+
+| match rule     | description                          | example             |
+| -------------- | ------------------------------------ | ------------------- |
+| `::colorname`  | CSS color name ⇄ hex (nearest match) | `tomato ::colorname` |
+
+</details>
+
+<details>
+<summary> <b>RailFenceBox</b> </summary>
+
+| match rule           | description                          | example                  |
+| -------------------- | ------------------------------------ | ------------------------ |
+| `::railfence=N`      | Rail Fence cipher encode             | `HELLO ::railfence=3`    |
+| `::railfencedecode=N`| Rail Fence cipher decode             | `HOLELL ::railfencedecode=3` |
+
+</details>
+
+<details>
+<summary> <b>ScientificNotationBox</b> </summary>
+
+| match rule   | description                          | example               |
+| ------------ | ------------------------------------ | --------------------- |
+| `::scinote`  | decimal ⇄ scientific/engineering notation | `0.00012345 ::scinote` |
+
+</details>
+
+<details>
+<summary> <b>DmsBox</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::dms`     | decimal degrees ⇄ DMS coordinates    | `40.446195 ::dms`    |
+
+</details>
+
+<details>
+<summary> <b>ChmodBox</b> </summary>
+
+| match rule  | description                          | example       |
+| ----------- | ------------------------------------ | ------------- |
+| `::chmod`   | Unix permissions octal ⇄ symbolic    | `755 ::chmod` |
+
+</details>
+
+<details>
+<summary> <b>WhitespaceNormalizeBox</b> </summary>
+
+| match rule      | description                          | example                  |
+| --------------- | ------------------------------------ | ------------------------ |
+| `::trimlines`   | trim trailing spaces + collapse blank lines (`::normalizews` collapses internal runs) | `text ::trimlines` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
