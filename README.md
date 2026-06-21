@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>HexTextBox</b> </summary>
+
+| match rule    | description                          | example       |
+| ------------- | ------------------------------------ | ------------- |
+| `::hex`       | text → hex string (UTF-8); `::hexdecode` to reverse | `Hi ::hex` |
+
+</details>
+
+<details>
+<summary> <b>LengthConvertBox</b> </summary>
+
+| match rule   | description                          | example            |
+| ------------ | ------------------------------------ | ------------------ |
+| `::length`   | convert a length across units (`::length=mi` for one target) | `1 mi ::length` |
+
+</details>
+
+<details>
+<summary> <b>DataSizeBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::datasize`   | convert a data size SI ⇄ IEC         | `1.5 GB ::datasize`  |
+
+</details>
+
+<details>
+<summary> <b>AngleConvertBox</b> </summary>
+
+| match rule  | description                          | example            |
+| ----------- | ------------------------------------ | ------------------ |
+| `::angle`   | convert deg / rad / grad / turn      | `180 deg ::angle`  |
+
+</details>
+
+<details>
+<summary> <b>IniBox</b> </summary>
+
+| match rule | description                          | example                    |
+| ---------- | ------------------------------------ | -------------------------- |
+| `::ini`    | INI ⇄ JSON                           | `[s]`<br>`k=v` `::ini`     |
+
+</details>
+
+<details>
+<summary> <b>CountryFlagBox</b> </summary>
+
+| match rule  | description                          | example       |
+| ----------- | ------------------------------------ | ------------- |
+| `::flag`    | ISO country code ⇄ flag emoji        | `US ::flag`   |
+
+</details>
+
+<details>
+<summary> <b>BeaufortBox</b> </summary>
+
+| match rule         | description                          | example                  |
+| ------------------ | ------------------------------------ | ------------------------ |
+| `::beaufort=key`   | Beaufort cipher (self-reciprocal)    | `DEFEND ::beaufort=FORTIFICATION` |
+
+</details>
+
+<details>
+<summary> <b>Base91Box</b> </summary>
+
+| match rule       | description                          | example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `::base91`       | basE91 encode (`::base91decode` to decode) | `hello ::base91` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
