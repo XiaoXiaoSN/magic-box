@@ -95,5 +95,16 @@ describe('JsonToTypescriptBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toContain("'my-key': number;");
     });
+
+    it('disambiguates interface names that collide after PascalCase', async () => {
+      const boxes = await JsonToTypescriptBoxSource.generateBoxes(
+        '{"my_data":{"x":1},"myData":{"y":"a"}}',
+        { tsinterface: true },
+      );
+      const out = boxes[0].props.plaintextOutput;
+      // two distinct interfaces, no duplicate name
+      expect(out).toContain('interface MyData {');
+      expect(out).toContain('interface MyData2 {');
+    });
   });
 });

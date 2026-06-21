@@ -31,11 +31,28 @@ interface InterfaceDef {
   body: string;
 }
 
+// coerce a candidate name into a valid TS identifier, then make it unique so
+// keys that collide after PascalCase (e.g. my_data and myData) don't emit two
+// interfaces with the same name
+function uniqueIdentifier(name: string, used: Set<string>): string {
+  let base = name.replace(/[^A-Za-z0-9$]/g, '').replace(/^[0-9]/, '_$&');
+  if (base.length === 0) base = 'Anon';
+  let candidate = base;
+  let n = 2;
+  while (used.has(candidate)) {
+    candidate = `${base}${n}`;
+    n++;
+  }
+  used.add(candidate);
+  return candidate;
+}
+
 // infers the TypeScript type string for a JSON value, collecting nested interface definitions
 function inferType(
   value: JsonValue,
   name: string,
   defs: InterfaceDef[],
+  used: Set<string>,
 ): string {
   if (value === null) return 'null';
   if (typeof value === 'string') return 'string';
@@ -44,18 +61,18 @@ function inferType(
 
   if (Array.isArray(value)) {
     if (value.length === 0) return 'unknown[]';
-    const elementType = inferType(value[0], `${name}Item`, defs);
+    const elementType = inferType(value[0], `${name}Item`, defs, used);
     return `${elementType}[]`;
   }
 
-  // object — emit a named interface
-  const ifaceName = name;
+  // object — emit a named interface with a guaranteed-unique, valid identifier
+  const ifaceName = uniqueIdentifier(name, used);
   const lines: string[] = [];
 
   for (const key of Object.keys(value as JsonObject)) {
     const fieldValue = (value as JsonObject)[key];
     const fieldTypeName = toPascalCase(key);
-    const fieldType = inferType(fieldValue, fieldTypeName, defs);
+    const fieldType = inferType(fieldValue, fieldTypeName, defs, used);
     const formattedKey = needsQuoting(key) ? `'${key}'` : key;
     lines.push(`  ${formattedKey}: ${fieldType};`);
   }
@@ -67,7 +84,7 @@ function inferType(
 // generates all TypeScript interface declarations from a parsed JSON object
 function generateInterfaces(parsed: JsonValue): string {
   const defs: InterfaceDef[] = [];
-  inferType(parsed, 'Root', defs);
+  inferType(parsed, 'Root', defs, new Set<string>());
 
   // emit nested interfaces before the root so references are declared first
   return defs.map((d) => `interface ${d.name} {\n${d.body}\n}`).join('\n\n');

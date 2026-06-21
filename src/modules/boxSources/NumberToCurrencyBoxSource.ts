@@ -77,7 +77,7 @@ export const NumberToCurrencyBoxSource = {
         new BoxBuilder('Currency Format', errorOutput)
           .setTemplate(KeyValueBoxTemplate)
           .setOptions({ Error: errorOutput })
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }

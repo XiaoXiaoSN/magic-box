@@ -83,5 +83,25 @@ describe('JsonToGoBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toContain('Error:');
     });
+
+    it('upper-cases initialisms inside compound names (user_id → UserID)', async () => {
+      const boxes = await JsonToGoBoxSource.generateBoxes('{"user_id":1}', {
+        gostruct: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'UserID int `json:"user_id"`',
+      );
+    });
+
+    it('disambiguates fields that collide after PascalCase', async () => {
+      const boxes = await JsonToGoBoxSource.generateBoxes(
+        '{"user_id":1,"userId":2}',
+        { gostruct: true },
+      );
+      const out = boxes[0].props.plaintextOutput;
+      // both keys map to UserID; the second is suffixed to stay valid Go
+      expect(out).toContain('UserID int `json:"user_id"`');
+      expect(out).toContain('UserID2 int `json:"userId"`');
+    });
   });
 });

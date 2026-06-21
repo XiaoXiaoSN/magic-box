@@ -131,6 +131,7 @@ export const ColorAdjustBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'lighten', 'darken')) return [];
+    if (input.length > 50) return [];
 
     const normalized = trim(input).toLowerCase();
     const rgb = parseHex(normalized);

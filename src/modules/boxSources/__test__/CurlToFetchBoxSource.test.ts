@@ -50,7 +50,8 @@ describe('CurlToFetchBoxSource', () => {
     expect(out).toContain('method: "POST"');
     expect(out).toContain('"Content-Type": "application/json"');
     expect(out).toContain('body:');
-    expect(out).toContain('{"a":1}');
+    // the body is emitted as a properly-escaped JS string literal
+    expect(out).toContain(`body: ${JSON.stringify('{"a":1}')}`);
   });
 
   it('defaults to POST when -d is present but no -X', async () => {

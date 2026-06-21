@@ -52,6 +52,7 @@ export const TimeAgoBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'timeago', 'relativetime')) return [];
+    if (input.length > 100) return [];
 
     const raw = trim(input);
     const date = parseInput(raw);

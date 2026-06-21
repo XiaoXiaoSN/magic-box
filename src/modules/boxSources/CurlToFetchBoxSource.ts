@@ -46,12 +46,18 @@ function tokenize(input: string): string[] {
     const ch = input[i];
 
     if (ch === "'" || ch === '"') {
-      // collect until matching closing quote
+      // collect until matching closing quote; honor backslash escapes inside
+      // double quotes (e.g. -d "{\"k\":1}")
       const quote = ch;
       i++;
       while (i < len && input[i] !== quote) {
-        current += input[i];
-        i++;
+        if (quote === '"' && input[i] === '\\' && i + 1 < len) {
+          current += input[i + 1];
+          i += 2;
+        } else {
+          current += input[i];
+          i++;
+        }
       }
       i++; // skip closing quote
     } else if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') {
@@ -142,19 +148,23 @@ function buildFetchSnippet(parsed: ParsedCurl): string {
   }
 
   const lines: string[] = [];
-  lines.push(`fetch("${url}", {`);
+  // JSON.stringify every interpolated value so quotes/specials in the curl
+  // command can't produce broken JavaScript
+  lines.push(`fetch(${JSON.stringify(url)}, {`);
 
   const optionLines: string[] = [];
-  optionLines.push(`  method: "${effectiveMethod}"`);
+  optionLines.push(`  method: ${JSON.stringify(effectiveMethod)}`);
 
   const headerKeys = Object.keys(headers);
   if (headerKeys.length > 0) {
-    const headerLines = headerKeys.map((k) => `    "${k}": "${headers[k]}"`);
+    const headerLines = headerKeys.map(
+      (k) => `    ${JSON.stringify(k)}: ${JSON.stringify(headers[k])}`,
+    );
     optionLines.push(`  headers: {\n${headerLines.join(',\n')}\n  }`);
   }
 
   if (body !== null) {
-    optionLines.push(`  body: '${body}'`);
+    optionLines.push(`  body: ${JSON.stringify(body)}`);
   }
 
   lines.push(optionLines.join(',\n'));
@@ -187,7 +197,7 @@ export const CurlToFetchBoxSource = {
       return [
         new BoxBuilder('curl to fetch', errorOutput)
           .setTemplate(CodeBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }

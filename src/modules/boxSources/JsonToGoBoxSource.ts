@@ -26,12 +26,32 @@ const INITIALISMS = new Set([
 ]);
 
 // converts a JSON key to a PascalCase Go identifier, upper-casing known
-// initialisms (id → ID) per Go naming conventions
+// initialisms per word (user_id / userId → UserID) per Go naming conventions
 function toPascalCase(key: string): string {
-  const pascal = key
-    .replace(/[-_\s]+(.)/g, (_, ch: string) => ch.toUpperCase())
-    .replace(/^(.)/, (ch: string) => ch.toUpperCase());
-  return INITIALISMS.has(pascal.toUpperCase()) ? pascal.toUpperCase() : pascal;
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // split camelCase boundaries
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+  const pascal = words
+    .map((w) => {
+      const upper = w.toUpperCase();
+      if (INITIALISMS.has(upper)) return upper;
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join('');
+  return pascal.length > 0 ? pascal : '_';
+}
+
+// make an identifier unique within a set (Foo, Foo2, Foo3, ...)
+function uniqueName(base: string, used: Set<string>): string {
+  let candidate = base;
+  let n = 2;
+  while (used.has(candidate)) {
+    candidate = `${base}${n}`;
+    n++;
+  }
+  used.add(candidate);
+  return candidate;
 }
 
 type JsonValue =
@@ -47,6 +67,7 @@ function goTypeOf(
   value: JsonValue,
   fieldName: string,
   structs: Map<string, string>,
+  usedStructNames: Set<string>,
 ): string {
   if (value === null) return 'interface{}';
   if (typeof value === 'boolean') return 'bool';
@@ -56,12 +77,17 @@ function goTypeOf(
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return '[]interface{}';
-    const elemType = goTypeOf(value[0], fieldName, structs);
+    const elemType = goTypeOf(value[0], fieldName, structs, usedStructNames);
     return `[]${elemType}`;
   }
-  // object — generate a nested named struct
-  const structName = toPascalCase(fieldName);
-  collectStructs(value as { [key: string]: JsonValue }, structName, structs);
+  // object — generate a nested named struct with a unique name
+  const structName = uniqueName(toPascalCase(fieldName), usedStructNames);
+  collectStructs(
+    value as { [key: string]: JsonValue },
+    structName,
+    structs,
+    usedStructNames,
+  );
   return structName;
 }
 
@@ -70,11 +96,15 @@ function collectStructs(
   obj: { [key: string]: JsonValue },
   structName: string,
   structs: Map<string, string>,
+  usedStructNames: Set<string>,
 ): void {
   const lines: string[] = [`type ${structName} struct {`];
+  // dedupe field identifiers so keys that collide after PascalCase don't
+  // produce two fields with the same Go name (illegal Go)
+  const usedFields = new Set<string>();
   for (const [key, value] of Object.entries(obj)) {
-    const goField = toPascalCase(key);
-    const goType = goTypeOf(value, key, structs);
+    const goField = uniqueName(toPascalCase(key), usedFields);
+    const goType = goTypeOf(value, key, structs, usedStructNames);
     lines.push(`\t${goField} ${goType} \`json:"${key}"\``);
   }
   lines.push('}');
@@ -85,7 +115,8 @@ function collectStructs(
 // generates Go struct code from a parsed JSON object
 function jsonToGo(parsed: { [key: string]: JsonValue }): string {
   const structs = new Map<string, string>();
-  collectStructs(parsed, 'Root', structs);
+  const usedStructNames = new Set<string>(['Root']);
+  collectStructs(parsed, 'Root', structs, usedStructNames);
 
   // emit nested structs first (insertion order preserves depth-first post-order),
   // then the Root struct last for readability
