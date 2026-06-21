@@ -2,7 +2,7 @@ import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { decodeBase64 } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
+import { keyValueBox } from '@modules/Box';
 import { parse } from 'yaml';
 
 const PriorityK8sSecret = 10;
@@ -73,11 +73,9 @@ data:
     }
 
     return [
-      new BoxBuilder('Kubernetes Secret', '')
-        .setOptions(match.data)
-        .setTemplate(KeyValueBoxTemplate)
-        .setPriority(this.priority)
-        .build(),
+      keyValueBox(KeyValueBoxTemplate, 'Kubernetes Secret', match.data, {
+        priority: this.priority,
+      }),
     ];
   },
 };
