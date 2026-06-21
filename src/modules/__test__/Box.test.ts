@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import type { BoxTemplate } from '../Box';
 import { errorBox, keyValueBox } from '../Box';
 
 // a stand-in template; keyValueBox only stores it on the box, never invokes it
-const FakeTemplate = (() => null) as never;
+const FakeTemplate = (() => null) as unknown as BoxTemplate;
 
 describe('keyValueBox', () => {
   it('renders the pairs as k: v lines in plaintextOutput', () => {
@@ -39,6 +40,16 @@ describe('keyValueBox', () => {
   it('handles an empty kv as an empty string (no entries)', () => {
     const box = keyValueBox(FakeTemplate, 'Demo', {});
     expect(box.props.plaintextOutput).toBe('');
+  });
+
+  it('defaults showExpandButton to true when not provided', () => {
+    const box = keyValueBox(FakeTemplate, 'Demo', { A: '1' });
+    expect(box.props.showExpandButton).toBe(true);
+  });
+
+  it('passes through an undefined template (web fallback)', () => {
+    const box = keyValueBox(undefined, 'Demo', { A: '1' });
+    expect(box.boxTemplate).toBeUndefined();
   });
 });
 
