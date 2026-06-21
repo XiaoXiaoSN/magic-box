@@ -297,6 +297,79 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>JsonCsvBox</b> </summary>
+
+| match rule   | description                          | example                       |
+| ------------ | ------------------------------------ | ----------------------------- |
+| `::jsoncsv`  | JSON array of objects ⇄ CSV (auto)   | `[{"a":1,"b":2}] ::jsoncsv`   |
+
+</details>
+
+<details>
+<summary> <b>NumberBasesBox</b> </summary>
+
+| match rule  | description                          | example         |
+| ----------- | ------------------------------------ | --------------- |
+| `::bases`   | show an integer in bin/oct/dec/hex   | `255 ::bases`   |
+
+</details>
+
+<details>
+<summary> <b>AtbashBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::atbash`  | Atbash cipher (A↔Z, self-inverse)    | `hello ::atbash` |
+
+</details>
+
+<details>
+<summary> <b>Rot47Box</b> </summary>
+
+| match rule  | description                          | example                   |
+| ----------- | ------------------------------------ | ------------------------- |
+| `::rot47`   | ROT47 cipher (self-inverse)          | `Hello, World! ::rot47`   |
+
+</details>
+
+<details>
+<summary> <b>NatoPhoneticBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::nato`    | spell with the NATO phonetic alphabet | `AB12 ::nato`   |
+
+</details>
+
+<details>
+<summary> <b>HumanizeDurationBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::humanize`   | seconds → "1d 1h 1m 1s" (`=ms` for ms) | `90061 ::humanize` |
+
+</details>
+
+<details>
+<summary> <b>LeetSpeakBox</b> </summary>
+
+| match rule      | description                          | example         |
+| --------------- | ------------------------------------ | --------------- |
+| `::leet`        | convert text to leetspeak            | `leet ::leet`   |
+| `::leetdecode`  | decode leet back to letters          | `1337 ::leetdecode` |
+
+</details>
+
+<details>
+<summary> <b>PasswordStrengthBox</b> </summary>
+
+| match rule    | description                          | example                  |
+| ------------- | ------------------------------------ | ------------------------ |
+| `::strength`  | estimate password entropy + rating (never echoes the password) | `P@ssw0rd123 ::strength` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
