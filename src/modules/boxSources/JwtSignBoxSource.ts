@@ -109,6 +109,24 @@ export const JwtSignBoxSource = {
       ];
     }
 
+    // RFC 7519 claims set must be a JSON object, not a primitive or array
+    if (
+      typeof payload !== 'object' ||
+      payload === null ||
+      Array.isArray(payload)
+    ) {
+      return [
+        new BoxBuilder(
+          'JWT Sign',
+          'JWT payload must be a JSON object (not a primitive or array).',
+        )
+          .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
     const header = { alg: 'HS256', typ: 'JWT' };
     const b64Header = stringToBase64url(JSON.stringify(header));
     // re-stringify the parsed payload so key order is insertion order (V8 behaviour)

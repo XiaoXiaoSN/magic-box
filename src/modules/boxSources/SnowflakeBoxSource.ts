@@ -5,7 +5,7 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
-// epochs: discord = 2015-01-01, twitter = 2010-11-04T01:00:00Z
+// epochs: discord = 2015-01-01T00:00:00Z, twitter = 2010-11-04T01:42:54.657Z
 const DISCORD_EPOCH = 1420070400000n;
 const TWITTER_EPOCH = 1288834974657n;
 
@@ -41,21 +41,26 @@ export const SnowflakeBoxSource = {
 
     const timestampMs = Number((id >> 22n) + epoch);
     const timestamp = new Date(timestampMs).toISOString();
-    const workerId = ((id >> 17n) & 0x1fn).toString();
-    const processId = ((id >> 12n) & 0x1fn).toString();
+    // the 5+5 internal bits mean different things per platform
+    const highId = ((id >> 17n) & 0x1fn).toString();
+    const lowId = ((id >> 12n) & 0x1fn).toString();
     const increment = (id & 0xfffn).toString();
 
-    const kvOptions: BoxOptions = {
+    const kvOptions: Record<string, string> = {
       Timestamp: timestamp,
       'Unix (ms)': timestampMs.toString(),
-      'Worker ID': workerId,
-      'Process ID': processId,
+      [useTwitter ? 'Datacenter ID' : 'Worker ID']: highId,
+      [useTwitter ? 'Worker ID' : 'Process ID']: lowId,
       Increment: increment,
       Epoch: epochLabel,
     };
 
+    const plaintext = Object.entries(kvOptions)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
     return [
-      new BoxBuilder('Snowflake', timestamp)
+      new BoxBuilder('Snowflake', plaintext)
         .setOptions(kvOptions)
         .setTemplate(KeyValueBoxTemplate)
         .setPriority(this.priority)

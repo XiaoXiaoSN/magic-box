@@ -38,13 +38,10 @@ function relativeLuminance(r: number, g: number, b: number): number {
   );
 }
 
-// formats the contrast ratio as '21:1' when it's exactly a whole number, else '4.48'
+// formats the contrast ratio in WCAG 'N:1' form (e.g. '21:1', '4.48:1')
 function formatRatio(ratio: number): string {
   const rounded = Math.round(ratio * 100) / 100;
-  if (Number.isInteger(rounded)) {
-    return `${rounded}:1`;
-  }
-  return rounded.toFixed(2);
+  return Number.isInteger(rounded) ? `${rounded}:1` : `${rounded.toFixed(2)}:1`;
 }
 
 function passOrFail(ratio: number, threshold: number): string {

@@ -110,5 +110,17 @@ describe('JwtSignBoxSource', () => {
       expect(JwtSignBoxSource.kind).toBe('Encode');
       expect(typeof JwtSignBoxSource.priority).toBe('number');
     });
+
+    it('rejects a non-object JSON payload (array / primitive)', async () => {
+      for (const payload of ['[1,2,3]', '123', '"hi"', 'true']) {
+        const boxes = await JwtSignBoxSource.generateBoxes(payload, {
+          jwtsign: 'secret',
+        });
+        expect(boxes).toHaveLength(1);
+        expect(boxes[0].props.plaintextOutput.toLowerCase()).toContain(
+          'must be a json object',
+        );
+      }
+    });
   });
 });

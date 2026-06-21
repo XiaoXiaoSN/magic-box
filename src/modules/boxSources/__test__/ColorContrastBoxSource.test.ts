@@ -75,7 +75,7 @@ describe('ColorContrastBoxSource.generateBoxes', () => {
         { contrast: true },
       );
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Ratio).toBe('4.48');
+      expect(opts.Ratio).toBe('4.48:1');
     });
 
     it('AA Normal fails (4.48 < 4.5)', async () => {

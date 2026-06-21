@@ -65,4 +65,15 @@ describe('buildShareLink', () => {
     const url = new URL(result);
     expect(url.origin).toBe(window.location.origin);
   });
+
+  it('redacts a ::jwtsign secret so it does not leak into the URL', () => {
+    const result = buildShareLink({
+      input: '{"sub":"1"}\n::jwtsign=super-secret-key',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
+    const input = new URL(result).searchParams.get('input') ?? '';
+    expect(input).not.toContain('super-secret-key');
+    expect(input).toContain('::jwtsign=***');
+  });
 });

@@ -133,6 +133,22 @@ function addMinute(date: Date): Date {
   return date;
 }
 
+// max day each month can have (29 allows leap February)
+const DAYS_IN_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+// cheap static check: when dom is the only date constraint (dow unrestricted),
+// an impossible day/month pair (e.g. Feb 30) never matches. only prune in that
+// case — under the Vixie OR-rule a restricted dow could still match.
+function isDateSatisfiable(fields: CronFields): boolean {
+  if (!fields.domRestricted || fields.dowRestricted) return true;
+  for (const mo of fields.month) {
+    for (const d of fields.dom) {
+      if (d <= DAYS_IN_MONTH[mo - 1]) return true;
+    }
+  }
+  return false;
+}
+
 export const CronNextBoxSource = {
   name: 'Cron Next Runs',
   description:
@@ -186,6 +202,21 @@ export const CronNextBoxSource = {
       return [box];
     }
 
+    // O(1) guard: when day-of-month is the sole date constraint, a value like
+    // Feb 30 can never occur — bail before the scan instead of running it to
+    // the cap (avoids a multi-ms main-thread block on impossible expressions)
+    if (!isDateSatisfiable(fields)) {
+      return [
+        new BoxBuilder(
+          'Cron Next Runs',
+          'No matching times found within 1 year.',
+        )
+          .setTemplate(CodeBoxTemplate)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
     // scan forward from base+1min
     const results: string[] = [];
     const cursor = new Date(base.getTime());
@@ -205,7 +236,7 @@ export const CronNextBoxSource = {
     const output =
       results.length > 0
         ? results.join('\n')
-        : 'No matching times found within 5 years.';
+        : 'No matching times found within 1 year.';
 
     const box = new BoxBuilder('Cron Next Runs', output)
       .setTemplate(CodeBoxTemplate)
