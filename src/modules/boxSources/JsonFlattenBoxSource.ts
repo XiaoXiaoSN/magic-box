@@ -78,12 +78,21 @@ function splitKey(key: string): (string | number)[] {
   return segments;
 }
 
+// keys that would walk into the prototype chain and let a crafted ?input=
+// pollute Object.prototype for the whole session
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 // set a value at a nested path described by segments, creating objects/arrays as needed
 function setPath(
   root: Record<string, unknown> | unknown[],
   segments: (string | number)[],
   value: unknown,
 ): void {
+  // refuse any path that touches a prototype-chain key
+  if (segments.some((s) => typeof s === 'string' && FORBIDDEN_KEYS.has(s))) {
+    return;
+  }
+
   let current: Record<string, unknown> | unknown[] = root;
   for (let i = 0; i < segments.length - 1; i++) {
     const seg = segments[i];

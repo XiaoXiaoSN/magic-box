@@ -26,8 +26,8 @@ function encodeBacon(input: string): string {
 }
 
 function decodeBacon(input: string): string {
-  // normalize: lowercase, collapse whitespace, split into 5-char groups
-  const normalized = input.toLowerCase().replace(/\s+/g, '');
+  // keep only a/b so stray characters don't misalign the 5-char groups
+  const normalized = input.toLowerCase().replace(/[^ab]/g, '');
   const groups: string[] = [];
   for (let i = 0; i + 5 <= normalized.length; i += 5) {
     groups.push(normalized.slice(i, i + 5));

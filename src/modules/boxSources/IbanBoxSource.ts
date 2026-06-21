@@ -37,6 +37,8 @@ export const IbanBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'iban')) return [];
+    // an IBAN is at most 34 chars; bound work before the string ops
+    if (input.length > 1000) return [];
 
     // strip spaces and uppercase
     const cleaned = trim(input).replace(/\s+/g, '').toUpperCase();

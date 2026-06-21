@@ -6,9 +6,10 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const DEFAULT_BASE = 16;
 
-// strip trailing zeros after decimal, e.g. 1.50000 → "1.5", 24.0 → "24"
+// round to ~10 sig figs and strip trailing zeros without leaking scientific
+// notation (Number().toString() renormalizes e.g. 1e10 → "10000000000")
 function formatNumber(n: number): string {
-  return n.toPrecision(10).replace(/\.?0+$/, '');
+  return Number(n.toPrecision(10)).toString();
 }
 
 export const PxRemBoxSource = {

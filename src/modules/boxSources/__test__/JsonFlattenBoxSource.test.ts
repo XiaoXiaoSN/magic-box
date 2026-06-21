@@ -138,5 +138,16 @@ describe('JsonFlattenBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput.toLowerCase()).toContain('invalid');
     });
+
+    it('unflatten does not pollute Object.prototype via __proto__ key', async () => {
+      await JsonFlattenBoxSource.generateBoxes('{"__proto__.polluted":"x"}', {
+        unflatten: true,
+      });
+      await JsonFlattenBoxSource.generateBoxes(
+        '{"constructor.prototype.polluted":"x"}',
+        { unflatten: true },
+      );
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    });
   });
 });

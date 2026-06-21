@@ -1,4 +1,7 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import {
+  DefaultBoxTemplate,
+  KeyValueBoxTemplate,
+} from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -50,8 +53,10 @@ function validateZone(zone: string, date: Date): void {
 }
 
 function errorBox(name: string, message: string): Box {
+  // a plain message box, not a key/value box
   return new BoxBuilder(name, message)
-    .setTemplate(KeyValueBoxTemplate)
+    .setTemplate(DefaultBoxTemplate)
+    .setShowExpandButton(false)
     .setPriority(Priority)
     .build();
 }
