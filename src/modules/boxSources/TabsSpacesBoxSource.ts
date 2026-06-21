@@ -74,7 +74,6 @@ export const TabsSpacesBoxSource = {
       boxes.push(
         new BoxBuilder('Tabs → Spaces', output)
           .setTemplate(CodeBoxTemplate)
-          .setOptions(options)
           .setPriority(this.priority)
           .build(),
       );
@@ -86,7 +85,6 @@ export const TabsSpacesBoxSource = {
       boxes.push(
         new BoxBuilder('Spaces → Tabs', output)
           .setTemplate(CodeBoxTemplate)
-          .setOptions(options)
           .setPriority(this.priority)
           .build(),
       );

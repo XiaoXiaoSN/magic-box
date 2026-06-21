@@ -6,7 +6,7 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const DEFAULT_BITS = 8;
 
-// valid signed integer string (no leading zeros beyond single zero, allows negative)
+// optionally-signed decimal integer (leading zeros permitted)
 const INTEGER_RE = /^-?\d+$/;
 
 function parseBitWidth(raw: unknown): number {

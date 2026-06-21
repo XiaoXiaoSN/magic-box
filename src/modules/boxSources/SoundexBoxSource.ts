@@ -96,7 +96,8 @@ export const SoundexBoxSource = {
     if (words.length === 0) return [];
 
     // build one key-value entry per word: word → its 4-char soundex code
-    const entries: Record<string, string> = {};
+    // null-prototype so a word like "__proto__" is stored, not swallowed
+    const entries: Record<string, string> = Object.create(null);
     const plainParts: string[] = [];
     for (const word of words) {
       const code = soundex(word);

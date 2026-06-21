@@ -37,7 +37,9 @@ function walkPath(
       return { found: false };
     }
     const obj = current as Record<string | number, unknown>;
-    if (!(seg in obj)) {
+    // own-property only: `in` would resolve inherited members like
+    // constructor / toString / __proto__ as if the path existed
+    if (!Object.hasOwn(obj, seg)) {
       return { found: false };
     }
     current = obj[seg];
@@ -70,6 +72,17 @@ export const JsonPathBoxSource = {
           'JSON Path',
           'A path is required. Usage: ::jsonpath=a.b[0].c',
         )
+          .setTemplate(CodeBoxTemplate)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
+    // bound parsePath work; the bracket sub-pattern is O(n^2) on adversarial
+    // input like "[[[[..." and real paths are short
+    if (pathValue.length > 1000) {
+      return [
+        new BoxBuilder('JSON Path', 'Path is too long (max 1000 chars).')
           .setTemplate(CodeBoxTemplate)
           .setPriority(this.priority)
           .build(),

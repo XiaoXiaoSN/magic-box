@@ -110,6 +110,26 @@ describe('JsonPathBoxSource', () => {
     });
   });
 
+  describe('hardening', () => {
+    it('does not resolve inherited prototype members', async () => {
+      const boxes = await JsonPathBoxSource.generateBoxes('{"a":1}', {
+        jsonpath: 'constructor',
+      });
+      expect(boxes[0].props.plaintextOutput.toLowerCase()).toContain(
+        'not found',
+      );
+    });
+
+    it('rejects an over-long path', async () => {
+      const boxes = await JsonPathBoxSource.generateBoxes('{"a":1}', {
+        jsonpath: '['.repeat(2000),
+      });
+      expect(boxes[0].props.plaintextOutput.toLowerCase()).toContain(
+        'too long',
+      );
+    });
+  });
+
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(JsonPathBoxSource.name).toBe('JSON Path');

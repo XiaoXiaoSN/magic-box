@@ -48,6 +48,10 @@ function decodeBase64Url(input: string): Uint8Array {
   if (!/^[A-Za-z0-9\-_]*$/.test(input)) {
     throw new Error('invalid Base64URL input');
   }
+  // a length of 4n+1 can never be valid base64 (a lone 6-bit char encodes no byte)
+  if (input.length % 4 === 1) {
+    throw new Error('invalid Base64URL input');
+  }
 
   // re-add padding to reach a multiple of 4
   const padded = input + '==='.slice(0, (4 - (input.length % 4)) % 4);
@@ -100,10 +104,9 @@ export const Base64UrlBoxSource = {
       const encoded = encodeBase64Url(bytes);
       boxes.push(
         new BoxBuilder('Base64 URL (Encode)', encoded)
-          .setOptions(options)
           .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       );
     }
@@ -114,19 +117,17 @@ export const Base64UrlBoxSource = {
         const decoded = new TextDecoder().decode(bytes);
         boxes.push(
           new BoxBuilder('Base64 URL (Decode)', decoded)
-            .setOptions(options)
             .setTemplate(DefaultBoxTemplate)
             .setShowExpandButton(false)
-            .setPriority(Priority)
+            .setPriority(this.priority)
             .build(),
         );
       } catch {
         boxes.push(
           new BoxBuilder('Base64 URL (Decode)', 'invalid Base64URL input')
-            .setOptions(options)
             .setTemplate(DefaultBoxTemplate)
             .setShowExpandButton(false)
-            .setPriority(Priority)
+            .setPriority(this.priority)
             .build(),
         );
       }
