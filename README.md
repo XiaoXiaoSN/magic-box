@@ -297,6 +297,81 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Base32Box</b> </summary>
+
+| match rule         | description                          | example          |
+| ------------------ | ------------------------------------ | ---------------- |
+| `::base32`         | Base32 encode (RFC 4648)             | `hello ::base32` |
+| `::base32decode`   | Base32 decode                        | `NBSWY3DP ::base32decode` |
+
+</details>
+
+<details>
+<summary> <b>Crc32Box</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::crc32`    | CRC-32 (IEEE 802.3) checksum         | `hello ::crc32`  |
+
+</details>
+
+<details>
+<summary> <b>LuhnBox</b> </summary>
+
+| match rule | description                          | example                |
+| ---------- | ------------------------------------ | ---------------------- |
+| `::luhn`   | Luhn (mod-10) validate + check digit | `79927398713 ::luhn`   |
+
+</details>
+
+<details>
+<summary> <b>HmacBox</b> </summary>
+
+| match rule      | description                          | example                       |
+| --------------- | ------------------------------------ | ----------------------------- |
+| `::hmac=KEY`    | HMAC of input (SHA-256 default; `::hmacalg=sha1\|sha256\|sha512`) | `message ::hmac=secret` |
+
+</details>
+
+<details>
+<summary> <b>UrlParseBox</b> </summary>
+
+| match rule     | description                          | example                              |
+| -------------- | ------------------------------------ | ------------------------------------ |
+| `::urlparse`   | break a URL into its components      | `https://x.com:8080/a?b=1 ::urlparse` |
+
+</details>
+
+<details>
+<summary> <b>QueryStringBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::qs`      | query string ⇄ JSON (auto-direction) | `a=1&b=2 ::qs`   |
+
+</details>
+
+<details>
+<summary> <b>UnicodeEscapeBox</b> </summary>
+
+| match rule              | description                          | example                |
+| ----------------------- | ------------------------------------ | ---------------------- |
+| `::unicodeescape`       | escape text to `\uXXXX`              | `héllo ::unicodeescape` |
+| `::unicodeunescape`     | unescape `\uXXXX` / `\u{...}`        | `€ ::unicodeunescape` |
+
+</details>
+
+<details>
+<summary> <b>SortLinesBox</b> </summary>
+
+| match rule        | description                          | example                       |
+| ----------------- | ------------------------------------ | ----------------------------- |
+| `::sortlines`     | sort lines (`=desc`, `=num`, `=numdesc`) | `banana`<br>`apple ::sortlines` |
+| `::uniqlines`     | remove duplicate lines               | `a`<br>`a`<br>`b ::uniqlines` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
