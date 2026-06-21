@@ -227,5 +227,14 @@ describe('MarkdownStripBoxSource', () => {
       });
       expect(boxes[0].props.priority).toBe(10);
     });
+
+    it('handles a bracket flood in linear time (ReDoS guard)', async () => {
+      // the old /\[([^\]]*)\]\([^)]*\)/ backtracked O(n^2): ~14s at 100k '['
+      const boxes = await MarkdownStripBoxSource.generateBoxes(
+        '['.repeat(100_000),
+        { stripmd: true },
+      );
+      expect(boxes).toHaveLength(1);
+    });
   });
 });

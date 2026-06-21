@@ -68,7 +68,9 @@ export const CrockfordBase32BoxSource = {
     const wantEncode = hasOptionKeys(options, 'crockford', 'crockfordencode');
     const wantDecode = hasOptionKeys(options, 'crockforddecode');
     if (!wantEncode && !wantDecode) return [];
-    if (!isString(input) || input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length === 0 || input.length > MAX_INPUT) {
+      return [];
+    }
 
     const boxes: Box[] = [];
 

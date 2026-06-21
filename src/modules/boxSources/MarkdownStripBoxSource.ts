@@ -16,11 +16,13 @@ function stripMarkdown(text: string): string {
   // remove ATX headings: leading # characters at line start
   result = result.replace(/^#{1,6}\s+/gm, '');
 
-  // remove images before links so the pattern doesn't conflict
-  result = result.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+  // remove images before links so the pattern doesn't conflict.
+  // the classes exclude the OPENING delimiters ([ and () not just the closing
+  // ones — otherwise an unmatched "[" flood backtracks O(n^2) (ReDoS)
+  result = result.replace(/!\[([^[\]]*)\]\(([^()]*)\)/g, '$1');
 
   // remove links: [text](url) → text
-  result = result.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  result = result.replace(/\[([^[\]]*)\]\(([^()]*)\)/g, '$1');
 
   // remove strikethrough: ~~x~~ → x
   result = result.replace(/~~([^~]*)~~/g, '$1');
