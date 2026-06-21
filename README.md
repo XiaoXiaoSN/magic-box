@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>JwtSignBox</b> </summary>
+
+| match rule         | description                          | example                          |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| `::jwtsign=SECRET` | sign a JSON payload into an HS256 JWT | `{"sub":"1"} ::jwtsign=secret`  |
+
+</details>
+
+<details>
+<summary> <b>SemverBox</b> </summary>
+
+| match rule   | description                          | example               |
+| ------------ | ------------------------------------ | --------------------- |
+| `::semver`   | parse/validate a semantic version    | `1.2.3-beta.1 ::semver` |
+
+</details>
+
+<details>
+<summary> <b>CronNextBox</b> </summary>
+
+| match rule     | description                          | example                  |
+| -------------- | ------------------------------------ | ------------------------ |
+| `::cronnext`   | next run times of a cron expression (opt. `::from=ISO`, `::count=N`) | `*/15 * * * * ::cronnext` |
+
+</details>
+
+<details>
+<summary> <b>LevenshteinBox</b> </summary>
+
+| match rule        | description                          | example                  |
+| ----------------- | ------------------------------------ | ------------------------ |
+| `::levenshtein`   | edit distance between two newline-separated strings | `kitten`<br>`sitting ::levenshtein` |
+
+</details>
+
+<details>
+<summary> <b>ColorContrastBox</b> </summary>
+
+| match rule    | description                          | example                       |
+| ------------- | ------------------------------------ | ----------------------------- |
+| `::contrast`  | WCAG contrast ratio of two hex colors | `#000000 #ffffff ::contrast` |
+
+</details>
+
+<details>
+<summary> <b>MacAddressBox</b> </summary>
+
+| match rule | description                          | example                       |
+| ---------- | ------------------------------------ | ----------------------------- |
+| `::mac`    | validate + normalize a MAC address   | `00:1B:44:11:3A:B7 ::mac`     |
+
+</details>
+
+<details>
+<summary> <b>SnowflakeBox</b> </summary>
+
+| match rule     | description                          | example                       |
+| -------------- | ------------------------------------ | ----------------------------- |
+| `::snowflake`  | parse a Discord/Twitter snowflake ID (opt. `::snowflake=twitter`) | `175928847299117063 ::snowflake` |
+
+</details>
+
+<details>
+<summary> <b>InvisibleCharsBox</b> </summary>
+
+| match rule       | description                          | example                  |
+| ---------------- | ------------------------------------ | ------------------------ |
+| `::invisibles`   | detect/reveal hidden characters (zero-width, NBSP, BOM…) | `text ::invisibles` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
