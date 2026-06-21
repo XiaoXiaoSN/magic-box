@@ -1,3 +1,4 @@
+import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -51,7 +52,7 @@ export const UnicodeEscapeBoxSource = {
     const wantEscape = hasOptionKeys(options, 'unicodeescape', 'uescape');
     const wantUnescape = hasOptionKeys(options, 'unicodeunescape', 'uunescape');
     if (!wantEscape && !wantUnescape) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     const boxes: Box[] = [];
 

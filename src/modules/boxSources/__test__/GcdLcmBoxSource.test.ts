@@ -142,5 +142,17 @@ describe('GcdLcmBoxSource', () => {
       const boxes = await GcdLcmBoxSource.generateBoxes('4 6', { gcd: true });
       expect(boxes[0].props.priority).toBe(GcdLcmBoxSource.priority);
     });
+
+    it('rejects an over-long digit token instead of crashing', async () => {
+      // BigInt(Number.parseInt(huge)) would throw on Infinity; the digit cap
+      // short-circuits this safely
+      const boxes = await GcdLcmBoxSource.generateBoxes(
+        `${'9'.repeat(400)} 6`,
+        {
+          gcd: true,
+        },
+      );
+      expect(boxes).toHaveLength(0);
+    });
   });
 });

@@ -8,7 +8,7 @@ const MAX_INPUT = 100_000;
 
 // extract the key string from the option value; returns null if no letters are present
 function parseKey(raw: string | boolean): string | null {
-  if (raw === true || raw === 'true') return null;
+  if (raw === true) return null;
   const letters = String(raw)
     .replace(/[^a-zA-Z]/g, '')
     .toLowerCase();

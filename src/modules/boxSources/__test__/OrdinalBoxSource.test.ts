@@ -151,5 +151,12 @@ describe('OrdinalBoxSource', () => {
       });
       expect(boxes[0].props.priority).toBe(OrdinalBoxSource.priority);
     });
+
+    it('rejects 16-digit input beyond MAX_SAFE_INTEGER (float would round)', async () => {
+      const boxes = await OrdinalBoxSource.generateBoxes('9999999999999991', {
+        ordinal: true,
+      });
+      expect(boxes).toHaveLength(0);
+    });
   });
 });

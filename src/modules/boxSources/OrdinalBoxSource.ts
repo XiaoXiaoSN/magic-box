@@ -37,8 +37,9 @@ export const OrdinalBoxSource = {
     if (!hasOptionKeys(options, 'ordinal')) return [];
 
     const raw = trim(input);
-    // accept optional leading minus, then digits only, capped at MAX_DIGITS total digits
-    if (!/^-?\d{1,16}$/.test(raw)) return [];
+    // optional sign + up to 15 digits (stays within Number.MAX_SAFE_INTEGER, so
+    // parseInt doesn't round and the displayed value matches the input)
+    if (!/^-?\d{1,15}$/.test(raw)) return [];
 
     const n = Number.parseInt(raw, 10);
     if (Number.isNaN(n)) return [];

@@ -39,6 +39,7 @@ export const GcdLcmBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'gcd', 'lcm', 'gcdlcm')) return [];
+    if (input.length > 100_000) return [];
 
     // parse a list of integers separated by whitespace and/or commas
     const tokens = trim(input)
@@ -46,12 +47,15 @@ export const GcdLcmBoxSource = {
       .filter((t) => t.length > 0);
     if (tokens.length < 2) return [];
 
-    // validate each token is an integer; reject the whole input on any invalid token
+    // validate each token is an integer with a bounded digit count; reject the
+    // whole input on any invalid token (50 digits keeps BigInt math sub-ms)
     for (const t of tokens) {
-      if (!/^-?\d+$/.test(t)) return [];
+      if (!/^-?\d+$/.test(t) || t.replace('-', '').length > 50) return [];
     }
 
-    const values = tokens.map((t) => BigInt(Number.parseInt(t, 10)));
+    // construct directly from the validated string — BigInt(Number.parseInt(...))
+    // would route through a lossy float and throw on Infinity for huge tokens
+    const values = tokens.map((t) => BigInt(t));
     const gcdResult = values.reduce((acc, v) => gcd(acc, v));
     const lcmResult = values.reduce((acc, v) => lcm(acc, v));
 

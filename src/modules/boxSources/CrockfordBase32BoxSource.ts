@@ -1,4 +1,5 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -67,7 +68,7 @@ export const CrockfordBase32BoxSource = {
     const wantEncode = hasOptionKeys(options, 'crockford', 'crockfordencode');
     const wantDecode = hasOptionKeys(options, 'crockforddecode');
     if (!wantEncode && !wantDecode) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     const boxes: Box[] = [];
 
