@@ -48,6 +48,9 @@ function jsonToQs(input: string): string {
       for (const item of value) {
         parts.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
       }
+    } else if (value !== null && typeof value === 'object') {
+      // a nested object can't be a query-string value; the contract is flat
+      throw new Error('Input must be a flat JSON object');
     } else {
       parts.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
     }

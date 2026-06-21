@@ -8,9 +8,13 @@ const MAX_INPUT = 100_000;
 
 // strips a trailing \r so both \n and \r\n line endings are handled
 function splitLines(input: string): string[] {
-  return input
+  const lines = input
     .split('\n')
     .map((line) => (line.endsWith('\r') ? line.slice(0, -1) : line));
+  // a single trailing newline is a terminator, not a phantom blank line that
+  // would otherwise sort to the top
+  if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop();
+  return lines;
 }
 
 type SortMode = 'asc' | 'desc' | 'num' | 'numdesc';

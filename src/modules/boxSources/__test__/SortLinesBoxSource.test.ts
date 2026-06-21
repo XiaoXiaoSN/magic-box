@@ -137,5 +137,13 @@ describe('SortLinesBoxSource', () => {
       );
       expect(boxes[0].props.plaintextOutput).toBe('apple\nbanana\ncherry');
     });
+
+    it('treats a trailing newline as a terminator, not a phantom blank line', async () => {
+      const boxes = await SortLinesBoxSource.generateBoxes('banana\napple\n', {
+        sortlines: true,
+      });
+      // no leading blank line from the trailing \n
+      expect(boxes[0].props.plaintextOutput).toBe('apple\nbanana');
+    });
   });
 });

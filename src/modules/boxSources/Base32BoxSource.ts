@@ -42,7 +42,9 @@ function encodeBase32(bytes: Uint8Array): string {
 
 // decodes RFC 4648 Base32 string to bytes; throws on invalid characters
 function decodeBase32(input: string): Uint8Array {
-  const clean = input.toUpperCase().replace(/=+$/, '').replace(/\s/g, '');
+  // remove whitespace first so trailing newlines/spaces after the padding
+  // don't leave a stray '=' for the per-char validation to reject
+  const clean = input.toUpperCase().replace(/\s/g, '').replace(/=+$/, '');
 
   for (const ch of clean) {
     if (!ALPHABET_SET.has(ch)) {

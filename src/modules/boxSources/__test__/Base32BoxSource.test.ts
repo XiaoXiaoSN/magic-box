@@ -137,5 +137,14 @@ describe('Base32BoxSource', () => {
       expect(Base32BoxSource.kind).toBe('Encode');
       expect(typeof Base32BoxSource.priority).toBe('number');
     });
+
+    it('decodes input with trailing whitespace after the padding', async () => {
+      // common copy-paste shape: a newline after the padded value
+      const boxes = await Base32BoxSource.generateBoxes('MY======\n', {
+        base32decode: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toBe('f');
+    });
   });
 });
