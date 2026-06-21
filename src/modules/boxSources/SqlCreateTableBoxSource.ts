@@ -69,11 +69,11 @@ function buildCreateTable(
   return `CREATE TABLE ${quoteIdent(tableName)} (\n${lines.join(',\n')}\n);`;
 }
 
-function errorBox(message: string): Box {
+function errorBox(message: string, priority: number): Box {
   return new BoxBuilder('JSON to SQL Table', message)
     .setTemplate(CodeBoxTemplate)
     .setOptions({ language: 'sql' })
-    .setPriority(Priority)
+    .setPriority(priority)
     .build();
 }
 
@@ -101,7 +101,7 @@ export const SqlCreateTableBoxSource = {
     try {
       parsed = JSON.parse(trim(input));
     } catch {
-      return [errorBox('Error: invalid JSON input')];
+      return [errorBox('Error: invalid JSON input', this.priority)];
     }
 
     const rows: Record<string, unknown>[] = Array.isArray(parsed)
@@ -111,7 +111,12 @@ export const SqlCreateTableBoxSource = {
     const cols = collectColumns(rows);
 
     if (cols.size === 0) {
-      return [errorBox('Error: no columns could be inferred from the input')];
+      return [
+        errorBox(
+          'Error: no columns could be inferred from the input',
+          this.priority,
+        ),
+      ];
     }
 
     const sql = buildCreateTable(tableName, cols);
@@ -120,7 +125,7 @@ export const SqlCreateTableBoxSource = {
       new BoxBuilder('JSON to SQL Table', sql)
         .setTemplate(CodeBoxTemplate)
         .setOptions({ language: 'sql' })
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

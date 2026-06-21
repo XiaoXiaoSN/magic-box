@@ -27,7 +27,7 @@ function parseNotation(raw: string): ParsedNotation | null {
   const sides = Number.parseInt(match[2], 10);
   const modifier = match[3] ? Number.parseInt(match[3], 10) : 0;
 
-  if (sides < 1) return null;
+  if (sides < 1 || count < 1) return null;
 
   return {
     count: Math.min(count, MAX_COUNT),
@@ -135,8 +135,11 @@ export const DiceRollBoxSource = {
     const total = sum + parsed.modifier;
     const modifierStr = formatModifier(parsed.modifier);
 
+    // reconstruct from capped values so the label matches what was rolled
+    const effectiveNotation = `${parsed.count}d${parsed.sides}${modifierStr === '0' ? '' : modifierStr}`;
+
     const kvOptions: Record<string, string> = {
-      Notation: parsed.raw,
+      Notation: effectiveNotation,
       Rolls: `[${rolls.join(', ')}]`,
       Sum: String(sum),
       Modifier: modifierStr,

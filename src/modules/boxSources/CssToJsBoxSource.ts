@@ -40,11 +40,30 @@ function camelToKebab(prop: string): string {
   return prop.replace(/([A-Z])/g, '-$1').toLowerCase();
 }
 
+// split declarations on ';' that are outside parentheses, so values like
+// url(data:image/png;base64,...) aren't truncated
+function splitDeclarations(css: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < css.length; i++) {
+    const ch = css[i];
+    if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if (ch === ';' && depth === 0) {
+      parts.push(css.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(css.slice(start));
+  return parts;
+}
+
 // convert CSS declaration block to a JS object literal string
 function cssToJs(css: string): string {
   const pairs: string[] = [];
 
-  for (const decl of css.split(';')) {
+  for (const decl of splitDeclarations(css)) {
     const colonIdx = decl.indexOf(':');
     if (colonIdx === -1) continue;
 

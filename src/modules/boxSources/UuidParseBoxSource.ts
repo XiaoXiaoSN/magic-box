@@ -77,8 +77,13 @@ export const UuidParseBoxSource = {
       kvOptions.Timestamp = v1Timestamp(uuid);
     }
 
+    // render k:v lines so the headless TUI shows the fields (not a blank box)
+    const plaintext = Object.entries(kvOptions)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
     return [
-      new BoxBuilder('UUID Parse', '')
+      new BoxBuilder('UUID Parse', plaintext)
         .setOptions(kvOptions)
         .setTemplate(KeyValueBoxTemplate)
         .setPriority(this.priority)

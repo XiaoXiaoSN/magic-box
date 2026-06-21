@@ -177,5 +177,21 @@ describe('MarkdownToHtmlBoxSource', () => {
         );
       }
     });
+
+    it('a language-tagged closing fence still closes the code block', async () => {
+      const md = '```python\ncode\n```python\n# real';
+      const boxes = await MarkdownToHtmlBoxSource.generateBoxes(md, {
+        md2html: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toContain('<h1>real</h1>');
+    });
+
+    it('strips a javascript: href from a link', async () => {
+      const boxes = await MarkdownToHtmlBoxSource.generateBoxes(
+        '[x](javascript:alert(1))',
+        { md2html: true },
+      );
+      expect(boxes[0].props.plaintextOutput).not.toContain('javascript:');
+    });
   });
 });

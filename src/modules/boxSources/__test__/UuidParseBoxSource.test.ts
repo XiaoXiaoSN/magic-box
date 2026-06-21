@@ -174,5 +174,13 @@ describe('UuidParseBoxSource', () => {
       );
       expect(boxes[0].props.name).toBe('UUID Parse');
     });
+
+    it('renders k:v lines into plaintextOutput (not blank) for the TUI', async () => {
+      const boxes = await UuidParseBoxSource.generateBoxes(
+        '550e8400-e29b-41d4-a716-446655440000',
+        { uuidparse: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toContain('Version: 4');
+    });
   });
 });

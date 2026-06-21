@@ -26,9 +26,27 @@ function applyInline(text: string): string {
   text = text.replace(/_([^_]+)_/g, '<em>$1</em>');
   // inline code: `x`
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // links: [text](url) — url attr is also escaped (already done by escapeHtml on &/</>)
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  // links: [text](url) — drop dangerous url schemes so the generated HTML
+  // (which the user will paste elsewhere) can't carry a script payload
+  text = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_m, label: string, url: string) =>
+      `<a href="${safeHref(url)}">${label}</a>`,
+  );
   return text;
+}
+
+// neutralize javascript:/vbscript:/data: hrefs (text is already html-escaped)
+function safeHref(url: string): string {
+  const scheme = url.trim().toLowerCase();
+  if (
+    scheme.startsWith('javascript:') ||
+    scheme.startsWith('vbscript:') ||
+    scheme.startsWith('data:')
+  ) {
+    return '#unsafe-url-removed';
+  }
+  return url;
 }
 
 // converts a subset of markdown to html source text
@@ -45,7 +63,7 @@ function convertMarkdownToHtml(markdown: string): string {
       const fence = '```';
       i++;
       const codeLines: string[] = [];
-      while (i < lines.length && lines[i].trim() !== fence) {
+      while (i < lines.length && !lines[i].trim().startsWith(fence)) {
         codeLines.push(escapeHtml(lines[i]));
         i++;
       }
