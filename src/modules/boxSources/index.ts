@@ -2,13 +2,19 @@ import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
+import CmykBoxSource from './CmykBoxSource';
 import ColorBoxSource from './ColorBoxSource';
+import ColumnarTranspositionBoxSource from './ColumnarTranspositionBoxSource';
+import Crc8BoxSource from './Crc8BoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import GrayCodeBoxSource from './GrayCodeBoxSource';
+import HammingDistanceBoxSource from './HammingDistanceBoxSource';
 import HashBoxSource from './HashBoxSource';
+import JsonPointerBoxSource from './JsonPointerBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
@@ -17,7 +23,9 @@ import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import ScytaleBoxSource from './ScytaleBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
+import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
@@ -29,13 +37,19 @@ import WordCountBoxSource from './WordCountBoxSource';
 // stay below specific matches without needing per-box priority.
 export const boxSources = [
   ColorBoxSource,
+  CmykBoxSource,
+  ColumnarTranspositionBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
+  Crc8BoxSource,
   CronExpressionBoxSource,
   DataConverterBoxSource,
   DateCalculateBoxSource,
   GenerateQRCodeBoxSource,
+  GrayCodeBoxSource,
+  HammingDistanceBoxSource,
   HashBoxSource,
+  JsonPointerBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
   MathExpressionBoxSource,
@@ -44,7 +58,9 @@ export const boxSources = [
   PasswordBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
+  ScytaleBoxSource,
   ShortenURLBoxSource,
+  SpeedConvertBoxSource,
   TimeFormatBoxSource,
   URLDecodeBoxSource,
   UuidBoxSource,

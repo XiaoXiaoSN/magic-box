@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>GrayCodeBox</b> </summary>
+
+| match rule  | description                          | example     |
+| ----------- | ------------------------------------ | ----------- |
+| `::gray`    | integer ⇄ reflected binary Gray code | `5 ::gray`  |
+
+</details>
+
+<details>
+<summary> <b>HammingDistanceBox</b> </summary>
+
+| match rule   | description                          | example                    |
+| ------------ | ------------------------------------ | -------------------------- |
+| `::hamming`  | Hamming distance of two equal-length strings (comma/newline separated) | `karolin, kathrin ::hamming` |
+
+</details>
+
+<details>
+<summary> <b>CmykBox</b> </summary>
+
+| match rule  | description                          | example            |
+| ----------- | ------------------------------------ | ------------------ |
+| `::cmyk`    | color hex/RGB ⇄ CMYK                 | `#ff6347 ::cmyk`   |
+
+</details>
+
+<details>
+<summary> <b>SpeedConvertBox</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::speed`   | convert m/s, km/h, mph, knot, ft/s   | `100 km/h ::speed`   |
+
+</details>
+
+<details>
+<summary> <b>JsonPointerBox</b> </summary>
+
+| match rule              | description                          | example                              |
+| ----------------------- | ------------------------------------ | ------------------------------------ |
+| `::jsonpointer=/path`   | evaluate an RFC 6901 JSON Pointer    | `{"a":{"b":[1,2]}} ::jsonpointer=/a/b/1` |
+
+</details>
+
+<details>
+<summary> <b>ColumnarTranspositionBox</b> </summary>
+
+| match rule              | description                          | example                          |
+| ----------------------- | ------------------------------------ | -------------------------------- |
+| `::columnar=KEY`        | columnar transposition cipher (`::columnardecode=KEY` to decrypt) | `WEAREDISCOVERED ::columnar=ZEBRAS` |
+
+</details>
+
+<details>
+<summary> <b>ScytaleBox</b> </summary>
+
+| match rule          | description                          | example                |
+| ------------------- | ------------------------------------ | ---------------------- |
+| `::scytale=N`       | scytale transposition (`::scytaledecode=N` to decrypt) | `HELLOWORLD ::scytale=3` |
+
+</details>
+
+<details>
+<summary> <b>Crc8Box</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::crc8`    | CRC-8 (SMBUS + Maxim/Dallas)         | `123456789 ::crc8`   |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
