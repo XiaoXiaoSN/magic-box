@@ -4,7 +4,9 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
-const MAX_INPUT = 5_000;
+// the DP is O(n*m); cap total input so the worst case (two ~500-char
+// strings → 250k cells) stays well under a frame budget
+const MAX_INPUT = 1_000;
 
 // two-row DP: O(n*m) time, O(min(n,m)) space
 function levenshtein(a: string, b: string): number {

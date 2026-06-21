@@ -9,8 +9,9 @@ const Priority = 10;
 const DISCORD_EPOCH = 1420070400000n;
 const TWITTER_EPOCH = 1288834974657n;
 
-// max safe snowflake length: 64-bit uint fits within ~20 digits; cap at 25 to reject junk
-const MAX_SNOWFLAKE_LENGTH = 25;
+// u64 max (18446744073709551615) is exactly 20 decimal digits
+const MAX_SNOWFLAKE_LENGTH = 20;
+const MAX_SNOWFLAKE = 18446744073709551615n;
 
 export const SnowflakeBoxSource = {
   name: 'Snowflake',
@@ -31,6 +32,7 @@ export const SnowflakeBoxSource = {
     if (!/^\d+$/.test(raw) || raw.length > MAX_SNOWFLAKE_LENGTH) return [];
 
     const id = BigInt(raw);
+    if (id > MAX_SNOWFLAKE) return [];
 
     const epochOption = extractOptionKeys(options, 'snowflake', 'epoch');
     const useTwitter = epochOption === 'twitter';
@@ -56,7 +58,7 @@ export const SnowflakeBoxSource = {
       new BoxBuilder('Snowflake', timestamp)
         .setOptions(kvOptions)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

@@ -112,4 +112,13 @@ describe('InvisibleCharsBoxSource', () => {
       'No invisible characters found.',
     );
   });
+
+  it('flags DEL and C1 control characters', async () => {
+    const boxes = await InvisibleCharsBoxSource.generateBoxes('a\x7fb\x9fc', {
+      invisibles: true,
+    });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toContain('U+007F');
+    expect(boxes[0].props.plaintextOutput).toContain('U+009F');
+  });
 });

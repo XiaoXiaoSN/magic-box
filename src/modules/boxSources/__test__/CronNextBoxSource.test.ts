@@ -94,5 +94,30 @@ describe('CronNextBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-07T12:00:00.000Z');
     });
+
+    it('handles a dow range that wraps through 7 (5-7 = Fri/Sat/Sun)', async () => {
+      // 2024-01-05 is a Friday; 5-7 covers Fri(5), Sat(6), Sun(0)
+      const boxes = await CronNextBoxSource.generateBoxes('0 0 * * 5-7', {
+        cronnext: true,
+        from: '2024-01-04T12:00:00Z',
+        count: '3',
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(
+        [
+          '2024-01-05T00:00:00.000Z', // Friday
+          '2024-01-06T00:00:00.000Z', // Saturday
+          '2024-01-07T00:00:00.000Z', // Sunday
+        ].join('\n'),
+      );
+    });
+
+    it('bails cleanly on an impossible expression (Feb 30)', async () => {
+      const boxes = await CronNextBoxSource.generateBoxes('0 0 30 2 *', {
+        cronnext: true,
+        from: '2024-01-01T00:00:00Z',
+      });
+      // no matches within the search window — surfaces a box, does not hang
+      expect(boxes).toHaveLength(1);
+    });
   });
 });

@@ -27,7 +27,7 @@ function parseHexColor(raw: string): [number, number, number] | null {
 // WCAG 2.x relative luminance for a single channel value in [0,255]
 function channelLuminance(c: number): number {
   const sRGB = c / 255;
-  return sRGB <= 0.03928 ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
+  return sRGB <= 0.04045 ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
 }
 
 function relativeLuminance(r: number, g: number, b: number): number {

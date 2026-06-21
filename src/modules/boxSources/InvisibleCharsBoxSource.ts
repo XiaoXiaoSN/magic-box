@@ -52,6 +52,8 @@ function isInvisible(cp: number): boolean {
   if (cp < 0x20) return true;
   // allow normal printable ASCII (0x20-0x7e)
   if (cp >= 0x20 && cp <= 0x7e) return false;
+  // flag DEL and the C1 control block (common homograph-attack injects)
+  if (cp === 0x7f || (cp >= 0x80 && cp <= 0x9f)) return true;
   // flag all specifically listed invisible unicode chars
   if (INVISIBLE_CHARS.has(cp)) return true;
   return false;

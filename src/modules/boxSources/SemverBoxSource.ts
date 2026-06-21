@@ -66,14 +66,16 @@ export const SemverBoxSource = {
       Major: parsed.major,
       Minor: parsed.minor,
       Patch: parsed.patch,
-      Prerelease: parsed.prerelease ?? '',
-      Valid: 'true',
     };
 
-    // omit Build key entirely when absent
+    // omit Prerelease / Build keys entirely when absent (consistent handling)
+    if (parsed.prerelease !== null) {
+      kvOptions.Prerelease = parsed.prerelease;
+    }
     if (parsed.build !== null) {
       kvOptions.Build = parsed.build;
     }
+    kvOptions.Valid = 'true';
 
     const lines = Object.entries(kvOptions)
       .map(([k, v]) => `${k}: ${v}`)

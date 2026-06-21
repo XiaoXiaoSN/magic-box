@@ -105,5 +105,14 @@ describe('SnowflakeBoxSource', () => {
       });
       expect(boxes).toHaveLength(0);
     });
+
+    it('rejects values above the 64-bit range (would crash toISOString)', async () => {
+      // 21 digits, > u64 max
+      const boxes = await SnowflakeBoxSource.generateBoxes(
+        '999999999999999999999',
+        { snowflake: true },
+      );
+      expect(boxes).toHaveLength(0);
+    });
   });
 });
