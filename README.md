@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>GcdLcmBox</b> </summary>
+
+| match rule  | description                          | example            |
+| ----------- | ------------------------------------ | ------------------ |
+| `::gcd`     | GCD + LCM of a list of integers      | `12, 18, 24 ::gcd` |
+
+</details>
+
+<details>
+<summary> <b>PrimeFactorBox</b> </summary>
+
+| match rule   | description                          | example        |
+| ------------ | ------------------------------------ | -------------- |
+| `::factor`   | prime factorization (up to 10^12)    | `360 ::factor` |
+
+</details>
+
+<details>
+<summary> <b>ModPowBox</b> </summary>
+
+| match rule   | description                          | example              |
+| ------------ | ------------------------------------ | -------------------- |
+| `::modpow`   | modular exponentiation (base exp mod) | `4 13 497 ::modpow` |
+
+</details>
+
+<details>
+<summary> <b>StatsBox</b> </summary>
+
+| match rule  | description                          | example                          |
+| ----------- | ------------------------------------ | -------------------------------- |
+| `::stats`   | mean/median/mode/stddev of a list    | `2, 4, 4, 5, 7, 9 ::stats`       |
+
+</details>
+
+<details>
+<summary> <b>BmiBox</b> </summary>
+
+| match rule | description                          | example              |
+| ---------- | ------------------------------------ | -------------------- |
+| `::bmi`    | Body Mass Index (metric or imperial) | `70kg 1.75m ::bmi`   |
+
+</details>
+
+<details>
+<summary> <b>PressureConvertBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::pressure`  | Pa/kPa/bar/psi/atm/mmHg/Torr         | `1 atm ::pressure` |
+
+</details>
+
+<details>
+<summary> <b>QuotedPrintableBox</b> </summary>
+
+| match rule          | description                          | example                  |
+| ------------------- | ------------------------------------ | ------------------------ |
+| `::quotedprintable` | MIME Quoted-Printable (`::qpdecode` to decode) | `Héllo ::quotedprintable` |
+
+</details>
+
+<details>
+<summary> <b>AutokeyBox</b> </summary>
+
+| match rule          | description                          | example                  |
+| ------------------- | ------------------------------------ | ------------------------ |
+| `::autokey=KEY`     | Vigenère autokey cipher (`::autokeydecode=KEY` to decrypt) | `ATTACKATDAWN ::autokey=QUEENLY` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
