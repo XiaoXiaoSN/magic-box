@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>HttpStatusBox</b> </summary>
+
+| match rule       | description                          | example          |
+| ---------------- | ------------------------------------ | ---------------- |
+| `::httpstatus`   | look up an HTTP status code          | `404 ::httpstatus` |
+
+</details>
+
+<details>
+<summary> <b>Ieee754Box</b> </summary>
+
+| match rule    | description                          | example          |
+| ------------- | ------------------------------------ | ---------------- |
+| `::ieee754`   | IEEE-754 bits of a float / decode hex | `3.14 ::ieee754` |
+
+</details>
+
+<details>
+<summary> <b>UuidParseBox</b> </summary>
+
+| match rule      | description                          | example                       |
+| --------------- | ------------------------------------ | ----------------------------- |
+| `::uuidparse`   | version/variant/timestamp of a UUID  | `550e8400-e29b-41d4-a716-446655440000 ::uuidparse` |
+
+</details>
+
+<details>
+<summary> <b>CssToJsBox</b> </summary>
+
+| match rule  | description                          | example                       |
+| ----------- | ------------------------------------ | ----------------------------- |
+| `::cssjs`   | CSS declarations ⇄ JS style object   | `color: red; ::cssjs`         |
+
+</details>
+
+<details>
+<summary> <b>MarkdownToHtmlBox</b> </summary>
+
+| match rule   | description                          | example            |
+| ------------ | ------------------------------------ | ------------------ |
+| `::md2html`  | convert Markdown to HTML             | `# Title ::md2html` |
+
+</details>
+
+<details>
+<summary> <b>SqlCreateTableBox</b> </summary>
+
+| match rule       | description                          | example                       |
+| ---------------- | ------------------------------------ | ----------------------------- |
+| `::sqltable=NAME`| infer CREATE TABLE from JSON         | `{"id":1} ::sqltable=users`   |
+
+</details>
+
+<details>
+<summary> <b>DiceRollBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::roll`    | roll dice notation (e.g. 2d6+3)      | `2d6+3 ::roll`   |
+
+</details>
+
+<details>
+<summary> <b>TwosComplementBox</b> </summary>
+
+| match rule              | description                          | example                       |
+| ----------------------- | ------------------------------------ | ----------------------------- |
+| `::twoscomplement=BITS` | two's-complement binary/hex of an int | `-42 ::twoscomplement=8`     |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
