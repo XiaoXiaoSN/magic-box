@@ -1,5 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -68,6 +68,7 @@ export const NumberBasesBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'bases', 'numbase')) return [];
+    if (!isString(input)) return [];
 
     const raw = trim(input);
     const n = parseIntoBigInt(raw);
@@ -75,8 +76,13 @@ export const NumberBasesBoxSource = {
 
     const bases = formatBases(n);
 
+    // key/value lines for headless/TUI consumers (not raw JSON)
+    const plaintext = Object.entries(bases)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
     return [
-      new BoxBuilder('Number Bases', JSON.stringify(bases))
+      new BoxBuilder('Number Bases', plaintext)
         .setOptions(bases)
         .setTemplate(KeyValueBoxTemplate)
         .setPriority(this.priority)

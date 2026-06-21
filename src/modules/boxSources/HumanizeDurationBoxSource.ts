@@ -1,5 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
@@ -61,6 +61,7 @@ export const HumanizeDurationBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'humanize', 'duration')) return [];
+    if (!isString(input)) return [];
 
     const raw = trim(input);
     if (raw.length === 0 || raw.length > MAX_INPUT_LENGTH) return [];

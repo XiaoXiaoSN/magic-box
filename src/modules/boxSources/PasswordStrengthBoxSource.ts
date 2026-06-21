@@ -1,4 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -122,7 +123,9 @@ export const PasswordStrengthBoxSource = {
   name: 'Password Strength',
   description:
     'Estimate password entropy and strength (character-set size × length).',
-  defaultInput: 'P@ssw0rd123 ::strength',
+  // a famously-public example password, so the default doesn't nudge users
+  // toward typing a real one (which would land in the page URL)
+  defaultInput: 'correcthorsebatterystaple ::strength',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,
@@ -132,7 +135,8 @@ export const PasswordStrengthBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'strength', 'pwstrength')) return [];
-    if (input.length === 0 || input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
+      return [];
 
     const classes = detectClasses(input);
     const pool = poolSize(classes);
@@ -145,6 +149,7 @@ export const PasswordStrengthBoxSource = {
       Entropy: `${bits.toFixed(1)} bits`,
       Rating: rating(bits),
       'Est. Crack Time': estimateCrackTime(input.length, pool),
+      Note: 'your password is in the page URL — do not share this link',
     };
 
     // plaintext summary for headless/TUI consumers — no password echoed

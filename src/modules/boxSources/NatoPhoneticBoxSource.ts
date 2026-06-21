@@ -1,3 +1,4 @@
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -83,6 +84,7 @@ export const NatoPhoneticBoxSource = {
 
     return [
       new BoxBuilder('NATO Phonetic', output)
+        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
