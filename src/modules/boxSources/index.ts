@@ -1,20 +1,28 @@
+import Ascii85BoxSource from './Ascii85BoxSource';
+import AsciiTableBoxSource from './AsciiTableBoxSource';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
+import CharFrequencyBoxSource from './CharFrequencyBoxSource';
+import ChineseNumeralBoxSource from './ChineseNumeralBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
+import DurationFormatBoxSource from './DurationFormatBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
+import HmacBoxSource from './HmacBoxSource';
+import HsvBoxSource from './HsvBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PopcountBoxSource from './PopcountBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
@@ -29,19 +37,27 @@ import WordCountBoxSource from './WordCountBoxSource';
 // stay below specific matches without needing per-box priority.
 export const boxSources = [
   ColorBoxSource,
+  AsciiTableBoxSource,
+  CharFrequencyBoxSource,
+  ChineseNumeralBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
+  Ascii85BoxSource,
   CronExpressionBoxSource,
   DataConverterBoxSource,
   DateCalculateBoxSource,
+  DurationFormatBoxSource,
   GenerateQRCodeBoxSource,
   HashBoxSource,
+  HmacBoxSource,
+  HsvBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
   NowBoxSource,
   PasswordBoxSource,
+  PopcountBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
   ShortenURLBoxSource,

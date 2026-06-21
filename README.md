@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>HmacBox</b> </summary>
+
+| match rule      | description                          | example                  |
+| --------------- | ------------------------------------ | ------------------------ |
+| `::hmac=<key>`  | HMAC-SHA256/SHA1/SHA512 (key not echoed) | `message ::hmac=secret` |
+
+</details>
+
+<details>
+<summary> <b>HsvBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::hsv`     | color hex/RGB ⇄ HSV (HSB)            | `#ff6347 ::hsv`  |
+
+</details>
+
+<details>
+<summary> <b>AsciiCodeBox</b> </summary>
+
+| match rule  | description                          | example       |
+| ----------- | ------------------------------------ | ------------- |
+| `::ascii`   | character ⇄ code point (dec/hex/oct/bin) | `A ::ascii` |
+
+</details>
+
+<details>
+<summary> <b>CharFrequencyBox</b> </summary>
+
+| match rule     | description                          | example                |
+| -------------- | ------------------------------------ | ---------------------- |
+| `::charfreq`   | count character frequency            | `hello world ::charfreq` |
+
+</details>
+
+<details>
+<summary> <b>DurationBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::duration`  | seconds ⇄ human duration (1h 1m 1s)  | `3661 ::duration`  |
+
+</details>
+
+<details>
+<summary> <b>PopcountBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::popcount`  | set bits + bit length (dec/0x/0b)    | `255 ::popcount`   |
+
+</details>
+
+<details>
+<summary> <b>Ascii85Box</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::ascii85`   | Ascii85 (base85) encode/decode       | `hello ::ascii85`  |
+
+</details>
+
+<details>
+<summary> <b>ChineseNumeralsBox</b> </summary>
+
+| match rule       | description                          | example              |
+| ---------------- | ------------------------------------ | -------------------- |
+| `::chinesenum`   | integer ⇄ Chinese numerals (everyday + financial) | `1234 ::chinesenum` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
