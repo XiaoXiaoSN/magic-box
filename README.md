@@ -297,6 +297,80 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Rot47Box</b> </summary>
+
+| match rule | description                                 | example                 |
+| ---------- | ------------------------------------------- | ----------------------- |
+| `::rot47`  | ROT47 cipher (rotate printable ASCII, self-inverse) | `Hello, World! ::rot47` |
+
+</details>
+
+<details>
+<summary> <b>Base64UrlBox</b> </summary>
+
+| match rule          | description                       | example                  |
+| ------------------- | --------------------------------- | ------------------------ |
+| `::base64url`       | URL-safe Base64 encode (RFC 4648 §5) | `hello world ::base64url` |
+| `::base64urldecode` | URL-safe Base64 decode            | `aGVsbG8 ::base64urldecode` |
+
+</details>
+
+<details>
+<summary> <b>JsonPathBox</b> </summary>
+
+| match rule         | description                              | example                            |
+| ------------------ | ---------------------------------------- | ---------------------------------- |
+| `::jsonpath=PATH`  | extract a value with a dot/bracket path  | `{"a":{"b":[1,2]}} ::jsonpath=a.b[1]` |
+
+</details>
+
+<details>
+<summary> <b>WordWrapBox</b> </summary>
+
+| match rule   | description                              | example                       |
+| ------------ | ---------------------------------------- | ----------------------------- |
+| `::wrap=N`   | wrap text to N columns at word boundaries | `long text here ::wrap=20`   |
+
+</details>
+
+<details>
+<summary> <b>TabsSpacesBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::spaces=N`   | convert leading tabs to N spaces     | `\tcode ::spaces=2`  |
+| `::tabs=N`     | convert N leading spaces to a tab    | `    code ::tabs=4`  |
+
+</details>
+
+<details>
+<summary> <b>ReverseWordsBox</b> </summary>
+
+| match rule        | description                | example                       |
+| ----------------- | -------------------------- | ----------------------------- |
+| `::reversewords`  | reverse the order of words | `the quick brown ::reversewords` |
+
+</details>
+
+<details>
+<summary> <b>TwosComplementBox</b> </summary>
+
+| match rule   | description                                       | example          |
+| ------------ | ------------------------------------------------- | ---------------- |
+| `::twos=N`   | two's-complement binary/hex of an integer at N bits | `-42 ::twos=8` |
+
+</details>
+
+<details>
+<summary> <b>SoundexBox</b> </summary>
+
+| match rule   | description                              | example              |
+| ------------ | ---------------------------------------- | -------------------- |
+| `::soundex`  | American Soundex phonetic code per word  | `Robert Rupert ::soundex` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
