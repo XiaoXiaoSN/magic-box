@@ -40,7 +40,7 @@ describe('PolybiusBoxSource', () => {
 
   describe('generateBoxes — encode', () => {
     it('encodes HELLO correctly via ::polybius', async () => {
-      // H=idx7→23, E=idx4→15, L=idx10→31, L→31, O=idx13→35
+      // H=idx7→23, E=idx4→15, L=idx10→31, L→31, O=idx13→34 (J removed)
       const boxes = await PolybiusBoxSource.generateBoxes('HELLO', {
         polybius: true,
       });

@@ -1,4 +1,5 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
+import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 import { parse } from 'yaml';
@@ -23,7 +24,7 @@ export const FrontmatterBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'frontmatter', 'fm')) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     // strip a leading BOM or blank lines before the opening ---
     const normalized = input.replace(/^﻿/, '').replace(/^\n+/, '');

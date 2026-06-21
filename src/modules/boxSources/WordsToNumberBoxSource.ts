@@ -42,9 +42,9 @@ const TENS: Record<string, number> = {
   ninety: 90,
 };
 
-// scales that multiply the current accumulator and flush into the result
+// scales that flush the accumulator into the result; 'hundred' is handled
+// separately (it multiplies the accumulator) so it's intentionally not here
 const SCALES: Record<string, number> = {
-  hundred: 100,
   thousand: 1_000,
   million: 1_000_000,
   billion: 1_000_000_000,

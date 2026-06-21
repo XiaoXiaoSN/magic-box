@@ -89,19 +89,24 @@ export const KelvinToRgbBoxSource = {
       ];
     }
 
-    const raw_k = Number.parseInt(raw, 10);
-    const kelvin = Math.min(MAX_KELVIN, Math.max(MIN_KELVIN, raw_k));
+    const rawK = Number.parseInt(raw, 10);
+    const kelvin = Math.min(MAX_KELVIN, Math.max(MIN_KELVIN, rawK));
 
     const { r, g, b } = kelvinToRgb(kelvin);
     const hex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 
+    const kv = {
+      Kelvin: `${kelvin}K`,
+      RGB: `rgb(${r}, ${g}, ${b})`,
+      Hex: hex,
+    };
+    const plaintext = Object.entries(kv)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
     return [
-      new BoxBuilder('Color Temperature', '')
-        .setOptions({
-          Kelvin: `${kelvin}K`,
-          RGB: `rgb(${r}, ${g}, ${b})`,
-          Hex: hex,
-        })
+      new BoxBuilder('Color Temperature', plaintext)
+        .setOptions(kv)
         .setTemplate(KeyValueBoxTemplate)
         .setPriority(this.priority)
         .build(),
