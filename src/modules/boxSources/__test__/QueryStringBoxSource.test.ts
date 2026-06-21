@@ -140,5 +140,16 @@ describe('QueryStringBoxSource', () => {
       expect(QueryStringBoxSource.kind).toBe('Convert');
       expect(typeof QueryStringBoxSource.priority).toBe('number');
     });
+
+    it('routes a JSON array to the JSON→qs path and reports an error', async () => {
+      const boxes = await QueryStringBoxSource.generateBoxes('[1,2,3]', {
+        qs: true,
+      });
+      expect(boxes).toHaveLength(1);
+      // an array is not a flat object — should not be parsed as a query string
+      expect(boxes[0].props.plaintextOutput.toLowerCase()).toMatch(
+        /object|error|invalid/,
+      );
+    });
   });
 });

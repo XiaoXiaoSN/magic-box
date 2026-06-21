@@ -57,6 +57,8 @@ export const LuhnBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'luhn')) return [];
+    // bound work before the string ops (a valid number is well under this)
+    if (input.length > 200) return [];
 
     // strip spaces and hyphens; require digits only
     const cleaned = trim(input).replace(/[\s-]/g, '');
@@ -71,12 +73,20 @@ export const LuhnBoxSource = {
 
     const sum = luhnSum(cleaned);
     const isValid = sum % 10 === 0;
-    const checkDigit = computeCheckDigit(cleaned);
 
+    // for a valid number the embedded check digit IS its last digit; for an
+    // invalid one, report the digit to append to make it valid (avoids the
+    // contradictory "Valid: true" + extension-digit display)
     const outputOptions: Record<string, string> = {
       Input: cleaned,
       Valid: String(isValid),
-      'Check Digit': String(checkDigit),
+      ...(isValid
+        ? { 'Check Digit': cleaned[cleaned.length - 1] }
+        : {
+            'Check Digit (append to validate)': String(
+              computeCheckDigit(cleaned),
+            ),
+          }),
       Sum: String(sum),
     };
 

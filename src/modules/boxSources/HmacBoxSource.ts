@@ -1,4 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
@@ -55,7 +56,7 @@ export const HmacBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'hmac')) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     // guard for non-secure contexts where crypto.subtle is unavailable
     if (typeof crypto === 'undefined' || !crypto.subtle) {
@@ -90,8 +91,21 @@ export const HmacBoxSource = {
         ? ALG_MAP[algAlias.toLowerCase()]
         : 'SHA-256';
 
-    const algorithmLabel = `HMAC-${hashName.replace('-', '')}`;
-    const hex = await computeHmac(hashName, keyValue, input);
+    const algorithmLabel = `HMAC-${hashName.replace(/-/g, '')}`;
+
+    let hex: string;
+    try {
+      hex = await computeHmac(hashName, keyValue, input);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return [
+        new BoxBuilder('HMAC', `HMAC computation failed: ${message}`)
+          .setTemplate(KeyValueBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
 
     return [
       new BoxBuilder('HMAC', hex)

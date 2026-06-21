@@ -1,5 +1,5 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -70,12 +70,12 @@ export const QueryStringBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'qs', 'querystring')) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     const trimmed = trim(input);
 
     // json → qs when input looks like a json object
-    if (trimmed.startsWith('{')) {
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       try {
         const output = jsonToQs(trimmed);
         return [

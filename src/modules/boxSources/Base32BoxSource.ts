@@ -9,6 +9,8 @@ const MAX_INPUT = 100_000;
 // RFC 4648 Base32 alphabet
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const ALPHABET_SET = new Set(ALPHABET);
+// reverse lookup for O(1) decode (avoids ALPHABET.indexOf per char)
+const CHAR_VALUE = new Map([...ALPHABET].map((ch, i) => [ch, i]));
 
 // encodes bytes to RFC 4648 Base32 with = padding to a multiple of 8 chars
 function encodeBase32(bytes: Uint8Array): string {
@@ -53,7 +55,7 @@ function decodeBase32(input: string): Uint8Array {
   let value = 0;
 
   for (const ch of clean) {
-    value = (value << 5) | ALPHABET.indexOf(ch);
+    value = (value << 5) | (CHAR_VALUE.get(ch) ?? 0);
     bits += 5;
     if (bits >= 8) {
       bits -= 8;

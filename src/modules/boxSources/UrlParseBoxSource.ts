@@ -1,5 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -20,7 +20,7 @@ export const UrlParseBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'urlparse', 'parseurl')) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (!isString(input) || input.length > MAX_INPUT) return [];
 
     const raw = trim(input);
     let url: URL;

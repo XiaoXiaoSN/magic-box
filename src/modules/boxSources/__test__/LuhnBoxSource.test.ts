@@ -107,7 +107,10 @@ describe('LuhnBoxSource', () => {
         luhn: true,
       });
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.options).toMatchObject({ 'Check Digit': '3' });
+      // 7992739871 is not valid on its own, so the append-digit is reported
+      expect(boxes[0].props.options).toMatchObject({
+        'Check Digit (append to validate)': '3',
+      });
     });
 
     it('check digit of a valid number makes input+digit Luhn-valid', async () => {
@@ -115,7 +118,8 @@ describe('LuhnBoxSource', () => {
       const payload = '453201511283036';
       const boxes = await LuhnBoxSource.generateBoxes(payload, { luhn: true });
       expect(boxes).toHaveLength(1);
-      const checkDigit = boxes[0].props.options?.['Check Digit'];
+      const checkDigit =
+        boxes[0].props.options?.['Check Digit (append to validate)'];
 
       // appending the check digit must produce a valid number
       const full = payload + checkDigit;
