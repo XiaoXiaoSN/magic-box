@@ -148,5 +148,16 @@ describe('JsonToPythonBoxSource', () => {
       });
       expect(boxes[0].props.options?.language).toBe('python');
     });
+
+    it('escapes python reserved words and digit-leading keys', async () => {
+      const boxes = await JsonToPythonBoxSource.generateBoxes(
+        '{"class":1,"for":2,"1abc":3}',
+        { pydataclass: true },
+      );
+      const out = boxes[0].props.plaintextOutput;
+      expect(out).toContain('class_: int');
+      expect(out).toContain('for_: int');
+      expect(out).toContain('f_1abc: int');
+    });
   });
 });

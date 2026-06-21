@@ -44,7 +44,8 @@ function parseHeadings(input: string): Heading[] {
     const fenceMatch = FENCE_OPEN_RE.exec(line.trimStart());
     if (fenceMatch) {
       inFence = true;
-      fenceChar = fenceMatch[1][0].repeat(3); // normalize to 3 chars of the same type
+      // keep the exact opening run; a closing fence must be at least as long
+      fenceChar = fenceMatch[1];
       continue;
     }
 
@@ -62,7 +63,7 @@ function parseHeadings(input: string): Heading[] {
 
 /** builds the nested bullet list string with github-style duplicate slug disambiguation */
 function buildToc(headings: Heading[]): string {
-  const minLevel = Math.min(...headings.map((h) => h.level));
+  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
   const slugCount: Record<string, number> = {};
   const lines: string[] = [];
 

@@ -95,6 +95,9 @@ export const WeekNumberBoxSource = {
     let date: Date;
     if (raw === '' || raw === 'today' || raw === 'now') {
       date = new Date();
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      // pin a date-only string to UTC midnight so the week is timezone-stable
+      date = new Date(`${raw}T00:00:00Z`);
     } else {
       date = new Date(raw);
     }

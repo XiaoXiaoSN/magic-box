@@ -6,6 +6,54 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
+// python reserved words that can't be used as bare field names
+const PY_KEYWORDS = new Set([
+  'False',
+  'None',
+  'True',
+  'and',
+  'as',
+  'assert',
+  'async',
+  'await',
+  'break',
+  'class',
+  'continue',
+  'def',
+  'del',
+  'elif',
+  'else',
+  'except',
+  'finally',
+  'for',
+  'from',
+  'global',
+  'if',
+  'import',
+  'in',
+  'is',
+  'lambda',
+  'nonlocal',
+  'not',
+  'or',
+  'pass',
+  'raise',
+  'return',
+  'try',
+  'while',
+  'with',
+  'yield',
+]);
+
+// maps a json key to a valid python identifier: non-identifier chars → '_',
+// digit-leading names get a prefix, reserved words get a trailing underscore
+function safePyName(key: string): string {
+  const id = key.replace(/[^a-zA-Z0-9_]/g, '_');
+  if (/^\d/.test(id)) return `f_${id}`;
+  if (PY_KEYWORDS.has(id)) return `${id}_`;
+  return id || '_';
+}
+
 // maps a json key to a safe PascalCase class name, de-duplicating against usedNames
 function toPascalCase(key: string): string {
   // replace non-alphanumeric chars with spaces, then capitalise each word
@@ -99,7 +147,7 @@ function buildClass(
   const fields: string[] = [];
   for (const [key, val] of Object.entries(obj)) {
     const pyType = resolveType(val, key, classes, usedNames, imports);
-    fields.push(`    ${key}: ${pyType}`);
+    fields.push(`    ${safePyName(key)}: ${pyType}`);
   }
   // push after nested classes so definitions always appear before their references
   classes.push({ name: className, fields });

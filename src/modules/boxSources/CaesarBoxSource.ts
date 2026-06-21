@@ -53,11 +53,9 @@ export const CaesarBoxSource = {
 
     if (shiftVal !== null) {
       // parse the shift amount; fall back to 3 when the value is missing or non-numeric
+      const n = Number.parseInt(String(shiftVal), 10);
       const parsedShift =
-        typeof shiftVal === 'boolean' ||
-        Number.isNaN(Number.parseInt(String(shiftVal), 10))
-          ? 3
-          : Number.parseInt(String(shiftVal), 10);
+        typeof shiftVal === 'boolean' || Number.isNaN(n) ? 3 : n;
 
       const shifted = caesarShift(input, parsedShift);
 

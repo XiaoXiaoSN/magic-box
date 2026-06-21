@@ -1,4 +1,7 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import {
+  DefaultBoxTemplate,
+  KeyValueBoxTemplate,
+} from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -89,7 +92,7 @@ export const UuidV5BoxSource = {
           'UUID v5',
           'UUID v5 requires a secure context (HTTPS). crypto.subtle is not available.',
         )
-          .setTemplate(KeyValueBoxTemplate)
+          .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -111,7 +114,7 @@ export const UuidV5BoxSource = {
           'UUID v5',
           'A namespace is required. Use ::uuidv5=dns, ::uuidv5=url, ::uuidv5=oid, ::uuidv5=x500, or ::uuidv5=<uuid>.',
         )
-          .setTemplate(KeyValueBoxTemplate)
+          .setTemplate(DefaultBoxTemplate)
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

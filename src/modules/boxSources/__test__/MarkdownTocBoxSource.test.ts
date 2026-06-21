@@ -136,5 +136,14 @@ describe('MarkdownTocBoxSource', () => {
       });
       expect(boxes[0].props.options).toMatchObject({ language: 'markdown' });
     });
+
+    it('does not close a 4-backtick fence with a 3-backtick line', async () => {
+      // the inner 3-backtick line must not end the 4-backtick block
+      const md = '````\n# fake\n```\n# still fake\n````\n# real';
+      const boxes = await MarkdownTocBoxSource.generateBoxes(md, { toc: true });
+      const out = boxes[0].props.plaintextOutput;
+      expect(out).toContain('[real]');
+      expect(out).not.toContain('fake');
+    });
   });
 });
