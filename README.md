@@ -297,6 +297,80 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Crc16Box</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::crc16`   | CRC-16 (CCITT-FALSE + Modbus)        | `123456789 ::crc16`  |
+
+</details>
+
+<details>
+<summary> <b>AffineCipherBox</b> </summary>
+
+| match rule          | description                          | example                  |
+| ------------------- | ------------------------------------ | ------------------------ |
+| `::affine=a,b`      | affine cipher encrypt (a coprime 26) | `AFFINE ::affine=5,8`    |
+| `::affinedecode=a,b`| affine cipher decrypt                | `IHHWVC ::affinedecode=5,8` |
+
+</details>
+
+<details>
+<summary> <b>PolybiusBox</b> </summary>
+
+| match rule          | description                          | example            |
+| ------------------- | ------------------------------------ | ------------------ |
+| `::polybius`        | Polybius square encode (5×5, I/J)    | `HELLO ::polybius` |
+| `::polybiusdecode`  | Polybius square decode               | `23 15 ::polybiusdecode` |
+
+</details>
+
+<details>
+<summary> <b>WordsToNumberBox</b> </summary>
+
+| match rule       | description                          | example                  |
+| ---------------- | ------------------------------------ | ------------------------ |
+| `::wordstonum`   | English number words → integer       | `one thousand ::wordstonum` |
+
+</details>
+
+<details>
+<summary> <b>FrontmatterBox</b> </summary>
+
+| match rule        | description                          | example                       |
+| ----------------- | ------------------------------------ | ----------------------------- |
+| `::frontmatter`   | extract YAML frontmatter as JSON     | `---`<br>`title: Hi`<br>`---` `::frontmatter` |
+
+</details>
+
+<details>
+<summary> <b>PercentEncodeBox</b> </summary>
+
+| match rule          | description                          | example                  |
+| ------------------- | ------------------------------------ | ------------------------ |
+| `::percentencode`   | RFC 3986 percent-encode (`::percentdecode` to decode) | `a b&c ::percentencode` |
+
+</details>
+
+<details>
+<summary> <b>KelvinToRgbBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::kelvin`  | color temperature (K) → RGB/hex      | `6500 ::kelvin`  |
+
+</details>
+
+<details>
+<summary> <b>PigLatinBox</b> </summary>
+
+| match rule    | description                          | example                |
+| ------------- | ------------------------------------ | ---------------------- |
+| `::piglatin`  | convert English text to Pig Latin    | `hello world ::piglatin` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
