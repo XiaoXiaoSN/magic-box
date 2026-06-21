@@ -129,7 +129,7 @@ describe('FactorialBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       const kv = boxes[0].props.options as Record<string, string>;
-      expect(kv.Error).toMatch(/100000/);
+      expect(kv.Error).toMatch(/20000/);
     });
 
     it('returns error box for negative-like input "-5" (non-digit chars)', async () => {

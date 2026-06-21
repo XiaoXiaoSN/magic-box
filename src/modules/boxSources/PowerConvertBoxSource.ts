@@ -61,11 +61,14 @@ export const PowerConvertBoxSource = {
 
     if (!match) {
       // invalid — return a box listing supported units
-      const plaintext = kvToPlaintext({ 'Supported units': SUPPORTED_UNITS });
+      const pairs = {
+        Error: 'Invalid format. Expected: <number> <unit>',
+        'Supported units': SUPPORTED_UNITS,
+      };
       return [
-        new BoxBuilder('Power Convert', plaintext)
+        new BoxBuilder('Power Convert', kvToPlaintext(pairs))
           .setTemplate(KeyValueBoxTemplate)
-          .setOptions({ 'Supported units': SUPPORTED_UNITS })
+          .setOptions(pairs)
           .setPriority(this.priority)
           .build(),
       ];
@@ -77,11 +80,14 @@ export const PowerConvertBoxSource = {
 
     if (factor === undefined) {
       // unknown unit — return a box listing supported units
-      const plaintext = kvToPlaintext({ 'Supported units': SUPPORTED_UNITS });
+      const pairs = {
+        Error: `Unknown unit: ${match[2]}`,
+        'Supported units': SUPPORTED_UNITS,
+      };
       return [
-        new BoxBuilder('Power Convert', plaintext)
+        new BoxBuilder('Power Convert', kvToPlaintext(pairs))
           .setTemplate(KeyValueBoxTemplate)
-          .setOptions({ 'Supported units': SUPPORTED_UNITS })
+          .setOptions(pairs)
           .setPriority(this.priority)
           .build(),
       ];

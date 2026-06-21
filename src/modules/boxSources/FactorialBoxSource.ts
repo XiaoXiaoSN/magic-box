@@ -6,7 +6,9 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // cap to bound the O(n) bigint product and the output string size
-const MAX_N = 100_000;
+// cap at 20000: 20000! is ~77k digits and computes in ~25ms; 100000! blocks
+// the main thread for ~1.7s (O(n) bigint mults on a growing product)
+const MAX_N = 20_000;
 
 // threshold above which we abbreviate the full decimal expansion
 const FULL_DISPLAY_THRESHOLD = 2000;

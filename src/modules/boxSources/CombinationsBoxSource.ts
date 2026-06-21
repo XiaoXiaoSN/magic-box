@@ -4,7 +4,11 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
-const MAX_N = 1_000_000;
+const MAX_N = 100_000;
+// independently cap k = min(r, n-r): cost is O(k) BigInt mults on a product
+// that grows to ~k*log(n) digits, so a large k (even with n in range) can
+// hang the main thread for minutes. 10000 keeps worst-case well under a second.
+const MAX_K = 10_000;
 
 // builds a "key: value\n..." plaintext string for headless rendering
 function kvToPlaintext(pairs: Record<string, string>): string {
@@ -73,10 +77,18 @@ export const CombinationsBoxSource = {
     const n = Number(match[1]);
     const r = Number(match[2]);
 
-    if (r > n || n > MAX_N) {
+    const effectiveK = Math.min(r, n - r);
+    if (r > n || n > MAX_N || effectiveK > MAX_K) {
+      let error: string;
+      if (r > n) {
+        error = `r (${r}) must be ≤ n (${n})`;
+      } else if (n > MAX_N) {
+        error = `n (${n}) must be ≤ ${MAX_N}`;
+      } else {
+        error = `min(r, n-r) = ${effectiveK} is too large; must be ≤ ${MAX_K}`;
+      }
       const pairs = {
-        Error:
-          r > n ? `r (${r}) must be ≤ n (${n})` : `n (${n}) must be ≤ 1000000`,
+        Error: error,
         Constraints: CONSTRAINT_MSG,
       };
       return [

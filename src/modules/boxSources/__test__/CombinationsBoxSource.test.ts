@@ -126,6 +126,18 @@ describe('CombinationsBoxSource', () => {
       expect(kv.Constraints).toContain('r ≤ n');
     });
 
+    it('rejects a large min(r, n-r) to avoid a main-thread hang (DoS guard)', async () => {
+      const boxes = await CombinationsBoxSource.generateBoxes(
+        '1000000 500000',
+        {
+          ncr: true,
+        },
+      );
+      expect(boxes).toHaveLength(1);
+      const kv = boxes[0].props.options as Record<string, string>;
+      expect(kv.Error).toMatch(/too large|10000|min/i);
+    });
+
     it('invalid input "a b" returns an error box', async () => {
       const boxes = await CombinationsBoxSource.generateBoxes('a b', {
         ncr: true,

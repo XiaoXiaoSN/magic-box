@@ -64,6 +64,21 @@ export const QuadraticBoxSource = {
     const b = Number.parseFloat(tokens[1]);
     const c = Number.parseFloat(tokens[2]);
 
+    // reject coefficients that overflow float64 (e.g. 1e309 → Infinity),
+    // which would propagate NaN into the roots
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(c)) {
+      const kv: Record<string, string> = {
+        Error: 'Coefficients must be finite numbers.',
+      };
+      return [
+        new BoxBuilder('Quadratic Solver', kvToPlaintext(kv))
+          .setTemplate(KeyValueBoxTemplate)
+          .setOptions(kv)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
     const equation = `${formatNum(a)}x² + ${formatNum(b)}x + ${formatNum(c)} = 0`;
 
     // degenerate or linear case when a == 0
@@ -137,7 +152,8 @@ export const QuadraticBoxSource = {
 
     // discriminant < 0: two complex conjugate roots
     const realPart = -b / (2 * a);
-    const imagPart = Math.sqrt(-discriminant) / (2 * a);
+    // use the magnitude for display so the ± formatting never yields "+ -1i"
+    const imagPart = Math.abs(Math.sqrt(-discriminant) / (2 * a));
     const kv: Record<string, string> = {
       Equation: equation,
       Discriminant: formatNum(discriminant),
