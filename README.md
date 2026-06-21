@@ -297,6 +297,81 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>UnicodeEscapeBox</b> </summary>
+
+| match rule            | description                          | example                  |
+| --------------------- | ------------------------------------ | ------------------------ |
+| `::unicodeescape`     | escape non-ASCII to `\uXXXX`         | `café 😀 ::unicodeescape` |
+| `::unicodeunescape`   | unescape `\uXXXX` / `\u{…}` to text  | `café ::unicodeunescape` |
+
+</details>
+
+<details>
+<summary> <b>UnicodeNormalizeBox</b> </summary>
+
+| match rule     | description                              | example            |
+| -------------- | ---------------------------------------- | ------------------ |
+| `::normalize`  | show NFC / NFD / NFKC / NFKD forms       | `ﬁ café ::normalize` |
+
+</details>
+
+<details>
+<summary> <b>AtbashBox</b> </summary>
+
+| match rule | description                          | example                 |
+| ---------- | ------------------------------------ | ----------------------- |
+| `::atbash` | Atbash cipher (A↔Z), self-inverse    | `Hello, World! ::atbash` |
+
+</details>
+
+<details>
+<summary> <b>VigenèreBox</b> </summary>
+
+| match rule              | description                  | example                       |
+| ----------------------- | ---------------------------- | ----------------------------- |
+| `::vigenere=KEY`        | Vigenère encode with keyword | `Attack at dawn ::vigenere=lemon` |
+| `::vigeneredecode=KEY`  | Vigenère decode              | `LXFOPVEFRNHR ::vigeneredecode=LEMON` |
+
+</details>
+
+<details>
+<summary> <b>CrockfordBase32Box</b> </summary>
+
+| match rule           | description                              | example            |
+| -------------------- | ---------------------------------------- | ------------------ |
+| `::crockford`        | Crockford Base32 encode (no padding)     | `hello ::crockford` |
+| `::crockforddecode`  | Crockford Base32 decode (O/I/L aliases)  | `D1JPRV3F ::crockforddecode` |
+
+</details>
+
+<details>
+<summary> <b>MarkdownStripBox</b> </summary>
+
+| match rule    | description                          | example                  |
+| ------------- | ------------------------------------ | ------------------------ |
+| `::stripmd`   | strip Markdown formatting to plain text | `# Title **bold** ::stripmd` |
+
+</details>
+
+<details>
+<summary> <b>GcdLcmBox</b> </summary>
+
+| match rule | description                                  | example            |
+| ---------- | -------------------------------------------- | ------------------ |
+| `::gcd`    | greatest common divisor + least common multiple | `12 18 24 ::gcd` |
+
+</details>
+
+<details>
+<summary> <b>OrdinalBox</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::ordinal`  | integer → ordinal form (21 → 21st)   | `21 ::ordinal`   |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
