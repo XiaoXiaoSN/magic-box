@@ -297,6 +297,82 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Ascii85Box</b> </summary>
+
+| match rule          | description                          | example          |
+| ------------------- | ------------------------------------ | ---------------- |
+| `::ascii85`         | Ascii85 encode                       | `hello ::ascii85` |
+| `::ascii85decode`   | Ascii85 decode                       | `BOu!rDZ ::ascii85decode` |
+
+</details>
+
+<details>
+<summary> <b>MorseBox</b> </summary>
+
+| match rule        | description                          | example         |
+| ----------------- | ------------------------------------ | --------------- |
+| `::morse`         | encode to International Morse code   | `SOS ::morse`   |
+| `::morsedecode`   | decode Morse back to text            | `... --- ... ::morsedecode` |
+
+</details>
+
+<details>
+<summary> <b>VigenereBox</b> </summary>
+
+| match rule              | description                          | example                       |
+| ----------------------- | ------------------------------------ | ----------------------------- |
+| `::vigenere=KEY`        | Vigenère encrypt                     | `attackatdawn ::vigenere=lemon` |
+| `::vigeneredecode=KEY`  | Vigenère decrypt                     | `lxfopvefrnhr ::vigeneredecode=lemon` |
+
+</details>
+
+<details>
+<summary> <b>BinaryTextBox</b> </summary>
+
+| match rule          | description                          | example          |
+| ------------------- | ------------------------------------ | ---------------- |
+| `::binary`          | text → 8-bit binary (UTF-8)          | `Hi ::binary`    |
+| `::binarydecode`    | binary → text                        | `01001000 01101001 ::binarydecode` |
+
+</details>
+
+<details>
+<summary> <b>NumberSpellBox</b> </summary>
+
+| match rule  | description                          | example            |
+| ----------- | ------------------------------------ | ------------------ |
+| `::spell`   | spell an integer in English words    | `1234567 ::spell`  |
+
+</details>
+
+<details>
+<summary> <b>SubnetBox</b> </summary>
+
+| match rule  | description                          | example                  |
+| ----------- | ------------------------------------ | ------------------------ |
+| `::subnet`  | IPv4 CIDR subnet calculator          | `192.168.1.10/24 ::subnet` |
+
+</details>
+
+<details>
+<summary> <b>HexDumpBox</b> </summary>
+
+| match rule    | description                          | example                  |
+| ------------- | ------------------------------------ | ------------------------ |
+| `::hexdump`   | canonical hex + ASCII dump           | `Hello, World! ::hexdump` |
+
+</details>
+
+<details>
+<summary> <b>ColorMixBox</b> </summary>
+
+| match rule  | description                          | example                       |
+| ----------- | ------------------------------------ | ----------------------------- |
+| `::mix`     | blend two hex colors (`=PERCENT`)    | `#ff0000 #0000ff ::mix`       |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
