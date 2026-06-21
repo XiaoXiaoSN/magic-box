@@ -35,7 +35,11 @@ function parseOperand(token: string): bigint {
   if (t === '') {
     throw new Error(`empty operand`);
   }
-  // BigInt() natively handles decimal, 0x..., and 0b... literals including leading minus
+  // BigInt() handles decimal incl. a leading minus, but throws on negative
+  // radix literals like -0xff / -0b101, so peel the sign off those
+  if (/^-0[xXbBoO]/.test(t)) {
+    return -BigInt(t.slice(1));
+  }
   return BigInt(t);
 }
 

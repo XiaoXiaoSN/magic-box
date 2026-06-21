@@ -183,5 +183,13 @@ describe('JulianDayBoxSource', () => {
     it('has defaultInput containing ::julianday', () => {
       expect(JulianDayBoxSource.defaultInput).toContain('::julianday');
     });
+
+    it('rejects an overflow day-of-month (2025-02-31)', async () => {
+      const boxes = await JulianDayBoxSource.generateBoxes('2025-02-31', {
+        julianday: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toMatch(/invalid date/i);
+    });
   });
 });

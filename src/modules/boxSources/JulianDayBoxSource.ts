@@ -98,7 +98,7 @@ export const JulianDayBoxSource = {
       const box = new BoxBuilder('Julian Day', kvToPlaintext(kv))
         .setTemplate(KeyValueBoxTemplate)
         .setOptions(kv)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build();
       return [box];
     }
@@ -111,14 +111,31 @@ export const JulianDayBoxSource = {
       const month = Number.parseInt(match[2], 10);
       const day = Number.parseInt(match[3], 10);
 
-      if (month < 1 || month > 12 || day < 1 || day > 31) {
+      const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      const monthDays = [
+        31,
+        isLeap ? 29 : 28,
+        31,
+        30,
+        31,
+        30,
+        31,
+        31,
+        30,
+        31,
+        30,
+        31,
+      ];
+      const maxDay = month >= 1 && month <= 12 ? monthDays[month - 1] : 0;
+      if (month < 1 || month > 12 || day < 1 || day > maxDay) {
         const kv: Record<string, string> = {
-          Error: 'Invalid date — month must be 1–12, day 1–31.',
+          Error:
+            'Invalid date — month must be 1–12 and day valid for the month.',
         };
         const box = new BoxBuilder('Julian Day', kvToPlaintext(kv))
           .setTemplate(KeyValueBoxTemplate)
           .setOptions(kv)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build();
         return [box];
       }
@@ -133,7 +150,7 @@ export const JulianDayBoxSource = {
       const box = new BoxBuilder('Julian Day', kvToPlaintext(kv))
         .setTemplate(KeyValueBoxTemplate)
         .setOptions(kv)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build();
       return [box];
     }

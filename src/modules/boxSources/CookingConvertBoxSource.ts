@@ -82,7 +82,7 @@ export const CookingConvertBoxSource = {
     }
 
     const value = Number.parseFloat(match[1]);
-    if (!Number.isFinite(value)) {
+    if (!Number.isFinite(value) || value <= 0) {
       return [buildErrorBox()];
     }
 
@@ -116,8 +116,16 @@ export const CookingConvertBoxSource = {
 };
 
 function buildErrorBox(): Box {
-  const msg = `Invalid input. Expected: <number> <unit>\nSupported units: ${SUPPORTED_UNITS}`;
-  return new BoxBuilder('Cooking Convert', msg).setPriority(Priority).build();
+  const kv = {
+    Error: 'Invalid input. Expected a positive: <number> <unit>',
+    'Supported units': SUPPORTED_UNITS,
+    Example: '1 cup ::cooking',
+  };
+  return new BoxBuilder('Cooking Convert', kvToPlaintext(kv))
+    .setTemplate(KeyValueBoxTemplate)
+    .setOptions(kv)
+    .setPriority(Priority)
+    .build();
 }
 
 export default CookingConvertBoxSource;

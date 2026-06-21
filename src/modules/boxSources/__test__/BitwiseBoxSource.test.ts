@@ -4,6 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { BitwiseBoxSource } from '../BitwiseBoxSource';
 
 describe('BitwiseBoxSource', () => {
+  describe('negative radix literals', () => {
+    it('handles a negative hex operand (-0xff)', async () => {
+      const boxes = await BitwiseBoxSource.generateBoxes('-0xff & -1', {
+        bitwise: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      // -255 & -1 = -255
+      expect(opts['Result (dec)']).toBe('-255');
+    });
+  });
+
   describe('no option key → empty array', () => {
     it('returns [] when no option provided', async () => {
       const boxes = await BitwiseBoxSource.generateBoxes('12 & 10', null);
