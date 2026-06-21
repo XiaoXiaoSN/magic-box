@@ -118,5 +118,10 @@ describe('JsonPointerBoxSource', () => {
       const boxes = await gen('{"a":1}', { jsonpointer: '/a' });
       expect(boxes[0].props.name).toBe('JSON Pointer');
     });
+
+    it('rejects a leading-zero array index per RFC 6901', async () => {
+      const boxes = await gen('{"a":[10,20,30]}', { jsonpointer: '/a/01' });
+      expect(boxes[0].props.plaintextOutput).toMatch(/valid array index|not/i);
+    });
   });
 });

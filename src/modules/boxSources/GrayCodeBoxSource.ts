@@ -6,12 +6,14 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // max input length guard to avoid runaway allocations on huge strings
-const MAX_INPUT_LENGTH = 5000;
+// cap kept low: BigInt() decimal parsing is O(n^2) in digit count, and 100
+// digits covers any realistic Gray-code use while preventing a main-thread stall
+const MAX_INPUT_LENGTH = 100;
 
 export const GrayCodeBoxSource = {
   name: 'Gray Code',
   description:
-    'Convert a non-negative integer to/from reflected binary Gray code.',
+    'Convert a non-negative integer to its reflected binary Gray code.',
   defaultInput: '5 ::gray',
   tag: '#',
   kind: 'Convert',

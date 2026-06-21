@@ -62,8 +62,10 @@ function parseN(
   if (value === null || value === true || value === false) return null;
   const n = Number.parseInt(value, 10);
   if (Number.isNaN(n) || n < 2) return null;
-  // clamp N so it never exceeds input length
-  return Math.min(n, inputLen);
+  // clamp N so it never exceeds input length, but reject a clamp below 2
+  // (a 1-column scytale is an identity no-op, not a real cipher)
+  const clamped = Math.min(n, inputLen);
+  return clamped < 2 ? null : clamped;
 }
 
 function usageBox(priority: number): Box {

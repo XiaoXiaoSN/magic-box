@@ -55,7 +55,8 @@ export const Crc8BoxSource = {
     )
       return [];
 
-    const bytes = new TextEncoder().encode(input);
+    // hash the trimmed input so the guard and the computed bytes agree
+    const bytes = new TextEncoder().encode(trim(input));
     const smbus = crc8Smbus(bytes);
     const maxim = crc8Maxim(bytes);
 

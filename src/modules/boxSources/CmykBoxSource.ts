@@ -121,7 +121,7 @@ export const CmykBoxSource = {
     if (!raw || raw.length > MAX_LEN) return [];
 
     // attempt hex → cmyk
-    const hexMatch = raw.match(/^(#[0-9a-fA-F]{3,6})$/);
+    const hexMatch = raw.match(/^(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)$/);
     if (hexMatch) {
       const rgb = parseHex(hexMatch[1]);
       if (rgb) {

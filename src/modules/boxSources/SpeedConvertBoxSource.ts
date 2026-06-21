@@ -5,6 +5,13 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
+// render key/value pairs as `k: v` lines for the headless/TUI plaintextOutput
+function kvToPlaintext(kv: Record<string, string>): string {
+  return Object.entries(kv)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+}
+
 // unit alias -> m/s conversion factor
 const TO_MS: Record<string, number> = {
   'm/s': 1,
@@ -61,10 +68,10 @@ export const SpeedConvertBoxSource = {
         'Supported units': SUPPORTED_UNITS,
       };
       return [
-        new BoxBuilder('Speed Convert', '')
+        new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -80,10 +87,10 @@ export const SpeedConvertBoxSource = {
         'Supported units': SUPPORTED_UNITS,
       };
       return [
-        new BoxBuilder('Speed Convert', '')
+        new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
           .setTemplate(KeyValueBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
@@ -99,10 +106,10 @@ export const SpeedConvertBoxSource = {
     }
 
     return [
-      new BoxBuilder('Speed Convert', '')
+      new BoxBuilder('Speed Convert', kvToPlaintext(kvOutput))
         .setOptions(kvOutput)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

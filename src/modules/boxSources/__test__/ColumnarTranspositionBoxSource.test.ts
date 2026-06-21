@@ -210,4 +210,14 @@ describe('ColumnarTranspositionBoxSource', () => {
       expect(typeof ColumnarTranspositionBoxSource.priority).toBe('number');
     });
   });
+
+  describe('whitespace-formatted ciphertext', () => {
+    it('decrypts space-grouped ciphertext (strips whitespace like encrypt)', async () => {
+      const boxes = await ColumnarTranspositionBoxSource.generateBoxes(
+        'EVLN ACDT ESEA ROFO DEEC WIREE',
+        { columnardecode: 'ZEBRAS' },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('WEAREDISCOVEREDFLEEATONCE');
+    });
+  });
 });

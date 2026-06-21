@@ -32,7 +32,8 @@ function evaluatePointer(doc: unknown, pointer: string): unknown {
           `Pointer token '-' refers to a non-existent array element`,
         );
       }
-      if (!/^\d+$/.test(token)) {
+      if (!/^(0|[1-9]\d*)$/.test(token)) {
+        // RFC 6901 §4: array index is "0" or a digit1-9 run (no leading zeros)
         throw new Error(`Pointer token '${token}' is not a valid array index`);
       }
       const index = Number(token);

@@ -9,6 +9,13 @@ const MAX_INPUT = 100_000;
 // pure hex string (case-insensitive)
 const HEX_RE = /^[0-9a-f]+$/i;
 
+// render key/value pairs as `k: v` lines for the headless/TUI plaintextOutput
+function kvToPlaintext(kv: Record<string, string>): string {
+  return Object.entries(kv)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+}
+
 // count the number of set bits in a number using Brian Kernighan's algorithm
 function popcount(n: number): number {
   let count = 0;
@@ -107,14 +114,15 @@ export const HammingDistanceBoxSource = {
     const lenB = codePointCount(b);
 
     if (lenA !== lenB) {
+      const kv = {
+        Error: `Hamming distance requires equal-length strings (got ${lenA} and ${lenB}).`,
+        'Length A': String(lenA),
+        'Length B': String(lenB),
+      };
       return [
-        new BoxBuilder('Hamming Distance', '')
+        new BoxBuilder('Hamming Distance', kvToPlaintext(kv))
           .setTemplate(KeyValueBoxTemplate)
-          .setOptions({
-            Error: `Hamming distance requires equal-length strings (got ${lenA} and ${lenB}).`,
-            'Length A': String(lenA),
-            'Length B': String(lenB),
-          })
+          .setOptions(kv)
           .setPriority(this.priority)
           .build(),
       ];
@@ -134,7 +142,7 @@ export const HammingDistanceBoxSource = {
     }
 
     return [
-      new BoxBuilder('Hamming Distance', '')
+      new BoxBuilder('Hamming Distance', kvToPlaintext(kvOptions))
         .setTemplate(KeyValueBoxTemplate)
         .setOptions(kvOptions)
         .setPriority(this.priority)

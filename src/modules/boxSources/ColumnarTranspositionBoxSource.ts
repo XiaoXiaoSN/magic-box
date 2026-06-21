@@ -42,11 +42,14 @@ function columnarEncrypt(plaintext: string, key: string): string {
 // filling each grid column (in key-sorted reading order) from the ciphertext chunks,
 // then reads back row-by-row to recover the plaintext.
 function columnarDecrypt(ciphertext: string, key: string): string {
+  // strip whitespace to mirror columnarEncrypt (which strips before grouping),
+  // so space-formatted ciphertext still decrypts correctly
+  const cipher = ciphertext.replace(/\s/g, '');
   const k = key.length;
-  if (k === 0) return ciphertext;
+  if (k === 0) return cipher;
 
   const colOrder = getColumnOrder(key);
-  const n = ciphertext.length;
+  const n = cipher.length;
   const numRows = Math.ceil(n / k);
   const extra = n % k;
 
@@ -59,7 +62,7 @@ function columnarDecrypt(ciphertext: string, key: string): string {
   const grid: string[][] = Array.from({ length: k }, () => []);
   let pos = 0;
   for (const col of colOrder) {
-    grid[col] = [...ciphertext.slice(pos, pos + colLens[col])];
+    grid[col] = [...cipher.slice(pos, pos + colLens[col])];
     pos += colLens[col];
   }
 
