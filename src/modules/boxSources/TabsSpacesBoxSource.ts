@@ -8,8 +8,8 @@ const MAX_INPUT = 100_000;
 const DEFAULT_WIDTH = 4;
 
 // clamp tab width to a sensible range
-function resolveWidth(options: BoxOptions, key: string): number {
-  const raw = extractOptionKeys(options, key);
+function resolveWidth(options: BoxOptions, ...keys: string[]): number {
+  const raw = extractOptionKeys(options, ...keys);
   if (raw === null || raw === true) return DEFAULT_WIDTH;
   const n = Number.parseInt(String(raw), 10);
   if (Number.isNaN(n)) return DEFAULT_WIDTH;
@@ -65,20 +65,21 @@ export const TabsSpacesBoxSource = {
 
     let output: string;
     if (wantToSpaces) {
-      const width =
-        resolveWidth(options, 'tabs2spaces') ||
-        resolveWidth(options, 'untabify');
-      output = tabsToSpaces(input, width);
+      output = tabsToSpaces(
+        input,
+        resolveWidth(options, 'tabs2spaces', 'untabify'),
+      );
     } else {
-      const width =
-        resolveWidth(options, 'spaces2tabs') || resolveWidth(options, 'tabify');
-      output = spacesToTabs(input, width);
+      output = spacesToTabs(
+        input,
+        resolveWidth(options, 'spaces2tabs', 'tabify'),
+      );
     }
 
     return [
       new BoxBuilder('Tabs / Spaces', output)
         .setTemplate(CodeBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

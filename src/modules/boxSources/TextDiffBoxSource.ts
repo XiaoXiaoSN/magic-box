@@ -67,20 +67,39 @@ function buildDiff(left: string[], right: string[]): DiffResult {
   return { added, removed, lines };
 }
 
-function computeDiff(input: string): string | null {
+// the LCS table is O(leftLines * rightLines); bound the line count so a
+// pathological many-short-lines input within MAX_INPUT can't freeze the page
+const MAX_LINES_PER_SIDE = 2_000;
+
+type DiffOutcome =
+  | { ok: true; output: string }
+  | { ok: false; message: string };
+
+function computeDiff(input: string): DiffOutcome {
   const inputLines = input.split('\n');
   const sepIdx = inputLines.findIndex((line) => line.trim() === SEPARATOR);
 
   if (sepIdx === -1) {
-    return null;
+    return {
+      ok: false,
+      message:
+        'No separator found. Separate the two texts with a line containing only "---".',
+    };
   }
 
   const left = inputLines.slice(0, sepIdx);
   const right = inputLines.slice(sepIdx + 1);
 
+  if (left.length > MAX_LINES_PER_SIDE || right.length > MAX_LINES_PER_SIDE) {
+    return {
+      ok: false,
+      message: `Too many lines to diff (limit ${MAX_LINES_PER_SIDE} per side; got ${left.length} / ${right.length}).`,
+    };
+  }
+
   const { added, removed, lines } = buildDiff(left, right);
   const summary = `@@ +${added} -${removed} @@`;
-  return [summary, ...lines].join('\n');
+  return { ok: true, output: [summary, ...lines].join('\n') };
 }
 
 export const TextDiffBoxSource = {
@@ -101,24 +120,21 @@ export const TextDiffBoxSource = {
 
     const result = computeDiff(input);
 
-    if (result === null) {
-      // no separator found — explain the required format
-      const message =
-        'No separator found. Separate the two texts with a line containing only "---".';
+    if (!result.ok) {
+      // plain message box (no diff syntax highlighting)
       return [
-        new BoxBuilder('Text Diff', message)
-          .setOptions({ language: 'diff' })
+        new BoxBuilder('Text Diff', result.message)
           .setTemplate(CodeBoxTemplate)
-          .setPriority(Priority)
+          .setPriority(this.priority)
           .build(),
       ];
     }
 
     return [
-      new BoxBuilder('Text Diff', result)
+      new BoxBuilder('Text Diff', result.output)
         .setOptions({ language: 'diff' })
         .setTemplate(CodeBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build(),
     ];
   },

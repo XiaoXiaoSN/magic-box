@@ -98,4 +98,19 @@ describe('TextDiffBoxSource', () => {
     });
     expect(boxes).toEqual([]);
   });
+
+  it('refuses to diff more lines than the per-side cap (no LCS freeze)', async () => {
+    // many short lines stays within MAX_INPUT but would be a huge LCS table
+    const side = Array.from({ length: 2500 }, () => 'a').join('\n');
+    const boxes = await TextDiffBoxSource.generateBoxes(
+      `${side}\n---\n${side}`,
+      {
+        textdiff: true,
+      },
+    );
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput.toLowerCase()).toContain(
+      'too many lines',
+    );
+  });
 });

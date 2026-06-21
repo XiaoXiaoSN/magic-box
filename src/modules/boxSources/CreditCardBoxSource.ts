@@ -69,8 +69,13 @@ function detectBrand(digits: string): CardBrand {
     return { name: 'Discover', validLength: len === 16 || len === 19 };
   }
 
-  // Diners Club: 36, 38, or 300-305, length 14
-  if (prefix2 === 36 || prefix2 === 38 || (prefix3 >= 300 && prefix3 <= 305)) {
+  // Diners Club: 36, 38, 39, or 300-305, length 14
+  if (
+    prefix2 === 36 ||
+    prefix2 === 38 ||
+    prefix2 === 39 ||
+    (prefix3 >= 300 && prefix3 <= 305)
+  ) {
     return { name: 'Diners Club', validLength: len === 14 };
   }
 

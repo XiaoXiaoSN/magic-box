@@ -23,7 +23,8 @@ function addLineNumbers(input: string, start: number): string {
 
 // strip a leading line-number prefix of the form: optional-spaces digits optional-spaces [|│:] optional-space
 function stripLineNumbers(input: string): string {
-  const PREFIX_RE = /^\s*\d+\s*[|│:]?\s?/;
+  // require a separator so plain "42 value" lines aren't mangled
+  const PREFIX_RE = /^\s*\d+\s*[|│:.]\s?/;
   return input
     .split('\n')
     .map((line) => line.replace(PREFIX_RE, ''))
