@@ -71,7 +71,7 @@ export const Base62BoxSource = {
         const decimal = BigInt(raw);
         const encoded = encodeBase62(decimal);
         boxes.push(
-          new BoxBuilder('Base62', '')
+          new BoxBuilder('Base62', `Decimal: ${raw}\nBase62: ${encoded}`)
             .setOptions({ Decimal: raw, Base62: encoded })
             .setTemplate(KeyValueBoxTemplate)
             .setPriority(this.priority)
@@ -93,7 +93,7 @@ export const Base62BoxSource = {
       } else {
         const decoded = decodeBase62(raw);
         boxes.push(
-          new BoxBuilder('Base62', '')
+          new BoxBuilder('Base62', `Base62: ${raw}\nDecimal: ${decoded}`)
             .setOptions({ Base62: raw, Decimal: decoded.toString() })
             .setTemplate(KeyValueBoxTemplate)
             .setPriority(this.priority)

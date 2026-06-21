@@ -84,12 +84,12 @@ export const ScientificNotationBoxSource = {
     const raw = trim(input).slice(0, 100);
 
     if (!NUMBER_RE.test(raw)) {
+      // no setTemplate → DefaultBoxTemplate renders the plaintext message
       const box = new BoxBuilder(
         'Scientific Notation',
         'A valid number is required (e.g. 0.00012345 or 1.5e-3).',
       )
         .setPriority(this.priority)
-        .setTemplate(KeyValueBoxTemplate)
         .build();
       return [box];
     }
@@ -102,7 +102,6 @@ export const ScientificNotationBoxSource = {
         'A valid finite number is required.',
       )
         .setPriority(this.priority)
-        .setTemplate(KeyValueBoxTemplate)
         .build();
       return [box];
     }

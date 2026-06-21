@@ -5,6 +5,13 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
+// render key/value pairs as `k: v` lines for the headless/TUI plaintextOutput
+function kvToPlaintext(kv: Record<string, string>): string {
+  return Object.entries(kv)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+}
+
 // octal digit → rwx triplet string
 function octalDigitToRwx(digit: number): string {
   const r = digit & 4 ? 'r' : '-';
@@ -117,19 +124,16 @@ export const ChmodBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'chmod', 'permissions')) return [];
 
-    const raw = trim(input);
+    const raw = trim(input).slice(0, 20);
 
     // octal input: 3 or 4 octal digits
     if (/^[0-7]{3,4}$/.test(raw)) {
       const symbolic = octalToSymbolic(raw);
       const description = symbolicDescription(symbolic);
+      const kv = { Octal: raw, Symbolic: symbolic, Description: description };
       return [
-        new BoxBuilder('chmod', '')
-          .setOptions({
-            Octal: raw,
-            Symbolic: symbolic,
-            Description: description,
-          })
+        new BoxBuilder('chmod', kvToPlaintext(kv))
+          .setOptions(kv)
           .setTemplate(KeyValueBoxTemplate)
           .setPriority(this.priority)
           .build(),
@@ -148,13 +152,10 @@ export const ChmodBoxSource = {
 
       const octal = symbolicToOctal(sym9);
       const description = symbolicDescription(sym9);
+      const kv = { Octal: octal, Symbolic: sym9, Description: description };
       return [
-        new BoxBuilder('chmod', '')
-          .setOptions({
-            Octal: octal,
-            Symbolic: sym9,
-            Description: description,
-          })
+        new BoxBuilder('chmod', kvToPlaintext(kv))
+          .setOptions(kv)
           .setTemplate(KeyValueBoxTemplate)
           .setPriority(this.priority)
           .build(),

@@ -5,6 +5,13 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
+// render key/value pairs as `k: v` lines for the headless/TUI plaintextOutput
+function kvToPlaintext(kv: Record<string, string>): string {
+  return Object.entries(kv)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+}
+
 // the full CSS Color Module Level 4 named-color list mapped to 6-digit lowercase hex (no leading #)
 const NAMED: Record<string, string> = {
   aliceblue: 'f0f8ff',
@@ -216,7 +223,7 @@ export const CssColorNameBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'colorname', 'csscolor')) return [];
 
-    const raw = trim(input);
+    const raw = trim(input).slice(0, 200);
 
     if (raw.startsWith('#')) {
       // hex → nearest name
@@ -232,15 +239,16 @@ export const CssColorNameBoxSource = {
       const nameHex = NAMED[name];
       const isExact = nameHex === expanded;
 
-      const box = new BoxBuilder('CSS Color Name', '')
-        .setOptions({
-          Hex: `#${expanded}`,
-          'Nearest Name': name,
-          'Name Hex': `#${nameHex}`,
-          Exact: isExact ? 'true' : 'false',
-        })
+      const kv = {
+        Hex: `#${expanded}`,
+        'Nearest Name': name,
+        'Name Hex': `#${nameHex}`,
+        Exact: isExact ? 'true' : 'false',
+      };
+      const box = new BoxBuilder('CSS Color Name', kvToPlaintext(kv))
+        .setOptions(kv)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build();
 
       return [box];
@@ -252,13 +260,14 @@ export const CssColorNameBoxSource = {
 
     if (!hex) {
       // unknown name — return a box explaining the color isn't a CSS named color
-      const box = new BoxBuilder('CSS Color Name', '')
-        .setOptions({
-          Name: raw,
-          Error: `'${raw}' is not a CSS named color`,
-        })
+      const kv = {
+        Name: raw,
+        Error: `'${raw}' is not a CSS named color`,
+      };
+      const box = new BoxBuilder('CSS Color Name', kvToPlaintext(kv))
+        .setOptions(kv)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .build();
 
       return [box];
@@ -268,14 +277,15 @@ export const CssColorNameBoxSource = {
     const g = Number.parseInt(hex.slice(2, 4), 16);
     const b = Number.parseInt(hex.slice(4, 6), 16);
 
-    const box = new BoxBuilder('CSS Color Name', '')
-      .setOptions({
-        Name: nameLower,
-        Hex: `#${hex}`,
-        RGB: `rgb(${r}, ${g}, ${b})`,
-      })
+    const kv = {
+      Name: nameLower,
+      Hex: `#${hex}`,
+      RGB: `rgb(${r}, ${g}, ${b})`,
+    };
+    const box = new BoxBuilder('CSS Color Name', kvToPlaintext(kv))
+      .setOptions(kv)
       .setTemplate(KeyValueBoxTemplate)
-      .setPriority(Priority)
+      .setPriority(this.priority)
       .build();
 
     return [box];

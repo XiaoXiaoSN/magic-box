@@ -115,9 +115,10 @@ describe('DmsBoxSource', () => {
         expect(boxes).toHaveLength(0);
       });
 
-      it('returns [] for out-of-range decimal 999', async () => {
+      it('returns a range hint box for out-of-range decimal 999', async () => {
         const boxes = await DmsBoxSource.generateBoxes('999', { dms: true });
-        expect(boxes).toHaveLength(0);
+        expect(boxes).toHaveLength(1);
+        expect(boxes[0].props.plaintextOutput).toMatch(/-180 and 180/);
       });
     });
   });

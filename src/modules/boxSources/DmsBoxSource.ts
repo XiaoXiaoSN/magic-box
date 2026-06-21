@@ -66,7 +66,16 @@ export const DmsBoxSource = {
     const decimalMatch = raw.match(DECIMAL_RE);
     if (decimalMatch) {
       const decimal = Number.parseFloat(decimalMatch[1]);
-      if (Number.isNaN(decimal) || decimal < -180 || decimal > 180) return [];
+      if (Number.isNaN(decimal) || decimal < -180 || decimal > 180) {
+        return [
+          new BoxBuilder(
+            'DMS Coordinates',
+            'A coordinate must be between -180 and 180 degrees.',
+          )
+            .setPriority(this.priority)
+            .build(),
+        ];
+      }
 
       const components = decimalToDms(decimal);
       const dmsStr = formatDmsString(components);
