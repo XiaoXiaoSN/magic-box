@@ -104,5 +104,16 @@ describe('NumberSpellBoxSource', () => {
       expect(boxes[0].props.name).toBe('Number to Words');
       expect(boxes[0].props.priority).toBe(10);
     });
+
+    it('spells a 25-digit number without emitting "undefined"', async () => {
+      // 10^24 needs a scale word beyond sextillion (septillion)
+      const boxes = await NumberSpellBoxSource.generateBoxes(
+        `1${'0'.repeat(24)}`,
+        { spell: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toBe('one septillion');
+      expect(boxes[0].props.plaintextOutput).not.toContain('undefined');
+    });
   });
 });

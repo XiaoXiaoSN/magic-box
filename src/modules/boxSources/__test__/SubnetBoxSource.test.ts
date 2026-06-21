@@ -145,5 +145,14 @@ describe('SubnetBoxSource', () => {
       expect(SubnetBoxSource.kind).toBe('Analyze');
       expect(typeof SubnetBoxSource.priority).toBe('number');
     });
+
+    it('error box carries an Error option so it renders (not blank)', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes('999.1.1.1/24', {
+        subnet: true,
+      });
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toMatch(/invalid cidr/i);
+    });
   });
 });

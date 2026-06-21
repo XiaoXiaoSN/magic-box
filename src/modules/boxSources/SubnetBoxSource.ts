@@ -44,11 +44,12 @@ function parseCIDR(raw: string): { ipInt: number; prefix: number } | null {
 
 // builds a single error box describing an invalid CIDR input
 function buildErrorBox(input: string, priority: number): Box {
-  return new BoxBuilder(
-    'Subnet',
-    `Invalid CIDR notation: "${input}". Expected format: A.B.C.D/0-32`,
-  )
+  // truncate so a huge ?input= can't bloat the error string / DOM
+  const shown = input.length > 100 ? `${input.slice(0, 100)}…` : input;
+  const msg = `Invalid CIDR notation: "${shown}". Expected format: A.B.C.D/0-32`;
+  return new BoxBuilder('Subnet', msg)
     .setTemplate(KeyValueBoxTemplate)
+    .setOptions({ Error: msg })
     .setShowExpandButton(false)
     .setPriority(priority)
     .build();
@@ -67,6 +68,8 @@ export const SubnetBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'subnet', 'cidr')) return [];
+    // a CIDR is short; bound work before parsing
+    if (input.length > 100) return [];
 
     const raw = trim(input);
 
@@ -99,7 +102,7 @@ export const SubnetBoxSource = {
     const firstHost = prefix >= 31 ? network : (network + 1) >>> 0;
     const lastHost = prefix >= 31 ? broadcast : (broadcast - 1) >>> 0;
 
-    const kvOptions: BoxOptions = {
+    const kvOptions: Record<string, string> = {
       CIDR: `${intToDotted(network)}/${prefix}`,
       Netmask: intToDotted(mask),
       Wildcard: intToDotted(~mask >>> 0),
@@ -111,7 +114,12 @@ export const SubnetBoxSource = {
       'Usable Hosts': String(usable),
     };
 
-    const box = new BoxBuilder('Subnet', JSON.stringify(kvOptions))
+    // render key/value lines for headless/TUI consumers (not raw JSON)
+    const plaintext = Object.entries(kvOptions)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('\n');
+
+    const box = new BoxBuilder('Subnet', plaintext)
       .setTemplate(KeyValueBoxTemplate)
       .setOptions(kvOptions)
       .setShowExpandButton(false)

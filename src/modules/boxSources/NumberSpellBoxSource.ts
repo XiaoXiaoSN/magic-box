@@ -43,6 +43,7 @@ const TENS = [
 ];
 
 // named powers in ascending order (index 0 = 10^3, 1 = 10^6, ...)
+// short-scale group names; 13 entries cover up to 42 digits (> the 40 cap)
 const SCALE = [
   'thousand',
   'million',
@@ -51,6 +52,12 @@ const SCALE = [
   'quadrillion',
   'quintillion',
   'sextillion',
+  'septillion',
+  'octillion',
+  'nonillion',
+  'decillion',
+  'undecillion',
+  'duodecillion',
 ];
 
 // spell a value in [0, 999]; caller guarantees this range
@@ -112,6 +119,8 @@ export const NumberSpellBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'spell', 'numwords')) return [];
+    // bound work before the regex (a valid number is well under this)
+    if (input.length > 100) return [];
 
     const raw = trim(input);
 

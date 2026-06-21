@@ -59,6 +59,8 @@ export const ColorMixBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'mix', 'blend')) return [];
+    // two hex colors are short; bound work before splitting
+    if (input.length > 100) return [];
 
     const parts = trim(input)
       .split(/\s+/)

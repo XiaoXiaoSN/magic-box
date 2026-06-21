@@ -78,14 +78,16 @@ function ascii85Decode(input: string): Uint8Array | null {
       for (let j = groupLen; j < 5; j++) {
         value = value * 85 + 84;
       }
-      // convert to uint32 and extract (groupLen - 1) bytes
+      // a value above the uint32 range is spec-invalid, not just truncatable
+      if (value > 0xffffffff) return null;
       const u32 = value >>> 0;
       const count = groupLen - 1;
       for (let b = 3; b > 3 - count; b--) {
         output.push((u32 >>> (b * 8)) & 0xff);
       }
     } else {
-      // full 5-char group: convert to uint32 and extract all 4 bytes
+      // full 5-char group: a value above uint32 range is spec-invalid
+      if (value > 0xffffffff) return null;
       const u32 = value >>> 0;
       output.push(
         (u32 >>> 24) & 0xff,
