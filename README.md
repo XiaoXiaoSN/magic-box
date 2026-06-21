@@ -297,6 +297,79 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>JsonToTypescriptBox</b> </summary>
+
+| match rule       | description                          | example                  |
+| ---------------- | ------------------------------------ | ------------------------ |
+| `::tsinterface`  | generate a TypeScript interface from JSON | `{"id":1} ::tsinterface` |
+
+</details>
+
+<details>
+<summary> <b>JsonToGoBox</b> </summary>
+
+| match rule     | description                          | example               |
+| -------------- | ------------------------------------ | --------------------- |
+| `::gostruct`   | generate a Go struct from JSON       | `{"id":1} ::gostruct` |
+
+</details>
+
+<details>
+<summary> <b>CurlToFetchBox</b> </summary>
+
+| match rule       | description                          | example                       |
+| ---------------- | ------------------------------------ | ----------------------------- |
+| `::curl2fetch`   | convert a curl command to fetch()    | `curl https://api.x.com ::curl2fetch` |
+
+</details>
+
+<details>
+<summary> <b>TimeAgoBox</b> </summary>
+
+| match rule    | description                          | example                       |
+| ------------- | ------------------------------------ | ----------------------------- |
+| `::timeago`   | relative time of a date ("3 days ago") | `2020-01-01 ::timeago`      |
+
+</details>
+
+<details>
+<summary> <b>ColorAdjustBox</b> </summary>
+
+| match rule       | description                          | example               |
+| ---------------- | ------------------------------------ | --------------------- |
+| `::lighten=N`    | lighten a hex color by N%            | `#ff6347 ::lighten=20` |
+| `::darken=N`     | darken a hex color by N%             | `#ff6347 ::darken=20`  |
+
+</details>
+
+<details>
+<summary> <b>SqlInBox</b> </summary>
+
+| match rule  | description                          | example                  |
+| ----------- | ------------------------------------ | ------------------------ |
+| `::sqlin`   | list → SQL `IN (...)` clause         | `apple,banana ::sqlin`   |
+
+</details>
+
+<details>
+<summary> <b>NumberToCurrencyBox</b> </summary>
+
+| match rule          | description                          | example                  |
+| ------------------- | ------------------------------------ | ------------------------ |
+| `::currency[=CODE]` | format a number as currency (default USD) | `1234.5 ::currency=EUR` |
+
+</details>
+
+<details>
+<summary> <b>CsvColumnBox</b> </summary>
+
+| match rule        | description                              | example                            |
+| ----------------- | ---------------------------------------- | ---------------------------------- |
+| `::csvcol=COL`    | extract a CSV column by index or header  | `name,email\nAlice,a@x.com ::csvcol=email` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
