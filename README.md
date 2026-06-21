@@ -297,6 +297,79 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>UuidV5Box</b> </summary>
+
+| match rule           | description                          | example                       |
+| -------------------- | ------------------------------------ | ----------------------------- |
+| `::uuidv5=NAMESPACE` | deterministic name-based UUID v5 (SHA-1) | `example.com ::uuidv5=dns` |
+
+</details>
+
+<details>
+<summary> <b>SoundexBox</b> </summary>
+
+| match rule   | description                          | example            |
+| ------------ | ------------------------------------ | ------------------ |
+| `::soundex`  | American Soundex phonetic code       | `Robert ::soundex` |
+
+</details>
+
+<details>
+<summary> <b>CaesarBox</b> </summary>
+
+| match rule        | description                          | example            |
+| ----------------- | ------------------------------------ | ------------------ |
+| `::caesar=N`      | Caesar shift cipher                  | `Hello ::caesar=3` |
+| `::caesarcrack`   | show all 25 shifts                   | `Khoor ::caesarcrack` |
+
+</details>
+
+<details>
+<summary> <b>CmykBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::cmyk`    | convert a hex/rgb color to CMYK + HSV | `#ff6347 ::cmyk` |
+
+</details>
+
+<details>
+<summary> <b>MarkdownTocBox</b> </summary>
+
+| match rule  | description                          | example                       |
+| ----------- | ------------------------------------ | ----------------------------- |
+| `::toc`     | table of contents from MD headings   | `# Title`<br>`## Section ::toc` |
+
+</details>
+
+<details>
+<summary> <b>PrimeFactorBox</b> </summary>
+
+| match rule    | description                          | example          |
+| ------------- | ------------------------------------ | ---------------- |
+| `::isprime`   | primality test + factorization (≤10¹²) | `360 ::isprime` |
+
+</details>
+
+<details>
+<summary> <b>JsonToPythonBox</b> </summary>
+
+| match rule        | description                          | example                  |
+| ----------------- | ------------------------------------ | ------------------------ |
+| `::pydataclass`   | Python @dataclass from JSON          | `{"id":1} ::pydataclass` |
+
+</details>
+
+<details>
+<summary> <b>WeekNumberBox</b> </summary>
+
+| match rule   | description                          | example               |
+| ------------ | ------------------------------------ | --------------------- |
+| `::weeknum`  | ISO 8601 week number of a date       | `2024-01-01 ::weeknum` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
