@@ -86,6 +86,7 @@ export const SoundexBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'soundex')) return [];
+    if (input.length > 100_000) return [];
 
     // split on whitespace and keep only tokens that contain at least one letter
     const words = trim(input)

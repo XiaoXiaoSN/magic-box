@@ -101,6 +101,15 @@ describe('JsonPathBoxSource', () => {
     });
   });
 
+  describe('numeric-looking keys', () => {
+    it('treats a non-pure-digit segment as a string key, not an index', async () => {
+      const boxes = await JsonPathBoxSource.generateBoxes('{"123abc":7}', {
+        jsonpath: '123abc',
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('7');
+    });
+  });
+
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(JsonPathBoxSource.name).toBe('JSON Path');

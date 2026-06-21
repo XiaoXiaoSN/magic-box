@@ -106,5 +106,12 @@ describe('WordWrapBoxSource', () => {
         'The quick brown fox\njumps over the lazy\ndog',
       );
     });
+
+    it('preserves leading indentation on the first wrapped line', async () => {
+      const boxes = await WordWrapBoxSource.generateBoxes('    hello world', {
+        wrap: '80',
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('    hello world');
+    });
   });
 });

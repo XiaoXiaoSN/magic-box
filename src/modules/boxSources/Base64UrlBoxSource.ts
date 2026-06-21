@@ -9,6 +9,18 @@ const MAX_INPUT = 100_000;
 const BASE64URL_ALPHABET =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
+// reverse lookup for the STANDARD alphabet, built once (255 = invalid)
+const DECODE_LOOKUP = (() => {
+  const stdAlphabet =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const table = new Uint8Array(256).fill(255);
+  for (let i = 0; i < 64; i++) {
+    table[stdAlphabet.charCodeAt(i)] = i;
+  }
+  table['='.charCodeAt(0)] = 0;
+  return table;
+})();
+
 // encode bytes to url-safe base64 with no padding
 function encodeBase64Url(bytes: Uint8Array): string {
   let result = '';
@@ -43,14 +55,7 @@ function decodeBase64Url(input: string): Uint8Array {
   // convert url-safe chars back to standard base64 for lookup
   const std = padded.replace(/-/g, '+').replace(/_/g, '/');
 
-  // build reverse lookup table from the standard base64 alphabet
-  const stdAlphabet =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const lookup = new Uint8Array(256).fill(255);
-  for (let i = 0; i < 64; i++) {
-    lookup[stdAlphabet.charCodeAt(i)] = i;
-  }
-  lookup['='.charCodeAt(0)] = 0;
+  const lookup = DECODE_LOOKUP;
 
   const bytes: number[] = [];
   for (let i = 0; i < std.length; i += 4) {

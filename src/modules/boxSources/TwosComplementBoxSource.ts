@@ -10,8 +10,8 @@ const DEFAULT_BITS = 8;
 const INTEGER_RE = /^-?\d+$/;
 
 function parseBitWidth(raw: unknown): number {
-  if (typeof raw !== 'string' && typeof raw !== 'boolean') return DEFAULT_BITS;
-  if (typeof raw === 'boolean') return DEFAULT_BITS;
+  // a bare flag (boolean) or any non-string value falls back to the default
+  if (typeof raw !== 'string') return DEFAULT_BITS;
   const n = Number.parseInt(raw, 10);
   if (Number.isNaN(n) || n < 1 || n > 64) return DEFAULT_BITS;
   return n;
@@ -37,7 +37,8 @@ export const TwosComplementBoxSource = {
     const bits = parseBitWidth(rawBits);
 
     const trimmed = trim(input);
-    if (!INTEGER_RE.test(trimmed)) return [];
+    // a signed 64-bit integer is at most 20 chars (incl. sign); bound the work
+    if (trimmed.length > 20 || !INTEGER_RE.test(trimmed)) return [];
 
     const v = BigInt(trimmed);
     const bitsN = BigInt(bits);

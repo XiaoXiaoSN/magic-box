@@ -1,3 +1,4 @@
+import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -40,6 +41,7 @@ export const Rot47BoxSource = {
 
     return [
       new BoxBuilder('ROT47', output)
+        .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

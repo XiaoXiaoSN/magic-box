@@ -15,14 +15,12 @@ function parsePath(path: string): Array<string | number> {
   // biome-ignore lint/suspicious/noAssignInExpressions: idiomatic regex loop
   while ((match = re.exec(path)) !== null) {
     if (match[1] !== undefined) {
-      // dot-separated segment: treat as numeric if it looks like one
-      const parsed = Number.parseInt(match[1], 10);
-      segments.push(Number.isNaN(parsed) ? match[1] : parsed);
+      // dot-separated segment: only a pure-digit run is an array index
+      segments.push(/^\d+$/.test(match[1]) ? Number(match[1]) : match[1]);
     } else if (match[2] !== undefined) {
-      // bracket segment: strip surrounding quotes if present, else parse as integer
+      // bracket segment: strip surrounding quotes if present, else pure-digit → index
       const inner = match[2].replace(/^['"]|['"]$/g, '');
-      const parsed = Number.parseInt(inner, 10);
-      segments.push(Number.isNaN(parsed) ? inner : parsed);
+      segments.push(/^\d+$/.test(inner) ? Number(inner) : inner);
     }
   }
   return segments;

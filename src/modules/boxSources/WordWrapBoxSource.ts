@@ -10,8 +10,13 @@ const MAX_WIDTH = 1000;
 
 // wrap a single line at word boundaries so no output line exceeds `width`.
 // words longer than `width` are kept on their own line without being split.
+// leading indentation is preserved on the first wrapped sub-line.
 function wrapLine(line: string, width: number): string {
-  const words = line.split(' ');
+  const indent = line.match(/^[ \t]*/)?.[0] ?? '';
+  const rest = line.slice(indent.length);
+  if (rest === '') return line;
+
+  const words = rest.split(/\s+/).filter((w) => w.length > 0);
   const lines: string[] = [];
   let current = '';
 
@@ -30,7 +35,8 @@ function wrapLine(line: string, width: number): string {
     lines.push(current);
   }
 
-  return lines.join('\n');
+  // keep the original indentation on the first line
+  return lines.map((l, i) => (i === 0 ? indent + l : l)).join('\n');
 }
 
 // resolve the target column width from options, falling back to DEFAULT_WIDTH.
