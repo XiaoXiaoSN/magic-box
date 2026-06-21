@@ -31,8 +31,15 @@ function globToRegex(glob: string): string {
     if (ch === '*') {
       // peek ahead: ** matches across path separators, * stays within a segment
       if (glob[i + 1] === '*') {
-        result += '.*';
-        i += 2;
+        // `**/` means zero-or-more directory segments, so src/**/*.ts also
+        // matches src/x.ts; a bare `**` matches anything
+        if (glob[i + 2] === '/') {
+          result += '(?:.*/)?';
+          i += 3;
+        } else {
+          result += '.*';
+          i += 2;
+        }
       } else {
         result += '[^/]*';
         i += 1;

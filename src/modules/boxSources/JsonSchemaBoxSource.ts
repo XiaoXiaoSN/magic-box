@@ -11,6 +11,8 @@ function inferSchema(value: unknown): object {
   if (value === null) return { type: 'null' };
   if (typeof value === 'boolean') return { type: 'boolean' };
   if (typeof value === 'number') {
+    // Infinity/NaN (from JSON.parse of 1e400 etc.) aren't representable
+    if (!Number.isFinite(value)) return {};
     return Number.isInteger(value) ? { type: 'integer' } : { type: 'number' };
   }
   if (typeof value === 'string') return { type: 'string' };

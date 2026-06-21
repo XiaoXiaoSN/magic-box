@@ -29,12 +29,16 @@ describe('GlobToRegexBoxSource', () => {
   });
 
   describe('generateBoxes - double wildcard **', () => {
-    it('converts src/**/*.ts to ^src/.*/[^/]*\\.ts$', async () => {
+    it('converts src/**/*.ts to ^src/(?:.*/)?[^/]*\\.ts$', async () => {
       const boxes = await GlobToRegexBoxSource.generateBoxes('src/**/*.ts', {
         glob2regex: true,
       });
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.plaintextOutput).toBe('^src/.*/[^/]*\\.ts$');
+      expect(boxes[0].props.plaintextOutput).toBe('^src/(?:.*/)?[^/]*\\.ts$');
+      // **/ matches zero directory segments too
+      expect(new RegExp(boxes[0].props.plaintextOutput).test('src/x.ts')).toBe(
+        true,
+      );
     });
   });
 

@@ -83,7 +83,7 @@ export const VerhoeffBoxSource = {
           Input: cleaned,
           Error: 'digits only (0-9), max length 1000',
         })
-        .setPriority(Priority)
+        .setPriority(this.priority)
         .setTemplate(KeyValueBoxTemplate)
         .build();
 

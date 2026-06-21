@@ -1,8 +1,9 @@
+import type { BoxOptions } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
 import { JsonSchemaBoxSource } from '../JsonSchemaBoxSource';
 
-const generate = (input: string, options = {}) =>
-  JsonSchemaBoxSource.generateBoxes(input, options as never);
+const generate = (input: string, options: BoxOptions = null) =>
+  JsonSchemaBoxSource.generateBoxes(input, options);
 
 const parseOutput = async (input: string, options = {}) => {
   const boxes = await generate(input, options);

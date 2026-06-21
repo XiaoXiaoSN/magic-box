@@ -117,7 +117,7 @@ function parseCsv(input: string): string[][] {
 
 // escape pipe chars and replace embedded newlines with <br> for markdown table cells
 function escapeCell(cell: string): string {
-  return cell.replace(/\|/g, '\\|').replace(/\n/g, '<br>');
+  return cell.replace(/\|/g, '\\|').replace(/\r\n|\r|\n/g, '<br>');
 }
 
 function buildMarkdownTable(rows: string[][]): string {
