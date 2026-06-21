@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>JulianDayBox</b> </summary>
+
+| match rule     | description                          | example                |
+| -------------- | ------------------------------------ | ---------------------- |
+| `::julianday`  | Gregorian date ⇄ Julian Day Number   | `2000-01-01 ::julianday` |
+
+</details>
+
+<details>
+<summary> <b>DayOfWeekBox</b> </summary>
+
+| match rule     | description                          | example                  |
+| -------------- | ------------------------------------ | ------------------------ |
+| `::dayofweek`  | weekday + day-of-year + ISO week     | `2025-12-25 ::dayofweek` |
+
+</details>
+
+<details>
+<summary> <b>EasterBox</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::easter`   | Easter Sunday (Gregorian computus)   | `2025 ::easter`  |
+
+</details>
+
+<details>
+<summary> <b>BitwiseBox</b> </summary>
+
+| match rule    | description                          | example             |
+| ------------- | ------------------------------------ | ------------------- |
+| `::bitwise`   | AND/OR/XOR/shifts (dec, 0x, 0b)      | `12 & 10 ::bitwise` |
+
+</details>
+
+<details>
+<summary> <b>TwosComplementBox</b> </summary>
+
+| match rule       | description                          | example            |
+| ---------------- | ------------------------------------ | ------------------ |
+| `::twos=<bits>`  | two's-complement binary/hex          | `-42 ::twos=8`     |
+
+</details>
+
+<details>
+<summary> <b>ByteSwapBox</b> </summary>
+
+| match rule     | description                          | example                |
+| -------------- | ------------------------------------ | ---------------------- |
+| `::byteswap`   | swap byte order (endianness) of hex  | `0x12345678 ::byteswap` |
+
+</details>
+
+<details>
+<summary> <b>CookingConvertBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::cooking`   | cup/tbsp/tsp/fl oz/ml/L/pint/quart/gallon | `1 cup ::cooking` |
+
+</details>
+
+<details>
+<summary> <b>FuelEconomyBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::fuel`    | MPG (US/imp) ⇄ L/100km ⇄ km/L        | `30 mpg ::fuel`  |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
