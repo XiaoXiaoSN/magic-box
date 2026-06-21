@@ -50,12 +50,14 @@ export const BeaufortBoxSource = {
       return [];
     }
 
-    const key = normalizeKey(String(rawKey));
+    // a bare `::beaufort` (no `=key`) yields the boolean `true`, not a key;
+    // only a string option value can be a cipher key
+    const key = typeof rawKey === 'string' ? normalizeKey(rawKey) : null;
     if (key === null) {
-      // the option was present but contained no alphabetic characters
+      // the option was missing a value or contained no alphabetic characters
       const box = new BoxBuilder(
         'Beaufort Cipher',
-        'Key must contain at least one alphabetic character.',
+        'Provide an alphabetic key, e.g. ::beaufort=FORTIFICATION',
       )
         .setShowExpandButton(false)
         .setPriority(this.priority)

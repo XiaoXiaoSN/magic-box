@@ -98,6 +98,7 @@ export const IniBoxSource = {
     if (input.length > MAX_INPUT) return [];
 
     const trimmed = trim(input);
+    if (!trimmed) return [];
 
     // direction: JSON string → INI, otherwise INI → JSON
     if (trimmed.startsWith('{')) {

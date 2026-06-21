@@ -59,8 +59,11 @@ function decodeBase91(encoded: string): Uint8Array {
   const out: number[] = [];
 
   for (let i = 0; i < encoded.length; i++) {
-    const d = DECODE_TABLE[encoded.charCodeAt(i)];
-    if (d === -1) continue;
+    const code = encoded.charCodeAt(i);
+    // chars above the 256-entry table (e.g. CJK, emoji surrogates) are
+    // out of range → undefined, which `< 0` would NOT catch; skip explicitly
+    const d = code < 256 ? DECODE_TABLE[code] : -1;
+    if (d < 0) continue;
 
     if (v < 0) {
       v = d;

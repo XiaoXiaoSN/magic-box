@@ -31,6 +31,8 @@ const OUTPUT_UNITS: Array<{ label: string; divisor: number }> = [
   { label: 'MiB', divisor: 1024 ** 2 },
   { label: 'GiB', divisor: 1024 ** 3 },
   { label: 'TiB', divisor: 1024 ** 4 },
+  { label: 'PB', divisor: 1e15 },
+  { label: 'PiB', divisor: 1024 ** 5 },
 ];
 
 // format a byte-derived value: exact integers stay exact (sig-figs would
@@ -43,8 +45,7 @@ function formatSigFigs(value: number): string {
 
 // parse "<value> <unit>" or bare "<value>" (no unit means bytes)
 function parseInput(raw: string): { bytes: number } | { error: string } | null {
-  const s = raw.slice(0, 64);
-  const trimmed = trim(s);
+  const trimmed = trim(raw).slice(0, 64);
   if (!trimmed) return null;
 
   // bare number → treat as bytes

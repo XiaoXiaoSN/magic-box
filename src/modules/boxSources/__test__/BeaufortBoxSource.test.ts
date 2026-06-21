@@ -97,5 +97,13 @@ describe('BeaufortBoxSource', () => {
       // headless template — web layer supplies DefaultBoxTemplate
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
+
+    it('a bare ::beaufort (no =key) returns a usage box, not a "TRUE" cipher', async () => {
+      const boxes = await BeaufortBoxSource.generateBoxes('HELLO', {
+        beaufort: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/alphabetic key/i);
+    });
   });
 });

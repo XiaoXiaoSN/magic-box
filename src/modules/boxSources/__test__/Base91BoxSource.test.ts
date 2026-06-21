@@ -130,4 +130,16 @@ describe('Base91BoxSource', () => {
       expect(boxes[1].props.name).toBe('basE91 (Decode)');
     });
   });
+
+  describe('lenient decode', () => {
+    it('skips out-of-range unicode chars without corrupting output (no NaN)', async () => {
+      const enc = await Base91BoxSource.generateBoxes('hi', { base91: true });
+      const valid = enc[0].props.plaintextOutput;
+      // inject CJK/emoji noise the 256-entry decode table cannot index
+      const boxes = await Base91BoxSource.generateBoxes(`${valid}日本😀`, {
+        base91decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('hi');
+    });
+  });
 });

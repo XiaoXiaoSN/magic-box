@@ -81,6 +81,7 @@ Units: ${VALID_UNITS}`;
       return [
         new BoxBuilder('Angle Convert', errorContent)
           .setOptions({
+            Input: trimmed,
             Error: 'unable to parse input',
             Format: '<number> <unit>',
             Units: VALID_UNITS,
@@ -102,6 +103,7 @@ Units: ${VALID_UNITS}`;
       return [
         new BoxBuilder('Angle Convert', errorContent)
           .setOptions({
+            Input: trimmed,
             Error: `unrecognized unit "${match[2]}"`,
             Units: VALID_UNITS,
           })
