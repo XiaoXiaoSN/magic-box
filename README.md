@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>TextDiffBox</b> </summary>
+
+| match rule    | description                          | example                       |
+| ------------- | ------------------------------------ | ----------------------------- |
+| `::textdiff`  | line diff of two texts split by `---` | `foo`<br>`---`<br>`bar ::textdiff` |
+
+</details>
+
+<details>
+<summary> <b>JsonPathBox</b> </summary>
+
+| match rule         | description                          | example                          |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| `::jsonpath=PATH`  | extract a value with a dot/bracket path | `{"a":{"b":[10,20]}} ::jsonpath=$.a.b[1]` |
+
+</details>
+
+<details>
+<summary> <b>Ean13Box</b> </summary>
+
+| match rule  | description                          | example                  |
+| ----------- | ------------------------------------ | ------------------------ |
+| `::ean13`   | validate EAN-13 / UPC-A / EAN-8      | `4006381333931 ::ean13`  |
+
+</details>
+
+<details>
+<summary> <b>CreditCardBox</b> </summary>
+
+| match rule    | description                          | example                       |
+| ------------- | ------------------------------------ | ----------------------------- |
+| `::cardtype`  | detect card brand + Luhn (masks the number) | `4111111111111111 ::cardtype` |
+
+</details>
+
+<details>
+<summary> <b>UlidBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::ulid`    | generate a ULID, or decode an existing one's timestamp | `::ulid` |
+
+</details>
+
+<details>
+<summary> <b>LineNumbersBox</b> </summary>
+
+| match rule        | description                          | example                       |
+| ----------------- | ------------------------------------ | ----------------------------- |
+| `::linenumbers`   | add line numbers (`::stripnumbers` to remove) | `first`<br>`second ::linenumbers` |
+
+</details>
+
+<details>
+<summary> <b>TabsSpacesBox</b> </summary>
+
+| match rule         | description                          | example                  |
+| ------------------ | ------------------------------------ | ------------------------ |
+| `::tabs2spaces`    | leading tabs → spaces (`::spaces2tabs` reverse) | `\tcode ::tabs2spaces` |
+
+</details>
+
+<details>
+<summary> <b>IsinBox</b> </summary>
+
+| match rule  | description                          | example                |
+| ----------- | ------------------------------------ | ---------------------- |
+| `::isin`    | validate an ISIN (ISO 6166)          | `US0378331005 ::isin`  |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
