@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>CollatzBox</b> </summary>
+
+| match rule    | description                          | example          |
+| ------------- | ------------------------------------ | ---------------- |
+| `::collatz`   | Collatz (3n+1) steps, peak, sequence | `27 ::collatz`   |
+
+</details>
+
+<details>
+<summary> <b>DivisorsBox</b> </summary>
+
+| match rule     | description                          | example          |
+| -------------- | ------------------------------------ | ---------------- |
+| `::divisors`   | divisors, sum, perfect/abundant/deficient | `28 ::divisors` |
+
+</details>
+
+<details>
+<summary> <b>PrimeCheckBox</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::isprime`  | primality + next/previous prime      | `97 ::isprime`   |
+
+</details>
+
+<details>
+<summary> <b>ColorMixBox</b> </summary>
+
+| match rule     | description                          | example                    |
+| -------------- | ------------------------------------ | -------------------------- |
+| `::colormix`   | blend two colors (`=percent`)        | `#ff0000 #0000ff ::colormix` |
+
+</details>
+
+<details>
+<summary> <b>Ipv4IntBox</b> </summary>
+
+| match rule    | description                          | example                |
+| ------------- | ------------------------------------ | ---------------------- |
+| `::iptoint`   | IPv4 ⇄ 32-bit integer + hex          | `192.168.1.1 ::iptoint` |
+
+</details>
+
+<details>
+<summary> <b>MacAddressBox</b> </summary>
+
+| match rule  | description                          | example                    |
+| ----------- | ------------------------------------ | -------------------------- |
+| `::mac`     | normalize MAC formats + OUI + flags  | `01:23:45:67:89:ab ::mac`  |
+
+</details>
+
+<details>
+<summary> <b>ZodiacBox</b> </summary>
+
+| match rule   | description                          | example          |
+| ------------ | ------------------------------------ | ---------------- |
+| `::zodiac`   | Western zodiac sign for a date       | `03-21 ::zodiac` |
+
+</details>
+
+<details>
+<summary> <b>ChineseZodiacBox</b> </summary>
+
+| match rule          | description                          | example              |
+| ------------------- | ------------------------------------ | -------------------- |
+| `::chinesezodiac`   | animal + element + stem-branch (干支) | `2024 ::chinesezodiac` |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
