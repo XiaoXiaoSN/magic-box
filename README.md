@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>LoanPaymentBox</b> </summary>
+
+| match rule  | description                          | example              |
+| ----------- | ------------------------------------ | -------------------- |
+| `::loan`    | amortizing loan monthly payment      | `200000 5 30 ::loan` |
+
+</details>
+
+<details>
+<summary> <b>CompoundInterestBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::compound`   | future value with compound interest  | `1000 5 10 ::compound` |
+
+</details>
+
+<details>
+<summary> <b>HtmlToTextBox</b> </summary>
+
+| match rule     | description                          | example                     |
+| -------------- | ------------------------------------ | --------------------------- |
+| `::striptags`  | strip HTML tags + decode entities    | `<p>Hi</p> ::striptags`     |
+
+</details>
+
+<details>
+<summary> <b>MarkdownToTextBox</b> </summary>
+
+| match rule    | description                          | example                |
+| ------------- | ------------------------------------ | ---------------------- |
+| `::stripmd`   | strip Markdown formatting to text    | `# Title ::stripmd`    |
+
+</details>
+
+<details>
+<summary> <b>DataRateBox</b> </summary>
+
+| match rule     | description                          | example              |
+| -------------- | ------------------------------------ | -------------------- |
+| `::datarate`   | bit/s ⇄ byte/s (Mbps ⇄ MB/s)         | `100 Mbps ::datarate` |
+
+</details>
+
+<details>
+<summary> <b>BusinessDaysBox</b> </summary>
+
+| match rule    | description                          | example                          |
+| ------------- | ------------------------------------ | -------------------------------- |
+| `::busdays`   | count weekdays between two dates     | `2025-01-01 to 2025-01-31 ::busdays` |
+
+</details>
+
+<details>
+<summary> <b>PassphraseBox</b> </summary>
+
+| match rule         | description                          | example          |
+| ------------------ | ------------------------------------ | ---------------- |
+| `::passphrase=<n>` | crypto-secure diceware passphrase    | `::passphrase=4` |
+
+</details>
+
+<details>
+<summary> <b>IndentBox</b> </summary>
+
+| match rule       | description                          | example              |
+| ---------------- | ------------------------------------ | -------------------- |
+| `::indent=<n>`   | indent/dedent lines (`::dedent` auto) | `text ::indent=2`   |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
