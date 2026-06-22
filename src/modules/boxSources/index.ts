@@ -7,16 +7,24 @@ import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
+import ExcelColumnBoxSource from './ExcelColumnBoxSource';
+import FrequencyConvertBoxSource from './FrequencyConvertBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
+import HaversineBoxSource from './HaversineBoxSource';
+import JsonPickBoxSource from './JsonPickBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
+import LeapYearBoxSource from './LeapYearBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
+import NatoPhoneticBoxSource from './NatoPhoneticBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PortLookupBoxSource from './PortLookupBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import ReverseTextBoxSource from './ReverseTextBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
@@ -34,16 +42,24 @@ export const boxSources = [
   CronExpressionBoxSource,
   DataConverterBoxSource,
   DateCalculateBoxSource,
+  ExcelColumnBoxSource,
+  FrequencyConvertBoxSource,
   GenerateQRCodeBoxSource,
   HashBoxSource,
+  HaversineBoxSource,
+  JsonPickBoxSource,
   JWTBoxSource,
   K8sSecretBoxSource,
+  LeapYearBoxSource,
   MathExpressionBoxSource,
   MyIPBoxSource,
+  NatoPhoneticBoxSource,
   NowBoxSource,
   PasswordBoxSource,
+  PortLookupBoxSource,
   RandomIntegerBoxSource,
   ReadableBytesBoxSource,
+  ReverseTextBoxSource,
   ShortenURLBoxSource,
   TimeFormatBoxSource,
   URLDecodeBoxSource,

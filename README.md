@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>HaversineBox</b> </summary>
+
+| match rule      | description                          | example                              |
+| --------------- | ------------------------------------ | ------------------------------------ |
+| `::haversine`   | great-circle distance between coords | `40.7,-74 to 51.5,-0.1 ::haversine`  |
+
+</details>
+
+<details>
+<summary> <b>SpreadsheetColumnBox</b> </summary>
+
+| match rule     | description                          | example          |
+| -------------- | ------------------------------------ | ---------------- |
+| `::excelcol`   | column letter ⇄ number (A=1, AA=27)  | `AB ::excelcol`  |
+
+</details>
+
+<details>
+<summary> <b>JsonPickBox</b> </summary>
+
+| match rule         | description                          | example                       |
+| ------------------ | ------------------------------------ | ----------------------------- |
+| `::jsonpick=a,b`   | pick/omit top-level JSON keys (`::jsonomit`) | `{"a":1,"b":2} ::jsonpick=a` |
+
+</details>
+
+<details>
+<summary> <b>PortLookupBox</b> </summary>
+
+| match rule  | description                          | example       |
+| ----------- | ------------------------------------ | ------------- |
+| `::port`    | well-known port ⇄ service name       | `443 ::port`  |
+
+</details>
+
+<details>
+<summary> <b>NatoPhoneticBox</b> </summary>
+
+| match rule  | description                          | example          |
+| ----------- | ------------------------------------ | ---------------- |
+| `::nato`    | NATO phonetic spelling (`::natodecode`) | `ABC ::nato`  |
+
+</details>
+
+<details>
+<summary> <b>LeapYearBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::leapyear`  | leap-year check + reason + nearby    | `2024 ::leapyear`  |
+
+</details>
+
+<details>
+<summary> <b>FrequencyConvertBox</b> </summary>
+
+| match rule    | description                          | example              |
+| ------------- | ------------------------------------ | -------------------- |
+| `::frequency` | Hz/kHz/MHz/GHz + period              | `2.4 GHz ::frequency` |
+
+</details>
+
+<details>
+<summary> <b>ReverseTextBox</b> </summary>
+
+| match rule   | description                          | example                |
+| ------------ | ------------------------------------ | ---------------------- |
+| `::reverse`  | reverse chars/words/lines (emoji-safe) | `hello ::reverse`    |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
