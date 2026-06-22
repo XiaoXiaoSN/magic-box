@@ -113,7 +113,9 @@ export const DurationFormatBoxSource = {
 
     // plain number → treat as seconds and convert to human form
     if (/^\d+(\.\d+)?$/.test(raw)) {
-      const totalSeconds = Number.parseInt(raw, 10);
+      // parseFloat (not parseInt) so a fractional input like 3661.5 isn't
+      // silently truncated; the %/floor math below preserves the fraction
+      const totalSeconds = Number.parseFloat(raw);
       const human = secondsToHuman(totalSeconds);
       const clock = secondsToClock(totalSeconds);
 

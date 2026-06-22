@@ -16,6 +16,21 @@ const setParamIfPresent = (
   }
 };
 
+// option keys whose values are secrets and must never appear in a shareable
+// URL (which lands in browser history and server logs). the value is replaced
+// with a placeholder while the option itself is preserved so the link still
+// demonstrates the tool.
+const SECRET_OPTION_PATTERNS: RegExp[] = [
+  /(::hmac(?:sha256)?=)\S+/gi,
+  /(::jwtsign=)\S+/gi,
+];
+
+const redactSecrets = (input: string): string =>
+  SECRET_OPTION_PATTERNS.reduce(
+    (acc, pattern) => acc.replace(pattern, '$1<redacted>'),
+    input,
+  );
+
 export const buildShareLink = ({
   box,
   input,
@@ -24,6 +39,10 @@ export const buildShareLink = ({
 }: ShareLinkParams & { origin?: string }): string => {
   const url = new URL(pathname, origin);
   setParamIfPresent(url.searchParams, 'box', box);
-  setParamIfPresent(url.searchParams, 'input', input);
+  setParamIfPresent(
+    url.searchParams,
+    'input',
+    input ? redactSecrets(input) : input,
+  );
   return url.toString();
 };

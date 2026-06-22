@@ -77,8 +77,8 @@ export const HmacBoxSource = {
       ];
     }
 
-    // key must be a non-empty string
-    if (!isString(key) || key === null) {
+    // key must be a non-empty string (typeof narrows for TS; isString does not)
+    if (typeof key !== 'string' || key.length === 0) {
       return [];
     }
 
@@ -100,16 +100,28 @@ export const HmacBoxSource = {
       ];
     }
 
-    const keyStr = key as string;
     const encoder = new TextEncoder();
-    const keyBytes = encoder.encode(keyStr);
+    const keyBytes = encoder.encode(key);
     const messageBytes = encoder.encode(input);
 
-    const [sha256, sha1, sha512] = await Promise.all([
-      computeHmac('SHA-256', keyBytes, messageBytes),
-      computeHmac('SHA-1', keyBytes, messageBytes),
-      computeHmac('SHA-512', keyBytes, messageBytes),
-    ]);
+    let sha256: string;
+    let sha1: string;
+    let sha512: string;
+    try {
+      [sha256, sha1, sha512] = await Promise.all([
+        computeHmac('SHA-256', keyBytes, messageBytes),
+        computeHmac('SHA-1', keyBytes, messageBytes),
+        computeHmac('SHA-512', keyBytes, messageBytes),
+      ]);
+    } catch {
+      return [
+        new BoxBuilder('HMAC', 'HMAC computation failed in this environment.')
+          .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
 
     // key length in bytes (UTF-8); do NOT expose the key itself
     const keyByteLength = keyBytes.byteLength;

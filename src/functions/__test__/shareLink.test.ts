@@ -65,4 +65,25 @@ describe('buildShareLink', () => {
     const url = new URL(result);
     expect(url.origin).toBe(window.location.origin);
   });
+
+  it('redacts the ::hmac key value so it never leaks into the URL', () => {
+    const result = buildShareLink({
+      input: 'message ::hmac=mysecretkey',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
+    const shared = new URL(result).searchParams.get('input') ?? '';
+    expect(shared).not.toContain('mysecretkey');
+    expect(shared).toContain('::hmac=<redacted>');
+  });
+
+  it('redacts the ::jwtsign secret value', () => {
+    const result = buildShareLink({
+      input: 'payload ::jwtsign=topsecret',
+      pathname: '/',
+      origin: 'http://localhost:3000',
+    });
+    const shared = new URL(result).searchParams.get('input') ?? '';
+    expect(shared).not.toContain('topsecret');
+  });
 });
