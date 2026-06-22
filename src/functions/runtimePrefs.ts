@@ -22,7 +22,7 @@ const current: RuntimePrefs = {
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
   toolboxUrl: '',
   shortenUrl: '',
-  analytics: false,
+  analytics: true,
   locale: 'en',
 };
 
