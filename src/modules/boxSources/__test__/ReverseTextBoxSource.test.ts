@@ -59,15 +59,21 @@ describe('ReverseTextBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('b😀a');
     });
 
-    it('is code-point safe: skin-tone emoji (👍🏽) stays intact', async () => {
+    it('is grapheme-safe: skin-tone emoji (👍🏽) stays intact', async () => {
       const input = '👍🏽';
       const boxes = await ReverseTextBoxSource.generateBoxes(input, {
         reverse: true,
       });
-      // reversed by code point — the pair should still round-trip cleanly
-      expect(boxes[0].props.plaintextOutput).toBe(
-        [...input].reverse().join(''),
-      );
+      // a single grapheme cluster reverses to itself (not split into base +
+      // modifier) thanks to Intl.Segmenter
+      expect(boxes[0].props.plaintextOutput).toBe('👍🏽');
+    });
+
+    it('reverses multiple grapheme clusters as whole units', async () => {
+      const boxes = await ReverseTextBoxSource.generateBoxes('a👍🏽b', {
+        reverse: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('b👍🏽a');
     });
 
     it('uses CodeBoxTemplate', async () => {

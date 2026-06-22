@@ -6,7 +6,9 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 const BOX_NAME = 'Leap Year';
-const YEAR_RE = /^\d{1,7}$/;
+// require year >= 1 (no leading zeros, no year 0 — which JS would treat as a
+// leap year and report a nonsensical negative "previous leap year")
+const YEAR_RE = /^[1-9]\d{0,6}$/;
 
 /** returns true when the given year satisfies the Gregorian leap year rule */
 function isLeapYear(year: number): boolean {
@@ -87,7 +89,8 @@ export const LeapYearBoxSource = {
       'Days in Year': leap ? '366' : '365',
       'February Days': leap ? '29' : '28',
       'Next Leap Year': String(nextLeap(year)),
-      'Previous Leap Year': String(prevLeap(year)),
+      // the first Gregorian leap year is 4 AD; nothing earlier to report
+      'Previous Leap Year': year > 4 ? String(prevLeap(year)) : 'none',
     };
 
     return [

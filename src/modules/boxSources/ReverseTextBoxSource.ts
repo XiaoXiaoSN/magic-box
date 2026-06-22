@@ -6,8 +6,17 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
-// reverse a string by unicode code points so multi-byte chars (emoji, etc.) stay intact
+// reverse a string by grapheme cluster so emoji with modifiers/ZWJ/flags
+// (e.g. 👍🏽, 🇺🇸) stay intact; fall back to code-point reversal if the
+// Intl.Segmenter API is unavailable (still safe for simple emoji like 😀)
 function reverseChars(str: string): string {
+  if (typeof Intl?.Segmenter === 'function') {
+    const segmenter = new Intl.Segmenter();
+    return [...segmenter.segment(str)]
+      .map((s) => s.segment)
+      .reverse()
+      .join('');
+  }
   return [...str].reverse().join('');
 }
 

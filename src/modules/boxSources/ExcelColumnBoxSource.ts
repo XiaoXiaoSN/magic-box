@@ -7,13 +7,16 @@ const Priority = 10;
 
 // max column number supported (roughly 3-letter ZZZ = 18278; allow generous cap)
 const MAX_COL_NUMBER = 1_000_000_000;
-const MAX_COL_LETTERS_LEN = 16;
+// 11 'Z's = 3.8e15 < Number.MAX_SAFE_INTEGER (9e15); 12+ would overflow to an
+// imprecise float and stop round-tripping, so cap the letter length here
+const MAX_COL_LETTERS_LEN = 11;
 
 // bijective base-26: A=1 … Z=26, AA=27, AB=28, ZZ=702, AAA=703
 function lettersToNumber(letters: string): number {
+  const upper = letters.toUpperCase();
   let num = 0;
-  for (let i = 0; i < letters.length; i++) {
-    num = num * 26 + (letters.toUpperCase().charCodeAt(i) - 64);
+  for (let i = 0; i < upper.length; i++) {
+    num = num * 26 + (upper.charCodeAt(i) - 64);
   }
   return num;
 }

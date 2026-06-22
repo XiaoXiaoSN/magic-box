@@ -27,8 +27,9 @@ export const JsonPickBoxSource = {
     if (pick === null && omit === null) return [];
     if (input.length > MAX_INPUT) return [];
 
-    // bare flag (boolean true, no value) → show usage hint
-    if (pick === true || omit === true) {
+    // show usage only when NEITHER flag carries a usable key list — a bare
+    // ::jsonomit alongside ::jsonpick=a,b must not suppress the pick
+    if (typeof pick !== 'string' && typeof omit !== 'string') {
       const flag = pick === true ? '::jsonpick' : '::jsonomit';
       return [
         new BoxBuilder(
