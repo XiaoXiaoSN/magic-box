@@ -65,4 +65,22 @@ describe('buildShareLink', () => {
     const url = new URL(result);
     expect(url.origin).toBe(window.location.origin);
   });
+
+  it('redacts secret option values (::pbkdf2 / ::hmac / ::jwtsign)', () => {
+    const cases: [string, string][] = [
+      ['salt ::pbkdf2=mypassword', 'mypassword'],
+      ['message ::hmac=mysecretkey', 'mysecretkey'],
+      ['payload ::jwtsign=topsecret', 'topsecret'],
+    ];
+    for (const [input, secret] of cases) {
+      const result = buildShareLink({
+        input,
+        pathname: '/',
+        origin: 'http://localhost:3000',
+      });
+      const shared = new URL(result).searchParams.get('input') ?? '';
+      expect(shared).not.toContain(secret);
+      expect(shared).toContain('<redacted>');
+    }
+  });
 });

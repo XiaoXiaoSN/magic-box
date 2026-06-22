@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>Pbkdf2Box</b> </summary>
+
+| match rule        | description                          | example               |
+| ----------------- | ------------------------------------ | --------------------- |
+| `::pbkdf2=<pw>`   | derive key bits (PBKDF2-HMAC-SHA256; password not echoed/shared) | `salt ::pbkdf2=secret` |
+
+</details>
+
+<details>
+<summary> <b>SortLinesBox</b> </summary>
+
+| match rule      | description                          | example                  |
+| --------------- | ------------------------------------ | ------------------------ |
+| `::sortlines`   | sort lines (`::desc` `::numeric` `::unique` `::ci`) | `b\na\nc ::sortlines` |
+
+</details>
+
+<details>
+<summary> <b>JsonMergeBox</b> </summary>
+
+| match rule      | description                          | example                       |
+| --------------- | ------------------------------------ | ----------------------------- |
+| `::jsonmerge`   | deep-merge two JSON docs (split by `---`) | `{...}`<br>`---`<br>`{...}` `::jsonmerge` |
+
+</details>
+
+<details>
+<summary> <b>TextWrapBox</b> </summary>
+
+| match rule      | description                          | example                  |
+| --------------- | ------------------------------------ | ------------------------ |
+| `::wrap=<n>`    | word-wrap text to a column width     | `long text ::wrap=20`    |
+
+</details>
+
+<details>
+<summary> <b>MusicalNoteBox</b> </summary>
+
+| match rule  | description                          | example      |
+| ----------- | ------------------------------------ | ------------ |
+| `::note`    | note name ⇄ frequency (A4=440, 12-TET) | `A4 ::note` |
+
+</details>
+
+<details>
+<summary> <b>AreaConvertBox</b> </summary>
+
+| match rule  | description                          | example           |
+| ----------- | ------------------------------------ | ----------------- |
+| `::area`    | m²/km²/ft²/acre/hectare/mile²        | `1 acre ::area`   |
+
+</details>
+
+<details>
+<summary> <b>ObjectIdBox</b> </summary>
+
+| match rule     | description                          | example                          |
+| -------------- | ------------------------------------ | -------------------------------- |
+| `::objectid`   | parse a MongoDB ObjectId (timestamp, counter) | `507f1f77bcf86cd799439011 ::objectid` |
+
+</details>
+
+<details>
+<summary> <b>BrailleBox</b> </summary>
+
+| match rule    | description                          | example            |
+| ------------- | ------------------------------------ | ------------------ |
+| `::braille`   | text ⇄ Unicode Braille (Grade 1)     | `hello ::braille`  |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
