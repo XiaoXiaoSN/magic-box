@@ -297,6 +297,78 @@ full design and roadmap, and
 
 </details>
 
+<details>
+<summary> <b>FractionBox</b> </summary>
+
+| match rule     | description                          | example            |
+| -------------- | ------------------------------------ | ------------------ |
+| `::fraction`   | decimal ⇄ simplified fraction        | `0.75 ::fraction`  |
+
+</details>
+
+<details>
+<summary> <b>UnaccentBox</b> </summary>
+
+| match rule     | description                          | example                  |
+| -------------- | ------------------------------------ | ------------------------ |
+| `::unaccent`   | strip diacritics (café → cafe)       | `Crème brûlée ::unaccent` |
+
+</details>
+
+<details>
+<summary> <b>LeetSpeakBox</b> </summary>
+
+| match rule  | description                          | example         |
+| ----------- | ------------------------------------ | --------------- |
+| `::leet`    | text ⇄ leetspeak (`::leetdecode`)    | `leet ::leet`   |
+
+</details>
+
+<details>
+<summary> <b>PercentChangeBox</b> </summary>
+
+| match rule      | description                          | example                |
+| --------------- | ------------------------------------ | ---------------------- |
+| `::pctchange`   | percentage change between two numbers | `120 to 150 ::pctchange` |
+
+</details>
+
+<details>
+<summary> <b>VolumeConvertBox</b> </summary>
+
+| match rule       | description                          | example                |
+| ---------------- | ------------------------------------ | ---------------------- |
+| `::cubicvolume`  | m³/L/mL/ft³/gallon conversion        | `1 m3 ::cubicvolume`   |
+
+</details>
+
+<details>
+<summary> <b>JsonlBox</b> </summary>
+
+| match rule  | description                          | example                      |
+| ----------- | ------------------------------------ | ---------------------------- |
+| `::jsonl`   | JSON array ⇄ JSONL (one per line)    | `[{"a":1},{"a":2}] ::jsonl`  |
+
+</details>
+
+<details>
+<summary> <b>PropertiesBox</b> </summary>
+
+| match rule       | description                          | example                       |
+| ---------------- | ------------------------------------ | ----------------------------- |
+| `::properties`   | Java .properties ⇄ JSON              | `a=1`<br>`b=2` `::properties`  |
+
+</details>
+
+<details>
+<summary> <b>BifidBox</b> </summary>
+
+| match rule  | description                          | example               |
+| ----------- | ------------------------------------ | --------------------- |
+| `::bifid`   | Bifid cipher (5×5 Polybius, I/J)     | `FLEEATONCE ::bifid`  |
+
+</details>
+
 ## Development ⛑️
 
 It is recommended to use Node.js version 22.x
