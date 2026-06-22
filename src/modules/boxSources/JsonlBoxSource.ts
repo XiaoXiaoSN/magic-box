@@ -44,6 +44,7 @@ export const JsonlBoxSource = {
     if (input.length > MAX_INPUT) return [];
 
     const trimmed = trim(input);
+    if (!trimmed) return [];
 
     // array → jsonl direction
     if (trimmed.startsWith('[')) {

@@ -20,12 +20,10 @@ const TO_LEET: Record<string, string> = {
   z: '2',
 };
 
-// reverse map — digit → letter. '1' is ambiguous (both 'l' and 'i' encode to '1');
-// we pick 'i' as the canonical decode target and document the loss.
+// reverse map — digit → letter. '1' is ambiguous (both 'i' and 'l' encode to '1');
+// 'l' wins because it is defined after 'i' in TO_LEET and overwrites it here.
 const FROM_LEET: Record<string, string> = Object.fromEntries(
-  Object.entries(TO_LEET)
-    // iterate in insertion order; 'i' appears after 'l' so it wins the '1' slot
-    .map(([letter, digit]) => [digit, letter]),
+  Object.entries(TO_LEET).map(([letter, digit]) => [digit, letter]),
 );
 
 function encode(input: string): string {
@@ -78,7 +76,7 @@ export const LeetSpeakBoxSource = {
     }
 
     if (wantDecode) {
-      // decode is approximate — '1' maps to 'i' (not 'l'); other ambiguities may apply
+      // decode is approximate — '1' maps to 'l' (not 'i'); other ambiguities may apply
       boxes.push(
         new BoxBuilder('Leetspeak (Decode)', decode(input))
           .setTemplate(CodeBoxTemplate)
