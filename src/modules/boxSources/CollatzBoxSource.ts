@@ -7,6 +7,9 @@ const Priority = 10;
 
 // cap iterations to prevent an infinite loop for pathological inputs
 const MAX_STEPS = 1_000_000;
+// magnitude cap: 10^16 fits well within fast BigInt arithmetic; larger inputs
+// (e.g. 5000-digit) make per-step BigInt ops slow enough to freeze the UI
+const MAX_VALUE = 10_000_000_000_000_000n;
 
 // cap sequence display to keep plaintextOutput from being enormous
 const MAX_SEQUENCE_DISPLAY = 200;
@@ -41,17 +44,17 @@ function computeCollatz(n: bigint): CollatzResult | null {
     if (current > peak) {
       peak = current;
     }
-    // only collect terms up to the display cap + 1 to detect truncation
-    if (sequence.length <= MAX_SEQUENCE_DISPLAY) {
+    // collect at most MAX_SEQUENCE_DISPLAY terms; truncation is detected from
+    // the true step count, not the (capped) collected length
+    if (sequence.length < MAX_SEQUENCE_DISPLAY) {
       sequence.push(current);
     }
   }
 
   const truncated = steps + 1 > MAX_SEQUENCE_DISPLAY;
-  const displayed = sequence.slice(0, MAX_SEQUENCE_DISPLAY);
   const sequenceDisplay = truncated
-    ? `${displayed.join(' → ')} …`
-    : displayed.join(' → ');
+    ? `${sequence.join(' → ')} …`
+    : sequence.join(' → ');
 
   return { number: n, steps, peak, sequenceDisplay };
 }
@@ -88,9 +91,15 @@ export const CollatzBoxSource = {
 
     const n = BigInt(raw);
 
-    if (n < 1n) {
+    // cap magnitude, not just the step count: MAX_STEPS bounds iterations but
+    // each step on a many-limb BigInt is slow, so a 5000-digit input would
+    // freeze the main thread for seconds (input comes from the ?input= param)
+    if (n < 1n || n > MAX_VALUE) {
       const kv: Record<string, string> = {
-        Error: 'A positive integer >= 1 is required.',
+        Error:
+          n < 1n
+            ? 'A positive integer >= 1 is required.'
+            : `Value exceeds the maximum of ${MAX_VALUE.toLocaleString()} (10^16).`,
       };
       return [
         new BoxBuilder('Collatz', kvToPlaintext(kv))

@@ -6,7 +6,10 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // cap to prevent trial division from running too long: sqrt(10^13) ≈ 3.16e6 iterations
-const MAX_VALUE = 10_000_000_000_000n;
+// cap at 10^10: a single O(sqrt n) trial-division pass is ~100k iterations
+// (~1ms); next/prev-prime probe many candidates, so a higher cap risks a
+// multi-hundred-ms freeze on slower devices
+const MAX_VALUE = 10_000_000_000n;
 
 // bound the next/prev prime search to avoid indefinite scanning
 const MAX_PRIME_SEARCH_STEPS = 100_000n;
@@ -97,7 +100,7 @@ export const PrimeCheckBoxSource = {
 
     if (n > MAX_VALUE) {
       const kv: Record<string, string> = {
-        Error: `Value exceeds maximum of ${MAX_VALUE.toLocaleString()} (10^13). Use a smaller number.`,
+        Error: `Value exceeds maximum of ${MAX_VALUE.toLocaleString()} (10^10). Use a smaller number.`,
       };
       return [
         new BoxBuilder('Prime Check', kvToPlaintext(kv))

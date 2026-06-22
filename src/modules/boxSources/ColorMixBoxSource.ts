@@ -122,9 +122,7 @@ export const ColorMixBoxSource = {
       const box = new BoxBuilder('Color Mix', kvToPlaintext(kv))
         .setOptions(kv)
         .setTemplate(KeyValueBoxTemplate)
-        .setPriority(Priority)
-        .setTag(ColorMixBoxSource.tag)
-        .setKind(ColorMixBoxSource.kind)
+        .setPriority(this.priority)
         .build();
       return [box];
     }
@@ -144,9 +142,7 @@ export const ColorMixBoxSource = {
     const box = new BoxBuilder('Color Mix', kvToPlaintext(kv))
       .setOptions(kv)
       .setTemplate(KeyValueBoxTemplate)
-      .setPriority(ColorMixBoxSource.priority)
-      .setTag(ColorMixBoxSource.tag)
-      .setKind(ColorMixBoxSource.kind)
+      .setPriority(this.priority)
       .build();
 
     return [box];

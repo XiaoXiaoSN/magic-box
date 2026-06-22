@@ -52,7 +52,9 @@ export const DivisorsBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'divisors', 'factors')) return [];
+    // not ::factors — that conventionally means prime factorization, a
+    // different tool; this lists all divisors
+    if (!hasOptionKeys(options, 'divisors')) return [];
 
     const raw = trim(input);
 

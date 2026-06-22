@@ -129,5 +129,16 @@ describe('CollatzBoxSource', () => {
       expect(out).toContain('Steps: 1');
       expect(out).toContain('Number: 2');
     });
+
+    it('rejects a value beyond the magnitude cap (DoS guard)', async () => {
+      // a 5000-digit number would freeze the main thread; must be rejected fast
+      const huge = '9'.repeat(5000);
+      const start = Date.now();
+      const boxes = await CollatzBoxSource.generateBoxes(huge, {
+        collatz: true,
+      });
+      expect(Date.now() - start).toBeLessThan(200);
+      expect(boxes[0].props.options?.Error).toMatch(/maximum|exceeds/i);
+    });
   });
 });

@@ -16,11 +16,11 @@ describe('DivisorsBoxSource', () => {
       expect(boxes).toHaveLength(0);
     });
 
-    it('triggers on ::factors alias', async () => {
+    it('does not trigger on ::factors (that means prime factorization)', async () => {
       const boxes = await DivisorsBoxSource.generateBoxes('6', {
         factors: true,
       });
-      expect(boxes).toHaveLength(1);
+      expect(boxes).toHaveLength(0);
     });
   });
 
