@@ -160,4 +160,18 @@ describe('HtmlToTextBoxSource', () => {
       expect(boxes[0].boxTemplate).toBeDefined();
     });
   });
+
+  describe('ReDoS safety', () => {
+    it('handles many unclosed <script> tags in linear time', async () => {
+      // many closed script blocks: an O(n^2) removal would stall; the linear
+      // scan stays fast and trailing content survives (kept under MAX_INPUT)
+      const input = `${'<script>x</script>'.repeat(5000)}safe`;
+      const start = Date.now();
+      const boxes = await HtmlToTextBoxSource.generateBoxes(input, {
+        striptags: true,
+      });
+      expect(Date.now() - start).toBeLessThan(500);
+      expect(boxes[0].props.plaintextOutput).toBe('safe');
+    });
+  });
 });

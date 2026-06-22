@@ -101,7 +101,7 @@ export const LoanPaymentBoxSource = {
       'Monthly Payment': round2(monthlyPayment).toFixed(2),
       'Total Paid': round2(totalPaid).toFixed(2),
       'Total Interest': round2(totalInterest).toFixed(2),
-      Payments: n.toString(),
+      Payments: Number.isInteger(n) ? n.toString() : n.toFixed(2),
     };
 
     return [

@@ -34,15 +34,40 @@ function decodeEntity(ref: string): string {
   return NAMED_ENTITIES[lower] ?? NAMED_ENTITIES[ref] ?? `&${ref};`;
 }
 
+// remove <tag>...</tag> blocks (content included) via a linear indexOf scan.
+// a regex with [\s\S]*? is O(n^2) on many unclosed opening tags (each is retried
+// as a start point) — a ReDoS risk since input comes from the ?input= URL param.
+function removeBlocks(html: string, tag: string): string {
+  const lower = html.toLowerCase();
+  const open = `<${tag}`;
+  const close = `</${tag}>`;
+  let result = '';
+  let pos = 0;
+  while (pos < html.length) {
+    const start = lower.indexOf(open, pos);
+    if (start === -1) {
+      result += html.slice(pos);
+      break;
+    }
+    const tagEnd = html.indexOf('>', start);
+    if (tagEnd === -1) {
+      result += html.slice(pos);
+      break;
+    }
+    result += html.slice(pos, start);
+    const closeIdx = lower.indexOf(close, tagEnd + 1);
+    pos = closeIdx === -1 ? html.length : closeIdx + close.length;
+  }
+  return result;
+}
+
 // convert html to readable plain text using pure string processing
 function htmlToText(html: string): string {
   let text = html;
 
-  // remove <script> blocks entirely (content included)
-  text = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-
-  // remove <style> blocks entirely (content included)
-  text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  // remove <script> and <style> blocks entirely (content included)
+  text = removeBlocks(text, 'script');
+  text = removeBlocks(text, 'style');
 
   // convert <br> variants to newlines
   text = text.replace(/<br\s*\/?>/gi, '\n');

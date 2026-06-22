@@ -62,6 +62,7 @@ export const CompoundInterestBoxSource = {
       Number.isNaN(annualRatePct) ||
       Number.isNaN(years) ||
       principal < 0 ||
+      annualRatePct < 0 ||
       years < 0
     ) {
       return [
