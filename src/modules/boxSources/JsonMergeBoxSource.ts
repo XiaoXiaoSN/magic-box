@@ -128,8 +128,22 @@ export const JsonMergeBoxSource = {
       ];
     }
 
-    const merged = deepMerge(first, second);
-    const output = JSON.stringify(merged, null, 2);
+    let output: string;
+    try {
+      // deepMerge recurses per nesting level; a pathologically deep document
+      // (that JSON.parse still accepted) could overflow the stack — contain it
+      const merged = deepMerge(first, second);
+      output = JSON.stringify(merged, null, 2);
+    } catch {
+      return [
+        new BoxBuilder(
+          'JSON Merge',
+          'The documents are nested too deeply to merge.',
+        )
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
 
     return [
       new BoxBuilder('JSON Merge', output)
