@@ -25,6 +25,7 @@ import LineToolsBoxSource from './LineToolsBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
+import OnColorBoxSource from './OnColorBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  OnColorBoxSource,
 ];
