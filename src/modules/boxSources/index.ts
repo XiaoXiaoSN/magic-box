@@ -25,6 +25,7 @@ import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import RegexEscapeBoxSource from './RegexEscapeBoxSource';
 import SemverBoxSource from './SemverBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
@@ -79,6 +80,7 @@ export const boxSources: BoxSource[] = [
   FrequencyBoxSource,
   GcdLcmBoxSource,
   LineToolsBoxSource,
+  RegexEscapeBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
