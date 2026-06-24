@@ -29,6 +29,7 @@ import MarkdownTocBoxSource from './MarkdownTocBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
+import OnColorBoxSource from './OnColorBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import PunycodeBoxSource from './PunycodeBoxSource';
@@ -126,4 +127,5 @@ export const boxSources: BoxSource[] = [
   HexDumpBoxSource,
   HexTextBoxSource,
   UrlParseBoxSource,
+  OnColorBoxSource,
 ];
