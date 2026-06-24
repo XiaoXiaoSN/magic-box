@@ -9,6 +9,7 @@ import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
+import CssColorNameBoxSource from './CssColorNameBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import DurationBoxSource from './DurationBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  CssColorNameBoxSource,
 ];
