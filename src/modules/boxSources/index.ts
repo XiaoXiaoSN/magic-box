@@ -29,6 +29,7 @@ import SemverBoxSource from './SemverBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
+import SoundexBoxSource from './SoundexBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
@@ -82,6 +83,7 @@ export const boxSources: BoxSource[] = [
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
+  SoundexBoxSource,
   SpeedConvertBoxSource,
   SubnetBoxSource,
   TemperatureBoxSource,
