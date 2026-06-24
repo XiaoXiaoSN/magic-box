@@ -12,6 +12,7 @@ import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
+import FractionBoxSource from './FractionBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
@@ -76,6 +77,7 @@ export const boxSources: BoxSource[] = [
   AsciiTableBoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
+  FractionBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
   LineToolsBoxSource,
