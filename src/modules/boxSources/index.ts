@@ -26,6 +26,7 @@ import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
 import HexDumpBoxSource from './HexDumpBoxSource';
 import HexTextBoxSource from './HexTextBoxSource';
+import HmacBoxSource from './HmacBoxSource';
 import HsvBoxSource from './HsvBoxSource';
 import Ieee754BoxSource from './Ieee754BoxSource';
 import Ipv6BoxSource from './Ipv6BoxSource';
@@ -150,4 +151,5 @@ export const boxSources: BoxSource[] = [
   MorseCodeBoxSource,
   PortLookupBoxSource,
   UnicodeEscapeBoxSource,
+  HmacBoxSource,
 ];
