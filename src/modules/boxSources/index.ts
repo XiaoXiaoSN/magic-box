@@ -26,6 +26,7 @@ import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
@@ -87,6 +88,7 @@ export const boxSources: BoxSource[] = [
   GcdLcmBoxSource,
   HaversineBoxSource,
   LineToolsBoxSource,
+  PowerConvertBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
