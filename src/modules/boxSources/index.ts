@@ -13,6 +13,7 @@ import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
+import FuelEconomyBoxSource from './FuelEconomyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
@@ -77,6 +78,7 @@ export const boxSources: BoxSource[] = [
   BinaryTextBoxSource,
   BmiBoxSource,
   FrequencyBoxSource,
+  FuelEconomyBoxSource,
   GcdLcmBoxSource,
   LineToolsBoxSource,
   SemverBoxSource,
