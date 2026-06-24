@@ -17,6 +17,7 @@ import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import Rot47BoxSource from './Rot47BoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
@@ -50,5 +51,6 @@ export const boxSources = [
   UuidBoxSource,
   TimestampBoxSource,
   Base64EncodeBoxSource,
+  Rot47BoxSource,
   WordCountBoxSource,
 ];
