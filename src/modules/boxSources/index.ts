@@ -29,6 +29,7 @@ import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import RomanNumeralBoxSource from './RomanNumeralBoxSource';
 import SemverBoxSource from './SemverBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  RomanNumeralBoxSource,
 ];
