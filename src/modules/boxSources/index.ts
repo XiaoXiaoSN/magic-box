@@ -25,6 +25,7 @@ import SortLinesBoxSource from './SortLinesBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
+import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
@@ -67,6 +68,7 @@ export const boxSources = [
   SpeedConvertBoxSource,
   SubnetBoxSource,
   TemperatureBoxSource,
+  TextReverseBoxSource,
   WhitespaceCleanBoxSource,
   WordCountBoxSource,
 ];
