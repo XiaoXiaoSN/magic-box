@@ -9,5 +9,6 @@ export interface BoxSource {
   tag: string;
   kind: string;
   priority?: number;
+  defaultDisabled?: boolean;
   generateBoxes: (input: string, options: BoxOptions) => Promise<Box[]>;
 }
