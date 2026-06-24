@@ -21,6 +21,7 @@ import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
+import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
@@ -64,6 +65,7 @@ export const boxSources = [
   A1Z26BoxSource,
   AsciiTableBoxSource,
   BmiBoxSource,
+  SnowflakeBoxSource,
   SortLinesBoxSource,
   SpeedConvertBoxSource,
   SubnetBoxSource,
