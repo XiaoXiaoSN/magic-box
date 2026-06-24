@@ -13,6 +13,7 @@ import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
+import Fletcher16BoxSource from './Fletcher16BoxSource';
 import FractionBoxSource from './FractionBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  Fletcher16BoxSource,
 ];
