@@ -30,6 +30,7 @@ import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
+import ShannonEntropyBoxSource from './ShannonEntropyBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
@@ -92,6 +93,7 @@ export const boxSources: BoxSource[] = [
   LineToolsBoxSource,
   PowerConvertBoxSource,
   SemverBoxSource,
+  ShannonEntropyBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
   SoundexBoxSource,
