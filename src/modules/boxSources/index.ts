@@ -18,6 +18,7 @@ import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
+import TemperatureBoxSource from './TemperatureBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
@@ -54,3 +55,6 @@ export const boxSources = [
   Base64EncodeBoxSource,
   WordWrapBoxSource,
   WhitespaceCleanBoxSource,
+  TemperatureBoxSource,
+  WordCountBoxSource,
+];
