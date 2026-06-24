@@ -22,6 +22,7 @@ import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
+import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
 import WordWrapBoxSource from './WordWrapBoxSource';
 
@@ -52,5 +53,4 @@ export const boxSources = [
   TimestampBoxSource,
   Base64EncodeBoxSource,
   WordWrapBoxSource,
-  WordCountBoxSource,
-];
+  WhitespaceCleanBoxSource,
