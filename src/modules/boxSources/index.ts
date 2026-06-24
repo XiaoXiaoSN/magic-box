@@ -23,6 +23,7 @@ import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PolybiusBoxSource from './PolybiusBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
@@ -79,6 +80,7 @@ export const boxSources: BoxSource[] = [
   FrequencyBoxSource,
   GcdLcmBoxSource,
   LineToolsBoxSource,
+  PolybiusBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
