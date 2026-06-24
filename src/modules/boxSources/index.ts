@@ -46,6 +46,7 @@ import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import UnitConverterBoxSource from './UnitConverterBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
+import VigenereBoxSource from './VigenereBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
 import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  VigenereBoxSource,
 ];
