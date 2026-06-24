@@ -21,6 +21,7 @@ import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
+import LevenshteinBoxSource from './LevenshteinBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  LevenshteinBoxSource,
 ];
