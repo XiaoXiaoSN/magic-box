@@ -19,6 +19,7 @@ import HashBoxSource from './HashBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
+import MarkdownTableBoxSource from './MarkdownTableBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
@@ -79,6 +80,7 @@ export const boxSources: BoxSource[] = [
   FrequencyBoxSource,
   GcdLcmBoxSource,
   LineToolsBoxSource,
+  MarkdownTableBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
