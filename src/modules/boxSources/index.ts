@@ -27,6 +27,7 @@ import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
+import SlugifyBoxSource from './SlugifyBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
@@ -80,6 +81,7 @@ export const boxSources: BoxSource[] = [
   GcdLcmBoxSource,
   LineToolsBoxSource,
   SemverBoxSource,
+  SlugifyBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
   SpeedConvertBoxSource,
