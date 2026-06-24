@@ -41,6 +41,7 @@ import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import OnColorBoxSource from './OnColorBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import Pbkdf2BoxSource from './Pbkdf2BoxSource';
 import PortLookupBoxSource from './PortLookupBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import PunycodeBoxSource from './PunycodeBoxSource';
@@ -152,4 +153,5 @@ export const boxSources: BoxSource[] = [
   PortLookupBoxSource,
   UnicodeEscapeBoxSource,
   HmacBoxSource,
+  Pbkdf2BoxSource,
 ];
