@@ -20,6 +20,7 @@ import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
+import SemverBoxSource from './SemverBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
@@ -65,6 +66,7 @@ export const boxSources = [
   A1Z26BoxSource,
   AsciiTableBoxSource,
   BmiBoxSource,
+  SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
   SpeedConvertBoxSource,
