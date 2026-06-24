@@ -33,6 +33,7 @@ import TemperatureBoxSource from './TemperatureBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
+import TwosComplementBoxSource from './TwosComplementBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
@@ -80,6 +81,7 @@ export const boxSources: BoxSource[] = [
   SubnetBoxSource,
   TemperatureBoxSource,
   TextReverseBoxSource,
+  TwosComplementBoxSource,
   WeekNumberBoxSource,
   WhitespaceCleanBoxSource,
   ZodiacBoxSource,
