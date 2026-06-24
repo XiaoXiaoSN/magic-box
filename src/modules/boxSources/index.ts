@@ -9,6 +9,7 @@ import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
+import CreditCardInfoBoxSource from './CreditCardInfoBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
@@ -130,4 +131,5 @@ export const boxSources: BoxSource[] = [
   HexTextBoxSource,
   UrlParseBoxSource,
   OnColorBoxSource,
+  CreditCardInfoBoxSource,
 ];
