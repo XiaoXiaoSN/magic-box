@@ -20,6 +20,7 @@ import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
+import UnicodeInspectorBoxSource from './UnicodeInspectorBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
@@ -50,5 +51,6 @@ export const boxSources = [
   UuidBoxSource,
   TimestampBoxSource,
   Base64EncodeBoxSource,
+  UnicodeInspectorBoxSource,
   WordCountBoxSource,
 ];
