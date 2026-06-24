@@ -1188,6 +1188,19 @@ Example (each ::option starts a new line):
 curl
 ~~~~
 
+### Country Flag (country-flag)
+
+Convert an ISO 3166-1 alpha-2 country code to its flag emoji, or a flag emoji back to its code.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::flag, ::countryflag.
+
+Example (each ::option starts a new line):
+~~~~text
+US
+::flag
+~~~~
+
 ### Coordinates (coordinates)
 
 Convert a coordinate between decimal degrees, DDM, DMS, Plus Code, Geohash, UTM, MGRS and geo URI. ::coord shows every format; ::dms, ::pluscode, ::geohash, ::utm, … show just that one. Accepts lat/lng in any of the angle formats, a full Plus Code or a Geohash.

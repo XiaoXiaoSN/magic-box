@@ -1578,6 +1578,21 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       import('./CheatSheetBoxSource').then((module) => module.default),
   },
   {
+    id: 'country-flag',
+    name: 'Country Flag',
+    description:
+      'Convert an ISO 3166-1 alpha-2 country code to its flag emoji, or a flag emoji back to its code.',
+    defaultInput: 'US\n::flag',
+    tag: '#',
+    kind: 'Convert',
+    defaultDisabled: true,
+    optionKeys: ['flag', 'countryflag'],
+    headless: true,
+    canHandle: optionMatcher(['flag', 'countryflag']),
+    load: () =>
+      import('./CountryFlagBoxSource').then((module) => module.default),
+  },
+  {
     id: 'coordinates',
     name: 'Coordinates',
     description:

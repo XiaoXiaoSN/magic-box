@@ -96,6 +96,7 @@ export const BOX_SOURCE_IDS = [
   'case-converter',
   'certificate-decode',
   'cheat-sheet',
+  'country-flag',
   'coordinates',
   'html-entities',
   'http-status',
@@ -527,6 +528,11 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
     description:
       'Offline command examples. Enter curl, cheat:git, or ::cheat=jq.',
   },
+  'country-flag': {
+    name: 'Country Flag',
+    description:
+      'Convert an ISO 3166-1 alpha-2 country code to its flag emoji, or a flag emoji back to its code.',
+  },
   coordinates: {
     name: 'Coordinates',
     description:
@@ -930,6 +936,10 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   'cheat-sheet': {
     name: '速查表',
     description: '離線指令範例。輸入 curl、cheat:git 或 ::cheat=jq。',
+  },
+  'country-flag': {
+    name: '國旗',
+    description: '在 ISO 3166-1 兩字母國家代碼與國旗 emoji 之間轉換。',
   },
   coordinates: {
     name: '座標',
