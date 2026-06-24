@@ -22,6 +22,7 @@ import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import DiceRollBoxSource from './DiceRollBoxSource';
+import DmsBoxSource from './DmsBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EasterBoxSource from './EasterBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
@@ -174,4 +175,5 @@ export const boxSources: BoxSource[] = [
   LocalAIBoxSource,
   Crc32BoxSource,
   CrockfordBase32BoxSource,
+  DmsBoxSource,
 ];
