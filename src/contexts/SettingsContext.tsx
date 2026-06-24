@@ -27,7 +27,7 @@ const defaultSettings: Settings = {
       box.name,
       {
         id: box.name,
-        enabled: true,
+        enabled: !box.defaultDisabled,
         priority: box.priority ?? 10,
         secondaryOrder: idx,
       },
@@ -51,7 +51,7 @@ export const SettingsStorage = {
         if (!parsed.boxes[box.name]) {
           parsed.boxes[box.name] = {
             id: box.name,
-            enabled: true,
+            enabled: !box.defaultDisabled,
             priority: validatePriority(box.priority ?? 10),
             secondaryOrder: idx,
           };

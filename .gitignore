@@ -49,3 +49,4 @@ dev-debug.log
 *.sln
 *.sw?
 # OS specific
+.gemini/

@@ -23,6 +23,7 @@ import TimestampBoxSource from './TimestampBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
+import WordWrapBoxSource from './WordWrapBoxSource';
 
 // Path B: default order is the display order. High-signal sources sit on top;
 // catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
@@ -50,5 +51,6 @@ export const boxSources = [
   UuidBoxSource,
   TimestampBoxSource,
   Base64EncodeBoxSource,
+  WordWrapBoxSource,
   WordCountBoxSource,
 ];
