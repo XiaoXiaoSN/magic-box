@@ -6,6 +6,7 @@ import {
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
+import BitwiseBoxSource from './BitwiseBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
@@ -75,6 +76,7 @@ export const boxSources: BoxSource[] = [
   A1Z26BoxSource,
   AsciiTableBoxSource,
   BinaryTextBoxSource,
+  BitwiseBoxSource,
   BmiBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
