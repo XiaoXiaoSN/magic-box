@@ -17,6 +17,7 @@ import FractionBoxSource from './FractionBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import HammingDistanceBoxSource from './HammingDistanceBoxSource';
 import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
 import JWTBoxSource from './JWTBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  HammingDistanceBoxSource,
 ];
