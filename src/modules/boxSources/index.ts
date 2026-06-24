@@ -21,6 +21,7 @@ import FractionBoxSource from './FractionBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
+import GlobToRegexBoxSource from './GlobToRegexBoxSource';
 import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
 import HexDumpBoxSource from './HexDumpBoxSource';
@@ -134,4 +135,5 @@ export const boxSources: BoxSource[] = [
   UrlParseBoxSource,
   OnColorBoxSource,
   CreditCardInfoBoxSource,
+  GlobToRegexBoxSource,
 ];
