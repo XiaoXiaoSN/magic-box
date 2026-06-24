@@ -9,6 +9,7 @@ import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
+import HumanizeDurationBoxSource from './HumanizeDurationBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
@@ -50,5 +51,6 @@ export const boxSources = [
   UuidBoxSource,
   TimestampBoxSource,
   Base64EncodeBoxSource,
+  HumanizeDurationBoxSource,
   WordCountBoxSource,
 ];
