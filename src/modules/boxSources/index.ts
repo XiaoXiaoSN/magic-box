@@ -1,3 +1,4 @@
+import AsciiTableBoxSource from './AsciiTableBoxSource';
 import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
@@ -56,5 +57,4 @@ export const boxSources = [
   TimestampBoxSource,
   Base64EncodeBoxSource,
   BmiBoxSource,
-  WordCountBoxSource,
-];
+  AsciiTableBoxSource,
