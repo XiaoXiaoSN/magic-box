@@ -35,6 +35,7 @@ import SnowflakeBoxSource from './SnowflakeBoxSource';
 import SortLinesBoxSource from './SortLinesBoxSource';
 import SoundexBoxSource from './SoundexBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
+import StatsBoxSource from './StatsBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
@@ -96,6 +97,7 @@ export const boxSources: BoxSource[] = [
   SortLinesBoxSource,
   SoundexBoxSource,
   SpeedConvertBoxSource,
+  StatsBoxSource,
   SubnetBoxSource,
   TemperatureBoxSource,
   TextReverseBoxSource,
