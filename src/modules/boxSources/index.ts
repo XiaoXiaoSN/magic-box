@@ -37,6 +37,7 @@ import UuidBoxSource from './UuidBoxSource';
 import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
 import WordWrapBoxSource from './WordWrapBoxSource';
+import ZodiacBoxSource from './ZodiacBoxSource';
 
 // Path B: default order is the display order. High-signal sources sit on top;
 // catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
@@ -77,5 +78,6 @@ export const boxSources: BoxSource[] = [
   TemperatureBoxSource,
   TextReverseBoxSource,
   WhitespaceCleanBoxSource,
+  ZodiacBoxSource,
   WordCountBoxSource,
 ];
