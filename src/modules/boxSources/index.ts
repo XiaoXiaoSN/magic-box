@@ -19,42 +19,4 @@ import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import ShortenURLBoxSource from './ShortenURLBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
-import TimeFormatBoxSource from './TimeFormatBoxSource';
-import TimestampBoxSource from './TimestampBoxSource';
-import URLDecodeBoxSource from './URLDecodeBoxSource';
-import UuidBoxSource from './UuidBoxSource';
-import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
-import WordCountBoxSource from './WordCountBoxSource';
-import WordWrapBoxSource from './WordWrapBoxSource';
-
-// Path B: default order is the display order. High-signal sources sit on top;
-// catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
-// stay below specific matches without needing per-box priority.
-export const boxSources = [
-  ColorBoxSource,
-  EscapeStringBoxSource,
-  Base64DecodeBoxSource,
-  CronExpressionBoxSource,
-  DataConverterBoxSource,
-  DateCalculateBoxSource,
-  GenerateQRCodeBoxSource,
-  HashBoxSource,
-  JWTBoxSource,
-  K8sSecretBoxSource,
-  MathExpressionBoxSource,
-  MyIPBoxSource,
-  NowBoxSource,
-  PasswordBoxSource,
-  RandomIntegerBoxSource,
-  ReadableBytesBoxSource,
-  ShortenURLBoxSource,
-  TimeFormatBoxSource,
-  URLDecodeBoxSource,
-  UuidBoxSource,
-  TimestampBoxSource,
-  Base64EncodeBoxSource,
-  WordWrapBoxSource,
-  WhitespaceCleanBoxSource,
-  TemperatureBoxSource,
-  WordCountBoxSource,
-];
+import SubnetBoxSource from './SubnetBoxSource';
