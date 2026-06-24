@@ -1,8 +1,28 @@
 import { isString, trim } from '@functions/helper';
-import type { Box } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
+import type { Box, BoxOptions } from '@modules/Box';
+import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const PriorityDateCalculate = 10;
+
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const MONTH_MS = 30 * DAY_MS;
+const YEAR_MS = 365 * DAY_MS;
+
+type RelativeUnit = 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second';
+
+function pickUnit(diffMs: number): [number, RelativeUnit] {
+  const abs = Math.abs(diffMs);
+  const sign = diffMs < 0 ? -1 : 1;
+
+  if (abs >= YEAR_MS) return [sign * Math.round(abs / YEAR_MS), 'year'];
+  if (abs >= MONTH_MS) return [sign * Math.round(abs / MONTH_MS), 'month'];
+  if (abs >= DAY_MS) return [sign * Math.round(abs / DAY_MS), 'day'];
+  if (abs >= HOUR_MS) return [sign * Math.round(abs / HOUR_MS), 'hour'];
+  if (abs >= MINUTE_MS) return [sign * Math.round(abs / MINUTE_MS), 'minute'];
+  return [sign * Math.round(abs / 1000), 'second'];
+}
 
 interface Match {
   result: string;
@@ -55,6 +75,12 @@ const parseDate = (s: string): Date => {
     const date = new Date();
     date.setDate(date.getDate() - 1);
     return date;
+  }
+  if (/^\d{10}$/.test(s)) {
+    return new Date(Number.parseInt(s, 10) * 1000);
+  }
+  if (/^\d{13}$/.test(s)) {
+    return new Date(Number.parseInt(s, 10));
   }
   return new Date(s);
 };
@@ -241,7 +267,44 @@ export const DateCalculateBoxSource = {
     return undefined;
   },
 
-  async generateBoxes(input: string): Promise<Box[]> {
+  async generateBoxes(
+    input: string,
+    options: BoxOptions = null,
+  ): Promise<Box[]> {
+    // 1. check relative time option (Time Ago / Time Later)
+    if (
+      hasOptionKeys(options, 'relative', 'timeago', 'timelater', 'relativetime')
+    ) {
+      if (!isString(input) || trim(input).length === 0 || input.length > 100) {
+        return [];
+      }
+      const raw = trim(input);
+      const date = parseDate(raw);
+      if (Number.isNaN(date.getTime())) {
+        return [
+          new BoxBuilder('Relative Time', `Invalid date: "${raw}"`)
+            .setShowExpandButton(false)
+            .setPriority(this.priority)
+            .build(),
+        ];
+      }
+      const diffMs = date.getTime() - Date.now();
+      const [value, unit] = pickUnit(diffMs);
+      const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+      const relative = rtf.format(value, unit);
+      return [
+        new BoxBuilder('Relative Time', relative)
+          .setOptions({
+            Relative: relative,
+            ISO: date.toISOString(),
+            Direction: diffMs < -500 ? 'past' : diffMs > 500 ? 'future' : 'now',
+          })
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
     const match = this.checkMatch(input);
     if (!match) {
       return [];
