@@ -24,6 +24,7 @@ import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
+import NoteFrequencyBoxSource from './NoteFrequencyBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  NoteFrequencyBoxSource,
 ];
