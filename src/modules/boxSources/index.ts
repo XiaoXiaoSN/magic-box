@@ -1,10 +1,6 @@
 import type { BoxSource } from '../BoxSource';
 import A1Z26BoxSource from './A1Z26BoxSource';
 import AsciiTableBoxSource from './AsciiTableBoxSource';
-import {
-  Base64DecodeBoxSource,
-  Base64EncodeBoxSource,
-} from './Base64BoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
@@ -21,6 +17,7 @@ import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
+import LengthConvertBoxSource from './LengthConvertBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
@@ -40,14 +37,14 @@ import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
-import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
+import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
 import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
 import WordCountBoxSource from './WordCountBoxSource';
-import WordsToNumberBoxSource from './WordsToNumberBoxSource';
 import WordWrapBoxSource from './WordWrapBoxSource';
+import WordsToNumberBoxSource from './WordsToNumberBoxSource';
 import ZodiacBoxSource from './ZodiacBoxSource';
 
 // Path B: default order is the display order. High-signal sources sit on top;
@@ -86,6 +83,7 @@ export const boxSources: BoxSource[] = [
   FrequencyBoxSource,
   GcdLcmBoxSource,
   HaversineBoxSource,
+  LengthConvertBoxSource,
   LineToolsBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
