@@ -97,6 +97,7 @@ export const BOX_SOURCE_IDS = [
   'certificate-decode',
   'cheat-sheet',
   'country-flag',
+  'css-to-js',
   'coordinates',
   'html-entities',
   'http-status',
@@ -533,6 +534,11 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
     description:
       'Convert an ISO 3166-1 alpha-2 country code to its flag emoji, or a flag emoji back to its code.',
   },
+  'css-to-js': {
+    name: 'CSS to JS',
+    description:
+      'Convert CSS declarations and literal React style objects. JS expressions and !important are not supported.',
+  },
   coordinates: {
     name: 'Coordinates',
     description:
@@ -940,6 +946,11 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   'country-flag': {
     name: '國旗',
     description: '在 ISO 3166-1 兩字母國家代碼與國旗 emoji 之間轉換。',
+  },
+  'css-to-js': {
+    name: 'CSS 與 JS 轉換',
+    description:
+      '在 CSS 宣告與 React 樣式物件字面值之間轉換。不支援 JavaScript 運算式與 !important。',
   },
   coordinates: {
     name: '座標',

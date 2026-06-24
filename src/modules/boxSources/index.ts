@@ -1593,6 +1593,20 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       import('./CountryFlagBoxSource').then((module) => module.default),
   },
   {
+    id: 'css-to-js',
+    name: 'CSS to JS',
+    description:
+      'Convert CSS declarations and literal React style objects. JS expressions and !important are not supported.',
+    defaultInput: 'background-color: red;\nfont-size: 14px;\n::cssjs',
+    tag: '#',
+    kind: 'Convert',
+    defaultDisabled: true,
+    optionKeys: ['cssjs', 'csstojs'],
+    headless: true,
+    canHandle: optionMatcher(['cssjs', 'csstojs']),
+    load: () => import('./CssToJsBoxSource').then((module) => module.default),
+  },
+  {
     id: 'coordinates',
     name: 'Coordinates',
     description:

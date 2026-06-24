@@ -57,6 +57,12 @@ flag emojis in either direction. Enter `US` or `🇺🇸`, followed by `::flag` 
 `::countryflag` on its own line. Names use the runtime's English region names.
 Reserved codes such as `EU`, `UK`, and `ZZ` are rejected.
 
+CSS to JS (disabled by default) converts CSS declarations and literal React style
+objects. Put `::cssjs` or `::csstojs` on its own line after the input. Quoted
+values, CSS custom properties and vendor prefixes are preserved. Numeric React
+lengths receive `px`; unitless properties stay unitless. Input is limited to
+100,000 characters. JavaScript expressions and CSS `!important` are rejected.
+
 Expand the examples below for usage tips and screenshots.
 
 <details>

@@ -1201,6 +1201,20 @@ US
 ::flag
 ~~~~
 
+### CSS to JS (css-to-js)
+
+Convert CSS declarations and literal React style objects. JS expressions and !important are not supported.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::cssjs, ::csstojs.
+
+Example (each ::option starts a new line):
+~~~~text
+background-color: red;
+font-size: 14px;
+::cssjs
+~~~~
+
 ### Coordinates (coordinates)
 
 Convert a coordinate between decimal degrees, DDM, DMS, Plus Code, Geohash, UTM, MGRS and geo URI. ::coord shows every format; ::dms, ::pluscode, ::geohash, ::utm, … show just that one. Accepts lat/lng in any of the angle formats, a full Plus Code or a Geohash.
