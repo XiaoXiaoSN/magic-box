@@ -16,6 +16,7 @@ import FrequencyBoxSource from './FrequencyBoxSource';
 import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
+import HttpStatusBoxSource from './HttpStatusBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
@@ -78,6 +79,7 @@ export const boxSources: BoxSource[] = [
   BmiBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
+  HttpStatusBoxSource,
   LineToolsBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
