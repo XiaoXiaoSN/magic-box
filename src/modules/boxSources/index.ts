@@ -10,7 +10,7 @@ import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
-import DateCalculateBoxSource from './DateCalculateBoxSource';
+import DotEnvBoxSource from './DotEnvBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import FractionBoxSource from './FractionBoxSource';
@@ -85,6 +85,7 @@ export const boxSources: BoxSource[] = [
   AsciiTableBoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
+  DotEnvBoxSource,
   FractionBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
