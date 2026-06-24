@@ -5,6 +5,7 @@ import {
   Base64DecodeBoxSource,
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
+import AtbashBoxSource from './AtbashBoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
@@ -74,6 +75,7 @@ export const boxSources: BoxSource[] = [
   WordWrapBoxSource,
   A1Z26BoxSource,
   AsciiTableBoxSource,
+  AtbashBoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
   FrequencyBoxSource,
