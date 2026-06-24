@@ -38,6 +38,7 @@ import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
+import TextWrapBoxSource from './TextWrapBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
@@ -99,6 +100,7 @@ export const boxSources: BoxSource[] = [
   SubnetBoxSource,
   TemperatureBoxSource,
   TextReverseBoxSource,
+  TextWrapBoxSource,
   TwosComplementBoxSource,
   UlidBoxSource,
   UnicodeNormalizeBoxSource,
