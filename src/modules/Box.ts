@@ -123,3 +123,40 @@ export class BoxBuilder {
     };
   }
 }
+
+// builds a key/value box: renders the pairs as `k: v` lines for the headless
+// plaintextOutput (TUI/clipboard) AND stores them as structured options for the
+// web template. the template is passed in so this module stays framework-agnostic.
+// using this avoids the recurring bug where a KeyValue box ships an empty
+// plaintextOutput and renders blank in the headless TUI.
+export function keyValueBox(
+  template: BoxTemplate | undefined,
+  name: string,
+  kv: Record<string, string>,
+  opts: { priority?: number; showExpandButton?: boolean } = {},
+): Box {
+  const plaintext = Object.entries(kv)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+  const builder = new BoxBuilder(name, plaintext)
+    .setOptions(kv)
+    .setTemplate(template);
+  if (opts.priority !== undefined) builder.setPriority(opts.priority);
+  if (opts.showExpandButton !== undefined) {
+    builder.setShowExpandButton(opts.showExpandButton);
+  }
+  return builder.build();
+}
+
+// builds a plain message box for error/empty states. it leaves the template
+// undefined so the web layer falls back to DefaultBoxTemplate and the headless
+// layer renders the message — never a blank KeyValue grid.
+export function errorBox(
+  name: string,
+  message: string,
+  opts: { priority?: number } = {},
+): Box {
+  const builder = new BoxBuilder(name, message).setShowExpandButton(false);
+  if (opts.priority !== undefined) builder.setPriority(opts.priority);
+  return builder.build();
+}

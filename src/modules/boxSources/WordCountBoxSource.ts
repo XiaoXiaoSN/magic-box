@@ -1,7 +1,7 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
+import { keyValueBox } from '@modules/Box';
 
 const Priority = 0;
 
@@ -56,10 +56,6 @@ i'mdifficult
     const words = countWords(match.text);
     const characters = match.text.length;
 
-    const content = `lines: ${lines}
-words: ${words}
-characters: ${characters}`;
-
     const output: Record<string, string> = {
       lines: lines.toString(),
       words: words.toString(),
@@ -67,11 +63,9 @@ characters: ${characters}`;
     };
 
     return [
-      new BoxBuilder('Word Count', content)
-        .setTemplate(KeyValueBoxTemplate)
-        .setOptions(output)
-        .setPriority(this.priority)
-        .build(),
+      keyValueBox(KeyValueBoxTemplate, 'Word Count', output, {
+        priority: this.priority,
+      }),
     ];
   },
 };
