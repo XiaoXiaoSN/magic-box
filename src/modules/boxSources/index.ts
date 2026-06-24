@@ -7,6 +7,7 @@ import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
+import FrontmatterBoxSource from './FrontmatterBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
 import JWTBoxSource from './JWTBoxSource';
@@ -50,5 +51,6 @@ export const boxSources = [
   UuidBoxSource,
   TimestampBoxSource,
   Base64EncodeBoxSource,
+  FrontmatterBoxSource,
   WordCountBoxSource,
 ];
