@@ -27,6 +27,7 @@ import HaversineBoxSource from './HaversineBoxSource';
 import HexDumpBoxSource from './HexDumpBoxSource';
 import HexTextBoxSource from './HexTextBoxSource';
 import HsvBoxSource from './HsvBoxSource';
+import Ieee754BoxSource from './Ieee754BoxSource';
 import Ipv6BoxSource from './Ipv6BoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
@@ -140,4 +141,5 @@ export const boxSources: BoxSource[] = [
   GlobToRegexBoxSource,
   HsvBoxSource,
   Ipv6BoxSource,
+  Ieee754BoxSource,
 ];
