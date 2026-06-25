@@ -92,10 +92,26 @@ describe('ReverseTextBoxSource', () => {
   });
 
   describe('words mode', () => {
-    it('reverses word order', async () => {
+    it('reverses word order with words option', async () => {
       const boxes = await ReverseTextBoxSource.generateBoxes(
         'hello world foo',
         { reverse: 'words' },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('foo world hello');
+    });
+
+    it('reverses word order with word option', async () => {
+      const boxes = await ReverseTextBoxSource.generateBoxes(
+        'hello world foo',
+        { reverse: 'word' },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('foo world hello');
+    });
+
+    it('reverses word order with w option', async () => {
+      const boxes = await ReverseTextBoxSource.generateBoxes(
+        'hello world foo',
+        { reverse: 'w' },
       );
       expect(boxes[0].props.plaintextOutput).toBe('foo world hello');
     });

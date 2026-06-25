@@ -34,7 +34,7 @@ export const ReverseTextBoxSource = {
   defaultDisabled: true,
   name: 'Reverse Text',
   description:
-    'Reverse text by characters (default), words (::reverse=words), or lines (::reverse=lines).',
+    'Reverse text by characters (default), words (::reverse=words|word|w), or lines (::reverse=lines).',
   defaultInput: 'hello world ::reverse',
   tag: '#',
   kind: 'Transform',
@@ -51,7 +51,7 @@ export const ReverseTextBoxSource = {
     const mode = extractOptionKeys(options, 'reverse');
 
     let output: string;
-    if (mode === 'words') {
+    if (mode === 'words' || mode === 'word' || mode === 'w') {
       output = reverseWords(input);
     } else if (mode === 'lines') {
       output = reverseLines(input);
