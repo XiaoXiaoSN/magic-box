@@ -8,6 +8,8 @@ import {
   isObject,
   isRFC3339,
   isString,
+  isValidDay,
+  parseDateString,
   toNumeric,
   trim,
 } from '../helper';
@@ -170,6 +172,112 @@ describe('helper functions', () => {
       expect(isJSON('not json')).toBe(false);
       expect(isJSON('{invalid:json}')).toBe(false);
       expect(isJSON('{"unclosed:"object"')).toBe(false);
+    });
+  });
+
+  describe('isValidDay', () => {
+    it('should return true for valid month and day', () => {
+      expect(isValidDay(1, 31)).toBe(true);
+      expect(isValidDay(2, 29)).toBe(true); // leap year tolerance
+      expect(isValidDay(12, 31)).toBe(true);
+    });
+
+    it('should return false for invalid month or day', () => {
+      expect(isValidDay(0, 15)).toBe(false);
+      expect(isValidDay(13, 15)).toBe(false);
+      expect(isValidDay(2, 30)).toBe(false);
+      expect(isValidDay(4, 31)).toBe(false);
+    });
+  });
+
+  describe('parseDateString', () => {
+    it('should parse YYYY-MM-DD formats', () => {
+      expect(parseDateString('2026-06-25')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('2026/06/25')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('2026.06.25')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('2026年6月25日')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+    });
+
+    it('should parse MM-DD formats', () => {
+      expect(parseDateString('06-25')).toEqual({ month: 6, day: 25 });
+      expect(parseDateString('6/25')).toEqual({ month: 6, day: 25 });
+      expect(parseDateString('06.25')).toEqual({ month: 6, day: 25 });
+      expect(parseDateString('6月25日')).toEqual({ month: 6, day: 25 });
+    });
+
+    it('should parse datetime strings', () => {
+      expect(parseDateString('2026-06-25T13:05:40+08:00')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('2026-06-25 13:05:40')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+    });
+
+    it('should parse Month Name formats', () => {
+      expect(parseDateString('June 25')).toEqual({ month: 6, day: 25 });
+      expect(parseDateString('June 25, 2026')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('25 June')).toEqual({ month: 6, day: 25 });
+      expect(parseDateString('25 June 2026')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('Jan 1')).toEqual({ month: 1, day: 1 });
+      expect(parseDateString('1 Jan')).toEqual({ month: 1, day: 1 });
+    });
+
+    it('should parse UNIX timestamps', () => {
+      // 1735794245 is Jan 2, 2025
+      const res = parseDateString('1735794245');
+      expect(res).not.toBeNull();
+      expect(res?.month).toBe(1);
+      expect(res?.day).toBe(2);
+
+      // 1735794245000 is Jan 2, 2025 in ms
+      const resMs = parseDateString('1735794245000');
+      expect(resMs).not.toBeNull();
+      expect(resMs?.month).toBe(1);
+      expect(resMs?.day).toBe(2);
+    });
+
+    it('should fallback to standard JS Date parsing', () => {
+      expect(parseDateString('Thu Jun 25 2026')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+    });
+
+    it('should return null for invalid inputs', () => {
+      expect(parseDateString('')).toBeNull();
+      expect(parseDateString('hello')).toBeNull();
+      expect(parseDateString('13-45')).toBeNull();
+      expect(parseDateString('2026-02-30')).toBeNull();
     });
   });
 });

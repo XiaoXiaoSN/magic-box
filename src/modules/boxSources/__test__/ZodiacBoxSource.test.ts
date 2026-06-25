@@ -107,6 +107,36 @@ describe('ZodiacBoxSource', () => {
       });
     });
 
+    describe('flexible date/time formats', () => {
+      it('accepts datetime string YYYY-MM-DDTHH:mm:ssZ', async () => {
+        const boxes = await ZodiacBoxSource.generateBoxes(
+          '2026-06-25T13:05:40+08:00',
+          {
+            zodiac: true,
+          },
+        );
+        const opts = boxes[0].props.options as Record<string, string>;
+        expect(opts.Sign).toBe('Cancer');
+      });
+
+      it('accepts Month Name day format', async () => {
+        const boxes = await ZodiacBoxSource.generateBoxes('June 25', {
+          zodiac: true,
+        });
+        const opts = boxes[0].props.options as Record<string, string>;
+        expect(opts.Sign).toBe('Cancer');
+      });
+
+      it('accepts UNIX timestamp', async () => {
+        // 1735794245 is Jan 2, 2025 (Capricorn)
+        const boxes = await ZodiacBoxSource.generateBoxes('1735794245', {
+          zodiac: true,
+        });
+        const opts = boxes[0].props.options as Record<string, string>;
+        expect(opts.Sign).toBe('Capricorn');
+      });
+    });
+
     describe('output shape', () => {
       it('box is named Zodiac Sign with correct keys', async () => {
         const boxes = await ZodiacBoxSource.generateBoxes('03-21', {

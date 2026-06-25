@@ -1,12 +1,12 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { parseDateString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
 // max input length to avoid processing arbitrary long strings
-const MAX_INPUT_LENGTH = 20;
+const MAX_INPUT_LENGTH = 45;
 
 interface ZodiacSign {
   name: string;
@@ -77,38 +77,6 @@ function lookupSign(month: number, day: number): ZodiacSign {
   return SIGNS[0];
 }
 
-// days in each month; feb 29 is accepted (leap-year tolerance for zodiac purposes)
-const DAYS_IN_MONTH = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-function isValidDay(month: number, day: number): boolean {
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > DAYS_IN_MONTH[month]) return false;
-  return true;
-}
-
-// parse input as MM-DD, MM/DD, YYYY-MM-DD, or YYYY/MM/DD.
-// returns [month, day] on success or null when the format is unrecognized.
-function parseDate(input: string): [number, number] | null {
-  // normalize separators so we handle both '-' and '/'
-  const normalized = input.replace(/\//g, '-');
-
-  const fullMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(normalized);
-  if (fullMatch) {
-    const month = Number.parseInt(fullMatch[2], 10);
-    const day = Number.parseInt(fullMatch[3], 10);
-    return isValidDay(month, day) ? [month, day] : null;
-  }
-
-  const shortMatch = /^(\d{1,2})-(\d{1,2})$/.exec(normalized);
-  if (shortMatch) {
-    const month = Number.parseInt(shortMatch[1], 10);
-    const day = Number.parseInt(shortMatch[2], 10);
-    return isValidDay(month, day) ? [month, day] : null;
-  }
-
-  return null;
-}
-
 // build a k:v plaintext string consumed by KeyValueBoxTemplate
 function kvToPlaintext(kv: Record<string, string>): string {
   return Object.entries(kv)
@@ -135,7 +103,7 @@ export const ZodiacBoxSource = {
     const raw = trim(input);
     if (raw.length > MAX_INPUT_LENGTH) return [];
 
-    const parsed = parseDate(raw);
+    const parsed = parseDateString(raw);
 
     if (parsed === null) {
       // return an informational box so the user knows the input is invalid
@@ -149,7 +117,7 @@ export const ZodiacBoxSource = {
       ];
     }
 
-    const [month, day] = parsed;
+    const { month, day } = parsed;
     const sign = lookupSign(month, day);
     const mmdd = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
