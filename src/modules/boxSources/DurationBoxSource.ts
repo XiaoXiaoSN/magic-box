@@ -8,7 +8,8 @@ const MAX_INPUT_LENGTH = 100;
 
 // segment regex to match duration tokens: e.g. "1.5h", "10s", "8789sec", "22sec", "1m48s", "1h3s", "500ms"
 // ordered by length of unit to avoid greedy sub-matching
-const SEGMENT_RE = /(\d+(?:\.\d+)?)\s*(milliseconds|millisecond|seconds|minutes|second|minute|weeks|hours|msec|days|week|hour|sec|min|ms|wk|hr|[wdhms])/gi;
+const SEGMENT_RE =
+  /(\d+(?:\.\d+)?)\s*(milliseconds|millisecond|seconds|minutes|second|minute|weeks|hours|msec|days|week|hour|sec|min|ms|wk|hr|[wdhms])/gi;
 
 const UNIT_MAP: Record<string, number> = {
   // milliseconds
@@ -97,26 +98,6 @@ function toCompact(parts: DurationParts): string {
   return res.join(' ');
 }
 
-function pluralize(value: number, unit: string): string {
-  return value === 1 ? `${value} ${unit}` : `${value} ${unit}s`;
-}
-
-function toLong(parts: DurationParts): string {
-  const { weeks, days, hours, minutes, seconds, milliseconds } = parts;
-  const res: string[] = [];
-  if (weeks > 0) res.push(pluralize(weeks, 'week'));
-  if (days > 0) res.push(pluralize(days, 'day'));
-  if (hours > 0) res.push(pluralize(hours, 'hour'));
-  if (minutes > 0) res.push(pluralize(minutes, 'minute'));
-  if (seconds > 0) res.push(pluralize(seconds, 'second'));
-  if (milliseconds > 0) res.push(pluralize(milliseconds, 'millisecond'));
-
-  if (res.length === 0) {
-    return '0 seconds';
-  }
-  return res.join(', ');
-}
-
 function toClock(parts: DurationParts): string {
   const { weeks, days, hours, minutes, seconds, milliseconds } = parts;
   const hh = String(hours).padStart(2, '0');
@@ -175,7 +156,6 @@ function formatFloat(val: number, decimals: number): string {
 }
 
 export const DurationBoxSource = {
-  defaultDisabled: true,
   name: 'Duration',
   description:
     'Convert numeric seconds/milliseconds or human duration formats (e.g. 10s, 8789sec, 1m48s, 1h3s) to/from human durations and clock formats.',
@@ -233,7 +213,8 @@ export const DurationBoxSource = {
     if (totalSeconds === null || totalSeconds < 0) {
       // If the user triggered with ::duration or ::humantime, return a hint box per PR 361.
       if (hasOptionKeys(options, 'duration', 'humantime')) {
-        const hint = 'No duration tokens found. Use units: w d h m s, e.g. "1h 30m" or "2d 4h".';
+        const hint =
+          'No duration tokens found. Use units: w d h m s, e.g. "1h 30m" or "2d 4h".';
         const kv: Record<string, string> = {
           Input: raw,
           Hint: hint,
@@ -248,20 +229,14 @@ export const DurationBoxSource = {
     }
 
     const parts = decompose(totalSeconds);
-    const compact = toCompact(parts);
-    const long = toLong(parts);
+    const human = toCompact(parts);
     const clock = toClock(parts);
 
     const fmtSeconds = formatFloat(totalSeconds, 6);
-    const fmtMs = formatFloat(totalSeconds * 1000, 3);
 
     const output: Record<string, string> = {
-      'Total Seconds': fmtSeconds,
-      'Total Milliseconds': fmtMs,
       Seconds: fmtSeconds,
-      Human: compact,
-      Compact: compact,
-      Long: long,
+      Human: human,
       Clock: clock,
     };
 
