@@ -1,3 +1,4 @@
+import type { BoxSource } from '../BoxSource';
 import A1Z26BoxSource from './A1Z26BoxSource';
 import AsciiTableBoxSource from './AsciiTableBoxSource';
 import {
@@ -39,7 +40,7 @@ import WordWrapBoxSource from './WordWrapBoxSource';
 // Path B: default order is the display order. High-signal sources sit on top;
 // catch-all encoders (Base64 Encode, Word Count) sit at the bottom so they
 // stay below specific matches without needing per-box priority.
-export const boxSources = [
+export const boxSources: BoxSource[] = [
   ColorBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
