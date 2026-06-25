@@ -34,7 +34,7 @@ export const CaesarCipherBoxSource = {
   defaultDisabled: true,
   name: 'Caesar Cipher',
   description:
-    'Rotate letters by N positions (ROT13 by default). Use ::caesar=N for a custom shift.',
+    'Rotate letters by N positions (ROT13 by default). Use ::caesar=N for a custom shift (supports positive/negative shift, shows encode and decode).',
   defaultInput: 'Hello, World! ::rot13',
   tag: 'Aa',
   kind: 'Encode',
@@ -50,8 +50,16 @@ export const CaesarCipherBoxSource = {
 
     // rot13 always wins; otherwise parse the caesar= value
     let shift: number;
+    let isRot13 = false;
+    let specificMode: 'encode' | 'decode' | null = null;
+
     if (hasOptionKeys(options, 'rot13')) {
+      isRot13 = true;
       shift = 13;
+      const val = extractOptionKeys(options, 'rot13');
+      if (val === 'encode' || val === 'decode') {
+        specificMode = val;
+      }
     } else {
       const raw = extractOptionKeys(options, 'caesar');
       const parsed =
@@ -61,18 +69,38 @@ export const CaesarCipherBoxSource = {
       shift = Number.isNaN(parsed) ? 13 : parsed;
     }
 
-    // normalize into 0..25 (handles negative and large values)
-    const n = ((shift % 26) + 26) % 26;
+    const getEffectiveShift = (s: number) => ((s % 26) + 26) % 26;
+    const boxes: Box[] = [];
 
-    const output = caesarShift(input, n);
+    if (specificMode !== 'decode') {
+      const title = isRot13
+        ? 'Caesar Cipher (ROT13 Encode)'
+        : `Caesar Cipher (shift ${shift}) Encode`;
+      const output = caesarShift(input, getEffectiveShift(shift));
+      boxes.push(
+        new BoxBuilder(title, output)
+          .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      );
+    }
 
-    return [
-      new BoxBuilder(`Caesar Cipher (shift ${n})`, output)
-        .setTemplate(DefaultBoxTemplate)
-        .setShowExpandButton(false)
-        .setPriority(this.priority)
-        .build(),
-    ];
+    if (specificMode !== 'encode') {
+      const title = isRot13
+        ? 'Caesar Cipher (ROT13 Decode)'
+        : `Caesar Cipher (shift ${-shift}) Decode`;
+      const output = caesarShift(input, getEffectiveShift(-shift));
+      boxes.push(
+        new BoxBuilder(title, output)
+          .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      );
+    }
+
+    return boxes;
   },
 };
 

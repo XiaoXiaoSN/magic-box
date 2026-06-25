@@ -34,8 +34,14 @@ describe('CaesarCipherBoxSource', () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('Hello, World!', {
         rot13: true,
       });
-      expect(boxes).toHaveLength(1);
+      expect(boxes).toHaveLength(2);
       expect(boxes[0].props.plaintextOutput).toBe('Uryyb, Jbeyq!');
+      expect(boxes[0].props.name).toBe('Caesar Cipher (ROT13 Encode)');
+      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+
+      expect(boxes[1].props.plaintextOutput).toBe('Uryyb, Jbeyq!');
+      expect(boxes[1].props.name).toBe('Caesar Cipher (ROT13 Decode)');
+      expect(boxes[1].boxTemplate).toBe(DefaultBoxTemplate);
     });
 
     it('is its own inverse — applying rot13 twice returns the original', async () => {
@@ -50,64 +56,74 @@ describe('CaesarCipherBoxSource', () => {
       expect(second[0].props.plaintextOutput).toBe(input);
     });
 
-    it('box name reflects shift 13', async () => {
+    it('supports encode specific option', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('Hello, World!', {
-        rot13: true,
+        rot13: 'encode',
       });
-      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 13)');
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Caesar Cipher (ROT13 Encode)');
+      expect(boxes[0].props.plaintextOutput).toBe('Uryyb, Jbeyq!');
     });
 
-    it('uses DefaultBoxTemplate', async () => {
+    it('supports decode specific option', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('Hello, World!', {
-        rot13: true,
+        rot13: 'decode',
       });
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Caesar Cipher (ROT13 Decode)');
+      expect(boxes[0].props.plaintextOutput).toBe('Uryyb, Jbeyq!');
     });
   });
 
   describe('caesar shift', () => {
-    it('shifts abc by 1 to bcd', async () => {
+    it('shifts abc by 1 to bcd (encode) and wraps to zab (decode)', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('abc', {
         caesar: '1',
       });
-      expect(boxes).toHaveLength(1);
+      expect(boxes).toHaveLength(2);
       expect(boxes[0].props.plaintextOutput).toBe('bcd');
+      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 1) Encode');
+
+      expect(boxes[1].props.plaintextOutput).toBe('zab');
+      expect(boxes[1].props.name).toBe('Caesar Cipher (shift -1) Decode');
     });
 
-    it('wraps xyz by 3 to abc', async () => {
+    it('wraps xyz by 3 to abc (encode) and uvw (decode)', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('xyz', {
         caesar: '3',
       });
+      expect(boxes).toHaveLength(2);
       expect(boxes[0].props.plaintextOutput).toBe('abc');
+      expect(boxes[1].props.plaintextOutput).toBe('uvw');
     });
 
-    it('negative shift -1 on bcd returns abc', async () => {
+    it('negative shift -1 on bcd returns abc (encode) and cde (decode)', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('bcd', {
         caesar: '-1',
       });
+      expect(boxes).toHaveLength(2);
       expect(boxes[0].props.plaintextOutput).toBe('abc');
-    });
+      expect(boxes[0].props.name).toBe('Caesar Cipher (shift -1) Encode');
 
-    it('box name includes the effective shift', async () => {
-      const boxes = await CaesarCipherBoxSource.generateBoxes('abc', {
-        caesar: '1',
-      });
-      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 1)');
+      expect(boxes[1].props.plaintextOutput).toBe('cde');
+      expect(boxes[1].props.name).toBe('Caesar Cipher (shift 1) Decode');
     });
 
     it('defaults to shift 13 when caesar value is true (no value given)', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('Hello, World!', {
         caesar: true,
       });
+      expect(boxes).toHaveLength(2);
       expect(boxes[0].props.plaintextOutput).toBe('Uryyb, Jbeyq!');
-      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 13)');
+      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 13) Encode');
     });
 
     it('defaults to shift 13 on non-numeric caesar value', async () => {
       const boxes = await CaesarCipherBoxSource.generateBoxes('abc', {
         caesar: 'xyz',
       });
-      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 13)');
+      expect(boxes).toHaveLength(2);
+      expect(boxes[0].props.name).toBe('Caesar Cipher (shift 13) Encode');
     });
 
     it('preserves non-letter characters', async () => {
