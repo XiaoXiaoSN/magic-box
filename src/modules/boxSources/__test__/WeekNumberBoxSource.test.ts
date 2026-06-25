@@ -104,6 +104,56 @@ describe('WeekNumberBoxSource', () => {
     });
   });
 
+  describe('flexible date formats', () => {
+    it('accepts MM/DD format', async () => {
+      const boxes = await WeekNumberBoxSource.generateBoxes('01/01', {
+        weeknum: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toMatch(/-\d{2}-\d{2}$/);
+      expect(opts['ISO Week']).toBeDefined();
+    });
+
+    it('accepts YYYY/MM/DD format', async () => {
+      const boxes = await WeekNumberBoxSource.generateBoxes('2024/01/01', {
+        weeknum: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toBe('2024-01-01');
+      expect(opts['ISO Week']).toBe('2024-W01');
+    });
+
+    it('accepts Month Name day format', async () => {
+      const boxes = await WeekNumberBoxSource.generateBoxes('June 25, 2026', {
+        weeknum: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toBe('2026-06-25');
+    });
+
+    it('accepts UNIX timestamp', async () => {
+      // 1735794245 is Jan 2, 2025 (Thursday, ISO week 1 of 2025)
+      const boxes = await WeekNumberBoxSource.generateBoxes('1735794245', {
+        weeknum: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toBe('2025-01-02');
+      expect(opts.Weekday).toBe('Thursday');
+      expect(opts['ISO Week']).toBe('2025-W01');
+    });
+
+    it('accepts datetime string YYYY-MM-DDTHH:mm:ssZ', async () => {
+      const boxes = await WeekNumberBoxSource.generateBoxes(
+        '2026-06-25T13:05:40+08:00',
+        {
+          weeknum: true,
+        },
+      );
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toBe('2026-06-25');
+    });
+  });
+
   describe('empty input → today', () => {
     it('returns a box without error', async () => {
       const boxes = await WeekNumberBoxSource.generateBoxes('', {

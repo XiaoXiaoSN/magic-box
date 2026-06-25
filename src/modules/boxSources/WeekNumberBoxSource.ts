@@ -1,5 +1,5 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
-import { trim } from '@functions/helper';
+import { parseDateString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -96,11 +96,14 @@ export const WeekNumberBoxSource = {
     let date: Date;
     if (raw === '' || raw === 'today' || raw === 'now') {
       date = new Date();
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      // pin a date-only string to UTC midnight so the week is timezone-stable
-      date = new Date(`${raw}T00:00:00Z`);
     } else {
-      date = new Date(raw);
+      const parsed = parseDateString(raw);
+      if (parsed) {
+        const year = parsed.year ?? new Date().getFullYear();
+        date = new Date(Date.UTC(year, parsed.month - 1, parsed.day));
+      } else {
+        date = new Date(raw);
+      }
     }
 
     if (Number.isNaN(date.getTime())) {
