@@ -18,10 +18,14 @@ export interface BoxSetting {
 }
 
 export interface Settings {
+  version?: number;
   boxes: Record<string, BoxSetting>;
 }
 
+const SETTINGS_VERSION = 1;
+
 const defaultSettings: Settings = {
+  version: SETTINGS_VERSION,
   boxes: Object.fromEntries(
     boxSources.map((box, idx) => [
       box.name,
@@ -46,6 +50,8 @@ export const SettingsStorage = {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (stored) {
       const parsed: Settings = JSON.parse(stored);
+      const storedVersion = parsed.version ?? 0;
+
       // Ensure all box sources exist in settings
       boxSources.forEach((box, idx) => {
         if (!parsed.boxes[box.name]) {
@@ -62,6 +68,15 @@ export const SettingsStorage = {
           );
         }
       });
+
+      if (storedVersion < 1) {
+        const durationSetting = parsed.boxes.Duration;
+        if (durationSetting) {
+          durationSetting.enabled = true;
+        }
+      }
+
+      parsed.version = SETTINGS_VERSION;
       return parsed;
     }
     return defaultSettings;
@@ -70,6 +85,7 @@ export const SettingsStorage = {
     // Validate priorities before saving
     const validatedSettings = {
       ...settings,
+      version: SETTINGS_VERSION,
       boxes: Object.fromEntries(
         Object.entries(settings.boxes).map(([key, box]) => [
           key,

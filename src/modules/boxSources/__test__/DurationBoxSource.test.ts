@@ -34,18 +34,17 @@ describe('DurationBoxSource', () => {
   });
 
   describe('seconds → human conversion (numeric input)', () => {
-    it('3661 → Human "1h 1m 1s", Clock "01:01:01", Seconds "3661"', async () => {
+    it('3661 → Seconds "3661", Human "1h 1m 1s", Clock "01:01:01"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('3661', {
         duration: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Human).toBe('1h 1m 1s');
-      expect(opts.Compact).toBe('1h 1m 1s');
-      expect(opts.Clock).toBe('01:01:01');
       expect(opts.Seconds).toBe('3661');
-      expect(opts['Total Seconds']).toBe('3661');
+      expect(opts.Human).toBe('1h 1m 1s');
+      expect(opts.Clock).toBe('01:01:01');
+      expect(Object.keys(opts)).toEqual(['Seconds', 'Human', 'Clock']);
       expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
       expect(boxes[0].props.priority).toBe(10);
     });
@@ -107,70 +106,71 @@ describe('DurationBoxSource', () => {
       });
       expect(boxes2).toHaveLength(1);
       const opts2 = boxes2[0].props.options as Record<string, string>;
-      expect(opts2.Compact).toBe('1h 1m 1s');
-      expect(opts2.Long).toBe('1 hour, 1 minute, 1 second');
+      expect(opts2.Seconds).toBe('3661');
+      expect(opts2.Human).toBe('1h 1m 1s');
+      expect(opts2.Clock).toBe('01:01:01');
     });
   });
 
   describe('milliseconds mode (::humanize=ms or ::duration=ms)', () => {
-    it('90000ms → 90s → Compact "1m 30s"', async () => {
+    it('90000ms → Seconds "90", Human "1m 30s"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('90000', {
         humanize: 'ms',
       });
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Compact).toBe('1m 30s');
-      expect(opts['Total Seconds']).toBe('90');
+      expect(opts.Seconds).toBe('90');
+      expect(opts.Human).toBe('1m 30s');
     });
 
-    it('90000ms with ::duration=ms → Total Seconds "90"', async () => {
+    it('90000ms with ::duration=ms → Seconds "90"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('90000', {
         duration: 'ms',
       });
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('90');
+      expect(opts.Seconds).toBe('90');
     });
   });
 
   describe('human string → seconds conversion', () => {
-    it('"1h30m" → Total Seconds "5400"', async () => {
+    it('"1h30m" → Seconds "5400"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('1h30m', {
         duration: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('5400');
+      expect(opts.Seconds).toBe('5400');
     });
 
-    it('"2d 4h" → Total Seconds "187200"', async () => {
+    it('"2d 4h" → Seconds "187200"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('2d 4h', {
         duration: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('187200');
+      expect(opts.Seconds).toBe('187200');
     });
 
-    it('"1h 1m 1s" → Total Seconds "3661"', async () => {
+    it('"1h 1m 1s" → Seconds "3661"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('1h 1m 1s', {
         duration: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('3661');
+      expect(opts.Seconds).toBe('3661');
     });
 
-    it('"1w" → Total Seconds "604800"', async () => {
+    it('"1w" → Seconds "604800"', async () => {
       const boxes = await DurationBoxSource.generateBoxes('1w', {
         duration: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('604800');
+      expect(opts.Seconds).toBe('604800');
     });
 
     it('handles various unit spellings (10s 8789sec 22sec 1m48s 1h3s)', async () => {
@@ -179,7 +179,7 @@ describe('DurationBoxSource', () => {
         { input: '8789sec', expectedSec: '8789' },
         { input: '22sec', expectedSec: '22' },
         { input: '1m48s', expectedSec: '108' }, // 60 + 48
-        { input: '1h3s', expectedSec: '3603' },  // 3600 + 3
+        { input: '1h3s', expectedSec: '3603' }, // 3600 + 3
       ];
 
       for (const tc of testCases) {
@@ -188,7 +188,7 @@ describe('DurationBoxSource', () => {
         });
         expect(boxes).toHaveLength(1);
         const opts = boxes[0].props.options as Record<string, string>;
-        expect(opts['Total Seconds']).toBe(tc.expectedSec);
+        expect(opts.Seconds).toBe(tc.expectedSec);
       }
     });
 
@@ -198,9 +198,9 @@ describe('DurationBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('0.5');
-      expect(opts['Total Milliseconds']).toBe('500');
-      expect(opts.Compact).toBe('500ms');
+      expect(opts.Seconds).toBe('0.5');
+      expect(opts.Human).toBe('500ms');
+      expect(opts.Clock).toBe('00:00:00.500');
     });
 
     it('triggers on ::parseduration, ::duration2s', async () => {
@@ -209,14 +209,14 @@ describe('DurationBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts['Total Seconds']).toBe('5420');
+      expect(opts.Seconds).toBe('5420');
 
       const boxes2 = await DurationBoxSource.generateBoxes('1h30m20s', {
         duration2s: true,
       });
       expect(boxes2).toHaveLength(1);
       const opts2 = boxes2[0].props.options as Record<string, string>;
-      expect(opts2['Total Seconds']).toBe('5420');
+      expect(opts2.Seconds).toBe('5420');
     });
   });
 
@@ -244,32 +244,6 @@ describe('DurationBoxSource', () => {
         parseduration: true,
       });
       expect(boxes).toHaveLength(0);
-    });
-  });
-
-  describe('Long form pluralization', () => {
-    it('3661s → Long "1 hour, 1 minute, 1 second"', async () => {
-      const boxes = await DurationBoxSource.generateBoxes('3661', {
-        humanize: true,
-      });
-      const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Long).toBe('1 hour, 1 minute, 1 second');
-    });
-
-    it('7200s → Long "2 hours"', async () => {
-      const boxes = await DurationBoxSource.generateBoxes('7200', {
-        humanize: true,
-      });
-      const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Long).toBe('2 hours');
-    });
-
-    it('0s → Long "0 seconds"', async () => {
-      const boxes = await DurationBoxSource.generateBoxes('0', {
-        humanize: true,
-      });
-      const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Long).toBe('0 seconds');
     });
   });
 
