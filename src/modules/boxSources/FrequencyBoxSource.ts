@@ -16,9 +16,9 @@ function computeFrequency(input: string): [string, number][] {
     if (/\s/u.test(char)) continue;
     counts.set(char, (counts.get(char) ?? 0) + 1);
   }
-  return [...counts.entries()].sort(([aChar, aCount], [bChar, bCount]) => {
-    if (bCount !== aCount) return bCount - aCount;
-    return (aChar.codePointAt(0) ?? 0) - (bChar.codePointAt(0) ?? 0);
+  return [...counts.entries()].sort(([charA, countA], [charB, countB]) => {
+    if (countB !== countA) return countB - countA;
+    return (charA.codePointAt(0) ?? 0) - (charB.codePointAt(0) ?? 0);
   });
 }
 
