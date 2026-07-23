@@ -49,11 +49,32 @@ function kvToPlaintext(entries: [string, string][]): string {
   return entries.map(([k, v]) => `${k}: ${v}`).join('\n');
 }
 
+function computeLunarNewYear(year: number): string | null {
+  try {
+    for (let m = 1; m <= 2; m++) {
+      for (let d = 1; d <= 31; d++) {
+        const date = new Date(Date.UTC(year, m - 1, d));
+        if (date.getUTCFullYear() !== year) continue;
+        const fmt = new Intl.DateTimeFormat('en-US-u-ca-chinese', {
+          month: 'numeric',
+          day: 'numeric',
+        }).format(date);
+        if (fmt === '1/1' || fmt.startsWith('1/1') || fmt.startsWith('1 / 1')) {
+          return formatDate(year, m, d);
+        }
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export const EasterBoxSource = {
   defaultDisabled: true,
   name: 'Easter',
   description:
-    'Compute the date of Easter Sunday (Gregorian) for a given year.',
+    'Compute the date of Easter Sunday (Gregorian) and Lunar New Year for a given year.',
   defaultInput: '2025 ::easter',
   tag: '#',
   kind: 'Calculate',
@@ -63,10 +84,17 @@ export const EasterBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'easter')) return [];
+    if (!hasOptionKeys(options, 'easter', 'lny', 'cny', 'lunarnewyear'))
+      return [];
 
     // prefer the option value if it is a numeric string, else fall back to input
-    const optionValue = extractOptionKeys(options, 'easter');
+    const optionValue = extractOptionKeys(
+      options,
+      'easter',
+      'lny',
+      'cny',
+      'lunarnewyear',
+    );
     const rawYear =
       typeof optionValue === 'string' && YEAR_PATTERN.test(optionValue.trim())
         ? optionValue.trim()
@@ -109,6 +137,7 @@ export const EasterBoxSource = {
     const monthName = month === 3 ? 'March' : 'April';
     const goodFriday = offsetDate(easterUtcMs, -2);
     const ashWednesday = offsetDate(easterUtcMs, -46);
+    const lunarNewYear = computeLunarNewYear(year);
 
     const entries: [string, string][] = [
       ['Year', year.toString()],
@@ -117,6 +146,10 @@ export const EasterBoxSource = {
       ['Good Friday', goodFriday],
       ['Ash Wednesday', ashWednesday],
     ];
+
+    if (lunarNewYear) {
+      entries.push(['Lunar New Year', lunarNewYear]);
+    }
 
     const plaintext = kvToPlaintext(entries);
     const opts: Record<string, string> = Object.fromEntries(entries);

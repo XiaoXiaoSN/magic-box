@@ -111,6 +111,15 @@ describe('EasterBoxSource', () => {
       });
       expect(boxes[0].props.options).toMatchObject({ Month: 'March' });
     });
+
+    it('Lunar New Year 2025 → 2025-01-29', async () => {
+      const boxes = await EasterBoxSource.generateBoxes('2025', {
+        cny: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        'Lunar New Year': '2025-01-29',
+      });
+    });
   });
 
   describe('generateBoxes — box metadata', () => {
