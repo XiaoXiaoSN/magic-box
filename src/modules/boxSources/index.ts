@@ -41,6 +41,7 @@ import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
 import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
+import UnitConverterBoxSource from './UnitConverterBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
@@ -97,6 +98,7 @@ export const boxSources: BoxSource[] = [
   TextReverseBoxSource,
   TwosComplementBoxSource,
   UnicodeNormalizeBoxSource,
+  UnitConverterBoxSource,
   WeekNumberBoxSource,
   WhitespaceCleanBoxSource,
   WordsToNumberBoxSource,
