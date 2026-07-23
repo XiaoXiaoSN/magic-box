@@ -30,11 +30,25 @@ function caesarShift(text: string, shift: number): string {
   return out;
 }
 
+// ROT47 rotates ASCII characters 33-126 by 47 positions
+function rot47Shift(text: string): string {
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 33 && code <= 126) {
+      out += String.fromCharCode(((code - 33 + 47) % 94) + 33);
+    } else {
+      out += text[i];
+    }
+  }
+  return out;
+}
+
 export const CaesarCipherBoxSource = {
   defaultDisabled: true,
   name: 'Caesar Cipher',
   description:
-    'Rotate letters by N positions (ROT13 by default). Use ::caesar=N for a custom shift (supports positive/negative shift, shows encode and decode).',
+    'Rotate letters by N positions (ROT13 by default, ROT47, or custom shift). Supports ::rot13, ::rot47, ::caesar=N.',
   defaultInput: 'Hello, World! ::rot13',
   tag: 'Aa',
   kind: 'Encode',
@@ -44,11 +58,38 @@ export const CaesarCipherBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'rot13', 'caesar')) return [];
+    if (!hasOptionKeys(options, 'rot13', 'caesar', 'rot47')) return [];
     if (!isString(input) || input.length === 0) return [];
     if (input.length > MAX_INPUT) return [];
 
-    // rot13 always wins; otherwise parse the caesar= value
+    if (hasOptionKeys(options, 'rot47')) {
+      const output = rot47Shift(input);
+      const val = extractOptionKeys(options, 'rot47');
+      const mode = val === 'encode' || val === 'decode' ? val : null;
+      const boxes: Box[] = [];
+
+      if (mode !== 'decode') {
+        boxes.push(
+          new BoxBuilder('ROT47 Encode', output)
+            .setTemplate(DefaultBoxTemplate)
+            .setShowExpandButton(false)
+            .setPriority(this.priority)
+            .build(),
+        );
+      }
+      if (mode !== 'encode') {
+        boxes.push(
+          new BoxBuilder('ROT47 Decode', output)
+            .setTemplate(DefaultBoxTemplate)
+            .setShowExpandButton(false)
+            .setPriority(this.priority)
+            .build(),
+        );
+      }
+      return boxes;
+    }
+
+    // rot13 or custom caesar shift
     let shift: number;
     let isRot13 = false;
     let specificMode: 'encode' | 'decode' | null = null;

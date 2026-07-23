@@ -135,6 +135,19 @@ describe('CaesarCipherBoxSource', () => {
     });
   });
 
+  describe('rot47', () => {
+    it('encodes and decodes using ROT47 correctly', async () => {
+      const boxes = await CaesarCipherBoxSource.generateBoxes('Hello World!', {
+        rot47: true,
+      });
+      expect(boxes).toHaveLength(2);
+      expect(boxes[0].props.name).toBe('ROT47 Encode');
+      expect(boxes[0].props.plaintextOutput).toBe('w6==@ (@C=5P');
+      expect(boxes[1].props.name).toBe('ROT47 Decode');
+      expect(boxes[1].props.plaintextOutput).toBe('w6==@ (@C=5P');
+    });
+  });
+
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(CaesarCipherBoxSource.name).toBe('Caesar Cipher');
