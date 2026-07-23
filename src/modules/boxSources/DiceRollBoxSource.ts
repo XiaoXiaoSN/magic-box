@@ -1,4 +1,4 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
+import { DiceRollBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -124,7 +124,7 @@ export const DiceRollBoxSource = {
       const plaintext = `Info: ${INVALID_BOX_OUTPUT}`;
       return [
         new BoxBuilder('Dice Roll', plaintext)
-          .setTemplate(KeyValueBoxTemplate)
+          .setTemplate(DiceRollBoxTemplate)
           .setOptions(kvOptions)
           .setPriority(this.priority)
           .build(),
@@ -153,7 +153,7 @@ export const DiceRollBoxSource = {
 
     return [
       new BoxBuilder('Dice Roll', plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setTemplate(DiceRollBoxTemplate)
         .setOptions(kvOptions)
         .setPriority(this.priority)
         .build(),
