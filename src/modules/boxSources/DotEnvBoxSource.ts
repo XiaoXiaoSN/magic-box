@@ -64,13 +64,17 @@ export const DotEnvBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'dotenv', 'envjson')) return [];
+    if (!hasOptionKeys(options, 'dotenv', 'envjson', 'tojson', 'toenv'))
+      return [];
     if (input.length > MAX_INPUT) return [];
 
     const trimmed = trim(input);
 
-    // detect direction: JSON-looking input goes JSON→env, otherwise env→JSON
-    if (trimmed.startsWith('{')) {
+    const forceToJson = hasOptionKeys(options, 'tojson');
+    const forceToEnv = hasOptionKeys(options, 'toenv');
+
+    // detect direction: forceToEnv or (not forceToJson and JSON-looking input) goes JSON→env
+    if (forceToEnv || (!forceToJson && trimmed.startsWith('{'))) {
       try {
         const obj = JSON.parse(trimmed) as Record<string, unknown>;
         const flat: Record<string, string> = {};

@@ -84,5 +84,24 @@ describe('DotEnvBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toContain('COLOR="#ff0000"');
     });
+
+    it('should trigger on ::tojson option', async () => {
+      const boxes = await DotEnvBoxSource.generateBoxes('FOO=bar', {
+        tojson: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Dotenv → JSON');
+      const parsed = JSON.parse(boxes[0].props.plaintextOutput);
+      expect(parsed).toEqual({ FOO: 'bar' });
+    });
+
+    it('should trigger on ::toenv option', async () => {
+      const boxes = await DotEnvBoxSource.generateBoxes('{"FOO":"bar"}', {
+        toenv: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('JSON → Dotenv');
+      expect(boxes[0].props.plaintextOutput).toBe('FOO=bar');
+    });
   });
 });
