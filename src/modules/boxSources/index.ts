@@ -26,6 +26,7 @@ import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PortLookupBoxSource from './PortLookupBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  PortLookupBoxSource,
 ];
