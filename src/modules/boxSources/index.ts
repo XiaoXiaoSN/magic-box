@@ -20,14 +20,19 @@ import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
+import HexDumpBoxSource from './HexDumpBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
+import MarkdownTocBoxSource from './MarkdownTocBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
+import PunycodeBoxSource from './PunycodeBoxSource';
+import QueryStringBoxSource from './QueryStringBoxSource';
+import RadixBoxSource from './RadixBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
@@ -38,6 +43,7 @@ import SoundexBoxSource from './SoundexBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
+import TextDiffBoxSource from './TextDiffBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
@@ -46,6 +52,7 @@ import UlidBoxSource from './UlidBoxSource';
 import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import UnitConverterBoxSource from './UnitConverterBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
+import UrlParseBoxSource from './UrlParseBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
 import WhitespaceCleanBoxSource from './WhitespaceCleanBoxSource';
@@ -59,6 +66,7 @@ import ZodiacBoxSource from './ZodiacBoxSource';
 // stay below specific matches without needing per-box priority.
 export const boxSources: BoxSource[] = [
   ColorBoxSource,
+  ColorContrastBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
   CronExpressionBoxSource,
@@ -99,6 +107,7 @@ export const boxSources: BoxSource[] = [
   SpeedConvertBoxSource,
   SubnetBoxSource,
   TemperatureBoxSource,
+  TextDiffBoxSource,
   TextReverseBoxSource,
   TwosComplementBoxSource,
   UlidBoxSource,
@@ -109,5 +118,10 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
-  ColorContrastBoxSource,
+  MarkdownTocBoxSource,
+  PunycodeBoxSource,
+  RadixBoxSource,
+  QueryStringBoxSource,
+  HexDumpBoxSource,
+  UrlParseBoxSource,
 ];
