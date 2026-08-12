@@ -30,6 +30,7 @@ import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import PunycodeBoxSource from './PunycodeBoxSource';
+import QueryStringBoxSource from './QueryStringBoxSource';
 import RadixBoxSource from './RadixBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
@@ -118,6 +119,7 @@ export const boxSources: BoxSource[] = [
   MarkdownTocBoxSource,
   PunycodeBoxSource,
   RadixBoxSource,
+  QueryStringBoxSource,
   HexTextBoxSource,
   UrlParseBoxSource,
 ];
