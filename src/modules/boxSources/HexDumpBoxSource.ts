@@ -10,18 +10,18 @@ const ROW_WIDTH = 16;
 
 // renders one row in hexdump -C format:
 // <offset>  <8 hex bytes>  <8 hex bytes>  |<ascii>|
-function formatRow(offset: number, bytes: Uint8Array): string {
+function formatRow(bytes: Uint8Array, offset: number): string {
   const hex: string[] = [];
   const ascii: string[] = [];
 
   for (let i = 0; i < ROW_WIDTH; i++) {
-    if (i < bytes.length) {
-      hex.push(bytes[i].toString(16).padStart(2, '0'));
+    const byteIndex = offset + i;
+    if (byteIndex < bytes.length) {
+      const byte = bytes[byteIndex];
+      hex.push(byte.toString(16).padStart(2, '0'));
       // printable ASCII range 0x20–0x7e; everything else shown as '.'
       ascii.push(
-        bytes[i] >= 0x20 && bytes[i] <= 0x7e
-          ? String.fromCharCode(bytes[i])
-          : '.',
+        byte >= 0x20 && byte <= 0x7e ? String.fromCharCode(byte) : '.',
       );
     } else {
       // pad short final row so the ASCII column lines up
@@ -41,7 +41,7 @@ function hexDump(input: string): string {
   const rows: string[] = [];
 
   for (let offset = 0; offset < bytes.length; offset += ROW_WIDTH) {
-    rows.push(formatRow(offset, bytes.slice(offset, offset + ROW_WIDTH)));
+    rows.push(formatRow(bytes, offset));
   }
 
   return rows.join('\n');
