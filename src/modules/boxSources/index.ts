@@ -8,6 +8,7 @@ import {
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
+import ColorContrastBoxSource from './ColorContrastBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
@@ -66,6 +67,7 @@ import ZodiacBoxSource from './ZodiacBoxSource';
 // stay below specific matches without needing per-box priority.
 export const boxSources: BoxSource[] = [
   ColorBoxSource,
+  ColorContrastBoxSource,
   EscapeStringBoxSource,
   Base64DecodeBoxSource,
   CronExpressionBoxSource,
