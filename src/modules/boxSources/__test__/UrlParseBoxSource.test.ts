@@ -39,7 +39,10 @@ describe('UrlParseBoxSource', () => {
         Hash: 'frag',
         Username: 'user',
         Password: 'pass',
+        'Query · x': '1',
+        'Query · y': '2',
       });
+      expect(boxes[0].props.plaintextOutput).toContain('Query · x: 1');
     });
 
     it('parses a simple URL without optional fields', async () => {
@@ -83,23 +86,29 @@ describe('UrlParseBoxSource', () => {
 
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('URL Parse');
-      // the error box must reference "invalid" in some form
-      const opts = boxes[0].props.options as Record<string, string>;
-      const combined = JSON.stringify(opts).toLowerCase();
-      expect(combined).toMatch(/not a valid|invalid/);
+      expect(boxes[0].props.plaintextOutput).toBe('Invalid URL: not a url');
+      expect(boxes[0].boxTemplate).toBeUndefined();
     });
 
-    it('includes Params key when query string is present', async () => {
+    it('renders each decoded query parameter as a separate field', async () => {
       const boxes = await UrlParseBoxSource.generateBoxes(
-        'https://example.com/path?x=1&y=2',
+        'https://example.com/path?given%20name=Ada+Lovelace&active=',
         { urlparse: true },
       );
 
-      expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Params).toBeDefined();
-      expect(opts.Params).toContain('x=1');
-      expect(opts.Params).toContain('y=2');
+      expect(opts['Query · given name']).toBe('Ada Lovelace');
+      expect(opts['Query · active']).toBe('');
+    });
+
+    it('preserves repeated query parameter values in one field', async () => {
+      const boxes = await UrlParseBoxSource.generateBoxes(
+        'https://example.com/path?tag=a&tag=b',
+        { urlparse: true },
+      );
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts['Query · tag']).toBe('a\nb');
     });
 
     it('uses default port when url.port is empty', async () => {

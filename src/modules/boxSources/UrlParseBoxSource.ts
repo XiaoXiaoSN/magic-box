@@ -1,10 +1,45 @@
 import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
+
+const DEFAULT_PORTS: Readonly<Record<string, string>> = {
+  'ftp:': '21',
+  'ftps:': '990',
+  'http:': '80',
+  'https:': '443',
+  'ws:': '80',
+  'wss:': '443',
+};
+
+function decodeUserInfo(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function appendQueryParameters(
+  output: Record<string, string>,
+  searchParams: URLSearchParams,
+): void {
+  const valuesByKey = new Map<string, string[]>();
+
+  for (const [key, value] of searchParams) {
+    const values = valuesByKey.get(key) ?? [];
+    values.push(value);
+    valuesByKey.set(key, values);
+  }
+
+  for (const [key, values] of valuesByKey) {
+    const label = key || '(empty key)';
+    output[`Query · ${label}`] = values.join('\n');
+  }
+}
 
 export const UrlParseBoxSource = {
   defaultDisabled: true,
@@ -29,60 +64,36 @@ export const UrlParseBoxSource = {
     try {
       url = new URL(raw);
     } catch {
-      // invalid url — return a box explaining the failure
       return [
-        new BoxBuilder('URL Parse', `Invalid URL: ${raw}`)
-          .setTemplate(KeyValueBoxTemplate)
-          .setOptions({ Error: `"${raw}" is not a valid URL` })
-          .setPriority(Priority)
-          .build(),
+        errorBox('URL Parse', `Invalid URL: ${raw}`, {
+          priority: this.priority,
+        }),
       ];
     }
 
-    // default ports by scheme so we can fall back when url.port is empty
-    const defaultPorts: Record<string, string> = {
-      'http:': '80',
-      'https:': '443',
-      'ftp:': '21',
-      'ftps:': '990',
-      'ws:': '80',
-      'wss:': '443',
-    };
-
-    const port = url.port || defaultPorts[url.protocol] || '';
-
-    // build the output record; only include optional fields when non-empty
     const output: Record<string, string> = {
       Protocol: url.protocol.replace(/:$/, ''),
       Host: url.hostname,
-      Port: port,
+      Port: url.port || DEFAULT_PORTS[url.protocol] || '',
       Path: url.pathname,
     };
 
-    if (url.username) output.Username = decodeURIComponent(url.username);
-    if (url.password) output.Password = decodeURIComponent(url.password);
+    if (url.username) output.Username = decodeUserInfo(url.username);
+    if (url.password) output.Password = decodeUserInfo(url.password);
 
     const query = url.search.replace(/^\?/, '');
-    if (query) output.Query = query;
+    if (query) {
+      output.Query = query;
+      appendQueryParameters(output, url.searchParams);
+    }
 
     const hash = url.hash.replace(/^#/, '');
     if (hash) output.Hash = hash;
 
-    // include decoded query params as a convenience key when present
-    if (url.searchParams.size > 0) {
-      const parts: string[] = [];
-      for (const [k, v] of url.searchParams.entries()) {
-        parts.push(`${k}=${v}`);
-      }
-      output.Params = parts.join(', ');
-    }
-
     return [
-      new BoxBuilder('URL Parse', raw)
-        .setTemplate(KeyValueBoxTemplate)
-        .setOptions(output)
-        .setPriority(Priority)
-        .build(),
+      keyValueBox(KeyValueBoxTemplate, 'URL Parse', output, {
+        priority: this.priority,
+      }),
     ];
   },
 };
