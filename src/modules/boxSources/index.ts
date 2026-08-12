@@ -11,6 +11,7 @@ import ColorBoxSource from './ColorBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
+import DmsBoxSource from './DmsBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import FractionBoxSource from './FractionBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  DmsBoxSource,
 ];
