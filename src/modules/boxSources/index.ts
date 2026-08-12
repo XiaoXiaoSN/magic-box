@@ -42,6 +42,7 @@ import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
 import UlidBoxSource from './UlidBoxSource';
+import UnicodeEscapeBoxSource from './UnicodeEscapeBoxSource';
 import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
 import UnitConverterBoxSource from './UnitConverterBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
@@ -108,4 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
+  UnicodeEscapeBoxSource,
 ];
