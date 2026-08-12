@@ -40,6 +40,7 @@ import SoundexBoxSource from './SoundexBoxSource';
 import SpeedConvertBoxSource from './SpeedConvertBoxSource';
 import SubnetBoxSource from './SubnetBoxSource';
 import TemperatureBoxSource from './TemperatureBoxSource';
+import TextDiffBoxSource from './TextDiffBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
@@ -102,6 +103,7 @@ export const boxSources: BoxSource[] = [
   SpeedConvertBoxSource,
   SubnetBoxSource,
   TemperatureBoxSource,
+  TextDiffBoxSource,
   TextReverseBoxSource,
   TwosComplementBoxSource,
   UlidBoxSource,
