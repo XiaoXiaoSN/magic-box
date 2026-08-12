@@ -19,6 +19,7 @@ import GcdLcmBoxSource from './GcdLcmBoxSource';
 import GenerateQRCodeBoxSource from './GenerateQRCodeBoxSource';
 import HashBoxSource from './HashBoxSource';
 import HaversineBoxSource from './HaversineBoxSource';
+import HexDumpBoxSource from './HexDumpBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
@@ -119,5 +120,6 @@ export const boxSources: BoxSource[] = [
   PunycodeBoxSource,
   RadixBoxSource,
   QueryStringBoxSource,
+  HexDumpBoxSource,
   UrlParseBoxSource,
 ];
