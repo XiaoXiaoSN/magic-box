@@ -45,7 +45,17 @@ function decodeHexToText(hex: string): DecodeResult | DecodeError {
     bytes[i / 2] = Number.parseInt(cleaned.slice(i, i + 2), 16);
   }
 
-  return { ok: true, text: new TextDecoder().decode(bytes) };
+  try {
+    return {
+      ok: true,
+      text: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
+    };
+  } catch {
+    return {
+      ok: false,
+      message: 'Invalid hex input: bytes are not valid UTF-8',
+    };
+  }
 }
 
 export const HexTextBoxSource = {

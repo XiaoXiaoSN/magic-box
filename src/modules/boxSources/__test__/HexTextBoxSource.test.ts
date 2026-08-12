@@ -85,6 +85,15 @@ describe('HexTextBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid hex/i);
     });
+
+    it('should return an error for bytes that are not valid UTF-8', async () => {
+      const boxes = await HexTextBoxSource.generateBoxes('ff', {
+        fromhex: true,
+      });
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain('not valid UTF-8');
+    });
   });
 
   describe('round-trip', () => {

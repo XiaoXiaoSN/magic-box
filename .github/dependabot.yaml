@@ -5,8 +5,8 @@
 
 version: 2
 updates:
-  # Maintain dependencies for npm
-  - package-ecosystem: npm
+  # Maintain dependencies with Bun so package.json and bun.lock stay in sync
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
