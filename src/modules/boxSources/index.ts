@@ -26,6 +26,7 @@ import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PowerConvertBoxSource from './PowerConvertBoxSource';
 import RandomIntegerBoxSource from './RandomIntegerBoxSource';
 import ReadableBytesBoxSource from './ReadableBytesBoxSource';
 import SemverBoxSource from './SemverBoxSource';
@@ -40,7 +41,9 @@ import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
+import UlidBoxSource from './UlidBoxSource';
 import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
+import UnitConverterBoxSource from './UnitConverterBoxSource';
 import URLDecodeBoxSource from './URLDecodeBoxSource';
 import UuidBoxSource from './UuidBoxSource';
 import WeekNumberBoxSource from './WeekNumberBoxSource';
@@ -87,6 +90,7 @@ export const boxSources: BoxSource[] = [
   GcdLcmBoxSource,
   HaversineBoxSource,
   LineToolsBoxSource,
+  PowerConvertBoxSource,
   SemverBoxSource,
   SnowflakeBoxSource,
   SortLinesBoxSource,
@@ -96,7 +100,9 @@ export const boxSources: BoxSource[] = [
   TemperatureBoxSource,
   TextReverseBoxSource,
   TwosComplementBoxSource,
+  UlidBoxSource,
   UnicodeNormalizeBoxSource,
+  UnitConverterBoxSource,
   WeekNumberBoxSource,
   WhitespaceCleanBoxSource,
   WordsToNumberBoxSource,
