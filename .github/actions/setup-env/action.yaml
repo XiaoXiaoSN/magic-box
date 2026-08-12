@@ -13,17 +13,19 @@ runs:
     - name: Install wasm-pack
       if: ${{ inputs.buildWasm == 'true' }}
       uses: jetli/wasm-pack-action@v0.4.0
+      with:
+        version: v0.15.0
 
     - name: Build WASM
       if: ${{ inputs.buildWasm == 'true' }}
       shell: bash
       run: |
-        find wasmModules -type d -maxdepth 1 -mindepth 1 -exec wasm-pack build --target web --release {} \;
+        for module in wasmModules/*/; do
+          wasm-pack build --target web --release "$module"
+        done
 
     - name: Setup bun
       uses: oven-sh/setup-bun@v2
-      with:
-        bun-version: latest
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
