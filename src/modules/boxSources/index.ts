@@ -22,7 +22,6 @@ import HaversineBoxSource from './HaversineBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
-import MarkdownToHtmlBoxSource from './MarkdownToHtmlBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
@@ -41,6 +40,7 @@ import TemperatureBoxSource from './TemperatureBoxSource';
 import TextReverseBoxSource from './TextReverseBoxSource';
 import TimeFormatBoxSource from './TimeFormatBoxSource';
 import TimestampBoxSource from './TimestampBoxSource';
+import ToHtmlBoxSource from './ToHtmlBoxSource';
 import TwosComplementBoxSource from './TwosComplementBoxSource';
 import UlidBoxSource from './UlidBoxSource';
 import UnicodeNormalizeBoxSource from './UnicodeNormalizeBoxSource';
@@ -109,5 +109,5 @@ export const boxSources: BoxSource[] = [
   WordsToNumberBoxSource,
   ZodiacBoxSource,
   WordCountBoxSource,
-  MarkdownToHtmlBoxSource,
+  ToHtmlBoxSource,
 ];

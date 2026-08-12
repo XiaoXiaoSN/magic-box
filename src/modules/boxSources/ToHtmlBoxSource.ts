@@ -15,8 +15,7 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-// applies inline markdown rules to an already-html-escaped string.
-// all regexes use negated character classes ([^...]) to stay linear — no nested quantifiers.
+// applies lightweight formatting without allowing raw input to become executable markup
 function applyInline(text: string): string {
   // bold: **x** or __x__
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -36,22 +35,37 @@ function applyInline(text: string): string {
   return text;
 }
 
-// neutralize javascript:/vbscript:/data: hrefs (text is already html-escaped)
 function safeHref(url: string): string {
-  const scheme = url.trim().toLowerCase();
-  if (
-    scheme.startsWith('javascript:') ||
-    scheme.startsWith('vbscript:') ||
-    scheme.startsWith('data:')
-  ) {
+  let candidate = '';
+  let hasSchemeDelimiter = false;
+
+  for (const character of url.trimStart()) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (codePoint <= 0x20 || codePoint === 0x7f) continue;
+    if (character === ':') {
+      hasSchemeDelimiter = true;
+      break;
+    }
+    if (character === '/' || character === '?' || character === '#') {
+      candidate = '';
+      break;
+    }
+    candidate += character.toLowerCase();
+  }
+
+  const scheme =
+    hasSchemeDelimiter && /^[a-z][a-z\d+.-]*$/.test(candidate)
+      ? candidate
+      : null;
+
+  if (scheme && !['http', 'https', 'mailto', 'tel'].includes(scheme)) {
     return '#unsafe-url-removed';
   }
   return url;
 }
 
-// converts a subset of markdown to html source text
-function convertMarkdownToHtml(markdown: string): string {
-  const lines = markdown.split('\n');
+function convertToHtml(input: string): string {
+  const lines = input.split('\n');
   const output: string[] = [];
 
   let i = 0;
@@ -131,19 +145,19 @@ function convertMarkdownToHtml(markdown: string): string {
       i++;
     }
     if (paraLines.length > 0) {
-      output.push(`<p>${paraLines.join('\n')}</p>`);
+      output.push(`<p>${paraLines.join('<br>\n')}</p>`);
     }
   }
 
   return output.join('\n');
 }
 
-export const MarkdownToHtmlBoxSource = {
+export const ToHtmlBoxSource = {
   defaultDisabled: true,
-  name: 'Markdown to HTML',
+  name: 'To HTML',
   description:
-    'Convert a subset of Markdown (headings, bold, italic, code, links, lists) to HTML.',
-  defaultInput: '# Title\n\nSome **bold** and *italic* and `code`. ::md2html',
+    'Convert text and lightweight formatting to safe, reusable HTML.',
+  defaultInput: '# Title\n\nSome **bold** text. ::tohtml',
   tag: '#',
   kind: 'Convert',
   priority: Priority,
@@ -152,14 +166,14 @@ export const MarkdownToHtmlBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'md2html', 'markdownhtml')) return [];
+    if (!hasOptionKeys(options, 'tohtml', '2html')) return [];
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    const html = convertMarkdownToHtml(input);
+    const html = convertToHtml(input);
 
     return [
-      new BoxBuilder('Markdown to HTML', html)
+      new BoxBuilder('HTML', html)
         .setTemplate(CodeBoxTemplate)
         .setOptions({ language: 'html' })
         .setShowExpandButton(true)
@@ -169,4 +183,4 @@ export const MarkdownToHtmlBoxSource = {
   },
 };
 
-export default MarkdownToHtmlBoxSource;
+export default ToHtmlBoxSource;
