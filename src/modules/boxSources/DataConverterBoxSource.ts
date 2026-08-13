@@ -6,7 +6,7 @@ import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
 import {
   type ParseOptions,
-  parse as parseYaml,
+  parseAllDocuments,
   type SchemaOptions,
   stringify as stringifyYaml,
   type ToJSOptions,
@@ -35,9 +35,23 @@ const yamlParseOptions: ParseOptions & SchemaOptions & ToJSOptions = {
   maxAliasCount: 2500,
 };
 
+// TOML is line-oriented: a document needs either a table header (`[table]` /
+// `[[array]]`) or a key assignment anchored at the start of a line. Matching
+// that shape instead of searching for a bare `=` keeps large YAML and XML
+// documents from paying for a TOML parse that is certain to fail, and stops
+// detection from leaning on `smol-toml` throwing to correct a wrong guess.
+const TOML_KEY = String.raw`(?:[A-Za-z0-9_-]+|"[^"\n]*"|'[^'\n]*')`;
+const TOML_SHAPE = new RegExp(
+  String.raw`^[ \t]*(?:\[\[?[^\]\n]+\]\]?[ \t]*(?:#.*)?$|${TOML_KEY}(?:[ \t]*\.[ \t]*${TOML_KEY})*[ \t]*=)`,
+  'm',
+);
+
 interface DetectedData {
   format: DataFormat;
   data: unknown;
+  // true when the source was a YAML stream of several `---`-separated
+  // documents, in which case `data` is the array of their values.
+  multiDocument: boolean;
 }
 
 interface FormatError {
@@ -78,7 +92,10 @@ function detectFormat(input: string): DetectResult {
     try {
       const data = JSON.parse(trimmed);
       if (data && typeof data === 'object') {
-        return { ok: true, detected: { format: DataFormat.JSON, data } };
+        return {
+          ok: true,
+          detected: { format: DataFormat.JSON, data, multiDocument: false },
+        };
       }
     } catch (e) {
       errors.push({ format: DataFormat.JSON, message: errorMessage(e) });
@@ -90,7 +107,10 @@ function detectFormat(input: string): DetectResult {
     try {
       const data = xmlParser.parse(trimmed);
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-        return { ok: true, detected: { format: DataFormat.XML, data } };
+        return {
+          ok: true,
+          detected: { format: DataFormat.XML, data, multiDocument: false },
+        };
       }
     } catch (e) {
       errors.push({ format: DataFormat.XML, message: errorMessage(e) });
@@ -98,11 +118,14 @@ function detectFormat(input: string): DetectResult {
   }
 
   // Try TOML
-  if (trimmed.includes('=') || trimmed.startsWith('[')) {
+  if (TOML_SHAPE.test(trimmed)) {
     try {
       const data = parseToml(trimmed);
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-        return { ok: true, detected: { format: DataFormat.TOML, data } };
+        return {
+          ok: true,
+          detected: { format: DataFormat.TOML, data, multiDocument: false },
+        };
       }
     } catch (e) {
       errors.push({ format: DataFormat.TOML, message: errorMessage(e) });
@@ -111,13 +134,28 @@ function detectFormat(input: string): DetectResult {
 
   // Try YAML
   try {
-    const data = parseYaml(trimmed, yamlParseOptions);
+    // parseAllDocuments rather than parse, so a `---`-separated stream is not
+    // rejected outright. It collects syntax errors instead of throwing, while
+    // toJS() still throws on things like an alias reaching across documents —
+    // both have to be handled for broken input to reach the error box.
+    const documents = parseAllDocuments(trimmed, yamlParseOptions);
+    const failed = documents.find((doc) => doc.errors.length > 0);
+    if (failed) throw failed.errors[0];
+
+    // A trailing `---` yields an empty document; dropping the empty ones keeps
+    // a stray separator from turning one document into a two-element array.
+    const values = documents
+      .map((doc) => doc.toJS(yamlParseOptions))
+      .filter((value) => value !== null && value !== undefined);
+
+    const multiDocument = values.length > 1;
+    const data = multiDocument ? values : values[0];
     // YAML is very permissive, we only accept objects/arrays and exclude simple primitives
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-      // Additional check to avoid false positives for simple strings that YAML might parse
-      if (typeof data === 'object') {
-        return { ok: true, detected: { format: DataFormat.YAML, data } };
-      }
+      return {
+        ok: true,
+        detected: { format: DataFormat.YAML, data, multiDocument },
+      };
     }
   } catch (e) {
     errors.push({ format: DataFormat.YAML, message: errorMessage(e) });
@@ -147,48 +185,50 @@ function describeDetectFailure(errors: FormatError[]): string {
   return `Failed to parse input as ${best.format.toUpperCase()}: ${best.message}`;
 }
 
-const FORMATS = [
+interface OutputFormat {
+  id: DataFormat;
+  name: string;
+  keys: string[];
+  // Throws when the data cannot be represented; the caller turns that into a
+  // visible error rather than an empty result.
+  stringify: (data: unknown, multiDocument: boolean) => string;
+}
+
+const FORMATS: readonly OutputFormat[] = [
   {
     id: DataFormat.JSON,
     name: 'JSON',
     keys: ['json', 'tojson'],
-    stringify: (d: unknown) => JSON.stringify(d, null, '    '),
+    stringify: (d) => JSON.stringify(d, null, '    '),
   },
   {
     id: DataFormat.YAML,
     name: 'YAML',
     keys: ['yaml', 'yml', 'toyaml', 'toyml'],
-    stringify: (d: unknown) => stringifyYaml(d),
+    // a multi-document source round-trips back to a `---`-separated stream
+    // rather than collapsing into a single sequence node
+    stringify: (d, multiDocument) =>
+      multiDocument && Array.isArray(d)
+        ? d.map((doc) => stringifyYaml(doc)).join('---\n')
+        : stringifyYaml(d),
   },
   {
     id: DataFormat.TOML,
     name: 'TOML',
     keys: ['toml', 'totoml'],
-    stringify: (d: unknown) => {
-      try {
-        return stringifyToml(d as Record<string, unknown>);
-      } catch (e) {
-        console.error('TOML stringify failed:', e);
-        return undefined;
-      }
-    },
+    stringify: (d) => stringifyToml(d as Record<string, unknown>),
   },
   {
     id: DataFormat.XML,
     name: 'XML',
     keys: ['xml', 'toxml'],
-    stringify: (d: unknown) => {
-      try {
-        const wrapData = Array.isArray(d)
-          ? { root: { item: d } }
-          : Object.keys(d as object).length > 1
-            ? { root: d }
-            : d;
-        return xmlBuilder.build(wrapData);
-      } catch (e) {
-        console.error('XML build failed:', e);
-        return undefined;
-      }
+    stringify: (d) => {
+      const wrapData = Array.isArray(d)
+        ? { root: { item: d } }
+        : Object.keys(d as object).length > 1
+          ? { root: d }
+          : d;
+      return xmlBuilder.build(wrapData);
     },
   },
 ];
@@ -223,7 +263,7 @@ export const DataConverterBoxSource = {
       ];
     }
 
-    const { format: srcFormat, data } = result.detected;
+    const { format: srcFormat, data, multiDocument } = result.detected;
     const boxes: Box[] = [];
 
     for (const fmt of FORMATS) {
@@ -239,8 +279,7 @@ export const DataConverterBoxSource = {
       }
 
       try {
-        const output = fmt.stringify(data);
-        if (output === undefined) continue;
+        const output = fmt.stringify(data, multiDocument);
 
         // For the source format, only show if it actually changed (formatted) the input
         if (isSourceFormat && trim(output) === trim(input)) {
@@ -256,6 +295,18 @@ export const DataConverterBoxSource = {
         );
       } catch (e) {
         console.error(`Conversion to ${fmt.name} failed:`, e);
+        // Same rule as a detection failure: only an explicit target deserves an
+        // error. TOML in particular cannot hold a top-level array, which is
+        // exactly what a multi-document YAML stream produces.
+        if (isTargetRequested) {
+          boxes.push(
+            errorBox(
+              'Data Converter',
+              `Cannot convert to ${fmt.name}: ${errorMessage(e)}`,
+              { priority: PriorityDataConverter },
+            ),
+          );
+        }
       }
     }
 
