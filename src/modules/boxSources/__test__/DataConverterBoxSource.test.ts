@@ -122,4 +122,97 @@ age = 30`;
       expect(boxes).toHaveLength(0);
     });
   });
+
+  describe('YAML 1.1 features', () => {
+    it('should resolve anchors and aliases', async () => {
+      const yamlInput = `defaults: &defaults
+  retries: 3
+prod: *defaults`;
+      const boxes = await DataConverterBoxSource.generateBoxes(yamlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.prod).toEqual({ retries: 3 });
+    });
+
+    it('should expand merge keys instead of emitting a literal "<<" key', async () => {
+      const yamlInput = `defaults: &defaults
+  retries: 3
+  timeout: 5
+prod:
+  <<: *defaults
+  timeout: 30`;
+      const boxes = await DataConverterBoxSource.generateBoxes(yamlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.prod).toEqual({ retries: 3, timeout: 30 });
+      expect(parsed.prod['<<']).toBeUndefined();
+    });
+
+    it('should accept documents that reuse anchors well past the library default', async () => {
+      // The `yaml` default budget of 100 rejects this; real configs routinely
+      // reference a shared block hundreds of times.
+      const anchor = 'base: &base\n  a: 1\n  b: 2\n  c: 3\n';
+      const uses = Array.from(
+        { length: 300 },
+        (_, i) => `svc${i}:\n  <<: *base\n  id: ${i}`,
+      ).join('\n');
+      const boxes = await DataConverterBoxSource.generateBoxes(anchor + uses, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.svc299).toEqual({ a: 1, b: 2, c: 3, id: 299 });
+    });
+  });
+
+  describe('parse failure reporting', () => {
+    it('should report the parse error when a target format was requested', async () => {
+      // duplicate keys are a hard error in the YAML spec
+      const boxes = await DataConverterBoxSource.generateBoxes('a: 1\na: 2\n', {
+        json: true,
+      });
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Data Converter');
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as YAML',
+      );
+      expect(boxes[0].props.plaintextOutput).toContain('Map keys must be uniq');
+    });
+
+    it('should stay silent on a parse failure when no target format was requested', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        'a: 1\na: 2\n',
+        {},
+      );
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('should stay silent on empty input even with a target format', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes('   ', {
+        json: true,
+      });
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('should prefer the JSON error over looser format guesses', async () => {
+      // fails JSON and YAML alike; JSON's brace gate is the more specific match
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        '{"a": 1, "b": @x}',
+        { yaml: true },
+      );
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as JSON',
+      );
+    });
+  });
 });

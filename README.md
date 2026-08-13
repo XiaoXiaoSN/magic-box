@@ -90,6 +90,8 @@ Based on matching methods, we can roughly classify Boxes into two types:
 | option `toml` or `totoml` | convert input to formatted TOML          | formatted TOML              |
 | option `xml` or `toxml`   | convert input to formatted XML           | formatted XML               |
 
+YAML input resolves anchors/aliases and expands YAML 1.1 merge keys (`<<: *anchor`). When a `to*` option is given but the input cannot be parsed, the parse error is shown instead of an empty result.
+
 </details>
 
 <details>
