@@ -11,7 +11,7 @@ import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
-import DateCalculateBoxSource from './DateCalculateBoxSource';
+import DiceRollBoxSource from './DiceRollBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import FractionBoxSource from './FractionBoxSource';
@@ -95,6 +95,7 @@ export const boxSources: BoxSource[] = [
   AsciiTableBoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
+  DiceRollBoxSource,
   FractionBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
