@@ -1,5 +1,6 @@
 import type { BoxSource } from '../BoxSource';
 import A1Z26BoxSource from './A1Z26BoxSource';
+import Ascii85BoxSource from './Ascii85BoxSource';
 import AsciiTableBoxSource from './AsciiTableBoxSource';
 import {
   Base64DecodeBoxSource,
@@ -92,6 +93,7 @@ export const boxSources: BoxSource[] = [
   Base64EncodeBoxSource,
   WordWrapBoxSource,
   A1Z26BoxSource,
+  Ascii85BoxSource,
   AsciiTableBoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
