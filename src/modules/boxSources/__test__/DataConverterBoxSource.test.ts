@@ -122,4 +122,224 @@ age = 30`;
       expect(boxes).toHaveLength(0);
     });
   });
+
+  describe('YAML 1.1 features', () => {
+    it('should resolve anchors and aliases', async () => {
+      const yamlInput = `defaults: &defaults
+  retries: 3
+prod: *defaults`;
+      const boxes = await DataConverterBoxSource.generateBoxes(yamlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.prod).toEqual({ retries: 3 });
+    });
+
+    it('should expand merge keys instead of emitting a literal "<<" key', async () => {
+      const yamlInput = `defaults: &defaults
+  retries: 3
+  timeout: 5
+prod:
+  <<: *defaults
+  timeout: 30`;
+      const boxes = await DataConverterBoxSource.generateBoxes(yamlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.prod).toEqual({ retries: 3, timeout: 30 });
+      expect(parsed.prod['<<']).toBeUndefined();
+    });
+
+    it('should accept documents that reuse anchors well past the library default', async () => {
+      // The `yaml` default budget of 100 rejects this; real configs routinely
+      // reference a shared block hundreds of times.
+      const anchor = 'base: &base\n  a: 1\n  b: 2\n  c: 3\n';
+      const uses = Array.from(
+        { length: 300 },
+        (_, i) => `svc${i}:\n  <<: *base\n  id: ${i}`,
+      ).join('\n');
+      const boxes = await DataConverterBoxSource.generateBoxes(anchor + uses, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.svc299).toEqual({ a: 1, b: 2, c: 3, id: 299 });
+    });
+  });
+
+  describe('multi-document YAML', () => {
+    const multiDoc = `kind: Service
+name: api
+---
+kind: Deployment
+name: api`;
+
+    it('should convert a --- separated stream to a JSON array', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(multiDoc, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? 'null');
+      expect(parsed).toEqual([
+        { kind: 'Service', name: 'api' },
+        { kind: 'Deployment', name: 'api' },
+      ]);
+    });
+
+    it('should round-trip back to a --- separated stream, not a sequence', async () => {
+      // spaced out so the reformatted output differs from the input and the
+      // "source format is already pretty" suppression does not hide the box
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        'kind:    Service\nname:    api\n---\nkind:    Deployment\nname:    api',
+        { yaml: true },
+      );
+
+      const yamlBox = boxes.find((b) => b.props.name === 'YAML Output');
+      expect(yamlBox?.props.plaintextOutput).toBe(
+        'kind: Service\nname: api\n---\nkind: Deployment\nname: api\n',
+      );
+    });
+
+    it('should suppress the YAML box when the stream is already canonical', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(multiDoc, {
+        yaml: true,
+      });
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('should ignore a trailing separator rather than emit an array', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes('a: 1\n---\n', {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      expect(JSON.parse(jsonBox?.props.plaintextOutput ?? 'null')).toEqual({
+        a: 1,
+      });
+    });
+
+    it('should report a syntax error in any document of the stream', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        'a: 1\n---\nb: 2\nb: 3\n',
+        { json: true },
+      );
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as YAML',
+      );
+    });
+
+    it('should report an alias that reaches across documents', async () => {
+      // anchors are document-scoped, so this resolves to nothing at toJS time
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        'x: &x\n  p: 1\n---\ny:\n  <<: *x\n',
+        { json: true },
+      );
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as YAML',
+      );
+    });
+
+    it('should report that TOML cannot hold a multi-document stream', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(multiDoc, {
+        toml: true,
+      });
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Data Converter');
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Cannot convert to TOML',
+      );
+    });
+  });
+
+  describe('TOML detection gate', () => {
+    it('should not treat YAML containing "=" as a TOML candidate', async () => {
+      const yamlInput = `args:
+  - --flag=value
+name: demo`;
+      const boxes = await DataConverterBoxSource.generateBoxes(yamlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.args).toEqual(['--flag=value']);
+      expect(parsed.name).toBe('demo');
+    });
+
+    it('should still detect TOML table headers and dotted keys', async () => {
+      const tomlInput = `# comment
+[server]
+host = "localhost"
+
+[server.limits]
+"max-body" = 100
+
+[[route]]
+path = "/health"`;
+      const boxes = await DataConverterBoxSource.generateBoxes(tomlInput, {
+        json: true,
+      });
+
+      const jsonBox = boxes.find((b) => b.props.name === 'JSON Output');
+      const parsed = JSON.parse(jsonBox?.props.plaintextOutput ?? '{}');
+      expect(parsed.server.host).toBe('localhost');
+      expect(parsed.server.limits['max-body']).toBe(100);
+      expect(parsed.route).toEqual([{ path: '/health' }]);
+    });
+  });
+
+  describe('parse failure reporting', () => {
+    it('should report the parse error when a target format was requested', async () => {
+      // duplicate keys are a hard error in the YAML spec
+      const boxes = await DataConverterBoxSource.generateBoxes('a: 1\na: 2\n', {
+        json: true,
+      });
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe('Data Converter');
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as YAML',
+      );
+      expect(boxes[0].props.plaintextOutput).toContain('Map keys must be uniq');
+    });
+
+    it('should stay silent on a parse failure when no target format was requested', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        'a: 1\na: 2\n',
+        {},
+      );
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('should stay silent on empty input even with a target format', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes('   ', {
+        json: true,
+      });
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('should prefer the JSON error over looser format guesses', async () => {
+      // fails JSON and YAML alike; JSON's brace gate is the more specific match
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        '{"a": 1, "b": @x}',
+        { yaml: true },
+      );
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Failed to parse input as JSON',
+      );
+    });
+  });
 });

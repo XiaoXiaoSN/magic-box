@@ -90,6 +90,8 @@ Based on matching methods, we can roughly classify Boxes into two types:
 | option `toml` or `totoml` | convert input to formatted TOML          | formatted TOML              |
 | option `xml` or `toxml`   | convert input to formatted XML           | formatted XML               |
 
+YAML input resolves anchors/aliases and expands YAML 1.1 merge keys (`<<: *anchor`). A `---`-separated multi-document stream is read as a list of documents: it converts to a JSON/XML array and round-trips back to a `---`-separated YAML stream. When a `to*` option is given but the input cannot be parsed or cannot be represented in the target format, the error is shown instead of an empty result.
+
 </details>
 
 <details>
