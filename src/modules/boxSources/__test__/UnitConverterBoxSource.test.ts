@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { UnitConverterBoxSource } from '../UnitConverterBoxSource';
 
 describe('UnitConverterBoxSource', () => {
+  it('uses a single-glyph tag that fits the box-tag chip', () => {
+    expect(UnitConverterBoxSource.tag).toBe('⇄');
+  });
+
   describe('auto-detection without options', () => {
     it('converts "100 km" (length)', async () => {
       const boxes = await UnitConverterBoxSource.generateBoxes('100 km', null);

@@ -475,7 +475,7 @@ export const UnitConverterBoxSource = {
   description:
     'Convert units automatically for length, area, volume, mass, temperature, speed, pressure, power, energy, data size, data rate, and time (e.g. 100 km, 50 MB to GB, 37 C).',
   defaultInput: '100 km to mi',
-  tag: 'Unit',
+  tag: '⇄',
   kind: 'Convert',
   priority: Priority,
 
