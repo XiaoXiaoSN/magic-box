@@ -21,14 +21,18 @@ const CloseButton = ({ setShowReader }: CloseButtonProps) => (
       right: '10px',
       cursor: 'pointer',
       zIndex: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      // sits over the live camera feed, so it needs its own opaque-ish plate
+      // rather than inheriting the icon colour from the surrounding theme.
+      backgroundColor: 'var(--bg-elev)',
+      color: 'var(--ink)',
+      opacity: 0.85,
       borderRadius: '50%',
       padding: '4px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       '&:hover': {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        opacity: 1,
       },
     }}
   >
@@ -57,7 +61,7 @@ const QRCodeReaderWrapper = ({
         position: 'relative',
         width: '300px',
         height: '300px',
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-elev)',
         borderRadius: '8px',
         overflow: 'hidden',
       }}
@@ -108,7 +112,7 @@ const QRCodeReader = ({
               left: 0,
               width: '100vw',
               height: '100vh',
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: 'var(--scrim)',
               zIndex: 9999,
               display: 'flex',
               justifyContent: 'center',
