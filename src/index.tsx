@@ -1,6 +1,6 @@
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
-import CssBaseline from '@mui/material/CssBaseline';
+import { applyThemeMode, resolveTheme } from '@global/theme';
 import { browserTracingIntegration, init } from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
@@ -19,7 +19,9 @@ setRuntimePrefs({
   shortenUrl: initialPrefs.shortenUrl,
   analytics: initialPrefs.analytics,
 });
-document.documentElement.dataset.theme = initialPrefs.theme;
+// `system` is collapsed against the OS setting here so the css variable block
+// matches on the very first paint; AppThemeProvider keeps it live afterwards.
+applyThemeMode(resolveTheme(initialPrefs.theme));
 document.documentElement.dataset.density = initialPrefs.density;
 
 // defer firebase init until the browser is idle so the analytics SDK
@@ -68,8 +70,6 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-    <CssBaseline />
     <App />
   </React.StrictMode>,
 );

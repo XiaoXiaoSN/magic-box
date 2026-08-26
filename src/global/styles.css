@@ -1,6 +1,9 @@
 /* MagicBox design system — adapted from claude.ai/design handoff. */
 
+/* Light palette. `color-scheme` is declared explicitly so form controls and
+   scrollbars stay light even when the OS is in dark mode. */
 :root {
+  color-scheme: light;
   --bg: #f8fafc;
   --bg-elev: #ffffff;
   --ink: #0f172a;
@@ -14,8 +17,15 @@
   --accent: #2563eb;
   --accent-soft: #e7effd;
   --accent-ink: #1d4ed8;
+  /* readable foreground on an --accent fill */
+  --on-accent: #ffffff;
   --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --danger-line: #fecaca;
   --success: #16a34a;
+  --topbar-bg: rgba(248, 250, 252, 0.85);
+  --scrim: rgba(15, 23, 42, 0.45);
+  --scrim-soft: rgba(15, 23, 42, 0.35);
   --radius: 10px;
   --radius-lg: 14px;
   --radius-sm: 6px;
@@ -32,10 +42,13 @@
   --density-pad: 16px;
 }
 
-/* dark palette tokens. applied for an explicit dark choice (.dark-theme /
-   [data-theme="dark"]) and, via the media query below, for system mode. */
+/* Dark palette. The "system" preference is resolved to a concrete light/dark
+   value in JS (see global/theme.ts) before first paint, so this block is the
+   only place dark tokens live -- there is no duplicated
+   `@media (prefers-color-scheme: dark)` copy to keep in sync. */
 .dark-theme,
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #0b1120;
   --bg-elev: #131b2e;
   --ink: #e8edf5;
@@ -49,40 +62,18 @@
   --accent: #5b8bf5;
   --accent-soft: #1b2c4d;
   --accent-ink: #93b4fb;
+  --on-accent: #0b1120;
   --danger: #f0616d;
+  --danger-soft: #3a1a20;
+  --danger-line: #63262f;
   --success: #34c97f;
+  --topbar-bg: rgba(11, 17, 32, 0.85);
+  --scrim: rgba(2, 6, 15, 0.62);
+  --scrim-soft: rgba(2, 6, 15, 0.5);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-lg:
     0 16px 40px -12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
-  color-scheme: dark;
-}
-
-/* system theme follows the OS only when no explicit light/dark is chosen. */
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
-    --bg: #0b1120;
-    --bg-elev: #131b2e;
-    --ink: #e8edf5;
-    --ink-2: #c2ccda;
-    --ink-3: #8b97a8;
-    --ink-4: #64718a;
-    --line: #233047;
-    --line-2: #2f3e59;
-    --muted: #1a2436;
-    --muted-2: #233047;
-    --accent: #5b8bf5;
-    --accent-soft: #1b2c4d;
-    --accent-ink: #93b4fb;
-    --danger: #f0616d;
-    --success: #34c97f;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md:
-      0 4px 16px -4px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-lg:
-      0 16px 40px -12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
-    color-scheme: dark;
-  }
 }
 
 /* compact density tightens shared spacing tokens used by lists and cards. */
@@ -148,7 +139,7 @@ pre,
 .topbar {
   height: var(--topbar-h);
   border-bottom: 1px solid var(--line);
-  background: rgba(250, 250, 247, 0.85);
+  background: var(--topbar-bg);
   backdrop-filter: saturate(140%) blur(10px);
   position: sticky;
   top: 0;
@@ -762,6 +753,8 @@ pre,
   font-size: 12px;
   font-family: var(--mono);
   flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .box-card.is-selected .box-tag {
@@ -883,7 +876,7 @@ pre,
   border: none;
   padding: 0;
   margin: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   cursor: default;
 }
@@ -1088,7 +1081,7 @@ pre,
   display: none;
   position: fixed;
   inset: var(--topbar-h) 0 0 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--scrim-soft);
   z-index: 4;
   animation: browserFade 160ms ease;
 }
@@ -1122,7 +1115,7 @@ pre,
     max-height: 70vh;
     z-index: 5;
     border-bottom: 1px solid var(--line);
-    box-shadow: 0 12px 28px -14px rgba(15, 23, 42, 0.25);
+    box-shadow: var(--shadow-md);
     transform: translateY(-100%);
     transition: transform 200ms ease;
     pointer-events: none;
@@ -1386,7 +1379,7 @@ pre,
 
 .browser-row.active .browser-row-tag {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .browser-row-title {
@@ -1869,8 +1862,8 @@ pre,
 }
 
 .btn-danger:hover {
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
 }
 
 .btn-subtle {

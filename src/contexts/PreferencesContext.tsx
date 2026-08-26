@@ -4,6 +4,7 @@ import {
   DEFAULT_TIMEZONE_OFFSET,
   isValidTimezoneOffset,
 } from '@functions/timezone';
+import type { ThemePref } from '@global/theme';
 import {
   createContext,
   useCallback,
@@ -13,7 +14,7 @@ import {
   useState,
 } from 'react';
 
-export type ThemePref = 'light' | 'dark' | 'system';
+export type { ThemePref };
 export type DensityPref = 'comfortable' | 'compact';
 export type CopyModePref = 'enter' | 'paste' | 'off';
 
@@ -99,12 +100,12 @@ const syncRuntimePrefs = (prefs: Prefs): void => {
   });
 };
 
-// apply theme + density to the document root so css variables can react.
+// apply density to the document root so css variables can react. the theme
+// attribute is owned by AppThemeProvider, which resolves `system` against the
+// OS setting and keeps reacting to it after mount.
 const applyDocumentPrefs = (prefs: Prefs): void => {
   if (typeof document === 'undefined') return;
-  const root = document.documentElement;
-  root.dataset.theme = prefs.theme;
-  root.dataset.density = prefs.density;
+  document.documentElement.dataset.density = prefs.density;
 };
 
 interface PreferencesContextType {
