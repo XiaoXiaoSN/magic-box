@@ -121,7 +121,7 @@ const en = {
 
   'pwa.newVersion': 'New version available.',
   'pwa.refreshHint': 'Refresh to update the app.',
-  'pwa.refresh': 'Refresh',
+  'pwa.refresh': 'Update',
   'pwa.later': 'Later',
 
   'snackbar.copied': 'Copied',

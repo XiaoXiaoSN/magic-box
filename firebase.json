@@ -59,6 +59,15 @@
             "value": "max-age=31536000"
           }
         ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ]
   }

@@ -121,7 +121,7 @@ const zhTW: Translations = {
 
   'pwa.newVersion': '有新版本可用。',
   'pwa.refreshHint': '重新整理以更新應用程式。',
-  'pwa.refresh': '重新整理',
+  'pwa.refresh': '更新',
   'pwa.later': '稍後',
 
   'snackbar.copied': '已複製',

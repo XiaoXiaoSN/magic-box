@@ -8,11 +8,15 @@ import { defineConfig } from 'vitest/config';
 import packageJson from './package.json';
 
 const buildVersion = `${packageJson.version}-${new Date().toISOString()}`;
+const buildId = buildVersion.replace(/[^a-zA-Z0-9_-]/g, '-');
+const serviceWorkerFileName = `sw-${buildId}.js`;
+const serviceWorkerUrl = `/${serviceWorkerFileName}`;
 
 // https://vitejs.dev/config/
 export default defineConfig({
   define: {
     __BUILD_VERSION__: JSON.stringify(buildVersion),
+    __SERVICE_WORKER_URL__: JSON.stringify(serviceWorkerUrl),
   },
   resolve: {
     alias: {
@@ -37,12 +41,24 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
   },
   plugins: [
+    {
+      name: 'build-version-manifest',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: `${JSON.stringify({
+            version: buildVersion,
+            serviceWorker: serviceWorkerUrl,
+          })}\n`,
+        });
+      },
+    },
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true,
-      },
+      filename: serviceWorkerFileName,
+      injectRegister: false,
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Magic Box',
@@ -94,11 +110,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        globIgnores: ['sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/mb\.10oz\.tw\/.*/i,
+            urlPattern: /^https:\/\/mb\.10oz\.tw\/(?!version\.json(?:$|\?)).*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
