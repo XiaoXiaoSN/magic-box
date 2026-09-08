@@ -1,5 +1,5 @@
 import { DefaultBoxTemplate } from '@components/BoxTemplate';
-import type { Box as BoxType } from '@modules/Box';
+import type { BoxProps, Box as BoxType } from '@modules/Box';
 import { forwardRef, useCallback, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
@@ -28,12 +28,13 @@ interface BoxCardProps {
   onSelect: () => void;
   onCopy: (text: string) => void;
   onExpand?: () => void;
+  onResultChange?: BoxProps['onResultChange'];
 }
 
 const COPIED_TIMEOUT_MS = 1200;
 
 const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
-  ({ box, selected, onSelect, onCopy, onExpand }, ref) => {
+  ({ box, selected, onSelect, onCopy, onExpand, onResultChange }, ref) => {
     const { t } = useLocale();
     const [justCopied, setJustCopied] = useState(false);
     const { name, plaintextOutput, options, priority, tag, kind, onClick } =
@@ -67,6 +68,8 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
+        e.stopPropagation();
+        if (e.target !== e.currentTarget) return;
         e.preventDefault();
         handleCardClick();
       }
@@ -125,7 +128,11 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
           <Comp
             kind={kind}
             name={name}
-            onClick={onClick}
+            onClick={(text) => {
+              onCopy(text);
+              onClick(text);
+            }}
+            onResultChange={onResultChange}
             options={options}
             plaintextOutput={plaintextOutput}
             priority={priority}

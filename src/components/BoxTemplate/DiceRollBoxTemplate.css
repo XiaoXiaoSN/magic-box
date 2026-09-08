@@ -19,13 +19,10 @@
   font-size: 12px;
 }
 .dice-roll-tray {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 18px 10px;
-  min-height: 190px;
-  padding: 42px 16px 20px;
+  position: relative;
+  box-sizing: content-box;
+  perspective: 900px;
+  overflow: hidden;
   border-radius: 18px;
   border: 5px solid #344963;
   background: radial-gradient(ellipse at 50% 20%, #344c6a, #192c43);
@@ -34,25 +31,28 @@
     inset 0 0 0 1px #71839a44;
 }
 .dice-roll-slot {
-  width: 94px;
-  text-align: center;
-  perspective: 650px;
+  position: absolute;
+  top: calc(50% - 32px);
+  left: calc(50% - 32px);
+  width: 64px;
+  height: 64px;
+  transform-style: preserve-3d;
 }
 .dice-roll-view {
   width: 64px;
   height: 64px;
-  margin: 0 auto 25px;
   transform-style: preserve-3d;
-  transform: rotateX(-18deg) rotateY(-22deg);
-  position: relative;
 }
-.dice-roll-view::before {
-  content: "";
+.dice-roll-shadow {
   position: absolute;
-  inset: 8px -6px -8px;
-  background: #07142199;
-  filter: blur(9px);
-  transform: translateY(32px) rotateX(90deg) translateZ(-22px);
+  top: calc(50% - 12px);
+  left: calc(50% - 35px);
+  width: 70px;
+  height: 24px;
+  border-radius: 50%;
+  background: #06101d;
+  filter: blur(7px);
+  opacity: 0.5;
 }
 .dice-roll-cube {
   width: 100%;
@@ -125,4 +125,18 @@
 .dice-roll-footer button:focus-visible {
   outline: 2px solid #922c46;
   outline-offset: 3px;
+}
+
+.dice-roll-footer button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dice-roll-footer .dice-roll-again {
+  color: #fff9ef;
+  background: #922c46;
+  border-color: #922c46;
+  font-weight: 600;
+}
+.dice-roll-footer .dice-roll-again:hover:not(:disabled) {
+  background: #752039;
 }

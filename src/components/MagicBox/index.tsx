@@ -264,6 +264,15 @@ const MagicBox = ({
           ref={setItemRef(idx)}
           box={src}
           onCopy={copyText}
+          onResultChange={(result) =>
+            setBoxes((current) =>
+              current.map((box) =>
+                box === src
+                  ? { ...box, props: { ...box.props, ...result } }
+                  : box,
+              ),
+            )
+          }
           onExpand={
             src.props.showExpandButton !== false
               ? () => handleOpenModal(src)
