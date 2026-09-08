@@ -1,168 +1,95 @@
-import { describe, expect, it } from 'vitest';
+import { parseInput } from '@functions/parseOptions';
+import type { BoxOptions } from '@modules/Box';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DiceRollBoxSource } from '../DiceRollBoxSource';
 
 describe('DiceRollBoxSource', () => {
-  describe('generateBoxes', () => {
-    it('should return [] when no roll/dice option is present', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('2d6');
-      expect(boxes).toHaveLength(0);
-    });
+  it('requires an explicit dice or roll option', async () => {
+    expect(await DiceRollBoxSource.generateBoxes('3')).toEqual([]);
+    expect(await DiceRollBoxSource.generateBoxes('3', { other: true })).toEqual(
+      [],
+    );
+  });
 
-    it('should return [] when options is null', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('2d6', null);
-      expect(boxes).toHaveLength(0);
-    });
+  it.each<NonNullable<BoxOptions>>([
+    { roll: true },
+    { dice: true },
+    { roll: '' },
+  ])('defaults to one six-sided die with %o', async (options) => {
+    const [box] = await DiceRollBoxSource.generateBoxes('', options);
+    expect(box.props.options?.Dice).toBe('1');
+    expect(JSON.parse(String(box.props.options?.Rolls))).toHaveLength(1);
+  });
 
-    it('should return [] when unrelated option is present', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('2d6', {
-        other: true,
+  it.each([
+    1, 3, 20,
+  ])('rolls exactly %i six-sided dice and preserves plaintext results', async (count) => {
+    const [box] = await DiceRollBoxSource.generateBoxes(String(count), {
+      roll: true,
+    });
+    const rolls: number[] = JSON.parse(String(box.props.options?.Rolls));
+    expect(rolls).toHaveLength(count);
+    expect(
+      rolls.every((roll) => Number.isInteger(roll) && roll >= 1 && roll <= 6),
+    ).toBe(true);
+    expect(box.props.options?.Total).toBe(
+      String(rolls.reduce((sum, roll) => sum + roll, 0)),
+    );
+    expect(box.props.plaintextOutput).toBe(
+      `Dice: ${count}\nRolls: ${JSON.stringify(rolls)}\nTotal: ${box.props.options?.Total}`,
+    );
+  });
+
+  it('prefers an explicit option count over the input', async () => {
+    const [box] = await DiceRollBoxSource.generateBoxes('9', { dice: ' 3 ' });
+    expect(box.props.options?.Dice).toBe('3');
+  });
+
+  it.each([
+    '0',
+    '-1',
+    '21',
+    '1.5',
+    '2d6',
+    '1d20+5',
+    'abc',
+    'Infinity',
+    '1e1',
+    '999999999999999999999',
+  ])('rejects invalid count %s with a visible error template', async (input) => {
+    const [box] = await DiceRollBoxSource.generateBoxes(input, { roll: true });
+    expect(box.props.plaintextOutput).toContain('count from 1 to 20');
+    expect(box.boxTemplate).toBeUndefined();
+    expect(box.props.showExpandButton).toBe(false);
+  });
+
+  it.each([
+    '::roll=3',
+    '::dice=3',
+    '3\n::roll',
+  ])('accepts actual application input %s', async (raw) => {
+    const [input, options] = parseInput(raw);
+    const [box] = await DiceRollBoxSource.generateBoxes(input, options);
+    expect(box.props.options?.Dice).toBe('3');
+  });
+
+  it('rejects biased uint32 samples and includes both endpoints', async () => {
+    const random = vi
+      .spyOn(crypto, 'getRandomValues')
+      .mockImplementation((buffer) => {
+        const samples = buffer as Uint32Array;
+        samples.fill(0);
+        samples[0] = 0xffffffff;
+        samples[1] = 0;
+        samples[2] = 5;
+        return buffer;
       });
-      expect(boxes).toHaveLength(0);
-    });
-
-    it('should roll 2d6 and return values within range', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('2d6', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      expect(options?.Notation).toBe('2d6');
-
-      const rollsRaw = options?.Rolls as string;
-      // parse "[4, 2]" style string
-      const rolls = JSON.parse(rollsRaw) as number[];
-      expect(rolls).toHaveLength(2);
-      for (const r of rolls) {
-        expect(r).toBeGreaterThanOrEqual(1);
-        expect(r).toBeLessThanOrEqual(6);
-      }
-
-      const total = Number(options?.Total);
-      expect(total).toBeGreaterThanOrEqual(2);
-      expect(total).toBeLessThanOrEqual(12);
-      expect(options?.Modifier).toBe('0');
-    });
-
-    it('should handle 1d20+5 with modifier applied to total', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('1d20+5', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      expect(options?.Notation).toBe('1d20+5');
-      expect(options?.Modifier).toBe('+5');
-
-      const total = Number(options?.Total);
-      expect(total).toBeGreaterThanOrEqual(6);
-      expect(total).toBeLessThanOrEqual(25);
-    });
-
-    it('should use the option value as notation when ::roll=4d4', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('', {
-        roll: '4d4',
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      expect(options?.Notation).toBe('4d4');
-
-      const rolls = JSON.parse(options?.Rolls as string) as number[];
-      expect(rolls).toHaveLength(4);
-      for (const r of rolls) {
-        expect(r).toBeGreaterThanOrEqual(1);
-        expect(r).toBeLessThanOrEqual(4);
-      }
-    });
-
-    it('should default count to 1 when notation omits the count (d6)', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('d6', { roll: true });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      const rolls = JSON.parse(options?.Rolls as string) as number[];
-      expect(rolls).toHaveLength(1);
-      expect(rolls[0]).toBeGreaterThanOrEqual(1);
-      expect(rolls[0]).toBeLessThanOrEqual(6);
-    });
-
-    it('should accept ::dice option as an alias', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('1d6', {
-        dice: true,
-      });
-      expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.options?.Notation).toBe('1d6');
-    });
-
-    it('should return an error box for invalid notation "abc"', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('abc', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      // no Notation/Rolls — only an Info key explaining the required format
-      expect(options?.Notation).toBeUndefined();
-      expect(options?.Info).toBeTruthy();
-      const info = options?.Info as string;
-      expect(info.toLowerCase()).toContain('notation');
-    });
-
-    it('should roll 10d10 and all results should be within [1, 10]', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('10d10', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      const rolls = JSON.parse(options?.Rolls as string) as number[];
-      expect(rolls).toHaveLength(10);
-      for (const r of rolls) {
-        expect(r).toBeGreaterThanOrEqual(1);
-        expect(r).toBeLessThanOrEqual(10);
-      }
-
-      const total = Number(options?.Total);
-      expect(total).toBeGreaterThanOrEqual(10);
-      expect(total).toBeLessThanOrEqual(100);
-    });
-
-    it('should include k: v plaintext lines in plaintextOutput for headless TUI', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('1d6', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { plaintextOutput } = boxes[0].props;
-      expect(plaintextOutput).toContain('Notation: 1d6');
-      expect(plaintextOutput).toContain('Rolls:');
-      expect(plaintextOutput).toContain('Sum:');
-      expect(plaintextOutput).toContain('Modifier:');
-      expect(plaintextOutput).toContain('Total:');
-    });
-
-    it('should set priority from source priority', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('1d6', {
-        roll: true,
-      });
-      expect(boxes[0].props.priority).toBe(DiceRollBoxSource.priority);
-    });
-
-    it('should handle negative modifier (1d6-2) and apply it to total', async () => {
-      const boxes = await DiceRollBoxSource.generateBoxes('1d6-2', {
-        roll: true,
-      });
-      expect(boxes).toHaveLength(1);
-
-      const { options } = boxes[0].props;
-      expect(options?.Modifier).toBe('-2');
-
-      const total = Number(options?.Total);
-      // 1d6-2 range: [1-2, 6-2] = [-1, 4]
-      expect(total).toBeGreaterThanOrEqual(-1);
-      expect(total).toBeLessThanOrEqual(4);
-    });
+    try {
+      const [box] = await DiceRollBoxSource.generateBoxes('2', { roll: true });
+      expect(box.props.options?.Rolls).toBe('[1,6]');
+    } finally {
+      random.mockRestore();
+    }
   });
 });

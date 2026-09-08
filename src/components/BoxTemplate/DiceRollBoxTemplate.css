@@ -1,0 +1,128 @@
+.dice-roll-template {
+  color: var(--ink, #24334b);
+  padding: 4px 0;
+}
+.dice-roll-heading,
+.dice-roll-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dice-roll-heading {
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.dice-roll-muted {
+  color: var(--ink-3, #687386);
+  font-size: 12px;
+}
+.dice-roll-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 18px 10px;
+  min-height: 190px;
+  padding: 42px 16px 20px;
+  border-radius: 18px;
+  border: 5px solid #344963;
+  background: radial-gradient(ellipse at 50% 20%, #344c6a, #192c43);
+  box-shadow:
+    inset 0 3px 14px #0a192c99,
+    inset 0 0 0 1px #71839a44;
+}
+.dice-roll-slot {
+  width: 94px;
+  text-align: center;
+  perspective: 650px;
+}
+.dice-roll-view {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 25px;
+  transform-style: preserve-3d;
+  transform: rotateX(-18deg) rotateY(-22deg);
+  position: relative;
+}
+.dice-roll-view::before {
+  content: "";
+  position: absolute;
+  inset: 8px -6px -8px;
+  background: #07142199;
+  filter: blur(9px);
+  transform: translateY(32px) rotateX(90deg) translateZ(-22px);
+}
+.dice-roll-cube {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.dice-roll-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: 4px;
+  padding: 11px;
+  box-sizing: border-box;
+  border: 1px solid #d2cabb;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fffef9, #e6dfd1);
+  box-shadow:
+    inset 2px 2px 3px #ffffff,
+    inset -2px -2px 4px #b9af9b55;
+  backface-visibility: hidden;
+}
+.dice-roll-pip {
+  grid-row: var(--pip-row);
+  grid-column: var(--pip-column);
+  border-radius: 50%;
+  background: #922c46;
+  box-shadow:
+    inset 1px 2px 2px #49101faa,
+    0 1px 0 #fff;
+}
+.dice-roll-value {
+  color: #e2e9f2;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dice-roll-footer {
+  padding: 18px 2px 2px;
+}
+.dice-roll-footer [role="status"] {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.dice-roll-footer strong {
+  font-size: 32px;
+  font-weight: 650;
+  line-height: 1;
+}
+.dice-roll-equation {
+  color: var(--ink-3, #687386);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.dice-roll-footer button {
+  border: 1px solid var(--border-color, #cbd1db);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 9px 13px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dice-roll-footer button:hover {
+  background: var(--accent-bg, #e9edf4);
+}
+.dice-roll-footer button:focus-visible {
+  outline: 2px solid #922c46;
+  outline-offset: 3px;
+}

@@ -5,37 +5,8 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
-// max caps prevent pathological inputs from blocking the event loop
-const MAX_COUNT = 1000;
-const MAX_SIDES = 1_000_000;
-
-const NOTATION_RE = /^(\d*)d(\d+)([+-]\d+)?$/i;
-
-interface ParsedNotation {
-  count: number;
-  sides: number;
-  modifier: number;
-  raw: string;
-}
-
-/** Parses XdY+Z dice notation. Returns null when the string is not valid notation. */
-function parseNotation(raw: string): ParsedNotation | null {
-  const match = NOTATION_RE.exec(raw.trim());
-  if (!match) return null;
-
-  const count = match[1] === '' ? 1 : Number.parseInt(match[1], 10);
-  const sides = Number.parseInt(match[2], 10);
-  const modifier = match[3] ? Number.parseInt(match[3], 10) : 0;
-
-  if (sides < 1 || count < 1) return null;
-
-  return {
-    count: Math.min(count, MAX_COUNT),
-    sides: Math.min(sides, MAX_SIDES),
-    modifier,
-    raw,
-  };
-}
+// bound the number of animated cubes and random samples per request
+const MAX_COUNT = 20;
 
 /** Returns a cryptographically unbiased integer in [1, sides] via rejection sampling. */
 function rollOne(
@@ -83,21 +54,12 @@ function rollDice(count: number, sides: number): number[] {
   return results;
 }
 
-/** Formats a modifier as a signed string, or '0' if zero. */
-function formatModifier(modifier: number): string {
-  if (modifier === 0) return '0';
-  return modifier > 0 ? `+${modifier}` : `${modifier}`;
-}
-
-const INVALID_BOX_OUTPUT =
-  'Dice Roll requires valid dice notation, e.g. 2d6+3 or 1d20.';
-
 export const DiceRollBoxSource = {
   defaultDisabled: true,
   name: 'Dice Roll',
   description:
-    'Roll dice with standard notation, e.g. 2d6+3 or 1d20. ::roll or ::roll=3d8.',
-  defaultInput: '2d6+3 ::roll',
+    'Roll six-sided dice. Specify a count from 1 to 20; defaults to 1. ::roll or ::dice=3.',
+  defaultInput: '::roll',
   tag: '#',
   kind: 'Generate',
   priority: Priority,
@@ -108,43 +70,35 @@ export const DiceRollBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'roll', 'dice')) return [];
 
-    // prefer explicit notation from the option value; fall back to the input string
     const optionValue = extractOptionKeys(options, 'roll', 'dice');
-    const notationRaw =
+    const raw =
       typeof optionValue === 'string' && optionValue.trim() !== ''
         ? optionValue.trim()
         : trim(input);
+    const count = raw === '' ? 1 : Number(raw);
 
-    const parsed = parseNotation(notationRaw);
-
-    if (!parsed) {
-      const kvOptions: Record<string, string> = {
-        Info: INVALID_BOX_OUTPUT,
-      };
-      const plaintext = `Info: ${INVALID_BOX_OUTPUT}`;
+    if (
+      (raw !== '' && !/^\d+$/.test(raw)) ||
+      !Number.isInteger(count) ||
+      count < 1 ||
+      count > MAX_COUNT
+    ) {
       return [
-        new BoxBuilder('Dice Roll', plaintext)
-          .setTemplate(DiceRollBoxTemplate)
-          .setOptions(kvOptions)
+        new BoxBuilder(
+          'Dice Roll',
+          'Enter a dice count from 1 to 20, e.g. ::roll=3. Every die has six sides.',
+        )
+          .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
       ];
     }
 
-    const rolls = rollDice(parsed.count, parsed.sides);
-    const sum = rolls.reduce((a, b) => a + b, 0);
-    const total = sum + parsed.modifier;
-    const modifierStr = formatModifier(parsed.modifier);
-
-    // reconstruct from capped values so the label matches what was rolled
-    const effectiveNotation = `${parsed.count}d${parsed.sides}${modifierStr === '0' ? '' : modifierStr}`;
-
+    const rolls = rollDice(count, 6);
     const kvOptions: Record<string, string> = {
-      Notation: effectiveNotation,
-      Rolls: `[${rolls.join(', ')}]`,
-      Sum: String(sum),
-      Modifier: modifierStr,
-      Total: String(total),
+      Dice: String(count),
+      Rolls: JSON.stringify(rolls),
+      Total: String(rolls.reduce((a, b) => a + b, 0)),
     };
 
     const plaintext = Object.entries(kvOptions)
