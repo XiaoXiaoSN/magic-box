@@ -86,7 +86,7 @@ const DiceRollBoxTemplateComponent = ({
       const rowCount = Math.min(columns, rolls.length - row * columns);
       const x = ((index % columns) - (rowCount - 1) / 2) * 94;
       const y = (row - (Math.ceil(rolls.length / columns) - 1) / 2) * 112;
-      const target = `translate3d(${x}px, ${y}px, 0px) rotateX(-40deg) rotateY(-22deg) rotateX(90deg) ${ROTATIONS[rolls[index]]}`;
+      const target = `translate3d(${x}px, ${y}px, 0px) ${ROTATIONS[rolls[index]]}`;
       cube.style.transform = target;
       const shadowTarget = `translate(${x}px, ${y + 40}px) scale(1)`;
       shadows[index].style.transform = shadowTarget;
@@ -273,6 +273,7 @@ const DiceRollBoxTemplateComponent = ({
                 {FACES.map((face) => (
                   <div
                     className="dice-roll-face"
+                    data-result={face.value === roll}
                     key={face.value}
                     style={{ transform: face.transform }}
                     aria-hidden="true"

@@ -140,3 +140,7 @@
 .dice-roll-footer .dice-roll-again:hover:not(:disabled) {
   background: #752039;
 }
+
+.dice-roll-tray[data-phase="ready"] .dice-roll-face[data-result="false"] {
+  visibility: hidden;
+}
