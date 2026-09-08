@@ -385,6 +385,11 @@ pre,
   resize: none;
   background: transparent;
   font-family: var(--mono);
+  font-feature-settings:
+    "liga" 0,
+    "clig" 0,
+    "calt" 0;
+  font-variant-ligatures: none;
   font-size: 15px;
   line-height: 1.6;
   padding: 16px 18px;

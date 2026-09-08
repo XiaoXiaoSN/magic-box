@@ -40,6 +40,9 @@ export interface BoxProps {
   plaintextOutput: string;
   options: BoxOptions;
   onClick: BoxOnClickFn;
+  onResultChange?: (
+    result: Pick<BoxProps, 'options' | 'plaintextOutput'>,
+  ) => void;
   priority?: number;
   showExpandButton?: boolean;
   largeModal?: boolean;
