@@ -1,17 +1,19 @@
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
 import { applyThemeMode, resolveTheme } from '@global/theme';
-import { browserTracingIntegration, init } from '@sentry/react';
+import { browserTracingIntegration, getClient, init } from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
+import { activateLocalAIPrivacy, isLocalAIMode, subscribeLocalAIPrivacy } from './features/local-ai/privacy';
 import { loadPrefs } from './contexts/PreferencesContext';
 import { isAnalyticsEnabled, setRuntimePrefs } from './functions/runtimePrefs';
 import './index.css';
 
 // seed runtime prefs and theme/density before first paint so plain modules
 // (box sources, telemetry gate) read user values and there is no theme flash.
+if (isLocalAIMode(window.location.search)) activateLocalAIPrivacy();
 const initialPrefs = loadPrefs();
 setRuntimePrefs({
   timezoneOffset: initialPrefs.timezoneOffset,
@@ -27,6 +29,7 @@ document.documentElement.dataset.density = initialPrefs.density;
 // defer firebase init until the browser is idle so the analytics SDK
 // (~150KB gzipped) does not block first paint.
 const loadFirebase = () => {
+  if (!isAnalyticsEnabled()) return;
   import('./firebaseConfig').catch(() => {
     /* analytics is best-effort */
   });
@@ -43,6 +46,7 @@ if (typeof w.requestIdleCallback === 'function') {
 
 init({
   dsn: env.SENTRY_DSN,
+  enabled: isAnalyticsEnabled(),
 
   integrations: [browserTracingIntegration()],
 
@@ -52,17 +56,20 @@ init({
   // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ['localhost', /^https:\/\/mb\.10oz\.tw/],
 
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
-  // Enable logs to be sent to Sentry
-  _experiments: { enableLogs: true },
+  sendDefaultPii: false,
+  beforeBreadcrumb: (breadcrumb) => isAnalyticsEnabled() ? breadcrumb : null,
 
   // honor the "anonymous usage" toggle at runtime: drop every event/transaction
   // unless the user has opted in. reads the live runtime flag so toggling the
   // setting takes effect without a reload.
   beforeSend: (event) => (isAnalyticsEnabled() ? event : null),
   beforeSendTransaction: (event) => (isAnalyticsEnabled() ? event : null),
+});
+
+// The gate drops events immediately; close the SDK too so automatic session
+// reporting cannot continue after entering the private AI mode.
+subscribeLocalAIPrivacy(() => {
+  void getClient()?.close(1).catch(() => undefined);
 });
 
 const root = ReactDOM.createRoot(

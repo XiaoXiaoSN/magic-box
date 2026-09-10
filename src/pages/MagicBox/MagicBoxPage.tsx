@@ -14,6 +14,11 @@ import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
 import type { Translations } from '../../i18n';
+import { localAIMessages } from '../../features/local-ai/messages';
+import { activateLocalAIPrivacy, isLocalAIMode } from '../../features/local-ai/privacy';
+import '../../features/local-ai/localAI.css';
+
+const LocalAIPanel = React.lazy(async () => import('../../features/local-ai/LocalAIPanel'));
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
@@ -36,14 +41,41 @@ const formatRelativeTime = (
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const m = localAIMessages[locale];
+  const [aiMode, setAIMode] = useState(() => isLocalAIMode(window.location.search));
+  const [aiInput, setAIInput] = useState('');
   const [userInput, setUserInput] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('input') ?? params.get('i') ?? '';
+    return isLocalAIMode(window.location.search) ? '' : params.get('input') ?? params.get('i') ?? '';
   });
   const [magicIn, setMagicIn] = useState('');
   const [resetCounter, setResetCounter] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const displayedInput = aiMode ? aiInput : userInput;
+
+  useLayoutEffect(() => {
+    if (!aiMode) return;
+    activateLocalAIPrivacy();
+    const url = new URL(window.location.href);
+    url.searchParams.delete('input');
+    url.searchParams.delete('i');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }, [aiMode]);
+
+  const changeMode = (next: boolean) => {
+    if (next) activateLocalAIPrivacy();
+    setHistoryOpen(false);
+    setAIMode(next);
+    // Only the mode is linkable, never AI content. Separate drafts mean an
+    // AI prompt cannot leak into the tools debounce when switching back.
+    const url = new URL(window.location.href);
+    url.searchParams.delete('input');
+    url.searchParams.delete('i');
+    if (next) url.searchParams.set('mode', 'local-ai');
+    else url.searchParams.delete('mode');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  };
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastRecordedRef = useRef<string>('');
@@ -61,22 +93,24 @@ const MagicBoxPage = (): React.JSX.Element => {
 
   // Debounce input → magicIn so MagicBox doesn't run on every keystroke.
   useEffect(() => {
+    if (aiMode) return;
     const timeoutID = window.setTimeout(() => setMagicIn(userInput), 500);
     return () => window.clearTimeout(timeoutID);
-  }, [userInput]);
+  }, [userInput, aiMode]);
 
   // Record to search history when debounced input settles.
   useEffect(() => {
+    if (aiMode) return;
     const trimmed = magicIn.trim();
     if (trimmed && trimmed !== lastRecordedRef.current) {
       lastRecordedRef.current = trimmed;
       addEntry(trimmed);
     }
-  }, [magicIn, addEntry]);
+  }, [magicIn, addEntry, aiMode]);
 
   const optionChips = useMemo(
-    () => Object.entries(parseOptionsForChips(userInput)),
-    [userInput],
+    () => aiMode ? [] : Object.entries(parseOptionsForChips(userInput)),
+    [userInput, aiMode],
   );
 
   // After a programmatic value replacement, the controlled textarea re-renders
@@ -84,10 +118,10 @@ const MagicBoxPage = (): React.JSX.Element => {
   // stale offset. Restore the intended caret position once the DOM reflects
   // the new value, using the ref only for selection (never as the value
   // source). Runs synchronously before paint to avoid a visible caret jump.
-  // userInput is the intended trigger: the effect reads refs but must re-run
+  // displayedInput is the intended trigger: the effect reads refs but must re-run
   // after every value commit so the caret is restored against the freshly
   // rendered DOM value.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: userInput is a deliberate trigger, not a read dependency
+  // biome-ignore lint/correctness/useExhaustiveDependencies: displayedInput is a deliberate caret-restoration trigger
   useLayoutEffect(() => {
     const caret = pendingCaretRef.current;
     if (caret === null) return;
@@ -96,14 +130,15 @@ const MagicBoxPage = (): React.JSX.Element => {
     if (!el) return;
     const pos = Math.min(caret, el.value.length);
     el.setSelectionRange(pos, pos);
-  }, [userInput]);
+  }, [displayedInput]);
 
   // Replaces the whole input programmatically (QR scan, history pick, paste
   // back). Marks the caret to land at the end of the inserted text so the
   // next keystroke continues naturally.
   const replaceInput = (value: string) => {
     pendingCaretRef.current = value.length;
-    setUserInput(value);
+    if (aiMode) setAIInput(value);
+    else setUserInput(value);
   };
 
   const handleScannedInput = (value: string) => {
@@ -120,6 +155,10 @@ const MagicBoxPage = (): React.JSX.Element => {
     <div className="home">
       <div className="home-inner">
         <div className="home-col">
+          <div className="local-ai-mode" role="group" aria-label={m.mode}>
+            <button className="btn-subtle" data-testid="mode-tools" aria-pressed={!aiMode} onClick={() => changeMode(false)} type="button">{m.tools}</button>
+            <button className="btn-subtle" data-testid="mode-local-ai" aria-pressed={aiMode} onClick={() => changeMode(true)} type="button">{m.title}</button>
+          </div>
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.input')}</span>
@@ -138,41 +177,43 @@ const MagicBoxPage = (): React.JSX.Element => {
                 ))}
               </span>
             ) : null}
-            <ShareLinkButton
-              data-testid="copy-share-link"
-              getShareLink={() =>
-                buildShareLink({ input: userInput, pathname: '/' })
-              }
-            />
-            <button
-              aria-label={
-                historyOpen
-                  ? t('magicBox.closeHistory')
-                  : t('magicBox.openHistory')
-              }
-              className={`history-toggle${historyOpen ? ' active' : ''}`}
-              data-testid="history-toggle"
-              onClick={() => setHistoryOpen((o) => !o)}
-              type="button"
-            >
-              <svg
-                aria-hidden="true"
-                fill="none"
-                height="14"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                width="14"
+            {!aiMode ? <>
+              <ShareLinkButton
+                data-testid="copy-share-link"
+                getShareLink={() =>
+                  buildShareLink({ input: userInput, pathname: '/' })
+                }
+              />
+              <button
+                aria-label={
+                  historyOpen
+                    ? t('magicBox.closeHistory')
+                    : t('magicBox.openHistory')
+                }
+                className={`history-toggle${historyOpen ? ' active' : ''}`}
+                data-testid="history-toggle"
+                onClick={() => setHistoryOpen((o) => !o)}
+                type="button"
               >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </button>
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="14"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </button>
+            </> : null}
           </div>
 
-          {historyOpen ? (
+          {!aiMode && historyOpen ? (
             <div className="history-panel" data-testid="history-panel">
               {history.length > 0 ? (
                 <>
@@ -225,41 +266,47 @@ const MagicBoxPage = (): React.JSX.Element => {
             <textarea
               ref={inputRef}
               data-testid="magic-input"
-              name="magicInput"
-              onChange={(e) => setUserInput(e.target.value)}
+              name={aiMode ? "localAIInput" : "magicInput"}
+              autoComplete="off"
+              onChange={(e) => aiMode ? setAIInput(e.target.value) : setUserInput(e.target.value)}
               onFocus={() => setResetCounter((c) => c + 1)}
-              placeholder={t('magicBox.placeholder')}
+              placeholder={aiMode ? m.placeholder : t('magicBox.placeholder')}
               rows={8}
               spellCheck={false}
-              value={userInput}
+              value={displayedInput}
             />
-            <Suspense fallback={<div />}>
+            {!aiMode ? <Suspense fallback={<div />}>
               <QrButton setUserInput={handleScannedInput} />
-            </Suspense>
+            </Suspense> : null}
           </div>
+          {aiMode ? <p className="local-ai-hint">{m.privacy}</p> : null}
         </div>
 
         <div className="home-col">
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.output')}</span>
-            <span className="swap">
+            {!aiMode ? <span className="swap">
               <span className="kbd">⌃</span>
               <span className="kbd">N</span>
               <span className="swap-label">{t('magicBox.next')}</span>
               <span className="swap-sep" />
               <span className="kbd">↵</span>
               <span className="swap-label">{t('magicBox.copy')}</span>
-            </span>
+            </span> : null}
           </div>
           <div className="boxes" data-testid="magic-output">
-            <MagicBox
+            {aiMode ? (
+              <Suspense fallback={<p role="status">{m.title}</p>}>
+                <LocalAIPanel input={aiInput} onPasteInput={replaceInput} />
+              </Suspense>
+            ) : <MagicBox
               input={magicIn}
               onPasteInput={(val: string) => {
                 replaceInput(val);
               }}
               resetTrigger={resetCounter}
-            />
+            />}
           </div>
         </div>
       </div>

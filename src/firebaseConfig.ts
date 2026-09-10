@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs you need
-import { getAnalytics } from 'firebase/analytics';
+import { getAnalytics, setAnalyticsCollectionEnabled } from 'firebase/analytics';
+import { isAnalyticsEnabled, subscribeAnalyticsPermission } from './functions/runtimePrefs';
 import { initializeApp } from 'firebase/app';
 
 // TODO: Add SDKs for Firebase products that you want to use
@@ -20,6 +21,13 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+// Recheck at module evaluation too: preference/AI mode can change while this
+// module is being downloaded. Keep an existing SDK disabled after opt-out.
+const analytics = isAnalyticsEnabled() ? getAnalytics(app) : null;
+if (analytics) {
+  subscribeAnalyticsPermission((enabled) => {
+    setAnalyticsCollectionEnabled(analytics, enabled);
+  });
+}
 
 export default { app, analytics };
