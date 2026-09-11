@@ -27,6 +27,7 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, './src/pages'),
     },
   },
+  worker: { format: 'es' },
   server: {
     port: 3000,
   },

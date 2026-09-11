@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom/client';
 
 import App from './App';
 import { loadPrefs } from './contexts/PreferencesContext';
+import { isLocalAIPrivate } from './functions/localAIPrivacy';
 import { isAnalyticsEnabled, setRuntimePrefs } from './functions/runtimePrefs';
 import './index.css';
 
@@ -27,6 +28,7 @@ document.documentElement.dataset.density = initialPrefs.density;
 // defer firebase init until the browser is idle so the analytics SDK
 // (~150KB gzipped) does not block first paint.
 const loadFirebase = () => {
+  if (!isAnalyticsEnabled() || isLocalAIPrivate()) return;
   import('./firebaseConfig').catch(() => {
     /* analytics is best-effort */
   });
@@ -52,17 +54,18 @@ init({
   // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ['localhost', /^https:\/\/mb\.10oz\.tw/],
 
-  // Setting this option to true will send default PII data to Sentry.
-  // For example, automatic IP address collection on events
-  sendDefaultPii: true,
-  // Enable logs to be sent to Sentry
-  _experiments: { enableLogs: true },
+  // Do not collect default PII, including when Local AI is enabled later.
+  sendDefaultPii: false,
+  // Worker errors are mapped to fixed codes; do not upload runtime logs.
+  _experiments: { enableLogs: false },
 
   // honor the "anonymous usage" toggle at runtime: drop every event/transaction
   // unless the user has opted in. reads the live runtime flag so toggling the
   // setting takes effect without a reload.
-  beforeSend: (event) => (isAnalyticsEnabled() ? event : null),
-  beforeSendTransaction: (event) => (isAnalyticsEnabled() ? event : null),
+  beforeBreadcrumb: (breadcrumb) =>
+    isAnalyticsEnabled() && !isLocalAIPrivate() ? breadcrumb : null,
+  beforeSend: (event) => (isAnalyticsEnabled() && !isLocalAIPrivate() ? event : null),
+  beforeSendTransaction: (event) => (isAnalyticsEnabled() && !isLocalAIPrivate() ? event : null),
 });
 
 const root = ReactDOM.createRoot(

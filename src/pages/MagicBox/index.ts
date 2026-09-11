@@ -1,3 +1,1 @@
-import MagicBoxPage from './MagicBoxPage';
-
-export default MagicBoxPage;
+export { default } from '../../features/local-ai/MagicBoxWithLocalAI';
