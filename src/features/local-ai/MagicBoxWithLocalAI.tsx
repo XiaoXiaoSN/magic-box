@@ -13,7 +13,7 @@ export default function MagicBoxWithLocalAI() {
   const [mode, setMode] = useState<'tools' | 'ai'>('tools');
   return (
     <>
-      <div className="local-ai-mode" role="group" aria-label={text.mode}>
+      <fieldset className="local-ai-mode" aria-label={text.mode}>
         <div className="seg">
           <button type="button" className={`seg-item${mode === 'tools' ? ' active' : ''}`}
             aria-pressed={mode === 'tools'} onClick={() => setMode('tools')}>
@@ -27,7 +27,7 @@ export default function MagicBoxWithLocalAI() {
             {text.title}
           </button>
         </div>
-      </div>
+      </fieldset>
       {mode === 'tools' ? <MagicBoxPage /> : (
         <Suspense fallback={<div className="loader" />}>
           <LocalAIPanel />

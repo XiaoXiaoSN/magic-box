@@ -1,4 +1,6 @@
 .local-ai-mode {
+  border: 0;
+  min-width: 0;
   width: 100%;
   max-width: 1160px;
   margin: 16px auto 0;
