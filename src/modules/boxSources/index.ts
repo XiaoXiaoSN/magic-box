@@ -32,6 +32,7 @@ import Ipv6BoxSource from './Ipv6BoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
+import LocalAIBoxSource from './LocalAIBoxSource';
 import MacAddressBoxSource from './MacAddressBoxSource';
 import MarkdownTocBoxSource from './MarkdownTocBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
@@ -150,4 +151,5 @@ export const boxSources: BoxSource[] = [
   MorseCodeBoxSource,
   PortLookupBoxSource,
   UnicodeEscapeBoxSource,
+  LocalAIBoxSource,
 ];
