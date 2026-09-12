@@ -32,6 +32,7 @@ import Ipv6BoxSource from './Ipv6BoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
+import MacAddressBoxSource from './MacAddressBoxSource';
 import MarkdownTocBoxSource from './MarkdownTocBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
@@ -142,4 +143,5 @@ export const boxSources: BoxSource[] = [
   HsvBoxSource,
   Ipv6BoxSource,
   Ieee754BoxSource,
+  MacAddressBoxSource,
 ];
