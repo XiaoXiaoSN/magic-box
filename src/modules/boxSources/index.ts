@@ -40,6 +40,7 @@ import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import OnColorBoxSource from './OnColorBoxSource';
 import PasswordBoxSource from './PasswordBoxSource';
+import PortLookupBoxSource from './PortLookupBoxSource';
 import PowerConvertBoxSource from './PowerConvertBoxSource';
 import PunycodeBoxSource from './PunycodeBoxSource';
 import QueryStringBoxSource from './QueryStringBoxSource';
@@ -146,4 +147,5 @@ export const boxSources: BoxSource[] = [
   Ieee754BoxSource,
   MacAddressBoxSource,
   MorseCodeBoxSource,
+  PortLookupBoxSource,
 ];
