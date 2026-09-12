@@ -39,12 +39,12 @@ const setupEngine = () => {
     modelError: null,
     generate: null,
   };
-  const interruptors: { interrupted: boolean }[] = [];
+  const stoppingCriteria: { interrupted: boolean }[] = [];
 
   class Interruptor {
     interrupted = false;
     constructor() {
-      interruptors.push(this);
+      stoppingCriteria.push(this);
     }
     interrupt() {
       this.interrupted = true;
@@ -148,7 +148,7 @@ const setupEngine = () => {
       return runtime;
     },
   );
-  return { engine, events, calls, options, interruptors };
+  return { engine, events, calls, options, stoppingCriteria };
 };
 
 const prepared = async (setup: ReturnType<typeof setupEngine>) => {
@@ -282,7 +282,7 @@ describe('local AI engine', () => {
     });
     await Promise.resolve();
     await setup.engine.handle({ type: 'cancel', id: 3 });
-    expect(setup.interruptors.at(-1)?.interrupted).toBe(true);
+    expect(setup.stoppingCriteria.at(-1)?.interrupted).toBe(true);
     release?.();
     await running;
     // Post-cancel text is suppressed and the result is reported as cancelled.
