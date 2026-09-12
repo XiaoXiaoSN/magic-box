@@ -15,6 +15,7 @@ import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import DiceRollBoxSource from './DiceRollBoxSource';
 import DurationBoxSource from './DurationBoxSource';
+import EasterBoxSource from './EasterBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
 import FractionBoxSource from './FractionBoxSource';
 import FrequencyBoxSource from './FrequencyBoxSource';
@@ -99,6 +100,7 @@ export const boxSources: BoxSource[] = [
   BinaryTextBoxSource,
   BmiBoxSource,
   DiceRollBoxSource,
+  EasterBoxSource,
   FractionBoxSource,
   FrequencyBoxSource,
   GcdLcmBoxSource,
