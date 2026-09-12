@@ -27,6 +27,7 @@ import HaversineBoxSource from './HaversineBoxSource';
 import HexDumpBoxSource from './HexDumpBoxSource';
 import HexTextBoxSource from './HexTextBoxSource';
 import HsvBoxSource from './HsvBoxSource';
+import Ipv6BoxSource from './Ipv6BoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
@@ -138,4 +139,5 @@ export const boxSources: BoxSource[] = [
   CreditCardInfoBoxSource,
   GlobToRegexBoxSource,
   HsvBoxSource,
+  Ipv6BoxSource,
 ];
