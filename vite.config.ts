@@ -27,6 +27,11 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, './src/pages'),
     },
   },
+  // the local AI inference worker is a module worker (it dynamic-imports the
+  // pinned transformers build), which requires the es output format.
+  worker: {
+    format: 'es',
+  },
   server: {
     port: 3000,
   },
@@ -114,6 +119,18 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
         runtimeCaching: [
+          {
+            // Only the pinned browser entry module. Model weights and the ORT
+            // wasm assets go to transformers.js's own cache, never this one, so
+            // the 4 MiB precache budget above is unaffected.
+            urlPattern:
+              /^https:\/\/cdn\.jsdelivr\.net\/npm\/@huggingface\/transformers@4\.2\.0\/dist\/transformers\.min\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'magic-box-local-ai-runtime-v1',
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/mb\.10oz\.tw\/(?!version\.json(?:$|\?)).*/i,
             handler: 'NetworkFirst',
