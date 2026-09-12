@@ -1,5 +1,6 @@
 import env from '@global/env';
 
+import { isLocalAIPrivate, subscribeLocalAIPrivacy } from './localAIPrivacy';
 import { DEFAULT_TIMEZONE_OFFSET } from './timezone';
 
 // runtime preferences are the single source of truth read by non-react code
@@ -28,6 +29,7 @@ const current: RuntimePrefs = {
 
 export const setRuntimePrefs = (next: Partial<RuntimePrefs>): void => {
   Object.assign(current, next);
+  notifyAnalyticsPermission();
 };
 
 export const getTimezoneOffset = (): number => current.timezoneOffset;
@@ -39,6 +41,30 @@ export const getToolboxUrl = (): string =>
 export const getShortenUrl = (): string =>
   current.shortenUrl.trim() || env.SHORTEN_URL;
 
-export const isAnalyticsEnabled = (): boolean => current.analytics;
+// the local AI gate is folded in here rather than at each call site, so every
+// consumer (sentry beforeSend, the firebase import, the SDK's own `enabled`)
+// inherits it and a new consumer cannot forget the check.
+export const isAnalyticsEnabled = (): boolean =>
+  current.analytics && !isLocalAIPrivate();
+
+const analyticsListeners = new Set<(enabled: boolean) => void>();
+
+const notifyAnalyticsPermission = (): void => {
+  for (const listener of analyticsListeners) listener(isAnalyticsEnabled());
+};
+
+subscribeLocalAIPrivacy(notifyAnalyticsPermission);
+
+// pushes the current value immediately so a late subscriber (the lazily
+// imported analytics SDK) cannot miss an opt-out that already happened.
+export const subscribeAnalyticsPermission = (
+  listener: (enabled: boolean) => void,
+): (() => void) => {
+  analyticsListeners.add(listener);
+  listener(isAnalyticsEnabled());
+  return () => {
+    analyticsListeners.delete(listener);
+  };
+};
 
 export const getLocale = (): string => current.locale;
