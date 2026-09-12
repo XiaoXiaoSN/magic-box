@@ -1,4 +1,5 @@
 import env from '@global/env';
+import { isLocalAIPrivate, subscribeLocalAIPrivacy } from '../features/local-ai/privacy';
 
 import { DEFAULT_TIMEZONE_OFFSET } from './timezone';
 
@@ -28,6 +29,7 @@ const current: RuntimePrefs = {
 
 export const setRuntimePrefs = (next: Partial<RuntimePrefs>): void => {
   Object.assign(current, next);
+  notifyAnalyticsPermission();
 };
 
 export const getTimezoneOffset = (): number => current.timezoneOffset;
@@ -39,6 +41,18 @@ export const getToolboxUrl = (): string =>
 export const getShortenUrl = (): string =>
   current.shortenUrl.trim() || env.SHORTEN_URL;
 
-export const isAnalyticsEnabled = (): boolean => current.analytics;
+export const isAnalyticsEnabled = (): boolean => current.analytics && !isLocalAIPrivate();
+
+const analyticsListeners = new Set<(enabled: boolean) => void>();
+const notifyAnalyticsPermission = (): void => {
+  for (const listener of analyticsListeners) listener(isAnalyticsEnabled());
+};
+subscribeLocalAIPrivacy(notifyAnalyticsPermission);
+
+export const subscribeAnalyticsPermission = (listener: (enabled: boolean) => void): (() => void) => {
+  analyticsListeners.add(listener);
+  listener(isAnalyticsEnabled());
+  return () => { analyticsListeners.delete(listener); };
+};
 
 export const getLocale = (): string => current.locale;

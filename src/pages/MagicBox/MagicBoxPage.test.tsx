@@ -44,6 +44,24 @@ vi.mock('@components/QRCodeReader', () => ({
   ),
 }));
 
+vi.mock('../../features/local-ai/LocalAIPanel', () => ({
+  default: ({ input, onPasteInput }: {
+    input: string;
+    onPasteInput: (value: string) => void;
+  }) => (
+    <div data-testid="ai-input-echo">
+      {input}
+      <button
+        type="button"
+        data-testid="ai-paste-back"
+        onClick={() => onPasteInput('private AI answer')}
+      >
+        paste AI answer
+      </button>
+    </div>
+  ),
+}));
+
 import MagicBoxPage from './MagicBoxPage';
 
 const renderPage = () =>
@@ -62,6 +80,7 @@ describe('<MagicBoxPage />', () => {
 
   afterEach(() => {
     window.history.replaceState({}, '', '/');
+    vi.useRealTimers();
     vi.clearAllMocks();
   });
 
@@ -132,5 +151,59 @@ describe('<MagicBoxPage />', () => {
 
     fireEvent.change(input, { target: { value: '' } });
     expect(input.value).toBe('');
+  });
+
+  it('isolates AI drafts from tools, history, sharing and URL options', async () => {
+    window.history.replaceState({}, '', '/?input=ordinary');
+    renderPage();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('mode-local-ai'));
+    });
+    await screen.findByTestId('ai-input-echo');
+    expect(getInput().value).toBe('');
+    expect(screen.queryByTestId('magic-input-echo')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('history-toggle')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('copy-share-link')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qr-reader-launcher')).not.toBeInTheDocument();
+
+    vi.useFakeTimers();
+    fireEvent.change(getInput(), { target: { value: 'private prompt ::shorten' } });
+    await act(async () => { vi.advanceTimersByTime(501); });
+    expect(localStorage.getItem('mb_search_history') ?? '').not.toContain('private');
+    expect(window.location.search).toBe('?mode=local-ai');
+    expect(screen.queryByTestId('input-options')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('mode-tools'));
+    await act(async () => { vi.advanceTimersByTime(501); });
+    expect(getInput().value).toBe('ordinary');
+    expect(screen.getByTestId('magic-input-echo')).toHaveTextContent('ordinary');
+    expect(localStorage.getItem('mb_search_history') ?? '').not.toContain('private');
+
+    fireEvent.click(screen.getByTestId('mode-local-ai'));
+    expect(getInput().value).toBe('private prompt ::shorten');
+  });
+
+  it('ignores and removes input parameters on a direct Local AI visit', async () => {
+    window.history.replaceState({}, '', '/?mode=local-ai&input=secret&i=also-secret');
+    renderPage();
+    await screen.findByTestId('ai-input-echo');
+    expect(getInput().value).toBe('');
+    expect(window.location.search).toBe('?mode=local-ai');
+    expect(screen.queryByTestId('magic-input-echo')).not.toBeInTheDocument();
+    expect(localStorage.getItem('mb_search_history') ?? '').not.toContain('secret');
+  });
+
+  it('pastes AI output only into the AI draft', async () => {
+    renderPage();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('mode-local-ai'));
+    });
+    await screen.findByTestId('ai-paste-back');
+    fireEvent.click(screen.getByTestId('ai-paste-back'));
+    expect(getInput().value).toBe('private AI answer');
+    expect(getInput().selectionStart).toBe('private AI answer'.length);
+    fireEvent.click(screen.getByTestId('mode-tools'));
+    expect(getInput().value).toBe('');
+    expect(localStorage.getItem('mb_search_history') ?? '').not.toContain('private');
   });
 });

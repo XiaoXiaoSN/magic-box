@@ -27,6 +27,9 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, './src/pages'),
     },
   },
+  worker: {
+    format: 'es',
+  },
   server: {
     port: 3000,
   },
@@ -114,6 +117,16 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
         runtimeCaching: [
+          {
+            // Only the pinned browser entry module. Model and ORT assets use
+            // Transformers.js's dedicated cache, not the general app cache.
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/@huggingface\/transformers@4\.2\.0\/dist\/transformers\.min\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'magic-box-local-ai-runtime-v1',
+              cacheableResponse: { statuses: [200] },
+            },
+          },
           {
             urlPattern: /^https:\/\/mb\.10oz\.tw\/(?!version\.json(?:$|\?)).*/i,
             handler: 'NetworkFirst',

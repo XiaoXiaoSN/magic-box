@@ -1,0 +1,78 @@
+.local-ai-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--density-gap);
+}
+
+.local-ai-mode button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.local-ai-panel {
+  cursor: default;
+}
+
+.local-ai-body {
+  display: grid;
+  gap: var(--density-gap);
+}
+
+.local-ai-body p {
+  margin: 0;
+}
+
+.local-ai-hint {
+  color: var(--ink-3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.local-ai-actions,
+.local-ai-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--density-gap);
+}
+
+.local-ai-controls label {
+  display: grid;
+  gap: 4px;
+}
+
+.local-ai-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  user-select: text;
+}
+
+.local-ai-error {
+  color: var(--danger);
+}
+
+.local-ai-progress {
+  display: grid;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.local-ai-progress progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.local-ai-mode button,
+.local-ai-actions button,
+.local-ai-controls select {
+  min-height: 44px;
+}
+
+.local-ai-body hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
