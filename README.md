@@ -155,6 +155,31 @@ MD5 is intentionally omitted — it is not available in Web Crypto, and adding a
 </details>
 
 <details>
+<summary> <b>LocalAIBox</b> (experimental) </summary>
+
+Runs a small language model entirely in the browser with WebGPU. Nothing is
+downloaded until you press **Check device & model**, agree to the download and
+press **Download / load model**; nothing is generated until you press **Run
+locally**. Prompts and answers stay in the page: they never reach a server, the
+search history or a share link, and telemetry is muted for the rest of the visit
+once the box is open. See [docs/local-ai.md](docs/local-ai.md).
+
+| match rule                         | description                                   | example      |
+| ---------------------------------- | --------------------------------------------- | ------------ |
+| contains option `ai` or `localai`  | open the on-device assistant panel            | `::ai`       |
+
+| options            | description                                                   | example      |
+| ------------------ | ------------------------------------------------------------- | ------------ |
+| `ai`, `localai`    | ask, translate, rewrite or summarize with a local model        | `::ai`       |
+
+Requires HTTPS and a WebGPU browser with `shader-f16`. The model is
+Qwen2.5-0.5B-Instruct (`q4f16`, ~483 MiB) at a pinned revision; prompts are
+capped at 1,024 tokens and answers at 256 tokens. Small-model answers can be
+wrong, and there is no cloud or CPU fallback.
+
+</details>
+
+<details>
 <summary> <b>MathExpressionBox</b> </summary>
 
 Powered by the in-tree [`math-box`](wasmModules/math-box/) WASM module —
