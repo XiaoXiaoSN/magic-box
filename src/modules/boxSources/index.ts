@@ -35,6 +35,7 @@ import LineToolsBoxSource from './LineToolsBoxSource';
 import MacAddressBoxSource from './MacAddressBoxSource';
 import MarkdownTocBoxSource from './MarkdownTocBoxSource';
 import MathExpressionBoxSource from './MathExpressionBoxSource';
+import MorseCodeBoxSource from './MorseCodeBoxSource';
 import MyIPBoxSource from './MyIPBoxSource';
 import NowBoxSource from './NowBoxSource';
 import OnColorBoxSource from './OnColorBoxSource';
@@ -144,4 +145,5 @@ export const boxSources: BoxSource[] = [
   Ipv6BoxSource,
   Ieee754BoxSource,
   MacAddressBoxSource,
+  MorseCodeBoxSource,
 ];
