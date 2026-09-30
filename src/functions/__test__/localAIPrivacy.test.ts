@@ -29,6 +29,24 @@ describe('isLocalAIMode', () => {
   });
 });
 
+describe('isLocalAIInput', () => {
+  it('detects the trigger in raw magic input so the prompt can be withheld', async () => {
+    const { privacy } = await load();
+    expect(privacy.isLocalAIInput('::ai')).toBe(true);
+    expect(privacy.isLocalAIInput('say hello\n::ai')).toBe(true);
+    expect(privacy.isLocalAIInput('::localai\nsay hello')).toBe(true);
+    expect(privacy.isLocalAIInput('::AI')).toBe(true);
+  });
+
+  it('does not fire on ordinary input or a lookalike option', async () => {
+    const { privacy } = await load();
+    expect(privacy.isLocalAIInput('')).toBe(false);
+    expect(privacy.isLocalAIInput('ai')).toBe(false);
+    expect(privacy.isLocalAIInput('::aim')).toBe(false);
+    expect(privacy.isLocalAIInput('talk about ai')).toBe(false);
+  });
+});
+
 describe('telemetry gating', () => {
   it('is sticky and notifies each subscriber exactly once', async () => {
     const { privacy } = await load();

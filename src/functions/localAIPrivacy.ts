@@ -13,6 +13,14 @@ export const LOCAL_AI_OPTION_KEYS = ['ai', 'localai'] as const;
 let active = false;
 const listeners = new Set<() => void>();
 
+// True when raw magic input carries the trigger. The text in front of the
+// directive is the model prompt, so callers use this to keep that text out of
+// stores it would otherwise land in — search history above all.
+export const isLocalAIInput = (raw: string): boolean => {
+  const [, options] = parseInput(raw);
+  return hasOptionKeys(options, ...LOCAL_AI_OPTION_KEYS);
+};
+
 // `::ai` is the box trigger, so a shared link can mount the panel on first
 // paint. Detect it from the seeded input before any SDK is initialized rather
 // than waiting for the React tree to mount.
@@ -20,8 +28,7 @@ export const isLocalAIMode = (search: string): boolean => {
   const params = new URLSearchParams(search);
   const seeded = params.get('input') ?? params.get('i');
   if (!seeded) return false;
-  const [, options] = parseInput(seeded);
-  return hasOptionKeys(options, ...LOCAL_AI_OPTION_KEYS);
+  return isLocalAIInput(seeded);
 };
 
 export const isLocalAIPrivate = (): boolean => active;
