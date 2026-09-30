@@ -304,4 +304,38 @@ describe('DateCalculateBoxSource', () => {
       });
     });
   });
+
+  describe('Relative Time (Time Ago / Time Later)', () => {
+    it('formats a past date as relative time ago', async () => {
+      const past = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const boxes = await DateCalculateBoxSource.generateBoxes(past, {
+        relative: true,
+      });
+      expect(boxes.length).toBe(1);
+      expect(boxes[0].props.name).toBe('Relative Time');
+      expect(boxes[0].props.plaintextOutput).toBe('3 days ago');
+    });
+
+    it('formats a future date as relative time later', async () => {
+      const future = new Date(
+        Date.now() + 5 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const boxes = await DateCalculateBoxSource.generateBoxes(future, {
+        relative: true,
+      });
+      expect(boxes.length).toBe(1);
+      expect(boxes[0].props.name).toBe('Relative Time');
+      expect(boxes[0].props.plaintextOutput).toBe('in 5 days');
+    });
+
+    it('handles unix timestamp in seconds', async () => {
+      const pastSec = Math.floor((Date.now() - 60000) / 1000).toString();
+      const boxes = await DateCalculateBoxSource.generateBoxes(pastSec, {
+        relative: true,
+      });
+      expect(boxes.length).toBe(1);
+      expect(boxes[0].props.name).toBe('Relative Time');
+      expect(boxes[0].props.plaintextOutput).toBe('1 minute ago');
+    });
+  });
 });
