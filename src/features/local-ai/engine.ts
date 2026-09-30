@@ -204,6 +204,13 @@ export class LocalAIEngine {
       ...inputs,
       max_new_tokens: MAX_NEW_TOKENS,
       do_sample: false,
+      // Greedy decoding on a 0.5B model degenerates into repeating one token
+      // until the budget runs out (observed on real hardware: a single word
+      // repeated ~80 times). `repetition_penalty` alone was measured as too
+      // weak against that peaked distribution, so a 3-gram block backs it up.
+      // Both are deterministic: the same prompt still produces the same answer.
+      repetition_penalty: 1.1,
+      no_repeat_ngram_size: 3,
       streamer,
       stopping_criteria: [this.interruptor],
     });
