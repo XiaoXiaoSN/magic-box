@@ -1,7 +1,15 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import {
+  DefaultBoxTemplate,
+  KeyValueBoxTemplate,
+} from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  keyValueBox,
+} from '@modules/Box';
 
 const PriorityColorBox = 80;
 
@@ -10,6 +18,13 @@ interface RGBA {
   g: number;
   b: number;
   a: number | null;
+}
+
+interface CMYK {
+  c: number;
+  m: number;
+  y: number;
+  k: number;
 }
 
 // parse 3/6/8-digit hex: #RGB, #RRGGBB, #RRGGBBAA
@@ -81,6 +96,22 @@ function parseHsl(input: string): RGBA | null {
   if (a !== null && (a < 0 || a > 1)) return null;
 
   return { ...hslToRgb(h, s, l), a };
+}
+
+function parseCmyk(input: string): RGBA | null {
+  const m =
+    /^cmyk\(\s*(\d+(?:\.\d+)?)%?\s*,\s*(\d+(?:\.\d+)?)%?\s*,\s*(\d+(?:\.\d+)?)%?\s*,\s*(\d+(?:\.\d+)?)%?\s*\)$/.exec(
+      input,
+    );
+  if (!m) return null;
+  const [c, my, y, k] = m.slice(1).map(Number);
+  if ([c, my, y, k].some((value) => value > 100)) return null;
+  return {
+    r: Math.round(255 * (1 - c / 100) * (1 - k / 100)),
+    g: Math.round(255 * (1 - my / 100) * (1 - k / 100)),
+    b: Math.round(255 * (1 - y / 100) * (1 - k / 100)),
+    a: null,
+  };
 }
 
 // convert hsl (h deg, s/l percent) to rgb integers 0-255
@@ -179,8 +210,37 @@ export function toHslString(rgba: RGBA): string {
 }
 
 function parseColor(input: string): RGBA | null {
-  return parseHex(input) ?? parseRgb(input) ?? parseHsl(input);
+  return (
+    parseHex(input) ?? parseRgb(input) ?? parseHsl(input) ?? parseCmyk(input)
+  );
 }
+
+function toCmykString({ r, g, b }: RGBA): string {
+  const k = 1 - Math.max(r, g, b) / 255;
+  const cmyk: CMYK =
+    k === 1
+      ? { c: 0, m: 0, y: 0, k: 100 }
+      : {
+          c: Math.round(((1 - r / 255 - k) / (1 - k)) * 100),
+          m: Math.round(((1 - g / 255 - k) / (1 - k)) * 100),
+          y: Math.round(((1 - b / 255 - k) / (1 - k)) * 100),
+          k: Math.round(k * 100),
+        };
+  return `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`;
+}
+
+function optionPercent(
+  value: string | boolean | null,
+  fallback: number,
+): number {
+  if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value))
+    return fallback;
+  return Math.max(0, Math.min(100, Math.round(Number(value))));
+}
+
+const colorToken =
+  '(?:#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|cmyk)\\([^)]*\\))';
+const colorPair = new RegExp(`^(${colorToken})\\s+(${colorToken})$`, 'i');
 
 interface Match {
   rgba: RGBA;
@@ -189,7 +249,7 @@ interface Match {
 export const ColorBoxSource = {
   name: 'Color',
   description:
-    'Convert a color (hex, rgb/rgba, hsl/hsla) between hex, RGB, and HSL formats.',
+    'Convert HEX, RGB, and HSL colors; use ::cmyk, ::lighten, ::darken, or ::colormix for more formats and adjustments.',
   defaultInput: '#ff6347',
   tag: '🎨',
   kind: 'Convert',
@@ -206,18 +266,103 @@ export const ColorBoxSource = {
 
   async generateBoxes(
     input: string,
-    _options: BoxOptions = null,
+    options: BoxOptions = null,
   ): Promise<Box[]> {
-    const match = this.checkMatch(input);
-    if (!match) return [];
+    const wantsMix =
+      options?.colormix !== undefined ||
+      options?.mixcolor !== undefined ||
+      options?.blend !== undefined;
+    const wantsAdjust =
+      options?.lighten !== undefined || options?.darken !== undefined;
+    const wantsCmyk = options?.cmyk !== undefined || /^\s*cmyk\(/i.test(input);
+    const summaries: Box[] = [];
+    let rgba: RGBA;
 
-    const { rgba } = match;
+    if (wantsMix) {
+      const match = colorPair.exec(trim(input));
+      const first = match ? parseColor(match[1].toLowerCase()) : null;
+      const second = match ? parseColor(match[2].toLowerCase()) : null;
+      if (!first || !second || first.a !== null || second.a !== null) {
+        return [
+          errorBox(
+            'Color Mix',
+            'Enter two opaque HEX, RGB, HSL, or CMYK colors.',
+            { priority: this.priority },
+          ),
+        ];
+      }
+      const percent = optionPercent(
+        extractOptionKeys(options, 'colormix', 'mixcolor', 'blend'),
+        50,
+      );
+      const ratio = percent / 100;
+      rgba = {
+        r: Math.round(first.r * (1 - ratio) + second.r * ratio),
+        g: Math.round(first.g * (1 - ratio) + second.g * ratio),
+        b: Math.round(first.b * (1 - ratio) + second.b * ratio),
+        a: null,
+      };
+      summaries.push(
+        keyValueBox(
+          KeyValueBoxTemplate,
+          'Color Mix',
+          {
+            'Color 1': toHex(first),
+            'Color 2': toHex(second),
+            Ratio: `${100 - percent}% / ${percent}%`,
+            Mixed: toHex(rgba),
+          },
+          { priority: this.priority },
+        ),
+      );
+    } else {
+      const match = this.checkMatch(input);
+      if (!match) return [];
+      rgba = match.rgba;
+    }
+
+    if (wantsAdjust) {
+      if (rgba.a !== null) {
+        return [
+          errorBox(
+            'Color Adjust',
+            'Enter an opaque color to lighten or darken.',
+            { priority: this.priority },
+          ),
+        ];
+      }
+      const isDarken = options?.lighten === undefined;
+      const operation = isDarken ? 'darken' : 'lighten';
+      const percent = optionPercent(extractOptionKeys(options, operation), 10);
+      const original = toHex(rgba);
+      const { h, s, l } = rgbToHsl(rgba.r, rgba.g, rgba.b);
+      rgba = {
+        ...hslToRgb(
+          h,
+          s,
+          isDarken ? Math.max(0, l - percent) : Math.min(100, l + percent),
+        ),
+        a: null,
+      };
+      summaries.push(
+        keyValueBox(
+          KeyValueBoxTemplate,
+          'Color Adjust',
+          {
+            Original: original,
+            Adjusted: toHex(rgba),
+            Operation: `${operation} ${percent}%`,
+          },
+          { priority: this.priority },
+        ),
+      );
+    }
 
     const hexStr = toHex(rgba);
     const rgbStr = toRgbString(rgba);
     const hslStr = toHslString(rgba);
 
-    return [
+    const formats = [
       new BoxBuilder('HEX', hexStr)
         .setTemplate(DefaultBoxTemplate)
         .setShowExpandButton(false)
@@ -234,6 +379,22 @@ export const ColorBoxSource = {
         .setPriority(this.priority)
         .build(),
     ];
+    if (wantsCmyk && rgba.a === null) {
+      formats.push(
+        new BoxBuilder('CMYK', toCmykString(rgba))
+          .setTemplate(DefaultBoxTemplate)
+          .setShowExpandButton(false)
+          .setPriority(this.priority)
+          .build(),
+      );
+    } else if (wantsCmyk) {
+      formats.push(
+        errorBox('CMYK', 'CMYK does not support an alpha channel.', {
+          priority: this.priority,
+        }),
+      );
+    }
+    return [...summaries, ...formats];
   },
 };
 
