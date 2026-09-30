@@ -4,6 +4,7 @@ import { buildShareLink } from '@functions/shareLink';
 import type { BoxSource } from '@modules/BoxSource';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
@@ -382,7 +383,13 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
         <span>{t('toolsList.previewOutput')}</span>
       </div>
       <div className="boxes">
-        <MagicBox input={magicIn} sources={[source]} />
+        {/* The real box, so the preview can never describe a tool that no
+            longer behaves that way — but flagged as a demonstration, so a box
+            that would reach the network on mount does not do it for a user who
+            is only browsing the list. */}
+        <BoxPreviewProvider>
+          <MagicBox input={magicIn} sources={[source]} />
+        </BoxPreviewProvider>
       </div>
     </div>
   );

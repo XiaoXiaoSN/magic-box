@@ -20,6 +20,7 @@ import UuidBoxSource from '@modules/boxSources/UuidBoxSource';
 //   - GenerateQRCode:          renders via QRCodeBoxTemplate (react/mui, browser canvas)
 //   - K8sSecret, WordCount:    render via KeyValueBoxTemplate (react/mui)
 //   - MyIP, ShortenURL:        perform network fetch
+//   - Local AI:                renders a react panel that owns a module worker
 export const tuiBoxSources: BoxSource[] = [
   EscapeStringBoxSource,
   CronExpressionBoxSource,

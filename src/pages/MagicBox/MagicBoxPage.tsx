@@ -1,5 +1,6 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
+import { isLocalAIInput } from '@functions/localAIPrivacy';
 import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, {
@@ -65,11 +66,15 @@ const MagicBoxPage = (): React.JSX.Element => {
     return () => window.clearTimeout(timeoutID);
   }, [userInput]);
 
-  // Record to search history when debounced input settles.
+  // Record to search history when debounced input settles. A `::ai` input
+  // carries the model prompt in front of the directive, so it is deliberately
+  // never recorded: the panel's privacy promise has to survive the prompt
+  // being typed in the magic input rather than inside the box.
   useEffect(() => {
     const trimmed = magicIn.trim();
     if (trimmed && trimmed !== lastRecordedRef.current) {
       lastRecordedRef.current = trimmed;
+      if (isLocalAIInput(trimmed)) return;
       addEntry(trimmed);
     }
   }, [magicIn, addEntry]);

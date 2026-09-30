@@ -256,11 +256,21 @@ const MagicBox = ({
     [],
   );
 
-  const renderedBoxes = useMemo(
-    () =>
-      boxes.map((src, idx) => (
+  // Keyed by name plus its occurrence WITHIN that name, never by position in
+  // the list. A box that appears or disappears above another one must not
+  // change its key: editing the input changes which sources match, and a
+  // position-based key would remount every box below the change. For a
+  // stateful box that means losing what it holds — the Local AI panel would
+  // drop a loaded model and its in-flight answer on an unrelated keystroke.
+  const renderedBoxes = useMemo(() => {
+    const seen = new Map<string, number>();
+    return boxes.map((src, idx) => {
+      const name = src?.props?.name ?? '';
+      const occurrence = seen.get(name) ?? 0;
+      seen.set(name, occurrence + 1);
+      return (
         <BoxCard
-          key={src?.props?.name ? `${src.props.name}-${idx}` : idx}
+          key={name ? `${name}-${occurrence}` : idx}
           ref={setItemRef(idx)}
           box={src}
           onCopy={copyText}
@@ -281,9 +291,9 @@ const MagicBox = ({
           onSelect={() => setSelectedIndex(idx)}
           selected={idx === selectedIndex}
         />
-      )),
-    [boxes, selectedIndex, copyText, handleOpenModal, setItemRef],
-  );
+      );
+    });
+  }, [boxes, selectedIndex, copyText, handleOpenModal, setItemRef]);
 
   return (
     <React.Fragment>

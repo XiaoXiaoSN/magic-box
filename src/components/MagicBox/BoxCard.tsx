@@ -37,8 +37,16 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
   ({ box, selected, onSelect, onCopy, onExpand, onResultChange }, ref) => {
     const { t } = useLocale();
     const [justCopied, setJustCopied] = useState(false);
-    const { name, plaintextOutput, options, priority, tag, kind, onClick } =
-      box.props;
+    const {
+      name,
+      plaintextOutput,
+      options,
+      sourceInput,
+      priority,
+      tag,
+      kind,
+      onClick,
+    } = box.props;
     const showExpand = box.props.showExpandButton !== false && !!onExpand;
 
     const handleCopy = useCallback(
@@ -137,6 +145,7 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
             plaintextOutput={plaintextOutput}
             priority={priority}
             selected={selected}
+            sourceInput={sourceInput}
             tag={tag}
           />
         </div>

@@ -47,6 +47,26 @@ const zhTW: Translations = {
   'settings.shortcutPrevAlt': '上一個 Box (替代)',
   'settings.shortcutCopy': '複製選取的輸出',
   'settings.shortcutPaste': '將輸出貼回輸入',
+  'settings.section.localAI': '本地 AI',
+  'settings.section.localAIHint':
+    '::ai box 的預設值，以及模型下載本身。這個頁面不會生成任何內容。',
+  'settings.aiTask': '任務',
+  'settings.aiTaskHint': '模型要對你的文字做什麼。',
+  'settings.aiLanguage': '輸出語言',
+  'settings.aiLanguageHint': '回答使用的語言。自動代表跟隨介面語言。',
+  'settings.aiAutoRun': '自動執行輸入的提示',
+  'settings.aiAutoRunHint':
+    '在 ::ai 前輸入的文字停止變動後就直接執行，但僅限該分頁已載入模型時。',
+  'settings.aiAutoCheck': '自動檢查模型',
+  'settings.aiAutoCheckHint':
+    '本地 AI box 開啟時，向 Hugging Face 讀取模型大小並檢查 WebGPU 支援，box 就會直接顯示標有實際大小的下載按鈕。關閉後，只有在你按下「檢查裝置與模型」之後才會連線 jsDelivr 與 Hugging Face。無論如何，權重都只會因你自己的點擊而下載。',
+  'settings.aiModel': '模型',
+  'settings.aiModelHint':
+    '先下載權重，::ai box 之後就能直接從本機快取啟動。檢查會在下載前回報實際大小；離開此頁只會釋放記憶體，不會刪除下載。',
+  'settings.aiDelete': '刪除 AI 下載',
+  'settings.aiDeleteHint':
+    '移除已快取的模型與 runtime。其他工具與設定不受影響。',
+  'settings.delete': '刪除',
   'settings.section.privacy': '隱私',
   'settings.analytics': '匿名使用統計',
   'settings.analyticsHint':

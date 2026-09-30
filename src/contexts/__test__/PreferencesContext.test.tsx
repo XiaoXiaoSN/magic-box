@@ -52,17 +52,53 @@ describe('PreferencesContext', () => {
       expect(prefs.shortenUrl).toBe('');
     });
 
+    it('defaults local AI to the safe, unconfigured choices', () => {
+      const prefs = loadPrefs();
+      expect(prefs.aiTask).toBe('ask');
+      // `auto` is resolved against the app locale at request time.
+      expect(prefs.aiLanguage).toBe('auto');
+      // Reading the registry is on by default; the half-gigabyte download is
+      // gated by a labelled button, not by this switch.
+      expect(prefs.aiAutoCheck).toBe(true);
+      expect(prefs.aiAutoRun).toBe(true);
+    });
+
+    it('rejects unknown local AI task and language values from storage', () => {
+      localStorage.setItem(
+        LOCAL_PREFS_KEY,
+        JSON.stringify({
+          aiTask: 'exfiltrate',
+          aiLanguage: 'klingon',
+          aiAutoCheck: 'yes',
+          aiAutoRun: 1,
+        }),
+      );
+      const prefs = loadPrefs();
+      expect(prefs.aiTask).toBe('ask');
+      expect(prefs.aiLanguage).toBe('auto');
+      expect(prefs.aiAutoCheck).toBe(true);
+      expect(prefs.aiAutoRun).toBe(true);
+    });
+
     it('keeps valid stored values', () => {
       localStorage.setItem(
         LOCAL_PREFS_KEY,
         JSON.stringify({
           timezoneOffset: -3,
           toolboxUrl: 'https://tool.example.com',
+          aiTask: 'summarize',
+          aiLanguage: 'zh-TW',
+          aiAutoCheck: false,
+          aiAutoRun: false,
         }),
       );
       const prefs = loadPrefs();
       expect(prefs.timezoneOffset).toBe(-3);
       expect(prefs.toolboxUrl).toBe('https://tool.example.com');
+      expect(prefs.aiTask).toBe('summarize');
+      expect(prefs.aiLanguage).toBe('zh-TW');
+      expect(prefs.aiAutoCheck).toBe(false);
+      expect(prefs.aiAutoRun).toBe(false);
     });
   });
 

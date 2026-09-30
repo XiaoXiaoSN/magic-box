@@ -1,0 +1,421 @@
+/* Local AI panel.
+   Sized to the app's compact box idiom rather than to a standalone form: the
+   same 11-13px type, 5px radii and small controls that `.box-head`,
+   `.box-copy`, `.box-out` and `.box-meta` use in global/styles.css. Touch
+   targets grow back on coarse pointers, which is what the 44px minimum was
+   ever for. */
+
+.local-ai {
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+
+/* ---------- header ---------- */
+
+.local-ai-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Phase at a glance, so the wording beside it can stay quiet. */
+.local-ai-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-4);
+}
+
+.local-ai-dot.is-busy {
+  background: var(--accent);
+  animation: local-ai-pulse 1.2s ease-in-out infinite;
+}
+
+.local-ai-dot.is-ready {
+  background: var(--success);
+}
+
+.local-ai-dot.is-error {
+  background: var(--danger);
+}
+
+@keyframes local-ai-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .local-ai-dot.is-busy {
+    animation: none;
+  }
+}
+
+.local-ai-model,
+.local-ai-state {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.local-ai-model {
+  color: var(--ink-3);
+}
+
+.local-ai-state {
+  margin-left: auto;
+  color: var(--ink-4);
+}
+
+.local-ai-gear {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-elev);
+  color: var(--ink-4);
+  cursor: pointer;
+  padding: 0;
+  transition: all 120ms;
+}
+
+.local-ai-gear:hover {
+  background: var(--muted);
+  color: var(--ink);
+}
+
+/* ---------- prompt ---------- */
+
+/* The prompt arrived from the magic input, which is already on screen, so this
+   is a quiet echo of what will be submitted — not a second place to edit it. */
+.local-ai-prompt {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+}
+
+.local-ai-input textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--bg-elev);
+}
+
+/* ---------- controls ---------- */
+
+.local-ai-fields,
+.local-ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.local-ai-fields label {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 120px;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+/* Grid and flex items default to `min-width: auto`, so a long option label
+   ("Follow app language") would otherwise force the row wider than the card
+   and give the dialog a horizontal scrollbar on a phone. */
+.local-ai-fields select {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 8px;
+}
+
+.local-ai-fields select,
+.local-ai-button {
+  border: 1px solid var(--line-2);
+  border-radius: 5px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--bg-elev);
+}
+
+.local-ai-button {
+  min-height: 30px;
+  padding: 6px 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+  border-color: var(--line);
+  cursor: pointer;
+  transition: all 120ms;
+}
+
+.local-ai-button:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--ink);
+}
+
+.local-ai-button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.local-ai-button.primary:hover:not(:disabled) {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+  color: var(--on-accent);
+}
+
+.local-ai button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* A mouse does not need a 44px target; a finger does. */
+@media (pointer: coarse) {
+  .local-ai-button,
+  .local-ai-fields select {
+    min-height: 40px;
+  }
+}
+
+.local-ai button:focus-visible,
+.local-ai select:focus-visible,
+.local-ai summary:focus-visible,
+.local-ai textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.local-ai-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.local-ai-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.local-ai-consent input {
+  min-width: 18px;
+  min-height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+/* ---------- status, errors, output ---------- */
+
+.local-ai-note {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.local-ai-note a {
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+}
+
+/* Caption under the step button: what the next click will fetch, and from
+   where. Quiet, because the button label already carries the commitment. */
+.local-ai-hint {
+  margin: 0;
+  color: var(--ink-4);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+/* Trailing disclosure, held to the weight of `.box-meta`. */
+.local-ai-foot {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  color: var(--ink-4);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.local-ai-progress {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-4);
+  overflow-wrap: anywhere;
+}
+
+.local-ai-progress progress {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent);
+}
+
+.local-ai-error {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  background: var(--danger-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.local-ai-submitted summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.local-ai-result {
+  display: grid;
+  gap: 8px;
+}
+
+.local-ai-submitted pre,
+.local-ai-result pre {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.local-ai-result pre {
+  margin: 0;
+  min-height: 44px;
+  cursor: text;
+}
+
+/* ---------- settings dialog ---------- */
+
+.local-ai-group {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.local-ai-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.local-ai-group-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+}
+
+/* Model identity: quiet, because it is a fact and not a decision. */
+.local-ai-name {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+/* The load state is the one thing in the dialog a user scans for, so it gets
+   the weight the surrounding prose gives up. */
+.local-ai-phase {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+/* The privacy claim is the feature's reason to exist; it reads as body text
+   rather than as another muted footnote. */
+.local-ai-lede {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* Implementation detail, folded away until asked for. Collapsed by default on
+   every open: a disclosure that remembers being open is just long copy again. */
+.local-ai-details > summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ink-4);
+  list-style: none;
+}
+
+.local-ai-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.local-ai-details > summary::after {
+  content: " ›";
+}
+
+.local-ai-details[open] > summary::after {
+  content: " ⌄";
+}
+
+.local-ai-details > summary:hover {
+  color: var(--ink-3);
+}
+
+.local-ai-details[open] > summary {
+  margin-bottom: 8px;
+}
+
+.local-ai-details > :not(summary) {
+  margin-bottom: 6px;
+}
+
+@media (pointer: coarse) {
+  .local-ai-details > summary {
+    padding: 6px 0;
+  }
+}

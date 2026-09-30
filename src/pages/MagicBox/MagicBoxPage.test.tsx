@@ -55,9 +55,23 @@ const renderPage = () =>
 
 const getInput = () => screen.getByTestId('magic-input') as HTMLTextAreaElement;
 
+const HISTORY_KEY = 'mb_search_history';
+
+const readHistory = (): { input: string }[] =>
+  JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+
+// The page debounces input by 500 ms before it records anything.
+const settleInput = async (value: string) => {
+  fireEvent.change(getInput(), { target: { value } });
+  await act(async () => {
+    vi.advanceTimersByTime(600);
+  });
+};
+
 describe('<MagicBoxPage />', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -118,6 +132,35 @@ describe('<MagicBoxPage />', () => {
     await waitFor(() => {
       expect(input.selectionStart).toBe('pasted-value'.length);
       expect(input.selectionEnd).toBe('pasted-value'.length);
+    });
+  });
+
+  describe('search history', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('records ordinary input once it settles', async () => {
+      renderPage();
+
+      await settleInput('hello world');
+
+      expect(readHistory().map((entry) => entry.input)).toEqual([
+        'hello world',
+      ]);
+    });
+
+    it('never records an ::ai input, which carries the model prompt', async () => {
+      renderPage();
+
+      await settleInput('say hello\n::ai');
+      await settleInput('translate this\n::localai');
+
+      expect(readHistory()).toEqual([]);
     });
   });
 
