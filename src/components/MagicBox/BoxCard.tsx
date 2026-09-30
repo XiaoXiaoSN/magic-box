@@ -3,6 +3,12 @@ import type { BoxProps, Box as BoxType } from '@modules/Box';
 import { forwardRef, useCallback, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
+// Anything a template renders that the user operates. The card itself is a
+// `role="button"` div, which is fine: `closest` reaches it only when the click
+// landed on no control in between.
+const CONTROL_SELECTOR =
+  'a, button, input, select, textarea, summary, label, [role="button"], [contenteditable="true"]';
+
 const ExpandIcon = () => (
   <svg
     aria-hidden="true"
@@ -74,6 +80,19 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
       onClick(plaintextOutput);
     };
 
+    // A click on a control inside the card belongs to that control, not to
+    // the card's copy action. Neither does a click from a portal the template
+    // opened (a MUI Modal): React bubbles it through the component tree even
+    // though it sits outside the card in the DOM. Without this, an interactive
+    // template had to stop propagation on every element — and one it missed
+    // (a textarea, a select in its dialog) overwrote the clipboard.
+    const handleMouseClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as Element;
+      if (!e.currentTarget.contains(target)) return;
+      if (target.closest(CONTROL_SELECTOR) !== e.currentTarget) return;
+      handleCardClick();
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.stopPropagation();
@@ -93,7 +112,7 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
         ref={ref}
         className={`box-card${selected ? ' is-selected' : ''}`}
         data-testid="magic-box-result"
-        onClick={handleCardClick}
+        onClick={handleMouseClick}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
