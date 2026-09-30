@@ -157,12 +157,21 @@ MD5 is intentionally omitted — it is not available in Web Crypto, and adding a
 <details>
 <summary> <b>LocalAIBox</b> (experimental) </summary>
 
-Runs a small language model entirely in the browser with WebGPU. Nothing is
-downloaded until you press **Check device & model**, agree to the download and
-press **Download / load model**; nothing is generated until you press **Run
-locally**. Prompts and answers stay in the page: they never reach a server, the
-search history or a share link, and telemetry is muted for the rest of the visit
-once the box is open. See [docs/local-ai.md](docs/local-ai.md).
+Runs a small language model entirely in the browser with WebGPU. Opening the box
+measures the real download by itself, so setup is a single button already
+labelled with what it costs: **Download model · <size>** — or **Load model ·
+<size>** when the files are cached. That click is the consent, and no weights are
+fetched before it, on any visit. Turn **Check the model automatically** off in
+**Settings → Local AI** to make the check a click too. You can also download it
+ahead of time from **Settings → Local AI**. Prompts and answers stay in the
+page: they never reach a server or the search history, and telemetry is muted
+for the rest of the visit once the box is open. See [docs/local-ai.md](docs/local-ai.md).
+
+Text written in front of the directive is the prompt, so `say hello` +
+`::ai` runs as soon as the model is loaded in that tab — the box says when a
+prompt came from the input, and a share link you create would carry it. Turn
+**Auto-run input prompts** off in Settings → Local AI to always press **Run
+locally** yourself.
 
 | match rule                         | description                                   | example      |
 | ---------------------------------- | --------------------------------------------- | ------------ |
@@ -170,10 +179,10 @@ once the box is open. See [docs/local-ai.md](docs/local-ai.md).
 
 | options            | description                                                   | example      |
 | ------------------ | ------------------------------------------------------------- | ------------ |
-| `ai`, `localai`    | ask, translate, rewrite or summarize with a local model        | `::ai`       |
+| `ai`, `localai`    | ask, translate, rewrite or summarize with a local model        | `say hello\n::ai` |
 
 Requires HTTPS and a WebGPU browser with `shader-f16`. The model is
-Qwen2.5-0.5B-Instruct (`q4f16`, ~483 MiB) at a pinned revision; prompts are
+Qwen2.5-0.5B-Instruct (`q4f16`, 467.3 MiB) at a pinned revision; prompts are
 capped at 1,024 tokens and answers at 256 tokens. Small-model answers can be
 wrong, and there is no cloud or CPU fallback.
 

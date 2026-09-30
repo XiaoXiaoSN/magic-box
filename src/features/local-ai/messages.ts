@@ -1,15 +1,35 @@
+import { aiTaskLabels, type UILocale } from './labels';
 import type { AIErrorCode, AIPhase, AITask } from './types';
 
 // The local AI panel keeps its own strings instead of joining src/i18n: they are
 // only loaded with the lazy panel chunk, and keeping the experimental feature's
-// copy in one place means a wording fix never touches the shared bundle.
+// copy in one place means a wording fix never touches the shared bundle. The
+// exception is `tasks`, which is shared with the eagerly bundled settings page
+// through `labels.ts`.
 interface Messages {
-  privacy: string;
+  // Short enough to sit under the box; the long form lives in the dialog.
+  privacyShort: string;
+  privacyHost: string;
+  // Dialog copy. The default view answers only what a decision needs: which
+  // model, whether it is loaded, whether text leaves the device, and what can
+  // be changed. Everything else lives behind the two disclosures below.
+  privacyFull: string;
+  shareNote: string;
   placeholder: string;
+  settings: string;
+  close: string;
+  downloadAction: string;
+  loadAction: string;
+  sourceNote: string;
+  provisioned: string;
+  // `phases.loading` covers download, ONNX session init and warm-up. This is
+  // the narrower label used while bytes are actually moving; see
+  // `describePhase` in setupStep.ts.
+  downloading: string;
+  setupTitle: string;
+  outputTitle: string;
+  maintenanceTitle: string;
   inspect: string;
-  inspectHint: string;
-  consent: string;
-  prepare: string;
   run: string;
   stop: string;
   release: string;
@@ -18,12 +38,24 @@ interface Messages {
   removed: string;
   task: string;
   language: string;
-  download: string;
+  autoRun: string;
+  autoRunHint: string;
+  firstUse: string;
+  // Carries a `{{size}}` placeholder filled with the measured registry total,
+  // so the sentence quotes real bytes rather than a constant that can drift.
+  firstUseSized: string;
   cached: string;
-  runtimeExtra: string;
   source: string;
   caution: string;
-  limitations: string;
+  checkDetail: string;
+  modelDetails: string;
+  techDetails: string;
+  sourceFiles: string;
+  evictionNote: string;
+  requirements: string;
+  budget: string;
+  memoryNote: string;
+  telemetryNote: string;
   stoppedNote: string;
   copy: string;
   copied: string;
@@ -31,24 +63,37 @@ interface Messages {
   useOutput: string;
   submitted: string;
   partial: string;
-  output: string;
   tasks: Record<AITask, string>;
   phases: Record<AIPhase, string>;
   errors: Record<AIErrorCode, string>;
 }
 
-export const localAIMessages: Record<'en' | 'tw', Messages> = {
+export const localAIMessages: Record<UILocale, Messages> = {
   en: {
-    privacy:
-      'This input stays inside the box: it is not matched against other tools, and never enters search history or share links. Telemetry is disabled for the rest of this visit once the box is open.',
+    privacyShort: 'Runs on this device. Text is never sent to a server.',
+    privacyHost:
+      'From the main input — never saved to history; share links include it. Runs on-device.',
+    privacyFull:
+      'Runs in this browser. Your prompts are not sent to an AI server.',
+    shareNote:
+      'This prompt is in the main input, so the other tools match it and a share link you create would carry it.',
     placeholder:
-      'Choose a task, then enter a short question or text. Nothing runs until you press Run locally.',
+      'Enter a short question or text, or type it before ::ai in the main input.',
+    settings: 'AI settings',
+    close: 'Close',
+    downloadAction: 'Download model',
+    loadAction: 'Load model',
+    sourceNote:
+      'Downloaded from jsDelivr and Hugging Face, then kept on this device.',
+    provisioned:
+      'Downloaded and verified on this device. The ::ai box now loads it from the local cache.',
+    downloading: 'Downloading model…',
+    setupTitle: 'Model',
+    outputTitle: 'Output',
+    maintenanceTitle: 'Storage',
     inspect: 'Check device & model',
-    inspectHint:
-      'This connects to jsDelivr and Hugging Face for runtime code and model metadata, not model weights. Your text is not sent to an inference server.',
-    consent:
-      'Allow runtime and model downloads from jsDelivr and Hugging Face over this connection.',
-    prepare: 'Download / load model',
+    checkDetail:
+      'Opening this box reads the model size and checks WebGPU support. No weights are fetched until you press the download button. Turn it off in Settings › AI.',
     run: 'Run locally',
     stop: 'Stop',
     release: 'Release memory',
@@ -58,15 +103,25 @@ export const localAIMessages: Record<'en' | 'tw', Messages> = {
     removed: 'AI downloads deleted.',
     task: 'Task',
     language: 'Output language',
-    download: 'Model files',
+    autoRun: 'Run automatically when the model is loaded',
+    autoRunHint: 'Otherwise press Run locally yourself.',
+    firstUse: 'The model is downloaded on first use and kept on this device.',
+    firstUseSized:
+      'First use downloads {{size}}, then keeps it on this device.',
     cached: 'Model files were found in the cache at the last check.',
-    runtimeExtra:
-      'Additional runtime files are downloaded on first load; use Wi-Fi. The browser may evict cached files, so this is not an offline-ready guarantee.',
     source: 'Model card',
-    caution:
-      'Small-model output may be wrong, and there is no cloud or CPU fallback. Long input is rejected rather than silently truncated.',
-    limitations:
-      'Requires HTTPS and WebGPU with shader-f16. Single turn, up to 1,024 prompt tokens and 256 output tokens. Sending the tab to the background releases the model.',
+    caution: 'This small local model can produce wrong answers.',
+    modelDetails: 'Model details',
+    techDetails: 'Technical details',
+    sourceFiles:
+      'Runtime code and weights are fetched from jsDelivr and Hugging Face.',
+    evictionNote:
+      'The browser may evict the cache, so this is not an offline guarantee.',
+    requirements:
+      'Requires WebGPU with shader-f16. There is no cloud or CPU fallback.',
+    budget: 'Single turn · 1,024 input tokens · 256 output tokens.',
+    memoryNote: 'GPU memory is released when the tab goes to the background.',
+    telemetryNote: 'Usage statistics stay disabled for the rest of this visit.',
     stoppedNote: 'Stopped: the output above is incomplete.',
     copy: 'Copy output',
     copied: 'Copied',
@@ -74,18 +129,12 @@ export const localAIMessages: Record<'en' | 'tw', Messages> = {
     useOutput: 'Use as AI input',
     submitted: 'Submitted input',
     partial: 'Partial output',
-    output: 'Output',
-    tasks: {
-      ask: 'Ask',
-      translate: 'Translate',
-      rewrite: 'Rewrite',
-      summarize: 'Summarize',
-    },
+    tasks: aiTaskLabels.en,
     phases: {
       idle: 'Not loaded',
       inspecting: 'Checking device and model metadata…',
       available: 'Ready to download',
-      loading: 'Downloading / initializing / warming up…',
+      loading: 'Preparing model…',
       ready: 'Model ready',
       generating: 'Generating on this device…',
       stopping: 'Stopping…',
@@ -112,15 +161,25 @@ export const localAIMessages: Record<'en' | 'tw', Messages> = {
     },
   },
   tw: {
-    privacy:
-      '這裡的輸入只留在此 box：不會拿去比對其他工具，也不會進入搜尋歷史或分享連結。開啟這個 box 後，本次瀏覽都會停用遙測。',
-    placeholder: '先選任務，再輸入簡短問題或文字。按下「本機執行」才會開始。',
+    privacyShort: '只在本機執行，文字不會送到伺服器。',
+    privacyHost: '取自主要輸入框：不寫入歷史；分享連結會包含它。只在本機執行。',
+    privacyFull: '在你的瀏覽器中執行，提示不會送到 AI 伺服器。',
+    shareNote:
+      '這段提示位在主要輸入框，因此其他工具也會比對它，你建立的分享連結也會包含它。',
+    placeholder: '輸入簡短問題或文字，或在主要輸入框的 ::ai 前面輸入。',
+    settings: 'AI 設定',
+    close: '關閉',
+    downloadAction: '下載模型',
+    loadAction: '載入模型',
+    sourceNote: '從 jsDelivr 與 Hugging Face 下載，之後保存在這台裝置。',
+    provisioned: '已在這台裝置下載並驗證，::ai box 之後會直接從本機快取載入。',
+    downloading: '正在下載模型…',
+    setupTitle: '模型',
+    outputTitle: '輸出',
+    maintenanceTitle: '儲存',
     inspect: '檢查裝置與模型',
-    inspectHint:
-      '這會連線到 jsDelivr 與 Hugging Face 取得 runtime 程式及模型資訊，不下載模型權重。你的文字不會送到推論伺服器。',
-    consent:
-      '允許使用目前的網路，從 jsDelivr 與 Hugging Face 下載 runtime 和模型。',
-    prepare: '下載／載入模型',
+    checkDetail:
+      '開啟這個 box 會讀取模型大小並檢查 WebGPU 支援。在你按下下載按鈕前不會取得任何權重。可在「設定 › AI」關閉。',
     run: '本機執行',
     stop: '停止',
     release: '釋放記憶體',
@@ -130,15 +189,21 @@ export const localAIMessages: Record<'en' | 'tw', Messages> = {
     removed: '已刪除 AI 下載。',
     task: '任務',
     language: '輸出語言',
-    download: '模型檔案',
+    autoRun: '模型載入後自動執行',
+    autoRunHint: '否則請自行按「本機執行」。',
+    firstUse: '模型會在首次使用時下載，並保存在這台裝置。',
+    firstUseSized: '首次使用會下載 {{size}}，之後保存在這台裝置。',
     cached: '上次檢查時，模型檔案已在快取中。',
-    runtimeExtra:
-      '首次載入還會下載 runtime 檔案，建議使用 Wi-Fi。瀏覽器可能清除快取，因此這不代表已可離線使用。',
     source: '模型資訊',
-    caution:
-      '小模型可能回答錯誤，且不會改用雲端或 CPU。過長的輸入會被拒絕，不會默默截斷。',
-    limitations:
-      '需要 HTTPS，以及支援 shader-f16 的 WebGPU 瀏覽器。單輪輸入含指令最多 1,024 tokens，輸出最多 256 tokens。分頁切到背景會釋放模型。',
+    caution: '這個小型本機模型可能給出錯誤的答案。',
+    modelDetails: '模型詳細資訊',
+    techDetails: '技術細節',
+    sourceFiles: 'Runtime 程式與權重取自 jsDelivr 與 Hugging Face。',
+    evictionNote: '瀏覽器可能清除快取，因此不保證可離線使用。',
+    requirements: '需要支援 shader-f16 的 WebGPU，且不會改用雲端或 CPU。',
+    budget: '單輪 · 輸入上限 1,024 tokens · 輸出上限 256 tokens。',
+    memoryNote: '分頁切到背景時會釋放 GPU 記憶體。',
+    telemetryNote: '本次瀏覽期間都會停用使用統計。',
     stoppedNote: '已停止，上面的輸出並不完整。',
     copy: '複製輸出',
     copied: '已複製',
@@ -146,18 +211,12 @@ export const localAIMessages: Record<'en' | 'tw', Messages> = {
     useOutput: '作為 AI 輸入',
     submitted: '本次送出的輸入',
     partial: '未完成的輸出',
-    output: '輸出',
-    tasks: {
-      ask: '問答',
-      translate: '翻譯',
-      rewrite: '改寫',
-      summarize: '摘要',
-    },
+    tasks: aiTaskLabels.tw,
     phases: {
       idle: '尚未載入',
       inspecting: '正在檢查裝置與模型資訊…',
       available: '可下載模型',
-      loading: '正在下載／初始化／暖機…',
+      loading: '正在準備模型…',
       ready: '模型就緒',
       generating: '正在本機生成…',
       stopping: '正在停止…',

@@ -16,7 +16,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
@@ -25,12 +25,26 @@ import {
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import {
+  AI_LANGUAGES,
+  AI_TASKS,
+  aiAutoLanguageLabels,
+  aiLanguageLabels,
+  aiTaskLabels,
+} from '../features/local-ai/labels';
+import type { AILanguagePref, AITask } from '../features/local-ai/types';
+import {
   isValidTimezoneOffset,
   MAX_TIMEZONE_OFFSET,
   MIN_TIMEZONE_OFFSET,
 } from '../functions/timezone';
 import { DEFAULT_LOCALE, type Locale } from '../i18n';
 import { boxSources } from '../modules/boxSources';
+
+// Lazy: the client and its worker-facing modules must not ride along in the
+// eager settings bundle. No worker is spawned until a setup button is clicked.
+const LocalAIModelSettings = lazy(
+  async () => import('../features/local-ai/LocalAIModelSettings'),
+);
 
 const GripIcon = () => (
   <svg
@@ -547,6 +561,64 @@ const SettingsPage = (): React.JSX.Element => {
             <Shortcut keys={['↵']} label={t('settings.shortcutCopy')} />
             <Shortcut keys={['⌘', '↵']} label={t('settings.shortcutPaste')} />
           </div>
+        </Section>
+
+        <Section
+          subtitle={t('settings.section.localAIHint')}
+          title={t('settings.section.localAI')}
+        >
+          <Field hint={t('settings.aiTaskHint')} label={t('settings.aiTask')}>
+            <Select<AITask>
+              onChange={(v) => setPref('aiTask', v)}
+              options={AI_TASKS.map((value) => ({
+                value,
+                label: aiTaskLabels[locale][value],
+              }))}
+              value={prefs.aiTask}
+            />
+          </Field>
+          <Field
+            hint={t('settings.aiLanguageHint')}
+            label={t('settings.aiLanguage')}
+          >
+            <Select<AILanguagePref>
+              onChange={(v) => setPref('aiLanguage', v)}
+              options={[
+                { value: 'auto', label: aiAutoLanguageLabels[locale] },
+                ...AI_LANGUAGES.map((value) => ({
+                  value,
+                  label: aiLanguageLabels[value],
+                })),
+              ]}
+              value={prefs.aiLanguage}
+            />
+          </Field>
+          <Field
+            hint={t('settings.aiAutoRunHint')}
+            label={t('settings.aiAutoRun')}
+          >
+            <Toggle
+              checked={prefs.aiAutoRun}
+              label={t('settings.aiAutoRun')}
+              onChange={(v) => setPref('aiAutoRun', v)}
+            />
+          </Field>
+          <Field
+            hint={t('settings.aiAutoCheckHint')}
+            label={t('settings.aiAutoCheck')}
+          >
+            <Toggle
+              checked={prefs.aiAutoCheck}
+              label={t('settings.aiAutoCheck')}
+              onChange={(v) => setPref('aiAutoCheck', v)}
+            />
+          </Field>
+          {/* Cache Storage is not localStorage: clearing local data leaves the
+              weights behind, so downloading and deleting them are their own
+              controls, backed by the same steps the box uses. */}
+          <Suspense fallback={<div className="loader" />}>
+            <LocalAIModelSettings />
+          </Suspense>
         </Section>
 
         <Section title={t('settings.section.privacy')}>

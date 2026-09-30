@@ -1,5 +1,9 @@
 export type AITask = 'ask' | 'translate' | 'rewrite' | 'summarize';
 export type AILanguage = 'zh-TW' | 'en' | 'ja';
+// The stored preference adds `auto`, which follows the app locale. It is
+// resolved to a concrete AILanguage before a request is built, so the worker
+// protocol never sees `auto`.
+export type AILanguagePref = 'auto' | AILanguage;
 export type AIErrorCode =
   | 'unsupported'
   | 'storage'

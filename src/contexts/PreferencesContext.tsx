@@ -13,6 +13,8 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { isAILanguagePref, isAITask } from '../features/local-ai/labels';
+import type { AILanguagePref, AITask } from '../features/local-ai/types';
 
 export type { ThemePref };
 export type DensityPref = 'comfortable' | 'compact';
@@ -30,6 +32,16 @@ export interface Prefs {
   // backend host overrides; blank means fall back to the env default.
   toolboxUrl: string;
   shortenUrl: string;
+  // local AI. these live here, not in the box, so the panel can stay small and
+  // the choices survive a reload. none of them starts a download by itself.
+  aiTask: AITask;
+  aiLanguage: AILanguagePref;
+  // may a mounted local-ai surface read the model registry by itself: the
+  // runtime bundle, the file sizes and a webgpu adapter probe. never the
+  // weights — those stay behind the size-labelled button, always.
+  aiAutoCheck: boolean;
+  // run a prompt carried in by `::ai` once the model is ALREADY loaded.
+  aiAutoRun: boolean;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -40,6 +52,10 @@ export const DEFAULT_PREFS: Prefs = {
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
   toolboxUrl: '',
   shortenUrl: '',
+  aiTask: 'ask',
+  aiLanguage: 'auto',
+  aiAutoCheck: true,
+  aiAutoRun: true,
 };
 
 const isTheme = (value: unknown): value is ThemePref =>
@@ -87,6 +103,18 @@ export const loadPrefs = (): Prefs => {
       typeof prefs.shortenUrl === 'string' && isValidServerUrl(prefs.shortenUrl)
         ? prefs.shortenUrl
         : DEFAULT_PREFS.shortenUrl,
+    aiTask: isAITask(prefs.aiTask) ? prefs.aiTask : DEFAULT_PREFS.aiTask,
+    aiLanguage: isAILanguagePref(prefs.aiLanguage)
+      ? prefs.aiLanguage
+      : DEFAULT_PREFS.aiLanguage,
+    aiAutoCheck:
+      typeof prefs.aiAutoCheck === 'boolean'
+        ? prefs.aiAutoCheck
+        : DEFAULT_PREFS.aiAutoCheck,
+    aiAutoRun:
+      typeof prefs.aiAutoRun === 'boolean'
+        ? prefs.aiAutoRun
+        : DEFAULT_PREFS.aiAutoRun,
   };
 };
 

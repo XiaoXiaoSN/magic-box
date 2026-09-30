@@ -46,6 +46,27 @@ const en = {
   'settings.shortcutPrevAlt': 'Previous box (alt)',
   'settings.shortcutCopy': 'Copy selected output',
   'settings.shortcutPaste': 'Paste output back into input',
+  'settings.section.localAI': 'Local AI',
+  'settings.section.localAIHint':
+    'Defaults for the ::ai box, plus the model download itself. Nothing is generated from this page.',
+  'settings.aiTask': 'Task',
+  'settings.aiTaskHint': 'What the model is asked to do with your text.',
+  'settings.aiLanguage': 'Output language',
+  'settings.aiLanguageHint':
+    'The language the answer is written in. Auto follows the app language.',
+  'settings.aiAutoRun': 'Auto-run input prompts',
+  'settings.aiAutoRunHint':
+    'Run text typed before ::ai as soon as it settles, but only when the model is already loaded in that tab.',
+  'settings.aiAutoCheck': 'Check the model automatically',
+  'settings.aiAutoCheckHint':
+    'When a Local AI box opens, read the model size from Hugging Face and check WebGPU support, so the box lands on a download button labelled with the real size. Turn this off to contact jsDelivr and Hugging Face only after you press Check device & model. Either way, the weights are downloaded only by your own click.',
+  'settings.aiModel': 'Model',
+  'settings.aiModelHint':
+    'Download the weights ahead of time so the ::ai box starts from the local cache. The check reports the real size before anything is fetched; leaving this page frees the memory, not the download.',
+  'settings.aiDelete': 'Delete AI downloads',
+  'settings.aiDeleteHint':
+    'Removes the cached model and runtime. Other tools and settings are untouched.',
+  'settings.delete': 'Delete',
   'settings.section.privacy': 'Privacy',
   'settings.analytics': 'Anonymous usage',
   'settings.analyticsHint':

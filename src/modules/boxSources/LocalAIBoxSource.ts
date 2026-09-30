@@ -16,6 +16,10 @@ const Priority = 10;
 // output through `onResultChange`, so the card Copy button and Enter shortcut
 // work without streaming every token through the box list.
 //
+// The text in front of the directive travels with the box as `sourceInput`, so
+// `say hello\n::ai` needs no second textarea. It is carried, never executed:
+// nothing runs until the model is loaded and the panel decides to submit it.
+//
 // Not node-safe: the template pulls in React and a module worker, so this source
 // is excluded from `src/tui/sources.ts`.
 export const LocalAIBoxSource: BoxSource = {
@@ -28,7 +32,7 @@ export const LocalAIBoxSource: BoxSource = {
   priority: Priority,
 
   async generateBoxes(
-    _input: string,
+    input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, ...LOCAL_AI_OPTION_KEYS)) return [];
@@ -36,6 +40,7 @@ export const LocalAIBoxSource: BoxSource = {
     return [
       new BoxBuilder('Local AI', '')
         .setOptions(options)
+        .setSourceInput(input)
         .setTemplate(LocalAIBoxTemplate)
         .setPriority(Priority)
         // The panel is tall and stateful; re-mounting it in a modal would drop

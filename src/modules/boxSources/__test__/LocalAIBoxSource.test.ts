@@ -33,6 +33,18 @@ describe('LocalAIBoxSource', () => {
     expect(box.boxTemplate).toBeTypeOf('function');
   });
 
+  it('carries the text in front of the directive as the prompt', async () => {
+    const [box] = await run('say hello\n::ai');
+    expect(box.props.sourceInput).toBe('say hello');
+    // Carried, not executed: the box itself still produces no output.
+    expect(box.props.plaintextOutput).toBe('');
+  });
+
+  it('leaves the prompt empty when the directive stands alone', async () => {
+    const [box] = await run('::ai');
+    expect(box.props.sourceInput).toBe('');
+  });
+
   it('is registered and enabled by default so it appears on /list', () => {
     expect(boxSources).toContain(LocalAIBoxSource);
     expect(LocalAIBoxSource.defaultDisabled).toBeUndefined();

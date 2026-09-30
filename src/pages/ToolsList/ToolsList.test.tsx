@@ -54,7 +54,9 @@ describe('/list exposes the Local AI box', () => {
     expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
       'Not loaded',
     );
-    expect(screen.getByTestId('local-ai-run')).toBeDisabled();
+    // Nothing is loaded, so the box offers setup rather than a run button.
+    expect(screen.queryByTestId('local-ai-run')).not.toBeInTheDocument();
+    expect(screen.getByTestId('local-ai-setup')).toBeInTheDocument();
     expect(worker).not.toHaveBeenCalled();
   });
 

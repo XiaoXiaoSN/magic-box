@@ -13,6 +13,7 @@ const LocalAIPanel = lazy(
 // panel — one box-list re-render per generation instead of one per token.
 const LocalAIBoxTemplate = ({
   onResultChange,
+  sourceInput,
 }: BoxProps): React.JSX.Element => {
   const handleOutput = useCallback(
     (text: string) => {
@@ -23,7 +24,7 @@ const LocalAIBoxTemplate = ({
 
   return (
     <Suspense fallback={<div className="loader" />}>
-      <LocalAIPanel onOutput={handleOutput} />
+      <LocalAIPanel onOutput={handleOutput} sourceInput={sourceInput} />
     </Suspense>
   );
 };

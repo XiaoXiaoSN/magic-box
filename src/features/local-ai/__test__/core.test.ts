@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkCapabilities } from '../capabilities';
 import { LocalAIClient, type WorkerPort } from '../client';
 import { MAX_INPUT_CHARS, MAX_PROMPT_TOKENS } from '../modelCatalog';
+import { describePhase, describeSetupStep } from '../setupStep';
 import { buildMessages, checkTokenBudget } from '../tasks';
-import type { AICommand, AIEvent, AIRequest } from '../types';
+import type { AICommand, AIEvent, AIRequest, AIState } from '../types';
 import { LocalAIError } from '../types';
 
 // `Omit` over a discriminated union collapses to the shared keys, so distribute
@@ -359,5 +360,107 @@ describe('prompt construction and bounds', () => {
     await expect(
       checkCapabilities(true, adapter(['shader-f16'])),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('describeSetupStep', () => {
+  const base: AIState = {
+    phase: 'idle',
+    loaded: false,
+    info: null,
+    output: '',
+    submitted: null,
+    error: null,
+    progress: null,
+  };
+  // The real registry total for the pinned revision: weights + tokenizer.
+  const info = { bytes: 490_035_255, cached: false };
+
+  it('asks for metadata before it can quote a size', () => {
+    expect(describeSetupStep(base, 'en')).toEqual({
+      action: 'inspect',
+      label: 'Check device & model',
+      note: null,
+    });
+  });
+
+  it('puts the measured size on the button and the sources under it', () => {
+    expect(describeSetupStep({ ...base, info }, 'en')).toEqual({
+      action: 'prepare',
+      label: 'Download model · 467.3 MiB',
+      note: expect.stringContaining('jsDelivr'),
+    });
+  });
+
+  it('names the sources every time bytes are about to move', () => {
+    // The disclosure belongs to the action, not to a first run: a returning
+    // user is committing to the same fetch and deserves the same sentence.
+    const step = describeSetupStep({ ...base, info }, 'en');
+    expect(step?.note).toContain('Hugging Face');
+  });
+
+  it('offers a load, not a download, for cached files', () => {
+    const cached = { ...base, info: { ...info, cached: true } };
+    const step = describeSetupStep(cached, 'en');
+    expect(step?.label).toBe('Load model · 467.3 MiB');
+    // Cached replaces the source note: nothing is fetched, so naming the
+    // sources would describe a request this click will not make.
+    expect(step?.note).toContain('cache');
+  });
+
+  it('is localized and is silent once there is nothing left to set up', () => {
+    expect(describeSetupStep({ ...base, info }, 'tw')?.label).toBe(
+      '下載模型 · 467.3 MiB',
+    );
+    expect(describeSetupStep({ ...base, loaded: true }, 'en')).toBeNull();
+  });
+});
+
+describe('describePhase', () => {
+  const base: AIState = {
+    phase: 'loading',
+    loaded: false,
+    info: { bytes: 490_035_255, cached: false },
+    output: '',
+    submitted: null,
+    error: null,
+    progress: null,
+  };
+
+  it('names the download only while bytes are actually moving', () => {
+    expect(describePhase(base, 'en')).toBe('Preparing model…');
+    expect(
+      describePhase(
+        { ...base, progress: { file: 'model_q4f16.onnx', percent: 40 } },
+        'en',
+      ),
+    ).toBe('Downloading model…');
+  });
+
+  it('never claims a download for a model already in the cache', () => {
+    // Loading from Cache Storage can still emit progress events; calling that
+    // a download would be a lie about where the bytes came from.
+    const cached: AIState = {
+      ...base,
+      info: { bytes: 490_035_255, cached: true },
+      progress: { file: 'model_q4f16.onnx', percent: 40 },
+    };
+    expect(describePhase(cached, 'en')).toBe('Preparing model…');
+  });
+
+  it('passes every other phase straight through, in either locale', () => {
+    expect(describePhase({ ...base, phase: 'ready' }, 'en')).toBe(
+      'Model ready',
+    );
+    expect(
+      describePhase(
+        {
+          ...base,
+          progress: { file: 'model_q4f16.onnx', percent: 40 },
+        },
+        'tw',
+      ),
+    ).toBe('正在下載模型…');
+    expect(describePhase({ ...base, phase: 'idle' }, 'tw')).toBe('尚未載入');
   });
 });
