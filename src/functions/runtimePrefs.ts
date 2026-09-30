@@ -67,4 +67,21 @@ export const subscribeAnalyticsPermission = (
   };
 };
 
+// Runs `start` once, the first time reporting is allowed — immediately if it
+// already is, or later when the user turns "Anonymous usage" on — and never
+// before. SDKs are constructed through this: checking only at boot left a user
+// who opted in mid-visit with no reporting until a reload.
+export const whenAnalyticsAllowed = (start: () => void): void => {
+  let started = false;
+  let unsubscribe: (() => void) | null = null;
+  unsubscribe = subscribeAnalyticsPermission((enabled) => {
+    if (!enabled || started) return;
+    started = true;
+    unsubscribe?.();
+    start();
+  });
+  // The first push is synchronous, before `unsubscribe` was assigned.
+  if (started) unsubscribe();
+};
+
 export const getLocale = (): string => current.locale;

@@ -12,7 +12,11 @@ import {
   isLocalAIMode,
   subscribeLocalAIPrivacy,
 } from './functions/localAIPrivacy';
-import { isAnalyticsEnabled, setRuntimePrefs } from './functions/runtimePrefs';
+import {
+  isAnalyticsEnabled,
+  setRuntimePrefs,
+  whenAnalyticsAllowed,
+} from './functions/runtimePrefs';
 import './index.css';
 
 // a shared `::ai` link mounts the local AI box on first paint, so close the
@@ -36,10 +40,10 @@ document.documentElement.dataset.density = initialPrefs.density;
 // defer firebase init until the browser is idle so the analytics SDK
 // (~150KB gzipped) does not block first paint.
 const loadFirebase = () => {
-  // never fetch the analytics SDK at all when reporting is not allowed.
-  if (!isAnalyticsEnabled()) return;
-  import('./firebaseConfig').catch(() => {
-    /* analytics is best-effort */
+  whenAnalyticsAllowed(() => {
+    import('./firebaseConfig').catch(() => {
+      /* analytics is best-effort */
+    });
   });
 };
 type IdleWindow = Window & {
@@ -52,30 +56,33 @@ if (typeof w.requestIdleCallback === 'function') {
   setTimeout(loadFirebase, 2000);
 }
 
-init({
-  dsn: env.SENTRY_DSN,
+// Once constructed, the client follows the preference through the `before*`
+// hooks below; the local AI gate additionally closes it for good.
+whenAnalyticsAllowed(() => {
+  init({
+    dsn: env.SENTRY_DSN,
 
-  enabled: isAnalyticsEnabled(),
+    integrations: [browserTracingIntegration()],
 
-  integrations: [browserTracingIntegration()],
+    // Set tracesSampleRate to 1.0 to capture 100%
+    // of transactions for performance monitoring.
+    tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+    // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
+    tracePropagationTargets: ['localhost', /^https:\/\/mb\.10oz\.tw/],
 
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
-  // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ['localhost', /^https:\/\/mb\.10oz\.tw/],
+    // No default PII, and no log forwarding: worker failures are already mapped
+    // to fixed error codes, so uploading raw logs could only leak user text.
+    sendDefaultPii: false,
+    _experiments: { enableLogs: false },
 
-  // No default PII, and no log forwarding: worker failures are already mapped
-  // to fixed error codes, so uploading raw logs could only leak user text.
-  sendDefaultPii: false,
-  _experiments: { enableLogs: false },
-
-  // honor the "anonymous usage" toggle at runtime: drop every event/transaction
-  // unless the user has opted in. reads the live runtime flag so toggling the
-  // setting takes effect without a reload.
-  beforeBreadcrumb: (breadcrumb) => (isAnalyticsEnabled() ? breadcrumb : null),
-  beforeSend: (event) => (isAnalyticsEnabled() ? event : null),
-  beforeSendTransaction: (event) => (isAnalyticsEnabled() ? event : null),
+    // honor the "anonymous usage" toggle at runtime: drop every event/transaction
+    // unless the user has opted in. reads the live runtime flag so toggling the
+    // setting takes effect without a reload.
+    beforeBreadcrumb: (breadcrumb) =>
+      isAnalyticsEnabled() ? breadcrumb : null,
+    beforeSend: (event) => (isAnalyticsEnabled() ? event : null),
+    beforeSendTransaction: (event) => (isAnalyticsEnabled() ? event : null),
+  });
 });
 
 // The gate above already drops events; closing the client also stops automatic

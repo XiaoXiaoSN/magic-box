@@ -1,5 +1,5 @@
 import env from '@global/env';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getLocale,
   getShortenUrl,
@@ -7,6 +7,7 @@ import {
   getToolboxUrl,
   isAnalyticsEnabled,
   setRuntimePrefs,
+  whenAnalyticsAllowed,
 } from '../runtimePrefs';
 import { DEFAULT_TIMEZONE_OFFSET } from '../timezone';
 
@@ -51,5 +52,29 @@ describe('runtimePrefs', () => {
     setRuntimePrefs({ analytics: false, locale: 'zh_TW' });
     expect(isAnalyticsEnabled()).toBe(false);
     expect(getLocale()).toBe('zh_TW');
+  });
+
+  describe('whenAnalyticsAllowed', () => {
+    it('starts immediately, once, when reporting is already allowed', () => {
+      const start = vi.fn();
+      whenAnalyticsAllowed(start);
+      setRuntimePrefs({ analytics: false });
+      setRuntimePrefs({ analytics: true });
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts when the user opts in mid-visit, not before', () => {
+      // Regression: SDKs were only constructed at boot, so turning
+      // "Anonymous usage" on later did nothing until a reload.
+      setRuntimePrefs({ analytics: false });
+      const start = vi.fn();
+      whenAnalyticsAllowed(start);
+      expect(start).not.toHaveBeenCalled();
+      setRuntimePrefs({ analytics: true });
+      expect(start).toHaveBeenCalledTimes(1);
+      setRuntimePrefs({ analytics: false });
+      setRuntimePrefs({ analytics: true });
+      expect(start).toHaveBeenCalledTimes(1);
+    });
   });
 });
