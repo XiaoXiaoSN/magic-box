@@ -1,5 +1,5 @@
+import { type ControlOption, Select, Toggle } from '@components/Controls';
 import type { DragEndEvent } from '@dnd-kit/core';
-
 import {
   closestCenter,
   DndContext,
@@ -24,14 +24,7 @@ import {
 } from '../contexts/PreferencesContext';
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
-import {
-  AI_LANGUAGES,
-  AI_TASKS,
-  aiAutoLanguageLabels,
-  aiLanguageLabels,
-  aiTaskLabels,
-} from '../features/local-ai/labels';
-import type { AILanguagePref, AITask } from '../features/local-ai/types';
+import { aiLanguageOptions, aiTaskOptions } from '../features/local-ai/labels';
 import {
   isValidTimezoneOffset,
   MAX_TIMEZONE_OFFSET,
@@ -165,15 +158,10 @@ const Field = ({ label, hint, children }: FieldProps) => (
   </div>
 );
 
-interface SegOption<T extends string> {
-  value: T;
-  label: string;
-}
-
 interface SegmentedProps<T extends string> {
   value: T;
   onChange: (v: T) => void;
-  options: SegOption<T>[];
+  options: ControlOption<T>[];
 }
 
 const Segmented = <T extends string>({
@@ -193,51 +181,6 @@ const Segmented = <T extends string>({
       </button>
     ))}
   </div>
-);
-
-interface ToggleProps {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label?: string;
-}
-
-const Toggle = ({ checked, onChange, label }: ToggleProps) => {
-  const { t } = useLocale();
-  return (
-    <button
-      aria-label={label ?? t('settings.toggle')}
-      aria-pressed={checked}
-      className={`toggle${checked ? ' on' : ''}`}
-      onClick={() => onChange(!checked)}
-      type="button"
-    >
-      <span className="toggle-dot" />
-    </button>
-  );
-};
-
-interface SelectProps<T extends string> {
-  value: T;
-  onChange: (v: T) => void;
-  options: SegOption<T>[];
-}
-
-const Select = <T extends string>({
-  value,
-  onChange,
-  options,
-}: SelectProps<T>) => (
-  <select
-    className="select"
-    onChange={(e) => onChange(e.target.value as T)}
-    value={value}
-  >
-    {options.map((o) => (
-      <option key={o.value} value={o.value}>
-        {o.label}
-      </option>
-    ))}
-  </select>
 );
 
 interface TextInputProps {
@@ -568,12 +511,10 @@ const SettingsPage = (): React.JSX.Element => {
           title={t('settings.section.localAI')}
         >
           <Field hint={t('settings.aiTaskHint')} label={t('settings.aiTask')}>
-            <Select<AITask>
+            <Select
+              label={t('settings.aiTask')}
               onChange={(v) => setPref('aiTask', v)}
-              options={AI_TASKS.map((value) => ({
-                value,
-                label: aiTaskLabels[locale][value],
-              }))}
+              options={aiTaskOptions(locale)}
               value={prefs.aiTask}
             />
           </Field>
@@ -581,15 +522,10 @@ const SettingsPage = (): React.JSX.Element => {
             hint={t('settings.aiLanguageHint')}
             label={t('settings.aiLanguage')}
           >
-            <Select<AILanguagePref>
+            <Select
+              label={t('settings.aiLanguage')}
               onChange={(v) => setPref('aiLanguage', v)}
-              options={[
-                { value: 'auto', label: aiAutoLanguageLabels[locale] },
-                ...AI_LANGUAGES.map((value) => ({
-                  value,
-                  label: aiLanguageLabels[value],
-                })),
-              ]}
+              options={aiLanguageOptions(locale)}
               value={prefs.aiLanguage}
             />
           </Field>
