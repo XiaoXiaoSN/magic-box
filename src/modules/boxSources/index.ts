@@ -15,6 +15,7 @@ import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
+import Crc32BoxSource from './Crc32BoxSource';
 import CreditCardInfoBoxSource from './CreditCardInfoBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
@@ -168,4 +169,5 @@ export const boxSources: BoxSource[] = [
   HmacBoxSource,
   Pbkdf2BoxSource,
   LocalAIBoxSource,
+  Crc32BoxSource,
 ];
