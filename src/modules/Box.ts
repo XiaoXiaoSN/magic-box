@@ -39,6 +39,11 @@ export interface BoxProps {
   name: string;
   plaintextOutput: string;
   options: BoxOptions;
+  // the input the box was generated from, with `::option` directives already
+  // stripped. Most templates render only `plaintextOutput`; an interactive
+  // template that has to keep working on the user's text (rather than on a
+  // finished result) reads this instead of re-deriving it.
+  sourceInput?: string;
   onClick: BoxOnClickFn;
   onResultChange?: (
     result: Pick<BoxProps, 'options' | 'plaintextOutput'>,
@@ -63,6 +68,7 @@ export interface Box {
 
 export class BoxBuilder {
   public showExpandButton: boolean = true;
+  public sourceInput?: string;
 
   constructor(
     public name: string,
@@ -110,6 +116,11 @@ export class BoxBuilder {
     return this;
   }
 
+  setSourceInput(input: string): BoxBuilder {
+    this.sourceInput = input;
+    return this;
+  }
+
   build(): Box {
     return {
       props: {
@@ -117,6 +128,7 @@ export class BoxBuilder {
         plaintextOutput: this.plaintextOutput,
         priority: this.priority,
         options: this.options,
+        sourceInput: this.sourceInput,
         onClick: this.onClick,
         showExpandButton: this.showExpandButton,
         tag: this.tag,

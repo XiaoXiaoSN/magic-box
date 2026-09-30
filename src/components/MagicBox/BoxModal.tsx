@@ -23,8 +23,16 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
     );
   }
 
-  const { name, plaintextOutput, options, priority, tag, kind, onClick } =
-    box.props;
+  const {
+    name,
+    plaintextOutput,
+    options,
+    sourceInput,
+    priority,
+    tag,
+    kind,
+    onClick,
+  } = box.props;
 
   const handleClick = (text: string) => {
     onCopy(text);
@@ -69,6 +77,7 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
               options={options}
               plaintextOutput={plaintextOutput}
               priority={priority}
+              sourceInput={sourceInput}
               tag={tag}
             />
           </div>
