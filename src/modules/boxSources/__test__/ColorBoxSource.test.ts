@@ -191,7 +191,7 @@ describe('ColorBoxSource.generateBoxes', () => {
     expect(boxes).toHaveLength(0);
   });
 
-  it('produces 3 boxes (HEX, RGB, HSL) for #ff0000', async () => {
+  it('preserves the three default color outputs for #ff0000', async () => {
     const boxes = await ColorBoxSource.generateBoxes('#ff0000');
     expect(boxes).toHaveLength(3);
 
@@ -256,5 +256,138 @@ describe('ColorBoxSource.generateBoxes', () => {
     );
     expect(byName.HEX).toBe('#ff0000');
     expect(byName.RGB).toBe('rgb(255, 0, 0)');
+  });
+
+  it('converts CMYK input through the same color source', async () => {
+    const boxes = await ColorBoxSource.generateBoxes(
+      'cmyk(0%, 100%, 100%, 0%)',
+      { cmyk: true },
+    );
+    const byName = Object.fromEntries(
+      boxes.map((box) => [box.props.name, box.props.plaintextOutput]),
+    );
+    expect(byName.HEX).toBe('#ff0000');
+    expect(byName.RGB).toBe('rgb(255, 0, 0)');
+    expect(byName.CMYK).toBe('cmyk(0%, 100%, 100%, 0%)');
+  });
+
+  it('adds CMYK only when requested for ordinary color input', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#ff0000', { cmyk: true });
+    expect(
+      boxes.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
+    ).toBe('cmyk(0%, 100%, 100%, 0%)');
+    expect(
+      (await ColorBoxSource.generateBoxes('#ff0000')).some(
+        (box) => box.props.name === 'CMYK',
+      ),
+    ).toBe(false);
+  });
+
+  it('explains why an alpha color cannot be converted to CMYK', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('rgba(255, 0, 0, 0.5)', {
+      cmyk: true,
+    });
+    expect(
+      boxes.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
+    ).toContain('alpha');
+  });
+
+  it('converts black and white to CMYK without division by zero', async () => {
+    const black = await ColorBoxSource.generateBoxes('#000000', { cmyk: true });
+    const white = await ColorBoxSource.generateBoxes('#ffffff', { cmyk: true });
+    expect(
+      black.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
+    ).toBe('cmyk(0%, 0%, 0%, 100%)');
+    expect(
+      white.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
+    ).toBe('cmyk(0%, 0%, 0%, 0%)');
+  });
+
+  it('rejects out-of-range CMYK input', async () => {
+    expect(
+      await ColorBoxSource.generateBoxes('cmyk(0, 101, 0, 0)'),
+    ).toHaveLength(0);
+  });
+
+  it('mixes two colors and derives all formats from the result', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#f00 rgb(0, 0, 255)', {
+      colormix: '50',
+      cmyk: true,
+    });
+    const byName = Object.fromEntries(
+      boxes.map((box) => [box.props.name, box]),
+    );
+    expect(
+      (byName['Color Mix'].props.options as Record<string, string>).Mixed,
+    ).toBe('#800080');
+    expect(byName.HEX.props.plaintextOutput).toBe('#800080');
+    expect(byName.RGB.props.plaintextOutput).toBe('rgb(128, 0, 128)');
+    expect(byName.CMYK.props.plaintextOutput).toBe('cmyk(0%, 100%, 0%, 50%)');
+  });
+
+  it('supports mix aliases and boundary ratios', async () => {
+    const first = await ColorBoxSource.generateBoxes('#ff0000 #0000ff', {
+      blend: '0',
+    });
+    const second = await ColorBoxSource.generateBoxes('#ff0000 #0000ff', {
+      mixcolor: '100',
+    });
+    expect(
+      first.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#ff0000');
+    expect(
+      second.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#0000ff');
+  });
+
+  it('requires exactly two valid opaque colors for mixing', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#ff0000', {
+      colormix: true,
+    });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toContain('two opaque');
+    expect(await ColorBoxSource.generateBoxes('#ff0000 #0000ff')).toHaveLength(
+      0,
+    );
+  });
+
+  it('lightens and darkens using the shared color conversion', async () => {
+    const light = await ColorBoxSource.generateBoxes('#000000', {
+      lighten: '50',
+    });
+    const dark = await ColorBoxSource.generateBoxes('#ffffff', {
+      darken: '100',
+    });
+    expect((light[0].props.options as Record<string, string>).Adjusted).toBe(
+      '#808080',
+    );
+    expect(
+      light.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#808080');
+    expect((dark[0].props.options as Record<string, string>).Adjusted).toBe(
+      '#000000',
+    );
+  });
+
+  it('composes mixing then adjustment in one source', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#000000 #ffffff', {
+      colormix: '50',
+      lighten: '10',
+      darken: '10',
+      cmyk: true,
+    });
+    expect(boxes[0].props.name).toBe('Color Mix');
+    expect((boxes[1].props.options as Record<string, string>).Operation).toBe(
+      'lighten 10%',
+    );
+    expect((boxes[1].props.options as Record<string, string>).Original).toBe(
+      '#808080',
+    );
+    expect(
+      boxes.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#999999');
+    expect(
+      boxes.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
+    ).toBe('cmyk(0%, 0%, 0%, 40%)');
   });
 });

@@ -7,11 +7,8 @@ import {
 } from './Base64BoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
-import CmykBoxSource from './CmykBoxSource';
-import ColorAdjustBoxSource from './ColorAdjustBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
-import ColorMixBoxSource from './ColorMixBoxSource';
 import CreditCardInfoBoxSource from './CreditCardInfoBoxSource';
 import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
@@ -157,7 +154,4 @@ export const boxSources: BoxSource[] = [
   UnicodeEscapeBoxSource,
   HmacBoxSource,
   Pbkdf2BoxSource,
-  CmykBoxSource,
-  ColorAdjustBoxSource,
-  ColorMixBoxSource,
 ];
