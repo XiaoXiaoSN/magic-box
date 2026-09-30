@@ -1,6 +1,9 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
-import { isLocalAIInput } from '@functions/localAIPrivacy';
+import {
+  activateLocalAIPrivacy,
+  isLocalAIInput,
+} from '@functions/localAIPrivacy';
 import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, {
@@ -48,11 +51,15 @@ const MagicBoxPage = (): React.JSX.Element => {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastRecordedRef = useRef<string>('');
+  // History entries this edit session created (not ones it merely moved to the
+  // top). A session ends when the input is emptied or replaced wholesale.
+  const sessionAddedRef = useRef<string[]>([]);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
 
-  const { history, addEntry, removeEntry, clearHistory } = useSearchHistory();
+  const { history, addEntry, removeEntry, removeInputs, clearHistory } =
+    useSearchHistory();
 
   // Focus the textarea on first load so users can start typing without an
   // extra click.
@@ -67,17 +74,35 @@ const MagicBoxPage = (): React.JSX.Element => {
   }, [userInput]);
 
   // Record to search history when debounced input settles. A `::ai` input
-  // carries the model prompt in front of the directive, so it is deliberately
-  // never recorded: the panel's privacy promise has to survive the prompt
-  // being typed in the magic input rather than inside the box.
+  // carries the model prompt, so it is never recorded: the panel's privacy
+  // promise has to survive the prompt being typed in the magic input rather
+  // than inside the box.
+  //
+  // Skipping the final input is not enough. The prompt is typed BEFORE the
+  // directive, and every pause longer than the debounce settles on a partial
+  // state — `my question`, `my question\n::`, `…::a` — each an ordinary
+  // input that was recorded. So when an `::ai` input settles, the entries this
+  // edit session created are withdrawn too, and the telemetry gate closes here
+  // rather than when the lazy panel chunk finally mounts.
   useEffect(() => {
     const trimmed = magicIn.trim();
-    if (trimmed && trimmed !== lastRecordedRef.current) {
-      lastRecordedRef.current = trimmed;
-      if (isLocalAIInput(trimmed)) return;
-      addEntry(trimmed);
+    if (!trimmed) {
+      sessionAddedRef.current = [];
+      return;
     }
-  }, [magicIn, addEntry]);
+    if (trimmed === lastRecordedRef.current) return;
+    lastRecordedRef.current = trimmed;
+    if (isLocalAIInput(trimmed)) {
+      activateLocalAIPrivacy();
+      removeInputs(sessionAddedRef.current);
+      sessionAddedRef.current = [];
+      return;
+    }
+    if (!history.some((item) => item.input === trimmed)) {
+      sessionAddedRef.current.push(trimmed);
+    }
+    addEntry(trimmed);
+  }, [magicIn, history, addEntry, removeInputs]);
 
   const optionChips = useMemo(
     () => Object.entries(parseOptionsForChips(userInput)),
@@ -107,6 +132,9 @@ const MagicBoxPage = (): React.JSX.Element => {
   // back). Marks the caret to land at the end of the inserted text so the
   // next keystroke continues naturally.
   const replaceInput = (value: string) => {
+    // A wholesale replacement starts a new edit session: what was typed before
+    // it is not part of whatever is built from the new value.
+    sessionAddedRef.current = [];
     pendingCaretRef.current = value.length;
     setUserInput(value);
   };
