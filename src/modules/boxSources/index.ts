@@ -10,6 +10,7 @@ import {
   Base64EncodeBoxSource,
 } from './Base64BoxSource';
 import Base85BoxSource from './Base85BoxSource';
+import Base91BoxSource from './Base91BoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
@@ -118,6 +119,7 @@ export const boxSources: BoxSource[] = [
   Base58BoxSource,
   Base62BoxSource,
   Base85BoxSource,
+  Base91BoxSource,
   BinaryTextBoxSource,
   BmiBoxSource,
   DiceRollBoxSource,
