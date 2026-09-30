@@ -34,7 +34,6 @@ export interface Interruptor {
 
 export interface RuntimeProgress {
   status: string;
-  file?: string;
   progress?: number;
 }
 

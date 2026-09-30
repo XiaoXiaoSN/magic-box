@@ -20,6 +20,11 @@ const Priority = 10;
 // `say hello\n::ai` needs no second textarea. It is carried, never executed:
 // nothing runs until the model is loaded and the panel decides to submit it.
 //
+// Text after the directive on the same line is the prompt too. `parseInput`
+// reads `::ai what is WebGPU?` as the option value ` what is WebGPU?` and strips
+// the whole line from `input`, so without this the question typed in the most
+// natural chat-style form was silently dropped.
+//
 // Not node-safe: the template pulls in React and a module worker, so this source
 // is excluded from `src/tui/sources.ts`.
 export const LocalAIBoxSource: BoxSource = {
@@ -37,10 +42,16 @@ export const LocalAIBoxSource: BoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, ...LOCAL_AI_OPTION_KEYS)) return [];
 
+    const inline = LOCAL_AI_OPTION_KEYS.map((key) => options?.[key])
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const prompt = [input.trim(), ...inline].filter(Boolean).join('\n');
+
     return [
       new BoxBuilder('Local AI', '')
         .setOptions(options)
-        .setSourceInput(input)
+        .setSourceInput(prompt)
         .setTemplate(LocalAIBoxTemplate)
         .setPriority(Priority)
         // The panel is tall and stateful; re-mounting it in a modal would drop

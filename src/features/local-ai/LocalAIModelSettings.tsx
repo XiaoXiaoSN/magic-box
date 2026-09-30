@@ -1,12 +1,12 @@
-import { useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
-import { deleteLocalAIDownloads } from './caches';
-import './localAI.css';
 import type { WorkerPort } from './client';
+import './localAI.css';
+import LocalAIProgress from './LocalAIProgress';
 import { localAIMessages } from './messages';
-import { describePhase, describeSetupStep } from './setupStep';
+import { describePhase } from './setupStep';
 import { isBusy } from './types';
 import { useLocalAI } from './useLocalAI';
+import { useLocalAISetup } from './useLocalAISetup';
 
 interface Props {
   // Injected by tests so the section can be driven without a module worker.
@@ -15,12 +15,14 @@ interface Props {
 
 // Provisioning from Settings, where no box is mounted: fetch the weights ahead
 // of time so the `::ai` box starts from cache. It runs the same steps the box
-// does, through the same `describeSetupStep`, so a user never meets two names
-// for one action.
+// does, through the same `useLocalAISetup`, so a user never meets two names for
+// one action or two sets of guards.
 //
-// Leaving this page releases the worker (`useLocalAI` unmount), which is the
-// point: what survives is the download in Cache Storage, not a session holding
-// ~500 MB of GPU memory on a settings screen.
+// The client is the one the box uses (see useLocalAI): a model loaded here is
+// loaded there. Leaving this page lets it go after the unused-grace period —
+// once any download in flight has finished — so what survives is the download
+// in Cache Storage, not a session holding ~500 MB of GPU memory.
+
 const LocalAIModelSettings = ({
   createWorker,
 }: Props = {}): React.JSX.Element => {
@@ -30,45 +32,9 @@ const LocalAIModelSettings = ({
   // opens Settings, so mounting it is not a request to use local AI. The check
   // stays the first explicit step.
   const { client, state } = useLocalAI({ createWorker });
-  const [deleting, setDeleting] = useState(false);
-  const [notice, setNotice] = useState('');
-
+  const setup = useLocalAISetup(client, state, locale);
+  const { step } = setup;
   const busy = isBusy(state.phase);
-  const step = describeSetupStep(state, locale);
-
-  const advance = () => {
-    if (!step) return;
-    setNotice('');
-    if (step.action === 'inspect') {
-      client.inspect();
-      return;
-    }
-    if (typeof navigator.storage?.persist === 'function') {
-      void navigator.storage.persist().catch(() => false);
-    }
-    // The click is the consent: the label carries the byte count, the note
-    // names the sources.
-    client.prepare();
-  };
-
-  const removeDownloads = async () => {
-    if (typeof window !== 'undefined' && !window.confirm(m.removeConfirm)) {
-      return;
-    }
-    // Terminate first: this tab must not be able to repopulate the cache it is
-    // about to delete.
-    client.reset();
-    setDeleting(true);
-    setNotice('');
-    try {
-      await deleteLocalAIDownloads();
-      setNotice(m.removed);
-    } catch {
-      setNotice(m.errors.storage);
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   return (
     <>
@@ -82,12 +48,23 @@ const LocalAIModelSettings = ({
             {describePhase(state, locale)}
           </div>
         </div>
-        <div className="field-control">
+        <div className="field-control local-ai-actions">
+          {setup.canStop ? (
+            <button
+              className="local-ai-button"
+              data-testid="settings-ai-stop"
+              disabled={state.phase === 'stopping'}
+              onClick={() => client.stop()}
+              type="button"
+            >
+              {m.stop}
+            </button>
+          ) : null}
           <button
             className="local-ai-button primary"
             data-testid="settings-ai-setup"
-            disabled={!step || busy || deleting}
-            onClick={advance}
+            disabled={!step || busy || setup.deleting}
+            onClick={setup.advance}
             type="button"
           >
             {step?.label ?? m.phases.ready}
@@ -97,18 +74,14 @@ const LocalAIModelSettings = ({
 
       {/* Only rendered when it has something to say: an empty grid would
           otherwise add a gap between the two field rows. */}
-      {step?.note || state.progress || state.error || notice ? (
+      {step?.note || state.progress || state.error || setup.notice ? (
         <div className="local-ai">
           {step?.note ? <p className="local-ai-hint">{step.note}</p> : null}
           {state.progress ? (
-            <div className="local-ai-progress">
-              <span>{state.progress.file}</span>
-              <progress
-                aria-label={m.downloading}
-                max={100}
-                value={state.progress.percent ?? undefined}
-              />
-            </div>
+            <LocalAIProgress
+              label={m.downloading}
+              percent={state.progress.percent}
+            />
           ) : null}
           {state.error ? (
             <p
@@ -119,9 +92,9 @@ const LocalAIModelSettings = ({
               {m.errors[state.error]}
             </p>
           ) : null}
-          {notice ? (
+          {setup.notice ? (
             <p className="local-ai-note" role="status">
-              {notice}
+              {setup.notice}
             </p>
           ) : null}
         </div>
@@ -135,8 +108,9 @@ const LocalAIModelSettings = ({
         <div className="field-control">
           <button
             className="btn-danger"
-            disabled={deleting}
-            onClick={() => void removeDownloads()}
+            data-testid="settings-ai-delete"
+            disabled={!setup.canRemove}
+            onClick={() => void setup.removeDownloads()}
             type="button"
           >
             {t('settings.delete')}

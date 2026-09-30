@@ -1,6 +1,6 @@
 import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../../contexts/PreferencesContext';
@@ -13,24 +13,33 @@ interface SetupOptions {
   sourceInput?: string;
 }
 
+// One factory per test: the shared-client registry is keyed by it, so each
+// test gets its own client while remounts within a test share one.
 const setup = ({ onOutput, sourceInput }: SetupOptions = {}) => {
   const workers: FakeWorker[] = [];
-  render(
+  const createWorker = () => {
+    const worker = new FakeWorker();
+    workers.push(worker);
+    return worker;
+  };
+  const tree = (input?: string) => (
     <LocaleProvider>
       <PreferencesProvider>
         <LocalAIPanel
-          createWorker={() => {
-            const worker = new FakeWorker();
-            workers.push(worker);
-            return worker;
-          }}
+          createWorker={createWorker}
           onOutput={onOutput}
-          sourceInput={sourceInput}
+          sourceInput={input}
         />
       </PreferencesProvider>
-    </LocaleProvider>,
+    </LocaleProvider>
   );
-  return workers;
+  const view = render(tree(sourceInput));
+  return Object.assign(workers, {
+    // The magic input settled on new text in front of `::ai`.
+    retype: (input: string) => view.rerender(tree(input)),
+    unmount: view.unmount,
+    remount: (input?: string) => render(tree(input ?? sourceInput)),
+  });
 };
 
 const openSettings = () => {
@@ -268,6 +277,39 @@ describe('LocalAIPanel', () => {
       expect(workers[1].generates()).toHaveLength(1);
     });
 
+    it('stops a run for text the user has since changed, then runs the new text', () => {
+      // Regression: a pause while typing settled on a half-written prompt,
+      // which ran to the budget while the real prompt queued behind it.
+      const workers = setup({ sourceInput: 'Summarize the' });
+      loadModel(workers);
+      const first = workers[0].commands.at(-1);
+      expect(first?.type === 'generate' && first.request.input).toBe(
+        'Summarize the',
+      );
+
+      workers.retype('Summarize the following report');
+      expect(workers[0].commands.at(-1)).toEqual({
+        type: 'cancel',
+        id: first?.id,
+      });
+      workers[0].reply({ type: 'cancelled' });
+      const next = workers[0].commands.at(-1);
+      expect(next?.type === 'generate' && next.request.input).toBe(
+        'Summarize the following report',
+      );
+      // The model stayed loaded: a cooperative stop, not a terminate.
+      expect(workers).toHaveLength(1);
+    });
+
+    it('does not answer the same prompt again when the box remounts', () => {
+      const workers = setup({ sourceInput: 'say hello' });
+      loadModel(workers);
+      workers[0].reply({ type: 'complete' });
+      workers.unmount();
+      workers.remount();
+      expect(workers[0].generates()).toHaveLength(1);
+    });
+
     it('does not auto-run when the preference is off', () => {
       localStorage.setItem(
         LOCAL_PREFS_KEY,
@@ -295,6 +337,43 @@ describe('LocalAIPanel', () => {
       });
     });
   });
+  it('keeps the draft editable while the model is being checked', () => {
+    // Regression: the self-started check locked the only field the user
+    // needed, for up to a minute on a slow link.
+    setup();
+    expect(screen.getByTestId('local-ai-status')).toHaveTextContent('Checking');
+    expect(screen.getByTestId('local-ai-input')).toBeEnabled();
+  });
+
+  describe('one session per tab', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('keeps a loaded model across a remount', () => {
+      // Regression: clearing the input to type the next question, or a visit
+      // to Settings, unmounted the box and terminated a ~467 MiB session.
+      vi.useFakeTimers();
+      const workers = setup();
+      loadModel(workers);
+      workers.unmount();
+      vi.advanceTimersByTime(10_000);
+      workers.remount();
+      expect(workers[0].terminated).toBe(false);
+      expect(workers).toHaveLength(1);
+      expect(screen.getByTestId('local-ai-run')).toBeInTheDocument();
+    });
+
+    it('releases it once no surface has shown it for the grace period', () => {
+      vi.useFakeTimers();
+      const workers = setup();
+      loadModel(workers);
+      workers.unmount();
+      vi.advanceTimersByTime(30_000);
+      expect(workers[0].terminated).toBe(true);
+    });
+  });
+
   describe('checking on open', () => {
     it('stays off the network when the preference is off', () => {
       // The escape hatch for anyone who does not want a mounted box reaching
@@ -353,14 +432,12 @@ describe('LocalAIPanel', () => {
       expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
         'Preparing model…',
       );
-      workers[0].reply({
-        type: 'progress',
-        file: 'model_q4f16.onnx',
-        progress: 42,
-      });
+      workers[0].reply({ type: 'progress', progress: 42 });
       expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
         'Downloading model…',
       );
+      // One aggregate number, not a file name that flickers per chunk.
+      expect(screen.getByTestId('local-ai-progress')).toHaveTextContent('42%');
       workers[0].reply({ type: 'ready' });
       expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
         'Model ready',

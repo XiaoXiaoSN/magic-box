@@ -62,7 +62,7 @@ const zhTW: Translations = {
     '本地 AI box 開啟時，向 Hugging Face 讀取模型大小並檢查 WebGPU 支援，box 就會直接顯示標有實際大小的下載按鈕。關閉後，只有在你按下「檢查裝置與模型」之後才會連線 jsDelivr 與 Hugging Face。無論如何，權重都只會因你自己的點擊而下載。',
   'settings.aiModel': '模型',
   'settings.aiModelHint':
-    '先下載權重，::ai box 之後就能直接從本機快取啟動。檢查會在下載前回報實際大小；離開此頁只會釋放記憶體，不會刪除下載。',
+    '先下載權重，::ai box 之後就能直接從本機快取啟動。檢查會在下載前回報實際大小；離開此頁稍後會釋放記憶體，但不會刪除下載。',
   'settings.aiDelete': '刪除 AI 下載',
   'settings.aiDeleteHint':
     '移除已快取的模型與 runtime。其他工具與設定不受影響。',

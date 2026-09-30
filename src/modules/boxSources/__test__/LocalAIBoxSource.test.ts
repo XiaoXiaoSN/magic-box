@@ -40,6 +40,15 @@ describe('LocalAIBoxSource', () => {
     expect(box.props.plaintextOutput).toBe('');
   });
 
+  it('reads text after the directive on the same line as the prompt', async () => {
+    // Regression: `parseInput` takes it as the option value and strips the
+    // line, so `::ai what is WebGPU?` used to arrive as an empty prompt.
+    const [inline] = await run('::ai what is WebGPU?');
+    expect(inline.props.sourceInput).toBe('what is WebGPU?');
+    const [both] = await run('draft notes\n::ai summarize these');
+    expect(both.props.sourceInput).toBe('draft notes\nsummarize these');
+  });
+
   it('leaves the prompt empty when the directive stands alone', async () => {
     const [box] = await run('::ai');
     expect(box.props.sourceInput).toBe('');

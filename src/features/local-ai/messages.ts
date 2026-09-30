@@ -120,7 +120,8 @@ export const localAIMessages: Record<UILocale, Messages> = {
     requirements:
       'Requires WebGPU with shader-f16. There is no cloud or CPU fallback.',
     budget: 'Single turn · 1,024 input tokens · 256 output tokens.',
-    memoryNote: 'GPU memory is released when the tab goes to the background.',
+    memoryNote:
+      'GPU memory is released when the tab goes to the background, once a download or answer in progress has finished.',
     telemetryNote: 'Usage statistics stay disabled for the rest of this visit.',
     stoppedNote: 'Stopped: the output above is incomplete.',
     copy: 'Copy output',
@@ -202,7 +203,7 @@ export const localAIMessages: Record<UILocale, Messages> = {
     evictionNote: '瀏覽器可能清除快取，因此不保證可離線使用。',
     requirements: '需要支援 shader-f16 的 WebGPU，且不會改用雲端或 CPU。',
     budget: '單輪 · 輸入上限 1,024 tokens · 輸出上限 256 tokens。',
-    memoryNote: '分頁切到背景時會釋放 GPU 記憶體。',
+    memoryNote: '分頁切到背景時，會在進行中的下載或回答完成後釋放 GPU 記憶體。',
     telemetryNote: '本次瀏覽期間都會停用使用統計。',
     stoppedNote: '已停止，上面的輸出並不完整。',
     copy: '複製輸出',

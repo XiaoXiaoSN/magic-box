@@ -29,13 +29,23 @@ The prompt can come from either side:
 - `say hello\n::ai` — the text in front of the directive travels with the box as
   `BoxProps.sourceInput`, the panel drops its textarea, and the magic input is
   the single place that prompt is edited.
+- `::ai what is WebGPU?` — text after the directive on the same line is the
+  prompt too. `parseInput` reads it as the option value and strips the line, so
+  the BoxSource joins it onto `sourceInput`; before that it was silently dropped.
 
 `sourceInput` is a generic part of the Box contract (the input a box was built
 from, `::option` directives already stripped), not an AI-specific channel.
 
 A prompt in the magic input would otherwise be recorded like any other search,
 so `MagicBoxPage` skips `addEntry` for any input `isLocalAIInput` matches.
-Option parsing still sees only the directives, and the `?input=` share link is
+Skipping the final input alone is not enough: the prompt is typed *before* the
+directive, and every pause past the 500 ms debounce settles on an ordinary
+partial input (`my question`, `my question\n::`, `…::a`) that was recorded. So
+when an `::ai` input settles, the page also withdraws the entries its current
+edit session created — since the input was last empty or replaced wholesale —
+and leaves alone entries that already existed and were only moved to the top.
+It also closes the telemetry gate at that moment, not when the lazy panel chunk
+mounts. Option parsing still sees only the directives, and the `?input=` share link is
 the one place the text can still travel — the user has to press Share for that,
 and the box says so while a carried prompt is in use.
 
@@ -111,13 +121,20 @@ Three places deliberately do **not** check themselves open:
   cannot drift from the tool, which would make browsing the shelf reach the
   network. `BoxPreviewProvider` marks that subtree and `LocalAIPanel` reads it
   (`useIsBoxPreview`). It is a context and not a Box-contract prop because it is
-  a property of the surrounding surface, not of the box.
+  a property of the surrounding surface, not of the box. The same reading keeps
+  the sticky telemetry gate open in a preview until it is actually used — a
+  typed or carried prompt, or a setup click — so browsing the list does not
+  switch error reporting off for the rest of the visit.
 - **Settings → Local AI.** That section renders for everyone who opens Settings,
   so its presence is not a request to use local AI. It keeps the manual check.
-- **A failed check.** The effect runs once per mount and never retries:
-  `client.inspect()` is a no-op while busy or loaded, and a failure leaves
-  `phase: 'error'`, which a retry loop against two CDNs must not re-enter.
-  Retrying is the button's job.
+- **A failed check, or a known answer.** The effect runs once per mount and
+  only from a blank client (`phase: 'idle'`, no `info`). The client is shared
+  (see *Lifecycle*), so a remount must not re-check a size it already knows, and
+  a failure leaves `phase: 'error'`, which a retry loop against two CDNs must
+  not re-enter. Retrying is the button's job.
+
+The check does not lock the draft textarea: only a running generation does. A
+minute-long check on a slow link used to disable the one field the user needed.
 
 The check also renders no `Stop` button (`busy && phase !== 'inspecting'`). The
 user pressed nothing, so there is nothing of theirs to abort; `Stop` belongs to
@@ -203,7 +220,16 @@ Two things deliberately did **not** move:
 session, and the one-token warm-up. `describePhase(state, locale)` in
 `setupStep.ts` picks the one that is actually happening instead of listing all
 three: `Downloading model…` only while `state.progress` is non-null **and**
-`info.cached` is false, `Preparing model…` otherwise. Naming all three at once
+`info.cached` is false, `Preparing model…` otherwise. A successful load sets
+`info.cached` to true, so after a release the box offers `Load model`, not the
+full download and its sources again.
+
+Progress is the runtime's aggregate `progress_total` only, shown as one
+percentage. transformers.js 4.2.0 emits it right before every per-file
+`progress`; forwarding both made the bar alternate between the overall and the
+per-file figure at twice the message rate. The tokenizer files have no
+aggregate, so their ticks arrive with `progress: null` — an indeterminate bar,
+and a sign of life for the stall timeout. Naming all three at once
 was both vaguer and noisier — the box status is a live region, so the full list
 was announced on every change.
 
@@ -218,7 +244,8 @@ A prompt carried in by `::ai` runs on its own, and only under all of:
 - `prefs.aiAutoRun` is on (default; off-able in either surface),
 - the model is **already loaded in this tab**, which took the two clicks above,
 - nothing else is in flight, and
-- that exact text has not been submitted yet.
+- that exact text has not been submitted yet (the remembered prompt is seeded
+  from the shared client, so a remount does not answer it twice).
 
 So it can start inference, never a download. The magic input debounces at 500 ms,
 so the panel sees settled text rather than keystrokes; `state.phase` is a
@@ -227,6 +254,12 @@ that generation settles instead of being dropped. A manual **Run locally** marks
 the same prompt as submitted, which is what stops a settled manual run from
 being repeated by the effect.
 
+A pause while typing settles on a partial prompt, and a 256-token answer to it
+could hold the model for minutes while the real prompt queued. So when the
+carried prompt changes under a run the input started, the panel stops that run
+— cooperatively, the model stays loaded — and the settled phase runs the
+current text.
+
 ## Pins
 
 | What | Value | Why |
@@ -234,7 +267,7 @@ being repeated by the effect.
 | Runtime | `@huggingface/transformers@4.2.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. Loaded with a dynamic `import()` inside the worker, so no npm or lockfile dependency is added. |
 | Model | `onnx-community/Qwen2.5-0.5B-Instruct`, revision `cc5cc01a…`, dtype `q4f16` | 467.3 MiB, Apache-2.0, fits a phone GPU. |
 | Prompt budget | 6,000 chars / 1,024 tokens of the rendered chat template | Rejected, never silently truncated. |
-| Output budget | 256 new tokens, `do_sample: false`, `repetition_penalty: 1.1`, `no_repeat_ngram_size: 3` | Deterministic and bounded. Pure greedy decoding on this 0.5B model degenerates into repeating one token to the budget — measured on real hardware: one word repeated ~80 times. `repetition_penalty` alone was too weak against that peaked distribution; the 3-gram block ended it (same prompt then answered in 5 s instead of burning the full budget). Neither option introduces sampling. |
+| Output budget | 256 new tokens, `do_sample: false`, `logits_processor: [createRepetitionGuard(promptLength)]` | Deterministic and bounded. Pure greedy decoding on this 0.5B model degenerates into repeating one token to the budget — measured on real hardware: one word repeated ~80 times. A repetition penalty of 1.1 plus a 3-gram block ended it. They are applied by `repetition.ts` to **generated tokens only**: the built-in `repetition_penalty` / `no_repeat_ngram_size` see `all_input_ids`, prompt included, which forbade translate, rewrite and summarize from copying any 3-token span of the input — names, numbers, URLs, code, CJK text. The guard is incremental (O(1) amortized per step) where the built-in n-gram processor rebuilt a JSON-keyed map over the whole sequence every token. Neither introduces sampling. |
 
 `loadRuntime` asserts `env.version === '4.2.0'` so an unexpected CDN payload
 becomes a load error instead of a half-initialized engine.
@@ -276,14 +309,31 @@ terminated worker's queued message can never revive a stale phase.
   stop terminates immediately, because a blocked ORT init never yields.
   Post-cancel deltas are dropped, and a completion that raced with the cancel is
   still reported as `stopped`/incomplete.
-- **Timeouts.** 60 s inspect, 10 min load, 3 min generate. A timeout terminates
-  the worker and is retryable.
+- **Timeouts.** 60 s inspect, 3 min generate. A download is bounded by
+  inactivity, not wall clock: 120 s without a progress event, re-armed by every
+  event. A fixed 10-minute load needed ≥ 6.5 Mbit/s sustained for 467 MiB, and a
+  retry started the large file from zero, so a slower link could never install
+  the model. Once the last byte is in — or from the start, for cached files —
+  the WebGPU session build and warm-up get 5 min, since they emit no events. A
+  timeout terminates the worker and is retryable.
 - **Failure.** Any non-recoverable error terminates the worker. `inputLimit` and
   `invalidRequest` are recoverable: the loaded model stays usable for a shorter
   prompt.
-- **Memory.** The worker is released on `visibilitychange` (hidden), on
-  `pagehide`, on unmount, and on **Release memory**. A backgrounded tab holding
-  ~500 MB of GPU memory is the usual cause of allocation failures elsewhere.
+- **One session per tab.** `useLocalAI` owns one `LocalAIClient` per worker
+  factory at module level (one in production), reference-counted by the
+  surfaces that show it: the box, the `/list` preview and Settings → Local AI.
+  A model loaded in one is loaded in the others, and clearing the input to type
+  the next question, or visiting Settings and coming back, no longer terminates
+  it. Tests pass their own factory and so get an isolated client.
+- **Memory.** A backgrounded tab holding ~500 MB of GPU memory is the usual
+  cause of allocation failures elsewhere, so the worker is released when the
+  tab is hidden, 30 s after the last surface unmounts, on `pagehide`, and on
+  **Release memory**. The first two are *requests* (`requestRelease`) honoured
+  once nothing is in flight: terminating mid-download lost the whole in-flight
+  file (a phone locking its screen meant starting over) and mid-generation
+  dropped an answer being waited for. With no surface left, a running
+  generation is stopped first, since nobody can read it; a download is left to
+  finish so its bytes land in the cache.
 
 ## Privacy
 
@@ -292,13 +342,19 @@ terminated worker's queued message can never revive a stale phase.
   and is deliberately excluded from search history. A share link the user
   creates would still carry it, which the box states while that mode is active.
 - `src/functions/localAIPrivacy.ts` holds a **sticky** flag. It is set when the
-  panel mounts, and before the Sentry/Firebase SDKs are constructed when the URL
-  already carries `::ai`. It only ever closes: re-enabling telemetry on the way
+  panel mounts (in a `/list` preview: on first real use), when an `::ai` input
+  settles in the magic input, and before the Sentry/Firebase SDKs are
+  constructed when the URL already carries `::ai`. It only ever closes: re-enabling telemetry on the way
   out could flush breadcrumbs collected while a private prompt was on screen.
 - The gate is folded into `isAnalyticsEnabled()` rather than repeated at each
-  call site, so every consumer inherits it — Sentry `enabled`/`beforeSend`/
-  `beforeBreadcrumb`/`beforeSendTransaction`, the lazy `firebaseConfig` import,
-  and `setAnalyticsCollectionEnabled` on an SDK that already exists.
+  call site, so every consumer inherits it. Both SDKs are constructed through
+  `whenAnalyticsAllowed` — the first moment reporting is allowed, at boot or
+  when the user opts in later — and never before; once constructed, Sentry
+  follows the live flag through `beforeSend`/`beforeBreadcrumb`/
+  `beforeSendTransaction` and Firebase through `setAnalyticsCollectionEnabled`.
+  An earlier revision read the flag once at boot (`enabled: …`, an early return
+  before the Firebase import), which left a mid-visit opt-in without reporting
+  until a reload.
 - `sendDefaultPii` is off and Sentry log forwarding is disabled. Worker failures
   cross the boundary as fixed error codes only; raw exceptions (which can embed
   user text) are never forwarded, logged or rendered.
@@ -313,7 +369,23 @@ terminated worker's queued message can never revive a stale phase.
 The panel publishes only **settled** text to the host (`onOutput` → the
 template's `onResultChange`), so the card's Copy button and the Enter shortcut
 operate on the real answer while streaming stays local to the panel. Publishing
-every token would re-render the whole box list per token.
+every token would re-render the whole box list per token. It publishes changes
+only, and publishes `''` when the answer goes away (a new run, a reset).
+
+The panel outlives the Box object it was rendered from: each edit of the magic
+input regenerates boxes, and the fresh one arrives with an empty
+`plaintextOutput`. `LocalAIBoxTemplate` remembers what it last published and
+re-publishes it when a regenerated box lacks it, so Copy and Enter keep working
+on the answer on screen. `MagicBox` returns the same array for a result that
+changes nothing, so a re-publish never costs a list render.
+
+`BoxCard` treats a click as the card's copy action only when it lands on the
+card itself: a click on a control inside it (`a`, `button`, `input`, `select`,
+`textarea`, `summary`, `label`, `[role="button"]`, contenteditable) belongs to
+that control, and a click from a portal the template opened (the settings
+dialog) is not the card's at all even though React bubbles it through. Clicking
+into the prompt textarea to paste used to overwrite the clipboard with the last
+answer first.
 
 The box sets `showExpandButton: false`: re-mounting a stateful panel inside the
 modal would drop the loaded model and the in-flight draft.
@@ -325,7 +397,13 @@ change — with a carried prompt that is an ordinary keystroke away, and it cost
 loaded ~467 MiB model. Reproduced on real hardware, then covered by
 `src/components/MagicBox/BoxIdentity.test.tsx`. The settings dialog
 is a separate MUI `Modal` that the panel owns, so opening it never re-mounts the
-panel; the panel keeps the client and passes the dialog callbacks.
+panel; the panel keeps the client and passes the dialog callbacks. It shares
+the modal chrome with the expanded box view (`ModalShell`) and its controls with
+the Settings page (`@components/Controls`, `aiTaskOptions`/`aiLanguageOptions`),
+and every surface's setup, stop and delete actions come from one hook,
+`useLocalAISetup`. Delete is offered at any time except during another
+deletion: it terminates the worker first, which also aborts the self-started
+check that has no Stop of its own.
 
 The source is excluded from `src/tui/sources.ts` — its template pulls in React
 and a module worker, so it is not node-safe.
@@ -335,29 +413,44 @@ and a module worker, so it is not node-safe.
 Automated (`bun run test`):
 
 - `src/features/local-ai/__test__/core.test.ts` — client ownership, worker
-  isolation, cancellation, timeouts, recoverable vs fatal errors, prompt
-  construction, bounds, capability checks.
+  isolation, cancellation, timeouts (inactivity-bounded download, stall,
+  session setup), deferred release requests, `info.cached` after a load,
+  recoverable vs fatal errors, prompt construction, bounds, capability checks.
+- `src/features/local-ai/__test__/repetition.test.ts` — the prompt is never
+  penalized or banned, answer trigrams are, and the incremental guard equals a
+  from-scratch scan.
 - `src/features/local-ai/__test__/engine.test.ts` — metadata-only inspection,
   single-flight load, warm-up failure handling, streaming and output budget,
-  over-budget rejection, cancel delivery, quota mapping.
+  over-budget rejection, cancel delivery, quota mapping, aggregate-only
+  progress, and the answer-scoped logits processor in place of the built-ins.
 - `src/features/local-ai/__test__/LocalAIPanel.test.tsx` — checking on open and
   its persistence, the measured size, run preconditions, streaming,
   settled-output publishing, sanitized errors, and the carried-prompt rules:
-  no worker while unloaded, one run per prompt, honoring `aiAutoRun`, task and
-  language.
+  no worker while unloaded, one run per prompt (also across a remount), a stale
+  run stopped when the prompt changes, honoring `aiAutoRun`, task and language;
+  an editable draft during the check; a loaded model surviving a remount and
+  released after the grace period.
+- `src/features/local-ai/__test__/LocalAIPanelPreview.test.tsx` — a `/list`
+  preview leaves telemetry on until a prompt or a setup click.
+- `src/components/MagicBox/BoxCard.test.tsx` — control and portal clicks never
+  copy, card clicks do, and the Local AI card keeps its answer across a
+  regeneration.
+- `src/functions/__test__/runtimePrefs.test.ts` and `firebaseConfig.test.ts` —
+  SDKs start on the first allowed moment, including a mid-visit opt-in.
 - `src/modules/boxSources/__test__/LocalAIBoxSource.test.ts` — option gating,
-  registration and the carried `sourceInput`.
+  registration, the carried `sourceInput`, and text after `::ai` on its line.
 - `src/features/local-ai/__test__/LocalAIModelSettings.test.tsx` — provisioning
   from Settings with no box mounted: no worker on render, the same two steps,
-  sanitized errors, and a cache deletion that terminates the worker first and
-  touches only this feature's two caches.
+  sanitized errors, Stop for its own download, and a cache deletion that
+  terminates the worker first and touches only this feature's two caches.
 - `src/features/local-ai/__test__/core.test.ts` also covers `describeSetupStep`
   (metadata before a quoted size, the source note on every download step, the
   cached variant, localization) and `describePhase`.
 - `src/contexts/__test__/PreferencesContext.test.tsx` — `ai*` defaults and the
   rejection of unknown stored task/language values.
 - `src/pages/MagicBox/MagicBoxPage.test.tsx` — an `::ai` input is never written
-  to search history.
+  to search history, the partial prompt recorded before `::ai` was typed is
+  withdrawn, and entries from before the edit session are kept.
 - `src/pages/ToolsList/ToolsList.test.tsx` — the box is listed on `/list`, its
   panel mounts, and it spawns no worker just by being on screen.
 

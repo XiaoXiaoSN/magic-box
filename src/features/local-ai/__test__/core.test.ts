@@ -192,6 +192,110 @@ describe('local AI client ownership', () => {
     expect(workers).toHaveLength(2);
   });
 
+  it('bounds a download by inactivity, not by wall clock', () => {
+    // Regression: one 10-minute cap for the whole prepare killed any link
+    // slower than ~6.5 Mbit/s for 467 MiB, and every retry began at zero.
+    vi.useFakeTimers();
+    const { client, workers } = setupClient();
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: false },
+    });
+    client.prepare();
+    // Thirty minutes of a slow but moving download.
+    for (let percent = 1; percent < 100; percent += 1) {
+      vi.advanceTimersByTime(18_000);
+      workers[0].reply({ type: 'progress', progress: percent });
+    }
+    expect(client.getSnapshot().phase).toBe('loading');
+    // The last byte hands over to the session-setup bound, which is longer
+    // than a download stall: the WebGPU session build emits no events.
+    workers[0].reply({ type: 'progress', progress: 100 });
+    vi.advanceTimersByTime(200_000);
+    expect(client.getSnapshot().phase).toBe('loading');
+    workers[0].reply({ type: 'ready' });
+    expect(client.getSnapshot().loaded).toBe(true);
+  });
+
+  it('times out a download that stops moving', () => {
+    vi.useFakeTimers();
+    const { client, workers } = setupClient();
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: false },
+    });
+    client.prepare();
+    workers[0].reply({ type: 'progress', progress: 40 });
+    vi.advanceTimersByTime(120_000);
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'timeout',
+    });
+  });
+
+  it('knows the files are cached once a model has loaded', () => {
+    // Regression: `info.cached` kept the pre-download reading, so after a
+    // release the box offered the full download — and its sources — again.
+    const { client } = setupClient(true);
+    client.release();
+    expect(client.getSnapshot().info).toEqual({ bytes: 500, cached: true });
+    expect(describeSetupStep(client.getSnapshot(), 'en')?.label).toMatch(
+      /^Load model/,
+    );
+  });
+
+  describe('release requests', () => {
+    it('let a download in flight finish before releasing', () => {
+      // Regression: hiding the tab terminated the worker mid-download, so a
+      // phone locking its screen lost the whole in-flight file.
+      const { client, workers } = setupClient();
+      client.inspect();
+      workers[0].reply({
+        type: 'available',
+        info: { bytes: 500, cached: false },
+      });
+      client.prepare();
+      client.requestRelease('hidden');
+      expect(workers[0].terminated).toBe(false);
+      workers[0].reply({ type: 'ready' });
+      expect(workers[0].terminated).toBe(true);
+      expect(client.getSnapshot()).toMatchObject({
+        loaded: false,
+        info: { cached: true },
+      });
+    });
+
+    it('release an idle loaded model at once', () => {
+      const { client, workers } = setupClient(true);
+      client.requestRelease('hidden');
+      expect(workers[0].terminated).toBe(true);
+      expect(client.getSnapshot().loaded).toBe(false);
+    });
+
+    it('are dropped when withdrawn before the work settles', () => {
+      const { client, workers } = setupClient(true);
+      client.generate(request());
+      client.requestRelease('hidden');
+      client.withdrawRelease('hidden');
+      workers[0].reply({ type: 'complete' });
+      expect(workers[0].terminated).toBe(false);
+      expect(client.getSnapshot().loaded).toBe(true);
+    });
+
+    it('leave an error on screen alone when nothing is held', () => {
+      const { client, workers } = setupClient();
+      client.inspect();
+      workers[0].reply({ type: 'error', code: 'unsupported' });
+      client.requestRelease('hidden');
+      expect(client.getSnapshot()).toMatchObject({
+        phase: 'error',
+        error: 'unsupported',
+      });
+    });
+  });
+
   it('keeps the loaded model after a recoverable input-budget error', () => {
     const { client, workers } = setupClient(true);
     client.generate(request());
@@ -429,12 +533,9 @@ describe('describePhase', () => {
 
   it('names the download only while bytes are actually moving', () => {
     expect(describePhase(base, 'en')).toBe('Preparing model…');
-    expect(
-      describePhase(
-        { ...base, progress: { file: 'model_q4f16.onnx', percent: 40 } },
-        'en',
-      ),
-    ).toBe('Downloading model…');
+    expect(describePhase({ ...base, progress: { percent: 40 } }, 'en')).toBe(
+      'Downloading model…',
+    );
   });
 
   it('never claims a download for a model already in the cache', () => {
@@ -443,7 +544,7 @@ describe('describePhase', () => {
     const cached: AIState = {
       ...base,
       info: { bytes: 490_035_255, cached: true },
-      progress: { file: 'model_q4f16.onnx', percent: 40 },
+      progress: { percent: 40 },
     };
     expect(describePhase(cached, 'en')).toBe('Preparing model…');
   });
@@ -456,7 +557,7 @@ describe('describePhase', () => {
       describePhase(
         {
           ...base,
-          progress: { file: 'model_q4f16.onnx', percent: 40 },
+          progress: { percent: 40 },
         },
         'tw',
       ),
