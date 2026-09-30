@@ -33,7 +33,9 @@ export type AICommand =
 
 export type AIEvent =
   | { type: 'available'; id: number; info: ModelInfo }
-  | { type: 'progress'; id: number; file: string; progress: number | null }
+  // `progress` is the aggregate model download in percent, or null while only
+  // a sign of life is known (the tokenizer files).
+  | { type: 'progress'; id: number; progress: number | null }
   | { type: 'ready' | 'complete' | 'cancelled'; id: number }
   | { type: 'delta'; id: number; text: string }
   | { type: 'error'; id: number; code: AIErrorCode };
@@ -57,7 +59,7 @@ export interface AIState {
   output: string;
   submitted: AIRequest | null;
   error: AIErrorCode | null;
-  progress: { file: string; percent: number | null } | null;
+  progress: { percent: number | null } | null;
 }
 
 export class LocalAIError extends Error {

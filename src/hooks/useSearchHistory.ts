@@ -37,6 +37,8 @@ interface UseSearchHistoryReturn {
   history: HistoryItem[];
   addEntry: (input: string) => void;
   removeEntry: (id: string) => void;
+  // Removes every entry whose text is one of `inputs`.
+  removeInputs: (inputs: readonly string[]) => void;
   clearHistory: () => void;
 }
 
@@ -78,9 +80,15 @@ export function useSearchHistory(
     setHistory((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const removeInputs = useCallback((inputs: readonly string[]) => {
+    if (!inputs.length) return;
+    const doomed = new Set(inputs);
+    setHistory((prev) => prev.filter((item) => !doomed.has(item.input)));
+  }, []);
+
   const clearHistory = useCallback(() => {
     setHistory([]);
   }, []);
 
-  return { history, addEntry, removeEntry, clearHistory };
+  return { history, addEntry, removeEntry, removeInputs, clearHistory };
 }

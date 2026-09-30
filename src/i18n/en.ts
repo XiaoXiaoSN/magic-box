@@ -62,7 +62,7 @@ const en = {
     'When a Local AI box opens, read the model size from Hugging Face and check WebGPU support, so the box lands on a download button labelled with the real size. Turn this off to contact jsDelivr and Hugging Face only after you press Check device & model. Either way, the weights are downloaded only by your own click.',
   'settings.aiModel': 'Model',
   'settings.aiModelHint':
-    'Download the weights ahead of time so the ::ai box starts from the local cache. The check reports the real size before anything is fetched; leaving this page frees the memory, not the download.',
+    'Download the weights ahead of time so the ::ai box starts from the local cache. The check reports the real size before anything is fetched; leaving this page frees the memory shortly after, never the download.',
   'settings.aiDelete': 'Delete AI downloads',
   'settings.aiDeleteHint':
     'Removes the cached model and runtime. Other tools and settings are untouched.',

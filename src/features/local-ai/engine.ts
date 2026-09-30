@@ -1,4 +1,5 @@
 import { MAX_NEW_TOKENS, MODEL, MODEL_OPTIONS } from './modelCatalog';
+import { createRepetitionGuard } from './repetition';
 import type {
   GenerativeModel,
   Interruptor,
@@ -129,30 +130,33 @@ export class LocalAIEngine {
   private getSession(id: number): Promise<Session> {
     this.sessionPromise ??= (async () => {
       const runtime = await this.getRuntime();
+      // The tokenizer (~6.7 MiB) gets no aggregate event, so its per-file ticks
+      // go out without a percentage: an indeterminate bar, and a sign of life
+      // for the client's stall timer, rather than a bar that fills twice.
       const tokenizer = await runtime.AutoTokenizer.from_pretrained(MODEL.id, {
         revision: MODEL.revision,
+        progress_callback: (event: RuntimeProgress) => {
+          if (event.status === 'progress') {
+            this.send({ type: 'progress', id, progress: null });
+          }
+        },
       });
       const model = await runtime.AutoModelForCausalLM.from_pretrained(
         MODEL.id,
         {
           ...MODEL_OPTIONS,
+          // The default wrapper emits a `progress_total` right before every
+          // per-file `progress`. Forwarding both made the bar alternate between
+          // the overall and the per-file percentage at twice the message rate;
+          // the aggregate is the one number a user can act on.
           progress_callback: (event: RuntimeProgress) => {
-            if (
-              event.status !== 'progress' &&
-              event.status !== 'progress_total'
-            )
-              return;
+            if (event.status !== 'progress_total') return;
             const progress =
               typeof event.progress === 'number' &&
               Number.isFinite(event.progress)
                 ? Math.max(0, Math.min(100, event.progress))
                 : null;
-            this.send({
-              type: 'progress',
-              id,
-              file: event.file ?? '',
-              progress,
-            });
+            this.send({ type: 'progress', id, progress });
           },
         },
       );
@@ -191,7 +195,8 @@ export class LocalAIEngine {
       add_generation_prompt: true,
       return_dict: true,
     });
-    checkTokenBudget(inputs.input_ids.dims.at(-1) ?? 0);
+    const promptLength = inputs.input_ids.dims.at(-1) ?? 0;
+    checkTokenBudget(promptLength);
     this.interruptor = new runtime.InterruptableStoppingCriteria();
     if (this.interrupted) this.interruptor.interrupt();
     const streamer = new runtime.TextStreamer(tokenizer, {
@@ -204,13 +209,10 @@ export class LocalAIEngine {
       ...inputs,
       max_new_tokens: MAX_NEW_TOKENS,
       do_sample: false,
-      // Greedy decoding on a 0.5B model degenerates into repeating one token
-      // until the budget runs out (observed on real hardware: a single word
-      // repeated ~80 times). `repetition_penalty` alone was measured as too
-      // weak against that peaked distribution, so a 3-gram block backs it up.
-      // Both are deterministic: the same prompt still produces the same answer.
-      repetition_penalty: 1.1,
-      no_repeat_ngram_size: 3,
+      // Replaces the built-in `repetition_penalty` / `no_repeat_ngram_size`,
+      // which also act on the prompt tokens (see repetition.ts). Still
+      // deterministic: the same prompt produces the same answer.
+      logits_processor: [createRepetitionGuard(promptLength)],
       streamer,
       stopping_criteria: [this.interruptor],
     });

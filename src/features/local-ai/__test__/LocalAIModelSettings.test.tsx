@@ -88,6 +88,23 @@ describe('LocalAIModelSettings', () => {
     expect(await screen.findByText('AI downloads deleted.')).toBeVisible();
   });
 
+  it('can stop a download it started, like the box can', () => {
+    const workers = setup();
+    fireEvent.click(screen.getByTestId('settings-ai-setup'));
+    // The check is not the user's to stop; the download is.
+    expect(screen.queryByTestId('settings-ai-stop')).not.toBeInTheDocument();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 490_035_255, cached: false },
+    });
+    fireEvent.click(screen.getByTestId('settings-ai-setup'));
+    fireEvent.click(screen.getByTestId('settings-ai-stop'));
+    expect(workers[0].terminated).toBe(true);
+    expect(screen.getByTestId('settings-ai-status')).toHaveTextContent(
+      'Stopped',
+    );
+  });
+
   it('does not delete anything when the confirmation is declined', () => {
     const remove = vi.fn(async () => true);
     vi.stubGlobal('caches', { delete: remove });

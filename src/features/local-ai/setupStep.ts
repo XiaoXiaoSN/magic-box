@@ -1,6 +1,7 @@
 import { formatModelSize, type UILocale } from './labels';
 import { localAIMessages } from './messages';
 import type { AIState } from './types';
+import { isBusy } from './types';
 
 export interface SetupStep {
   // The client call this step performs. Never more than one per click.
@@ -46,4 +47,12 @@ export function describePhase(state: AIState, locale: UILocale): string {
     return m.downloading;
   }
   return m.phases[state.phase];
+}
+
+// One glance-level signal for the status dot, shared by every surface that
+// shows the load state so the wording next to it can stay muted.
+export function phaseTone(state: AIState): string {
+  if (state.error) return 'is-error';
+  if (isBusy(state.phase)) return 'is-busy';
+  return state.loaded ? 'is-ready' : '';
 }

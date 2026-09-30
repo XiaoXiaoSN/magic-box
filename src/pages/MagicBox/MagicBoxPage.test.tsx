@@ -1,3 +1,4 @@
+import { isLocalAIPrivate } from '@functions/localAIPrivacy';
 import {
   act,
   fireEvent,
@@ -161,6 +162,44 @@ describe('<MagicBoxPage />', () => {
       await settleInput('translate this\n::localai');
 
       expect(readHistory()).toEqual([]);
+    });
+
+    it('withdraws the partial prompt recorded before ::ai was typed', async () => {
+      // Regression: the prompt is typed in front of the directive, and every
+      // pause settled on an ordinary-looking partial input that was recorded.
+      renderPage();
+
+      await settleInput('my medical question');
+      await settleInput('my medical question\n::');
+      await settleInput('my medical question\n::a');
+      expect(readHistory()).toHaveLength(3);
+
+      await settleInput('my medical question\n::ai');
+
+      expect(readHistory()).toEqual([]);
+      expect(isLocalAIPrivate()).toBe(true);
+    });
+
+    it('keeps entries that existed before this edit session', async () => {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'old', timestamp: 1, input: 'hello' }]),
+      );
+      renderPage();
+
+      await settleInput('hello');
+      await settleInput('');
+      await settleInput('base64 me');
+      await settleInput('');
+      await settleInput('say hi');
+      await settleInput('say hi\n::ai');
+
+      // `hello` was only moved to the top, and `base64 me` belonged to an
+      // earlier session; only the partial prompt goes.
+      expect(readHistory().map((entry) => entry.input)).toEqual([
+        'base64 me',
+        'hello',
+      ]);
     });
   });
 

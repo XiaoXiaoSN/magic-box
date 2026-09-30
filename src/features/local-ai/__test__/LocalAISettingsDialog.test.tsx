@@ -29,6 +29,7 @@ const open = ({ state, promptFromInput = false }: Options = {}) =>
     <LocaleProvider>
       <PreferencesProvider>
         <LocalAISettingsDialog
+          canRemove
           deleting={false}
           notice=""
           onClose={vi.fn()}

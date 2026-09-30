@@ -275,13 +275,21 @@ const MagicBox = ({
           box={src}
           onCopy={copyText}
           onResultChange={(result) =>
-            setBoxes((current) =>
-              current.map((box) =>
+            setBoxes((current) => {
+              // An unchanged result keeps the same array, so React bails out
+              // instead of re-rendering the whole list for a no-op publish.
+              if (
+                src.props.plaintextOutput === result.plaintextOutput &&
+                src.props.options === result.options
+              ) {
+                return current;
+              }
+              return current.map((box) =>
                 box === src
                   ? { ...box, props: { ...box.props, ...result } }
                   : box,
-              ),
-            )
+              );
+            })
           }
           onExpand={
             src.props.showExpandButton !== false

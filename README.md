@@ -167,8 +167,9 @@ ahead of time from **Settings → Local AI**. Prompts and answers stay in the
 page: they never reach a server or the search history, and telemetry is muted
 for the rest of the visit once the box is open. See [docs/local-ai.md](docs/local-ai.md).
 
-Text written in front of the directive is the prompt, so `say hello` +
-`::ai` runs as soon as the model is loaded in that tab — the box says when a
+Text written in front of the directive — or after it on the same line, as in
+`::ai what is WebGPU?` — is the prompt, so `say hello` + `::ai` runs as soon as
+the model is loaded in that tab — the box says when a
 prompt came from the input, and a share link you create would carry it. Turn
 **Auto-run input prompts** off in Settings → Local AI to always press **Run
 locally** yourself.

@@ -228,20 +228,14 @@
   font-variant-numeric: tabular-nums;
 }
 
-.local-ai-consent {
+.local-ai-toggle {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
   font-size: 12px;
   line-height: 1.6;
   color: var(--ink-3);
-}
-
-.local-ai-consent input {
-  min-width: 18px;
-  min-height: 18px;
-  margin: 1px 0 0;
-  accent-color: var(--accent);
 }
 
 /* ---------- status, errors, output ---------- */

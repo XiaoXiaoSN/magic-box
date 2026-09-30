@@ -27,11 +27,21 @@ const initialState = (): AIState => ({
 
 const TIMEOUTS = {
   inspect: 60_000,
-  prepare: 600_000,
+  // A download is bounded by inactivity, not by wall clock: every progress
+  // event re-arms this, so a slow link that keeps moving always finishes.
+  // A fixed 10-minute cap needed >= 6.5 Mbit/s sustained for 467 MiB, and each
+  // retry started the large file from zero, so a slower link could never
+  // install the model at all.
+  stall: 120_000,
+  // Once the bytes are in (or were cached), ORT builds the WebGPU session and
+  // runs the warm-up. That emits no events, so it gets its own fixed bound.
+  init: 300_000,
   generate: 180_000,
   // Grace period for a cooperative interrupt before the worker is terminated.
   interrupt: 2_000,
 } as const;
+
+export type ReleaseReason = 'hidden' | 'unused';
 
 // Owns the worker lifecycle and the single-flight state machine. Every
 // transition is driven from the main thread so that a request id AND the worker
@@ -44,6 +54,10 @@ export class LocalAIClient {
   private activeId: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<() => void>();
+  // Reasons the worker should go as soon as nothing is in flight. A release
+  // requested mid-download or mid-generation waits for that work to settle
+  // instead of throwing it away (see `requestRelease`).
+  private releaseRequests = new Set<ReleaseReason>();
 
   constructor(private readonly createWorker: () => WorkerPort) {}
 
@@ -74,7 +88,8 @@ export class LocalAIClient {
     return this.start(
       { type: 'prepare', id: ++this.nextId },
       'loading',
-      TIMEOUTS.prepare,
+      // Cached files move no bytes, so the whole step is session setup.
+      this.state.info.cached ? TIMEOUTS.init : TIMEOUTS.stall,
     );
   }
 
@@ -116,7 +131,22 @@ export class LocalAIClient {
     }
   }
 
+  // Release once idle rather than now. A hidden tab or an unmounted last
+  // surface should free ~500 MB of GPU memory, but terminating mid-download
+  // loses every byte of the in-flight file (a phone locking its screen during
+  // the download meant starting over), and terminating mid-generation drops an
+  // answer the user is waiting for.
+  requestRelease(reason: ReleaseReason): void {
+    this.releaseRequests.add(reason);
+    this.releaseIfRequested();
+  }
+
+  withdrawRelease(reason: ReleaseReason): void {
+    this.releaseRequests.delete(reason);
+  }
+
   release(): void {
+    this.releaseRequests.clear();
     const phase = isBusy(this.state.phase)
       ? 'stopped'
       : this.state.phase === 'complete' || this.state.phase === 'stopped'
@@ -127,6 +157,7 @@ export class LocalAIClient {
   }
 
   reset(): void {
+    this.releaseRequests.clear();
     this.terminate();
     this.state = initialState();
     this.emit();
@@ -144,10 +175,9 @@ export class LocalAIClient {
     phase: AIState['phase'],
     timeout: number,
   ): boolean {
-    this.clearTimer();
     this.activeId = command.id;
     this.update({ phase, error: null, progress: null });
-    this.timer = setTimeout(() => this.fail('timeout'), timeout);
+    this.arm(timeout);
     try {
       if (!this.worker) {
         const worker = this.createWorker();
@@ -181,9 +211,10 @@ export class LocalAIClient {
     }
     if (event.type === 'progress') {
       if (this.state.phase === 'loading') {
-        this.update({
-          progress: { file: event.file, percent: event.progress },
-        });
+        // A sign of life re-arms the stall bound; the last byte hands over to
+        // the session-setup bound.
+        this.arm(event.progress === 100 ? TIMEOUTS.init : TIMEOUTS.stall);
+        this.update({ progress: { percent: event.progress } });
       }
       return;
     }
@@ -199,7 +230,15 @@ export class LocalAIClient {
     } else if (event.type === 'available') {
       this.update({ phase: 'available', info: event.info });
     } else if (event.type === 'ready') {
-      this.update({ phase: 'ready', loaded: true, progress: null });
+      // A loaded model is proof the files are in the cache now. Without this a
+      // later release would offer the full download again, and describePhase
+      // would call the cache read a download.
+      this.update({
+        phase: 'ready',
+        loaded: true,
+        progress: null,
+        info: this.state.info ? { ...this.state.info, cached: true } : null,
+      });
     } else {
       // A completion racing with cancel is still reported as stopped; no delta
       // after the cancel was ever accepted, so the text would be misleading.
@@ -232,6 +271,22 @@ export class LocalAIClient {
     }
   }
 
+  private arm(timeout: number): void {
+    this.clearTimer();
+    this.timer = setTimeout(() => this.fail('timeout'), timeout);
+  }
+
+  private releaseIfRequested(): void {
+    if (!this.releaseRequests.size || isBusy(this.state.phase)) return;
+    // Nothing held: releasing would only rewrite the phase (an `error` phase
+    // would read as `idle` while its message is still on screen).
+    if (!this.worker && !this.state.loaded) {
+      this.releaseRequests.clear();
+      return;
+    }
+    this.release();
+  }
+
   private clearTimer(): void {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
@@ -240,6 +295,7 @@ export class LocalAIClient {
   private update(next: Partial<AIState>): void {
     this.state = { ...this.state, ...next };
     this.emit();
+    this.releaseIfRequested();
   }
 
   private emit(): void {

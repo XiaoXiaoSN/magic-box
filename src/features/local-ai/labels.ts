@@ -68,3 +68,17 @@ export const isAITask = (value: unknown): value is AITask =>
 
 export const isAILanguagePref = (value: unknown): value is AILanguagePref =>
   value === 'auto' || AI_LANGUAGES.includes(value as AILanguage);
+
+// The option lists both configuration surfaces render, so the box dialog and
+// Settings → Local AI can never offer different choices or name them apart.
+export const aiTaskOptions = (
+  locale: UILocale,
+): { value: AITask; label: string }[] =>
+  AI_TASKS.map((value) => ({ value, label: aiTaskLabels[locale][value] }));
+
+export const aiLanguageOptions = (
+  locale: UILocale,
+): { value: AILanguagePref; label: string }[] => [
+  { value: 'auto', label: aiAutoLanguageLabels[locale] },
+  ...AI_LANGUAGES.map((value) => ({ value, label: aiLanguageLabels[value] })),
+];

@@ -101,9 +101,17 @@ const setupEngine = () => {
       },
     },
     AutoTokenizer: {
-      async from_pretrained(_id: string, config: { revision: string }) {
+      async from_pretrained(
+        _id: string,
+        config: {
+          revision: string;
+          progress_callback: (event: RuntimeProgress) => void;
+        },
+      ) {
         expect(config.revision).toBe(MODEL.revision);
         calls.tokenizer++;
+        // Tokenizer files have no aggregate: a sign of life, no percentage.
+        config.progress_callback({ status: 'progress', progress: 30 });
         return tokenizer;
       },
     },
@@ -124,13 +132,12 @@ const setupEngine = () => {
           dtype: 'q4f16',
         });
         if (options.modelError) throw options.modelError;
-        // Out-of-range progress is clamped, not forwarded verbatim.
-        config.progress_callback({
-          status: 'progress',
-          file: 'model.onnx',
-          progress: 150,
-        });
-        config.progress_callback({ status: 'initiate', file: 'ignored.onnx' });
+        // Only the aggregate is forwarded, and out-of-range values are
+        // clamped. The per-file event the default wrapper emits right after
+        // it would make the bar alternate between two percentages.
+        config.progress_callback({ status: 'progress_total', progress: 150 });
+        config.progress_callback({ status: 'progress', progress: 7 });
+        config.progress_callback({ status: 'initiate' });
         return model;
       },
     },
@@ -187,7 +194,8 @@ describe('local AI engine', () => {
     expect(setup.calls.model).toBe(1);
     expect(setup.calls.load).toBe(1);
     expect(setup.events).toEqual([
-      { type: 'progress', id: 1, file: 'model.onnx', progress: 100 },
+      { type: 'progress', id: 1, progress: null },
+      { type: 'progress', id: 1, progress: 100 },
       { type: 'ready', id: 1 },
       { type: 'ready', id: 2 },
     ]);
@@ -240,6 +248,13 @@ describe('local AI engine', () => {
       max_new_tokens: MAX_NEW_TOKENS,
       do_sample: false,
     });
+    // The built-in anti-repetition options also act on the prompt tokens, so
+    // they are replaced by a processor scoped to the answer.
+    expect(setup.calls.generate[0]).not.toHaveProperty('repetition_penalty');
+    expect(setup.calls.generate[0]).not.toHaveProperty('no_repeat_ngram_size');
+    expect(setup.calls.generate[0].logits_processor).toEqual([
+      expect.any(Function),
+    ]);
     expect(setup.calls.template).toMatchObject({
       config: {
         tokenize: true,
@@ -304,7 +319,9 @@ describe('local AI engine', () => {
     quota.name = 'QuotaExceededError';
     setup.options.modelError = quota;
     await setup.engine.handle({ type: 'prepare', id: 1 });
-    expect(setup.events).toEqual([{ type: 'error', id: 1, code: 'storage' }]);
+    expect(setup.events.filter((event) => event.type !== 'progress')).toEqual([
+      { type: 'error', id: 1, code: 'storage' },
+    ]);
   });
 
   it('rejects a second command while one is in flight', async () => {
