@@ -95,6 +95,25 @@ YAML input resolves anchors/aliases and expands YAML 1.1 merge keys (`<<: *ancho
 </details>
 
 <details>
+<summary> <b>JsonToolsBox</b> (disabled by default)</summary>
+
+Put the option on its own line after the JSON. Use one operation at a time; the DataConverter auto-format is skipped while a JSON Tools option is present.
+
+| options                    | description                                                                                         | example                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------- |
+| `jsonmerge`, `merge`       | deep-merge two or more JSON objects separated by a `---` line; later wins, arrays replace           | `::jsonmerge`              |
+| `jsonpick`                 | keep the listed top-level keys (not paths; missing keys are skipped)                                | `::jsonpick=a,c`           |
+| `jsonomit`                 | drop the listed top-level keys                                                                      | `::jsonomit=b`             |
+| `jsonpointer`, `jsonptr`   | resolve an [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) JSON Pointer; no value = whole document | `::jsonpointer=/a/b/1`     |
+| `tojsonl`                  | JSON array → JSONL (one value per line)                                                             | `::tojsonl`                |
+| `fromjsonl`                | JSONL → JSON array                                                                                  | `::fromjsonl`              |
+| `jsonl`, `ndjson`          | auto: a whole JSON array converts to JSONL, anything else is read as JSONL                          | `::jsonl`                  |
+
+Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a value instead of deleting the key. In auto JSONL mode a single line holding an array (e.g. `[1,2]`) is read as a JSON array; use `::fromjsonl` to read it as one JSONL record.
+
+</details>
+
+<details>
 <summary> <b>DateCalculateBox</b> </summary>
 
 | match rule          | description                              | example               | output                      |
