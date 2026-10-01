@@ -28,7 +28,7 @@ export const TwosComplementBoxSource = {
   name: "Two's Complement",
   description:
     "Show the two's-complement binary/hex of an integer at a bit width. ::twos=<bits> (default 8).",
-  defaultInput: '-42 ::twos=8',
+  defaultInput: '-42\n::twos=8',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

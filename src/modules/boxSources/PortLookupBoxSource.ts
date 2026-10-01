@@ -59,7 +59,7 @@ export const PortLookupBoxSource = {
   defaultDisabled: true,
   name: 'Port Lookup',
   description: 'Look up a well-known port number or service name. ::port',
-  defaultInput: '443 ::port',
+  defaultInput: '443\n::port',
   tag: '#',
   kind: 'Decode',
   priority: Priority,

@@ -33,7 +33,7 @@ export const Crc32BoxSource = {
   defaultDisabled: true,
   name: 'CRC-32',
   description: 'Compute the CRC-32 (IEEE 802.3) checksum of the input text.',
-  defaultInput: 'hello ::crc32',
+  defaultInput: 'hello\n::crc32',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

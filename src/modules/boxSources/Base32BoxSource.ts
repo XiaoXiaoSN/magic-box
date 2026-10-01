@@ -74,7 +74,7 @@ export const Base32BoxSource = {
   name: 'Base32',
   description:
     'RFC 4648 Base32 encode/decode. ::base32 to encode, ::base32decode to decode.',
-  defaultInput: 'hello ::base32',
+  defaultInput: 'hello\n::base32',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

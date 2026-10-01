@@ -29,7 +29,7 @@ export const AspectRatioBoxSource = {
   name: 'Aspect Ratio',
   description:
     'Simplify width x height into an aspect ratio (e.g. 1920x1080 → 16:9).',
-  defaultInput: '1920x1080 ::ratio',
+  defaultInput: '1920x1080\n::ratio',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

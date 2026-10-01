@@ -154,7 +154,7 @@ export const HsvBoxSource = {
   defaultDisabled: true,
   name: 'HSV',
   description: 'Convert a color between hex/RGB and HSV (HSB).',
-  defaultInput: '#ff6347 ::hsv',
+  defaultInput: '#ff6347\n::hsv',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

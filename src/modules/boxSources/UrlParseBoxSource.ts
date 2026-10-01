@@ -46,7 +46,7 @@ export const UrlParseBoxSource = {
   name: 'URL Parse',
   description: 'Break a URL into protocol, host, port, path, query, and hash.',
   defaultInput:
-    'https://user:pass@example.com:8080/a/b?x=1&y=2#frag ::urlparse',
+    'https://user:pass@example.com:8080/a/b?x=1&y=2#frag\n::urlparse',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

@@ -64,7 +64,7 @@ export const QueryStringBoxSource = {
   name: 'Query String',
   description:
     'Convert a URL query string to JSON, or a flat JSON object to a query string.',
-  defaultInput: 'a=1&b=2&b=3 ::qs',
+  defaultInput: 'a=1&b=2&b=3\n::qs',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

@@ -159,7 +159,7 @@ export const DurationBoxSource = {
   name: 'Duration',
   description:
     'Convert numeric seconds/milliseconds or human duration formats (e.g. 10s, 8789sec, 1m48s, 1h3s) to/from human durations and clock formats.',
-  defaultInput: '3661 ::duration',
+  defaultInput: '3661\n::duration',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

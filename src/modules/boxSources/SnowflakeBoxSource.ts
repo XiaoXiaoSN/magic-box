@@ -18,7 +18,7 @@ export const SnowflakeBoxSource = {
   name: 'Snowflake',
   description:
     'Parse a Snowflake ID (Discord/Twitter) into its timestamp and components.',
-  defaultInput: '175928847299117063 ::snowflake',
+  defaultInput: '175928847299117063\n::snowflake',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

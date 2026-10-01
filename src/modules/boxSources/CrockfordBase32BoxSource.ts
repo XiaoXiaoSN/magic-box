@@ -57,7 +57,7 @@ export const CrockfordBase32BoxSource = {
   name: 'Crockford Base32',
   description:
     "Encode text to Crockford's Base32 or decode it back (case-insensitive, no padding).",
-  defaultInput: 'hello ::crockford',
+  defaultInput: 'hello\n::crockford',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

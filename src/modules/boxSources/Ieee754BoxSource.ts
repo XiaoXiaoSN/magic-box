@@ -98,7 +98,7 @@ export const Ieee754BoxSource = {
   name: 'IEEE 754',
   description:
     'Show the IEEE-754 (double + single) bit representation of a number, or decode a hex pattern back to a float.',
-  defaultInput: '3.14 ::ieee754',
+  defaultInput: '3.14\n::ieee754',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

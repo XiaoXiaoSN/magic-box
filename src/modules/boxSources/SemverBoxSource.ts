@@ -37,7 +37,7 @@ export const SemverBoxSource = {
   name: 'Semver',
   description:
     'Parse and validate a Semantic Version string into its components.',
-  defaultInput: '1.2.3-beta.1+build.5 ::semver',
+  defaultInput: '1.2.3-beta.1+build.5\n::semver',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

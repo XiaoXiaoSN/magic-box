@@ -107,7 +107,7 @@ export const TextDiffBoxSource = {
   name: 'Text Diff',
   description:
     'Line diff between two texts separated by a line containing only "---".',
-  defaultInput: 'foo\nbar\n---\nfoo\nbaz ::textdiff',
+  defaultInput: 'foo\nbar\n---\nfoo\nbaz\n::textdiff',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

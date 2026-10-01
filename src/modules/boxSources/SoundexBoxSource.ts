@@ -75,7 +75,7 @@ export const SoundexBoxSource = {
   name: 'Soundex',
   description:
     'Compute the American Soundex phonetic code for each word in the input.',
-  defaultInput: 'Robert ::soundex',
+  defaultInput: 'Robert\n::soundex',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

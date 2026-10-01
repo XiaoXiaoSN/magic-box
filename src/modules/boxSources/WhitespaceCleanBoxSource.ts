@@ -25,7 +25,7 @@ export const WhitespaceCleanBoxSource = {
   name: 'Whitespace Clean',
   description:
     'Trim each line, collapse internal whitespace runs, and remove blank lines.',
-  defaultInput: '  hello   world  \n\n\n  foo  bar ::clean',
+  defaultInput: '  hello   world  \n\n\n  foo  bar\n::clean',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

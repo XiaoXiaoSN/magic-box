@@ -18,7 +18,7 @@ export const LineToolsBoxSource = {
   defaultDisabled: true,
   name: 'Line Tools',
   description: 'Sort, de-duplicate, or reverse the lines of a text block.',
-  defaultInput: 'banana\napple\ncherry\napple ::sortlines',
+  defaultInput: 'banana\napple\ncherry\napple\n::sortlines',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

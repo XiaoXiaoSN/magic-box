@@ -52,7 +52,7 @@ export const HexDumpBoxSource = {
   name: 'Hex Dump',
   description:
     'Produce a canonical hex + ASCII dump of the input (like hexdump -C).',
-  defaultInput: 'Hello, World! ::hexdump',
+  defaultInput: 'Hello, World!\n::hexdump',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

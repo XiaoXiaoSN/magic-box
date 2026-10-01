@@ -59,7 +59,7 @@ export const SubnetBoxSource = {
   defaultDisabled: true,
   name: 'Subnet',
   description: 'IPv4 CIDR subnet calculator. e.g. 192.168.1.10/24 ::subnet.',
-  defaultInput: '192.168.1.10/24 ::subnet',
+  defaultInput: '192.168.1.10/24\n::subnet',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

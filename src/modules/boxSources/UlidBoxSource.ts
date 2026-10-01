@@ -68,7 +68,7 @@ export const UlidBoxSource = {
   name: 'ULID',
   description:
     'Generate a ULID (::ulid) or decode the timestamp of an existing ULID (::ulid=<ulid> or ::ulidparse).',
-  defaultInput: ' ::ulid',
+  defaultInput: '::ulid',
   tag: '#',
   kind: 'Generate',
   priority: Priority,

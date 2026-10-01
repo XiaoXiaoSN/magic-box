@@ -91,7 +91,7 @@ export const Base91BoxSource = {
   defaultDisabled: true,
   name: 'basE91',
   description: 'Encode text to basE91 or decode a basE91 string.',
-  defaultInput: 'hello ::base91',
+  defaultInput: 'hello\n::base91',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

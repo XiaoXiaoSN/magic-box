@@ -75,7 +75,7 @@ export const EasterBoxSource = {
   name: 'Easter',
   description:
     'Compute the date of Easter Sunday (Gregorian) and Lunar New Year for a given year.',
-  defaultInput: '2025 ::easter',
+  defaultInput: '2025\n::easter',
   tag: '#',
   kind: 'Calculate',
   priority: Priority,

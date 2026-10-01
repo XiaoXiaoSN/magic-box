@@ -67,7 +67,7 @@ export const A1Z26BoxSource = {
   name: 'A1Z26',
   description:
     'Encode letters to their position numbers (A=1..Z=26) or decode numbers back to letters.',
-  defaultInput: 'hello ::a1z26',
+  defaultInput: 'hello\n::a1z26',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

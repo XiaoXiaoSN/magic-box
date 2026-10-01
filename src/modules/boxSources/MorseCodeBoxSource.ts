@@ -100,7 +100,7 @@ export const MorseCodeBoxSource = {
   defaultDisabled: true,
   name: 'Morse Code',
   description: 'Encode text to Morse code or decode Morse code back to text.',
-  defaultInput: 'SOS ::morse',
+  defaultInput: 'SOS\n::morse',
   tag: '·',
   kind: 'Encode',
   priority: Priority,

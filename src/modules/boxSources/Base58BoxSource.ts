@@ -87,7 +87,7 @@ export const Base58BoxSource = {
   name: 'Base58',
   description:
     'Encode text to Base58 (Bitcoin alphabet) or decode Base58 back to text.',
-  defaultInput: 'Hello World! ::base58',
+  defaultInput: 'Hello World!\n::base58',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

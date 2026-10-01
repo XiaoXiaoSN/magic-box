@@ -50,7 +50,7 @@ export const RadixBoxSource = {
   name: 'Radix Convert',
   description:
     'Convert an integer between arbitrary bases (2-36). e.g. ::radix=16:2 for hex→binary.',
-  defaultInput: 'ff ::radix=16:2',
+  defaultInput: 'ff\n::radix=16:2',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

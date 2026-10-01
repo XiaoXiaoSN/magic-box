@@ -45,7 +45,7 @@ export const GcdLcmBoxSource = {
   name: 'GCD / LCM',
   description:
     'Compute the GCD and LCM of a list of integers (comma or space separated).',
-  defaultInput: '12, 18, 24 ::gcd',
+  defaultInput: '12, 18, 24\n::gcd',
   tag: '#',
   kind: 'Calculate',
   priority: Priority,

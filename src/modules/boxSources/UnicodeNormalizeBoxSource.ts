@@ -25,7 +25,7 @@ export const UnicodeNormalizeBoxSource = {
   name: 'Unicode Normalize',
   description:
     'Normalize text to a Unicode form (NFC/NFD/NFKC/NFKD). ::normalize=nfc (default NFC).',
-  defaultInput: 'café ::normalize=nfd',
+  defaultInput: 'café\n::normalize=nfd',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

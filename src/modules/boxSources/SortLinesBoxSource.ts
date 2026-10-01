@@ -28,7 +28,7 @@ export const SortLinesBoxSource = {
   name: 'Sort Lines',
   description:
     'Sort the lines of text. ::sortlines (asc), modifiers ::desc, ::numeric, ::unique, ::ci (case-insensitive).',
-  defaultInput: 'banana\napple\ncherry ::sortlines',
+  defaultInput: 'banana\napple\ncherry\n::sortlines',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

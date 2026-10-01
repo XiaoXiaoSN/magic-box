@@ -64,7 +64,7 @@ export const FractionBoxSource = {
   name: 'Fraction',
   description:
     'Convert a decimal to a simplified fraction, or a fraction (a/b) to a decimal.',
-  defaultInput: '0.75 ::fraction',
+  defaultInput: '0.75\n::fraction',
   tag: '#',
   kind: 'Convert',
   priority: Priority,
