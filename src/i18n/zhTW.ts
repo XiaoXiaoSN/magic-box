@@ -145,6 +145,11 @@ const zhTW: Translations = {
   'pwa.later': '稍後',
 
   'snackbar.copied': '已複製',
+  'diff.original': '原始文字',
+  'diff.target': '貼上第二段文字',
+  'diff.compare': '比較',
+  'diff.result': '比較結果',
+  'diff.copy': '複製差異',
 };
 
 export default zhTW;

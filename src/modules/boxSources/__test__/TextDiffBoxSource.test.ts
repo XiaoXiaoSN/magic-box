@@ -2,6 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { TextDiffBoxSource } from '../TextDiffBoxSource';
 
 describe('TextDiffBoxSource', () => {
+  it.each([
+    'lang',
+    'language',
+    'l',
+  ])('opens an interactive ::diff box with ::%s highlighting', async (key) => {
+    const [box] = await TextDiffBoxSource.generateBoxes('someword', {
+      diff: true,
+      [key]: 'json',
+    });
+    expect(box.props.sourceInput).toBe('someword');
+    expect(box.props.options).toEqual({ language: 'json', diffTarget: '' });
+    expect(box.boxTemplate).toBeDefined();
+  });
   it('returns [] when no matching option is provided', async () => {
     const boxes = await TextDiffBoxSource.generateBoxes(
       'foo\nbar\n---\nfoo\nbaz',
