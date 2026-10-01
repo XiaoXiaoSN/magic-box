@@ -15,6 +15,7 @@ import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
+import CoordinateBoxSource from './CoordinateBoxSource';
 import Crc32BoxSource from './Crc32BoxSource';
 import CreditCardInfoBoxSource from './CreditCardInfoBoxSource';
 import CrockfordBase32BoxSource from './CrockfordBase32BoxSource';
@@ -22,7 +23,6 @@ import CronExpressionBoxSource from './CronExpressionBoxSource';
 import DataConverterBoxSource from './DataConverterBoxSource';
 import DateCalculateBoxSource from './DateCalculateBoxSource';
 import DiceRollBoxSource from './DiceRollBoxSource';
-import DmsBoxSource from './DmsBoxSource';
 import DurationBoxSource from './DurationBoxSource';
 import EasterBoxSource from './EasterBoxSource';
 import EscapeStringBoxSource from './EscapeStringBoxSource';
@@ -175,5 +175,5 @@ export const boxSources: BoxSource[] = [
   LocalAIBoxSource,
   Crc32BoxSource,
   CrockfordBase32BoxSource,
-  DmsBoxSource,
+  CoordinateBoxSource,
 ];

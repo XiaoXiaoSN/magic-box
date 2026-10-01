@@ -1,125 +1,178 @@
+import type { BoxOptions } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
 
-import { DmsBoxSource } from '../DmsBoxSource';
+import { CoordinateBoxSource } from '../CoordinateBoxSource';
 
-describe('DmsBoxSource', () => {
-  describe('generateBoxes', () => {
-    it('returns [] when no option is provided', async () => {
-      const boxes = await DmsBoxSource.generateBoxes('40.446195', null);
-      expect(boxes).toHaveLength(0);
+const run = (input: string, options: BoxOptions) =>
+  CoordinateBoxSource.generateBoxes(input, options);
+
+const rows = async (input: string, options: BoxOptions = { coord: true }) => {
+  const boxes = await run(input, options);
+  expect(boxes).toHaveLength(1);
+  expect(boxes[0].props.name).toBe('Coordinates');
+  return boxes[0].props.options as Record<string, string>;
+};
+
+describe('CoordinateBoxSource', () => {
+  describe('gating', () => {
+    it('returns [] without a coordinate option', async () => {
+      expect(await run('40.446195, -79.948862', null)).toHaveLength(0);
+      expect(await run('40.446195, -79.948862', { json: true })).toHaveLength(
+        0,
+      );
     });
 
-    it('returns [] when an unrelated option is provided', async () => {
-      const boxes = await DmsBoxSource.generateBoxes('40.446195', {
-        json: true,
-      });
-      expect(boxes).toHaveLength(0);
+    it('returns [] for empty or overlong input', async () => {
+      expect(await run('  ', { coord: true })).toHaveLength(0);
+      expect(await run('1'.repeat(101), { coord: true })).toHaveLength(0);
     });
 
-    describe('decimal → DMS', () => {
-      it('converts 40.446195 correctly with ::dms', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40.446195', {
-          dms: true,
-        });
-        expect(boxes).toHaveLength(1);
+    it.each([
+      'coord',
+      'coords',
+      'latlng',
+      'latlon',
+    ])('::%s shows the full table', async (key) => {
+      const table = await rows('40.446195, -79.948862', { [key]: true });
+      expect(Object.keys(table)).toEqual([
+        'Decimal',
+        'DDM',
+        'DMS',
+        'Plus Code',
+        'Geohash',
+        'UTM',
+        'MGRS',
+        'geo URI',
+      ]);
+    });
+  });
 
-        const opts = boxes[0].props.options as Record<string, string>;
-        // 0.446195 * 60 = 26.7717 → 26 min
-        // 0.7717 * 60 = 46.302 → 46.30 sec
-        expect(opts.Degrees).toBe('40');
-        expect(opts.Minutes).toBe('26');
-        expect(opts.Seconds).toBe('46.30');
-        expect(opts.DMS).toBe('40°26\'46.30"');
-        expect(opts.Decimal).toBe('40.446195');
-      });
-
-      it('converts 40.446195 correctly with ::latlng', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40.446195', {
-          latlng: true,
-        });
-        expect(boxes).toHaveLength(1);
-        const opts = boxes[0].props.options as Record<string, string>;
-        expect(opts.Degrees).toBe('40');
-        expect(opts.Minutes).toBe('26');
-      });
-
-      it('handles negative decimal -73.985', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('-73.985', {
-          dms: true,
-        });
-        expect(boxes).toHaveLength(1);
-        const opts = boxes[0].props.options as Record<string, string>;
-        // magnitude degrees
-        expect(opts.Degrees).toBe('73');
-        expect(opts.Decimal).toBe('-73.985');
-      });
-
-      it('returns box name "DMS Coordinates"', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40.446195', {
-          dms: true,
-        });
-        expect(boxes[0].props.name).toBe('DMS Coordinates');
-      });
-
-      it('sets priority correctly', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40.446195', {
-          dms: true,
-        });
-        expect(boxes[0].props.priority).toBe(10);
+  describe('a latitude/longitude pair', () => {
+    it('converts decimal degrees to every format', async () => {
+      expect(await rows('40.446195, -79.948862')).toEqual({
+        Decimal: '40.446195, -79.948862',
+        DDM: `40°26.7717'N 79°56.9317'W`,
+        DMS: `40°26'46.30"N 79°56'55.90"W`,
+        'Plus Code': '87G2C3W2+FF',
+        Geohash: 'dppnhep00',
+        UTM: '17T 589139 4477813',
+        MGRS: '17T NE 89138 77812',
+        'geo URI': 'geo:40.446195,-79.948862',
       });
     });
 
-    describe('DMS → decimal', () => {
-      it('converts 40°26\'46.3"N to decimal ≈ 40.4462', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40°26\'46.3"N', {
-          dms: true,
-        });
-        expect(boxes).toHaveLength(1);
-        const opts = boxes[0].props.options as Record<string, string>;
-        // 40 + 26/60 + 46.3/3600 ≈ 40.446194...
-        expect(opts.Decimal.startsWith('40.4461')).toBe(true);
-      });
+    it('reads DMS with hemispheres', async () => {
+      const table = await rows(`33°51'24.5"S 151°12'55.1"E`);
+      expect(table.Decimal).toBe('-33.856806, 151.215306');
+      expect(table.DMS).toBe(`33°51'24.50"S 151°12'55.10"E`);
+    });
 
-      it('converts 33°51\'54"S to negative decimal', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('33°51\'54"S', {
-          dms: true,
-        });
-        expect(boxes).toHaveLength(1);
-        const opts = boxes[0].props.options as Record<string, string>;
-        // 33 + 51/60 + 54/3600 = 33.865 → negative due to S
-        expect(opts.Decimal.startsWith('-33.86')).toBe(true);
-      });
+    it('reads a Plus Code and echoes it unchanged', async () => {
+      const table = await rows('7qq32hqw+hr');
+      expect(table['Plus Code']).toBe('7QQ32HQW+HR');
+      // the cell centre 25.0389375, 121.5970625 sits on a 7th-decimal tie, so
+      // the 6-decimal output may round either way
+      const [lat, lng] = table.Decimal.split(', ').map(Number);
+      expect(lat).toBeCloseTo(25.0389375, 5);
+      expect(lng).toBeCloseTo(121.5970625, 5);
+    });
 
-      it('converts space-separated DMS without hemisphere', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('40 26 40.3', {
-          dms: true,
-        });
-        expect(boxes).toHaveLength(1);
-        const opts = boxes[0].props.options as Record<string, string>;
-        expect(opts.Degrees).toBe('40');
-        expect(opts.Minutes).toBe('26');
+    it('reads a Geohash and echoes it unchanged', async () => {
+      const table = await rows('ezs42');
+      expect(table.Geohash).toBe('ezs42');
+      expect(table.Decimal).toBe('42.60498, -5.603027');
+    });
+
+    it('leaves UTM and MGRS out of the table near the poles', async () => {
+      const table = await rows('85, 10');
+      expect(table.UTM).toBeUndefined();
+      expect(table.MGRS).toBeUndefined();
+      expect(table['Plus Code']).toBeDefined();
+    });
+  });
+
+  describe('a single angle', () => {
+    it('shows only the angle formats', async () => {
+      expect(await rows('40.446195')).toEqual({
+        Decimal: '40.446195',
+        DDM: `40°26.7717'`,
+        DMS: `40°26'46.30"`,
       });
     });
 
-    describe('invalid input', () => {
-      it('returns a hint box for non-parseable input "abc"', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('abc', { dms: true });
-        expect(boxes).toHaveLength(1);
-        // the hint box content should mention expected formats
-        expect(boxes[0].props.plaintextOutput).toContain('Expected formats');
-      });
+    it('keeps the sign of a negative angle', async () => {
+      const table = await rows('-73.985');
+      expect(table.DMS).toBe(`-73°59'6.00"`);
+    });
 
-      it('returns [] for input exceeding 100 chars', async () => {
-        const long = 'a'.repeat(101);
-        const boxes = await DmsBoxSource.generateBoxes(long, { dms: true });
-        expect(boxes).toHaveLength(0);
-      });
+    it('keeps the hemisphere it was given', async () => {
+      const table = await rows(`33°51'54"S`);
+      expect(table.Decimal).toBe('-33.865');
+      expect(table.DMS).toBe(`33°51'54.00"S`);
+    });
+  });
 
-      it('returns a range hint box for out-of-range decimal 999', async () => {
-        const boxes = await DmsBoxSource.generateBoxes('999', { dms: true });
-        expect(boxes).toHaveLength(1);
-        expect(boxes[0].props.plaintextOutput).toMatch(/-180 and 180/);
+  describe('format options', () => {
+    it.each([
+      ['dms', 'DMS', `40°26'46.30"N 79°56'55.90"W`],
+      ['ddm', 'DDM', `40°26.7717'N 79°56.9317'W`],
+      ['dd', 'Decimal', '40.446195, -79.948862'],
+      ['pluscode', 'Plus Code', '87G2C3W2+FF'],
+      ['olc', 'Plus Code', '87G2C3W2+FF'],
+      ['geohash', 'Geohash', 'dppnhep00'],
+      ['utm', 'UTM', '17T 589139 4477813'],
+      ['mgrs', 'MGRS', '17T NE 89138 77812'],
+      ['geo', 'geo URI', 'geo:40.446195,-79.948862'],
+    ])('::%s shows only %s', async (key, label, value) => {
+      const boxes = await run('40.446195, -79.948862', { [key]: true });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.name).toBe(label);
+      expect(boxes[0].props.plaintextOutput).toBe(value);
+    });
+
+    it('shows several formats in table order', async () => {
+      const boxes = await run('40.446195, -79.948862', {
+        mgrs: true,
+        dms: true,
       });
+      expect(boxes.map((b) => b.props.name)).toEqual(['DMS', 'MGRS']);
+    });
+
+    it('explains a grid format that needs both axes', async () => {
+      const boxes = await run('40.446195', { pluscode: true, dms: true });
+      expect(boxes.map((b) => b.props.name)).toEqual(['DMS', 'Plus Code']);
+      expect(boxes[0].props.plaintextOutput).toBe(`40°26'46.30"`);
+      expect(boxes[1].props.plaintextOutput).toMatch(
+        /needs a latitude and a longitude/,
+      );
+    });
+
+    it('explains UTM outside its latitude range', async () => {
+      const boxes = await run('85, 10', { utm: true });
+      expect(boxes[0].props.plaintextOutput).toMatch(/80°S to 84°N/);
+    });
+  });
+
+  describe('invalid input', () => {
+    it('shows the accepted formats for unreadable input', async () => {
+      const boxes = await run('hello there', { coord: true });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain('Expected a coordinate');
+    });
+
+    it.each([
+      ['999', /An angle must be between -180 and 180/],
+      ['91N', /Latitude must be between -90 and 90/],
+      ['91, 10', /Latitude must be between -90 and 90/],
+      ['10, 181', /Longitude must be between -180 and 180/],
+    ])('rejects out-of-range %s', async (input, message) => {
+      const boxes = await run(input, { coord: true });
+      expect(boxes[0].props.plaintextOutput).toMatch(message);
+    });
+
+    it('asks for the full code when given a short Plus Code', async () => {
+      const boxes = await run('Q257+5X', { coord: true });
+      expect(boxes[0].props.plaintextOutput).toMatch(/reference location/);
     });
   });
 });
