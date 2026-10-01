@@ -4,6 +4,12 @@ import type { BoxOptions } from '@modules/Box';
 // cleaned input and a map of options. Options may appear on the very first
 // line or after a newline — a leading `\n` is NOT required.
 //
+// Directive contract (box sources rely on it):
+// - a directive must start a line; `hello ::base32` is plain input text
+// - `::key` and `::key=` both yield `true` — an empty value means "no value",
+//   so a source sees only `true` or a non-empty string. sources that want a
+//   default treat `true` as "use the default"; none has to handle `''`
+//
 // Example:
 //   ::qrcode
 //   Hello World
