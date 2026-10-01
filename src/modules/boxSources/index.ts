@@ -15,6 +15,7 @@ import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
+import CoordinateBoxSource from './CoordinateBoxSource';
 import Crc32BoxSource from './Crc32BoxSource';
 import CreditCardInfoBoxSource from './CreditCardInfoBoxSource';
 import CrockfordBase32BoxSource from './CrockfordBase32BoxSource';
@@ -174,4 +175,5 @@ export const boxSources: BoxSource[] = [
   LocalAIBoxSource,
   Crc32BoxSource,
   CrockfordBase32BoxSource,
+  CoordinateBoxSource,
 ];
