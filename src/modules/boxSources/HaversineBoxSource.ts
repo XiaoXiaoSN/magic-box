@@ -80,7 +80,7 @@ export const HaversineBoxSource = {
   name: 'Distance',
   description:
     'Great-circle distance between two coordinates. Input: "lat1,lng1 to lat2,lng2".',
-  defaultInput: '40.7128,-74.0060 to 51.5074,-0.1278 ::haversine',
+  defaultInput: '40.7128,-74.0060 to 51.5074,-0.1278\n::haversine',
   tag: '#',
   kind: 'Calculate',
   priority: Priority,

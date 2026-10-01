@@ -46,7 +46,7 @@ export const PowerConvertBoxSource = {
   defaultDisabled: true,
   name: 'Power Convert',
   description: `Convert power between ${SUPPORTED_UNITS}.`,
-  defaultInput: '100 hp ::power',
+  defaultInput: '100 hp\n::power',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

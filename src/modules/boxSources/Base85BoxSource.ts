@@ -92,7 +92,7 @@ export const Base85BoxSource = {
   name: 'Base85',
   description:
     'Encode text to Ascii85 (Base85) or decode Ascii85 back to text.',
-  defaultInput: 'hello ::base85',
+  defaultInput: 'hello\n::base85',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

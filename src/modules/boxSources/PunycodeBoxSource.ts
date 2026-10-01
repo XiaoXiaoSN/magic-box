@@ -179,7 +179,7 @@ export const PunycodeBoxSource = {
   name: 'Punycode',
   description:
     'Convert an internationalized domain name to/from its Punycode (xn--) ASCII form.',
-  defaultInput: 'münchen.de ::punycode',
+  defaultInput: 'münchen.de\n::punycode',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

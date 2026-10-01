@@ -86,7 +86,7 @@ export const MarkdownTocBoxSource = {
   name: 'Markdown TOC',
   description:
     'Generate a table of contents (nested bullet list with anchor links) from Markdown headings.',
-  defaultInput: '# Title\n## Section A\n### Sub\n## Section B ::toc',
+  defaultInput: '# Title\n## Section A\n### Sub\n## Section B\n::toc',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

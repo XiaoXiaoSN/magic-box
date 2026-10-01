@@ -32,7 +32,7 @@ export const BinaryTextBoxSource = {
   name: 'Text to Binary',
   description:
     'Convert text to space-separated 8-bit binary (UTF-8), or binary back to text.',
-  defaultInput: 'Hi ::binary',
+  defaultInput: 'Hi\n::binary',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

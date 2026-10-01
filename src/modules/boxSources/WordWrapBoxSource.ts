@@ -60,7 +60,7 @@ export const WordWrapBoxSource = {
   name: 'Word Wrap',
   description:
     'Wrap text to a column width at word boundaries. Use ::wrap=N for width N (default 80).',
-  defaultInput: 'The quick brown fox jumps over the lazy dog ::wrap=20',
+  defaultInput: 'The quick brown fox jumps over the lazy dog\n::wrap=20',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

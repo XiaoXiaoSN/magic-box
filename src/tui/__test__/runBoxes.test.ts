@@ -41,7 +41,11 @@ describe('headless box generation', () => {
 
   it('every TUI source omits a react template (mui-free graph)', async () => {
     for (const source of tuiBoxSources) {
-      const boxes = await source.generateBoxes(source.defaultInput, null);
+      // through runBoxes so `::option` directives in defaultInput are parsed;
+      // calling generateBoxes(defaultInput, null) left the loop below empty
+      // for every directive-driven source
+      const boxes = await runBoxes(source.defaultInput, [source]);
+      expect(boxes.length, source.name).toBeGreaterThan(0);
       for (const box of boxes) {
         expect(box.boxTemplate).toBeUndefined();
       }

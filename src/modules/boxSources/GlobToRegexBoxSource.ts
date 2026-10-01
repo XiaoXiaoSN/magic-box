@@ -84,7 +84,7 @@ export const GlobToRegexBoxSource = {
   name: 'Glob to Regex',
   description:
     'Convert a shell glob pattern (*, ?, [...], **) into an anchored regular expression.',
-  defaultInput: 'src/**/*.ts ::glob2regex',
+  defaultInput: 'src/**/*.ts\n::glob2regex',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

@@ -79,7 +79,7 @@ export const WeekNumberBoxSource = {
   name: 'Week Number',
   description:
     'Compute the ISO 8601 week number (and weekday, day-of-year) for a date.',
-  defaultInput: '2024-01-01 ::weeknum',
+  defaultInput: '2024-01-01\n::weeknum',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

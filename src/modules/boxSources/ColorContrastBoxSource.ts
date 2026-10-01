@@ -14,7 +14,7 @@ export const ColorContrastBoxSource = {
   name: 'Color Contrast',
   description:
     'WCAG contrast ratio between two hex colors (space- or newline-separated).',
-  defaultInput: '#000000 #ffffff ::contrast',
+  defaultInput: '#000000 #ffffff\n::contrast',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

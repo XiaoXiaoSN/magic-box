@@ -11,7 +11,7 @@ export const TextReverseBoxSource = {
   name: 'Text Reverse',
   description:
     'Reverse the characters of the input string (Unicode code-point aware).',
-  defaultInput: 'hello 😀 ::reverse',
+  defaultInput: 'hello 😀\n::reverse',
   tag: '#',
   kind: 'Transform',
   priority: Priority,

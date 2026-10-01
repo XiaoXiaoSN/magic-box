@@ -95,7 +95,7 @@ export const WordsToNumberBoxSource = {
   name: 'Words to Number',
   description:
     'Parse English number words into an integer (e.g. "one thousand two hundred" → 1200).',
-  defaultInput: 'one million two hundred thirty-four thousand ::wordstonum',
+  defaultInput: 'one million two hundred thirty-four thousand\n::wordstonum',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

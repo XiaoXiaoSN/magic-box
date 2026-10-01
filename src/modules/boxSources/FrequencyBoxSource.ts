@@ -42,7 +42,7 @@ export const FrequencyBoxSource = {
   defaultDisabled: true,
   name: 'Frequency',
   description: 'Count character frequencies in the input, sorted by count.',
-  defaultInput: 'hello world ::freq',
+  defaultInput: 'hello world\n::freq',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

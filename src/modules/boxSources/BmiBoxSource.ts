@@ -81,7 +81,7 @@ export const BmiBoxSource = {
   name: 'BMI',
   description:
     'Compute Body Mass Index. Input: "<weight>kg <height>m" or "<weight>lb <height>in".',
-  defaultInput: '70kg 1.75m ::bmi',
+  defaultInput: '70kg 1.75m\n::bmi',
   tag: '#',
   kind: 'Calculate',
   priority: Priority,

@@ -142,7 +142,7 @@ export const Ipv6BoxSource = {
   defaultDisabled: true,
   name: 'IPv6',
   description: 'Expand and compress an IPv6 address (RFC 5952).',
-  defaultInput: '2001:db8::1 ::ipv6',
+  defaultInput: '2001:db8::1\n::ipv6',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

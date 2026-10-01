@@ -48,7 +48,7 @@ export const SpeedConvertBoxSource = {
   defaultDisabled: true,
   name: 'Speed Convert',
   description: 'Convert a speed between m/s, km/h, mph, knots, and ft/s.',
-  defaultInput: '100 km/h ::speed',
+  defaultInput: '100 km/h\n::speed',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

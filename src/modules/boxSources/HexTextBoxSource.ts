@@ -63,7 +63,7 @@ export const HexTextBoxSource = {
   name: 'Text to Hex',
   description:
     'Convert text to a hex string (UTF-8) or decode a hex string back to text.',
-  defaultInput: 'Hi ::hex',
+  defaultInput: 'Hi\n::hex',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

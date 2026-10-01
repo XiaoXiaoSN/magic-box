@@ -99,7 +99,7 @@ export const AsciiTableBoxSource = {
   name: 'ASCII Code',
   description:
     'Look up a character or a code point: decimal, hex, octal, binary, and the glyph.',
-  defaultInput: 'A ::ascii',
+  defaultInput: 'A\n::ascii',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

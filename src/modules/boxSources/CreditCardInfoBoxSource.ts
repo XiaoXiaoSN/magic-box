@@ -105,7 +105,7 @@ export const CreditCardInfoBoxSource = {
   name: 'Credit Card Info',
   description:
     'Detect the card brand from a number and check Luhn validity (masks the number).',
-  defaultInput: '4111111111111111 ::cardinfo',
+  defaultInput: '4111111111111111\n::cardinfo',
   tag: '#',
   kind: 'Validate',
   priority: Priority,

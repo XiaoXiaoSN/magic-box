@@ -89,7 +89,7 @@ export const ZodiacBoxSource = {
   name: 'Zodiac Sign',
   description:
     'Determine the Western zodiac sign for a date (MM-DD or YYYY-MM-DD).',
-  defaultInput: '03-21 ::zodiac',
+  defaultInput: '03-21\n::zodiac',
   tag: '#',
   kind: 'Calculate',
   priority: Priority,

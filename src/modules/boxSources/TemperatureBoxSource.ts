@@ -33,7 +33,7 @@ export const TemperatureBoxSource = {
   name: 'Temperature',
   description:
     'Convert a temperature between Celsius, Fahrenheit and Kelvin. e.g. "100C ::temp".',
-  defaultInput: '100C ::temp',
+  defaultInput: '100C\n::temp',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

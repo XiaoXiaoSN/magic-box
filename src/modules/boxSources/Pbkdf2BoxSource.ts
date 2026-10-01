@@ -122,7 +122,7 @@ export const Pbkdf2BoxSource = {
   name: 'PBKDF2',
   description:
     'Derive a key from the input password: ::pbkdf2=<salt>. Options ::iterations=<n>, ::dklen=<bytes>, and the PRF via ::prf=sha256|sha1|sha512 or bare ::sha256/::sha1/::sha512 (default HMAC-SHA256).',
-  defaultInput: 'password ::pbkdf2=salt',
+  defaultInput: 'password\n::pbkdf2=salt',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

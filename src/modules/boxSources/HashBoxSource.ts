@@ -43,7 +43,7 @@ export const HashBoxSource = {
   name: 'Hash',
   description:
     'Compute cryptographic hashes (SHA-1, SHA-256, SHA-512) of the input text via Web Crypto.',
-  defaultInput: 'hello world ::sha256',
+  defaultInput: 'hello world\n::sha256',
   tag: '#',
   kind: 'Hash',
   priority: PriorityHashBox,

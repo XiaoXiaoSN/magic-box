@@ -43,7 +43,7 @@ export const UnicodeEscapeBoxSource = {
   name: 'Unicode Escape',
   description:
     'Escape text to \\uXXXX sequences, or unescape \\uXXXX / \\u{...} back to text.',
-  defaultInput: 'héllo 😀 ::unicodeescape',
+  defaultInput: 'héllo 😀\n::unicodeescape',
   tag: '#',
   kind: 'Encode',
   priority: Priority,

@@ -18,7 +18,7 @@ export const OnColorBoxSource = {
   name: 'Readable Text Color',
   description:
     'Given a background hex color, pick the readable foreground (black or white) and the WCAG contrast.',
-  defaultInput: '#3498db ::oncolor',
+  defaultInput: '#3498db\n::oncolor',
   tag: '#',
   kind: 'Analyze',
   priority: Priority,

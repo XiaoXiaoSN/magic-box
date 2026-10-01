@@ -111,7 +111,7 @@ export const MacAddressBoxSource = {
   name: 'MAC Address',
   description:
     'Normalize a MAC address and show its formats, OUI prefix, and flags.',
-  defaultInput: '01:23:45:67:89:ab ::mac',
+  defaultInput: '01:23:45:67:89:ab\n::mac',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

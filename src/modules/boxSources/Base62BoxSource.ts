@@ -41,7 +41,7 @@ export const Base62BoxSource = {
   name: 'Base62',
   description:
     'Encode a non-negative integer to Base62, or decode a Base62 string to a number.',
-  defaultInput: '123456789 ::base62',
+  defaultInput: '123456789\n::base62',
   tag: '#',
   kind: 'Convert',
   priority: Priority,

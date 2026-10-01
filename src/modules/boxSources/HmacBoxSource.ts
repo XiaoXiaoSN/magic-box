@@ -84,7 +84,7 @@ export const HmacBoxSource = {
   name: 'HMAC',
   description:
     'Compute HMAC of the input with a key: ::hmac=<key>. Select algorithms with ::sha256, ::sha1, ::sha512 (default: all); each also accepts the key, e.g. ::sha512=<key>.',
-  defaultInput: 'The quick brown fox jumps over the lazy dog ::hmac=key',
+  defaultInput: 'The quick brown fox jumps over the lazy dog\n::hmac=key',
   tag: '#',
   kind: 'Encode',
   priority: Priority,
