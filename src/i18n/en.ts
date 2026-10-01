@@ -30,7 +30,12 @@ const en = {
   'settings.enterOff': 'Off',
   'settings.timezone': 'Default timezone',
   'settings.timezoneHint':
-    'UTC offset in hours (e.g. 8) applied to time boxes by default.',
+    'Default: UTC+8. Choose a fixed offset or follow the system timezone, including daylight saving at the date being converted.',
+  'settings.timezoneSystem': 'Auto — follow system timezone',
+  'settings.default': 'default',
+  'settings.resetPreferences': 'Restore all defaults',
+  'settings.defaultsHint':
+    'Defaults: system theme, comfortable density, English, Enter copies, UTC+8, default server URLs, anonymous usage enabled; Local AI asks, auto language, auto check and auto-run enabled. Restore also resets box order and availability, while preserving input and history.',
   'settings.section.server': 'Server',
   'settings.section.serverHint':
     'Override backend hosts. Leave blank to use the defaults.',

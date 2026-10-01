@@ -32,7 +32,12 @@ const zhTW: Translations = {
   'settings.enterOff': '關閉',
   'settings.timezone': '預設時區',
   'settings.timezoneHint':
-    '以小時為單位的 UTC 偏移（例如 8），預設套用至時間 Box。',
+    '預設 UTC+8。可選固定時差或跟隨系統時區，包含轉換日期當時的日光節約時間。',
+  'settings.timezoneSystem': '自動 — 跟隨系統時區',
+  'settings.default': '預設',
+  'settings.resetPreferences': '恢復所有預設值',
+  'settings.defaultsHint':
+    '預設：系統主題、舒適密度、英文、Enter 複製、UTC+8、預設伺服器、啟用匿名統計；Local AI 提問、自動語言、自動檢查與執行。恢復預設值也會重設 Box 順序與啟用狀態，並保留輸入與歷史紀錄。',
   'settings.section.server': '伺服器',
   'settings.section.serverHint': '覆寫後端主機位址。留空則使用預設值。',
   'settings.toolboxUrl': 'Toolbox 網址',

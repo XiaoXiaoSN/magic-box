@@ -29,6 +29,26 @@ describe('PreferencesContext', () => {
   });
 
   describe('loadPrefs defaults', () => {
+    it('migrates numeric-only saved preferences and validates timezone mode', () => {
+      localStorage.setItem(
+        LOCAL_PREFS_KEY,
+        JSON.stringify({ timezoneOffset: 5.5 }),
+      );
+      expect(loadPrefs()).toMatchObject({
+        timezoneOffset: 5.5,
+        timezoneMode: 'fixed',
+      });
+      localStorage.setItem(
+        LOCAL_PREFS_KEY,
+        JSON.stringify({ timezoneMode: 'system' }),
+      );
+      expect(loadPrefs().timezoneMode).toBe('system');
+      localStorage.setItem(
+        LOCAL_PREFS_KEY,
+        JSON.stringify({ timezoneMode: 'unknown' }),
+      );
+      expect(loadPrefs().timezoneMode).toBe('fixed');
+    });
     it('defaults timezoneOffset to +8 and servers to blank', () => {
       const prefs = loadPrefs();
       expect(prefs.timezoneOffset).toBe(8);

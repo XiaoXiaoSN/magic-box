@@ -7,9 +7,11 @@ export const MIN_TIMEZONE_OFFSET = -12;
 export const MAX_TIMEZONE_OFFSET = 14;
 
 export const DEFAULT_TIMEZONE_OFFSET = 8;
+export type TimezoneMode = 'fixed' | 'system';
 
 export const isValidTimezoneOffset = (value: number): boolean =>
-  Number.isInteger(value) &&
+  Number.isFinite(value) &&
+  Number.isInteger(value * 4) &&
   value >= MIN_TIMEZONE_OFFSET &&
   value <= MAX_TIMEZONE_OFFSET;
 
