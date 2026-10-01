@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { HashBoxSource } from '../HashBoxSource';
@@ -25,7 +24,7 @@ describe('HashBoxSource', () => {
         'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
       );
       expect(boxes[0].props.name).toBe('SHA-256');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
     });
 
     it('produces correct SHA-256 digest for empty string', async () => {

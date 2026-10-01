@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { BmiBoxSource } from '../BmiBoxSource';
@@ -29,7 +28,7 @@ describe('BmiBoxSource', () => {
       const { options, name, priority } = boxes[0].props;
       expect(name).toBe('BMI');
       expect(priority).toBe(10);
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
 
       expect(options?.BMI).toBe('22.9');
       expect(options?.Category).toBe('Normal');

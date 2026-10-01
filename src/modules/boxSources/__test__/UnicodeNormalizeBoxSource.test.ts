@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { UnicodeNormalizeBoxSource } from '../UnicodeNormalizeBoxSource';
@@ -38,7 +37,7 @@ describe('UnicodeNormalizeBoxSource', () => {
         expect(opts?.['Input Length']).toBe('4');
         expect(opts?.['Output Length']).toBe('5');
         expect(opts?.Changed).toBe('true');
-        expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+        expect(boxes[0].view).toBe('keyValue');
       });
     });
 

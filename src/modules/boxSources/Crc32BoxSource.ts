@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -61,7 +60,7 @@ export const Crc32BoxSource = {
 
     return [
       new BoxBuilder('CRC-32', hex)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(output)
         .setPriority(this.priority)
         .build(),

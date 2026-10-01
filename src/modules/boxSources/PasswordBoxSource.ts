@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
@@ -132,7 +131,7 @@ export const PasswordBoxSource = {
           'Password Generator',
           'Error: crypto.getRandomValues is unavailable. A secure context (HTTPS or localhost) is required.',
         )
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -159,7 +158,7 @@ export const PasswordBoxSource = {
           'Password Generator',
           'Error: all character classes are excluded. Enable at least one class.',
         )
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -171,7 +170,7 @@ export const PasswordBoxSource = {
       const password = generatePassword(length, classes);
       boxes.push(
         new BoxBuilder('Password Generator', password)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

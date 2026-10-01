@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { extractOptionKeys, hasOptionKeys, keyValueBox } from '@modules/Box';
@@ -220,7 +219,7 @@ export const DurationBoxSource = {
           Hint: hint,
         };
         return [
-          keyValueBox(KeyValueBoxTemplate, 'Duration', kv, {
+          keyValueBox('keyValue', 'Duration', kv, {
             priority: this.priority,
           }),
         ];
@@ -241,7 +240,7 @@ export const DurationBoxSource = {
     };
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'Duration', output, {
+      keyValueBox('keyValue', 'Duration', output, {
         priority: this.priority,
       }),
     ];

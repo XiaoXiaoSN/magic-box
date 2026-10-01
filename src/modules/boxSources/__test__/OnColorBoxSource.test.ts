@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { OnColorBoxSource } from '../OnColorBoxSource';
@@ -183,7 +182,7 @@ describe('OnColorBoxSource', () => {
       const boxes = await OnColorBoxSource.generateBoxes('#ffffff', {
         oncolor: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('box name is "Readable Text Color"', async () => {

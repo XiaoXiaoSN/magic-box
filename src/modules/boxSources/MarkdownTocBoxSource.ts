@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -104,7 +103,7 @@ export const MarkdownTocBoxSource = {
     if (headings.length === 0) {
       return [
         new BoxBuilder('Markdown TOC', 'No headings found.')
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setOptions({ language: 'markdown' })
           .setPriority(this.priority)
           .build(),
@@ -114,7 +113,7 @@ export const MarkdownTocBoxSource = {
     const toc = buildToc(headings);
     return [
       new BoxBuilder('Markdown TOC', toc)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setOptions({ language: 'markdown' })
         .setPriority(this.priority)
         .build(),

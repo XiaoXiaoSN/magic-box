@@ -142,7 +142,7 @@ describe('PortLookupBoxSource', () => {
       const boxes = await PortLookupBoxSource.generateBoxes('443', {
         port: true,
       });
-      expect(boxes[0].boxTemplate).toBeDefined();
+      expect(boxes[0].view).toBeDefined();
     });
   });
 

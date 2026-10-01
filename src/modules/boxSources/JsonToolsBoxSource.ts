@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import {
   type RequestedJsonTool,
   requestedJsonTools,
@@ -130,7 +129,7 @@ export const JsonToolsBoxSource = {
     return [
       new BoxBuilder(result.name, result.output)
         .setOptions({ language: 'json' })
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setPriority(this.priority)
         .build(),
     ];

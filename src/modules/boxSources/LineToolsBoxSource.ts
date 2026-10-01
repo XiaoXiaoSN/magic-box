@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -42,7 +41,7 @@ export const LineToolsBoxSource = {
       const sorted = [...lines].sort((a, b) => a.localeCompare(b));
       boxes.push(
         new BoxBuilder('Sorted Lines', sorted.join('\n'))
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setPriority(this.priority)
           .build(),
       );
@@ -58,7 +57,7 @@ export const LineToolsBoxSource = {
       });
       boxes.push(
         new BoxBuilder('Unique Lines', unique.join('\n'))
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setPriority(this.priority)
           .build(),
       );
@@ -68,7 +67,7 @@ export const LineToolsBoxSource = {
       const reversed = [...lines].reverse();
       boxes.push(
         new BoxBuilder('Reversed Lines', reversed.join('\n'))
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setPriority(this.priority)
           .build(),
       );

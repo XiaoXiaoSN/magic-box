@@ -1,7 +1,3 @@
-import {
-  DefaultBoxTemplate,
-  KeyValueBoxTemplate,
-} from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
@@ -304,7 +300,7 @@ export const ColorBoxSource = {
       };
       summaries.push(
         keyValueBox(
-          KeyValueBoxTemplate,
+          'keyValue',
           'Color Mix',
           {
             'Color 1': toHex(first),
@@ -346,7 +342,7 @@ export const ColorBoxSource = {
       };
       summaries.push(
         keyValueBox(
-          KeyValueBoxTemplate,
+          'keyValue',
           'Color Adjust',
           {
             Original: original,
@@ -364,17 +360,17 @@ export const ColorBoxSource = {
 
     const formats = [
       new BoxBuilder('HEX', hexStr)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
       new BoxBuilder('RGB', rgbStr)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
       new BoxBuilder('HSL', hslStr)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
@@ -382,7 +378,7 @@ export const ColorBoxSource = {
     if (wantsCmyk && rgba.a === null) {
       formats.push(
         new BoxBuilder('CMYK', toCmykString(rgba))
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -74,7 +73,7 @@ export const Base62BoxSource = {
         boxes.push(
           new BoxBuilder('Base62', `Decimal: ${raw}\nBase62: ${encoded}`)
             .setOptions({ Decimal: raw, Base62: encoded })
-            .setTemplate(KeyValueBoxTemplate)
+            .setView('keyValue')
             .setPriority(this.priority)
             .build(),
         );
@@ -96,7 +95,7 @@ export const Base62BoxSource = {
         boxes.push(
           new BoxBuilder('Base62', `Base62: ${raw}\nDecimal: ${decoded}`)
             .setOptions({ Base62: raw, Decimal: decoded.toString() })
-            .setTemplate(KeyValueBoxTemplate)
+            .setView('keyValue')
             .setPriority(this.priority)
             .build(),
         );

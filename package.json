@@ -81,6 +81,8 @@
     "test:e2e": "cypress run",
     "cypress": "cypress open",
     "tui": "bun run src/tui/index.tsx",
+    "tui:build": "bun build src/tui/index.tsx --target=node --external ink --external ink-text-input --external react --external base64-box --external math-box --outfile dist-tui/index.mjs",
+    "tui:node": "node dist-tui/index.mjs",
     "lint": "biome check src/ *.config.ts",
     "lint:fix": "biome check --write src/ *.config.ts"
   },

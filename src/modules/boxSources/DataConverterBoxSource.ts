@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -297,7 +296,7 @@ export const DataConverterBoxSource = {
         boxes.push(
           new BoxBuilder(`${fmt.name} Output`, output)
             .setOptions({ language: fmt.id })
-            .setTemplate(CodeBoxTemplate)
+            .setView('code')
             .setPriority(this.priority + (isSourceFormat ? 0.1 : 0))
             .build(),
         );

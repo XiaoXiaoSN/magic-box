@@ -10,20 +10,20 @@ import { tuiBoxSources } from '../sources';
 describe('headless box generation', () => {
   it('generates a UUID box with no react template attached', async () => {
     const boxes = await runBoxes('uuid');
-    expect(boxes).toHaveLength(1);
-    expect(boxes[0].props.name).toBe('UUID');
-    expect(boxes[0].props.plaintextOutput).toMatch(
+    const uuid = boxes.find((box) => box.props.name === 'UUID');
+    expect(uuid).toBeDefined();
+    expect(uuid?.props.plaintextOutput).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
     // headless boxes carry no template; the web layer supplies the default.
-    expect(boxes[0].boxTemplate).toBeUndefined();
+    expect(uuid?.boxTemplate).toBeUndefined();
   });
 
   it('parses `::option` directives shared with the web parser', async () => {
     const boxes = await runBoxes('uuid\n::uppercase');
-    expect(boxes).toHaveLength(1);
-    expect(boxes[0].props.plaintextOutput).toBe(
-      boxes[0].props.plaintextOutput.toUpperCase(),
+    const uuid = boxes.find((box) => box.props.name === 'UUID');
+    expect(uuid?.props.plaintextOutput).toBe(
+      uuid?.props.plaintextOutput.toUpperCase(),
     );
   });
 
@@ -35,11 +35,16 @@ describe('headless box generation', () => {
   });
 
   it('returns no boxes for unmatched input', async () => {
-    const boxes = await runBoxes('this should match nothing at all zzz');
+    const boxes = await runBoxes('this should match nothing at all zzz', []);
     expect(boxes).toHaveLength(0);
   });
 
   it('every TUI source omits a react template (mui-free graph)', async () => {
+    expect(tuiBoxSources.length).toBeGreaterThan(70);
+    expect(tuiBoxSources.map((source) => source.name)).not.toContain(
+      'Local AI',
+    );
+    expect(tuiBoxSources.map((source) => source.name)).not.toContain('My IP');
     for (const source of tuiBoxSources) {
       // through runBoxes so `::option` directives in defaultInput are parsed;
       // calling generateBoxes(defaultInput, null) left the loop below empty
@@ -50,5 +55,50 @@ describe('headless box generation', () => {
         expect(box.boxTemplate).toBeUndefined();
       }
     }
+  });
+
+  it('loads Base64 and Math WASM and renders structured tools as plaintext', async () => {
+    expect(
+      (await runBoxes('SGVsbG8=')).find(
+        (box) => box.props.name === 'Base64 decode',
+      )?.props.plaintextOutput,
+    ).toBe('Hello');
+    expect(
+      (await runBoxes('1+2')).find(
+        (box) => box.props.name === 'Math Expression',
+      )?.props.plaintextOutput,
+    ).toBe('3');
+    const data = await runBoxes('{"hello":"world"}');
+    expect(
+      data.some(
+        (box) =>
+          box.view === 'code' && box.props.plaintextOutput.includes('hello'),
+      ),
+    ).toBe(true);
+    const jwt = tuiBoxSources.find((source) => source.name === 'JWT Decode');
+    if (!jwt) throw new Error('JWT missing from terminal registry');
+    const decodedJWT = await runBoxes(jwt.defaultInput, [jwt]);
+    expect(decodedJWT[0].view).toBe('code');
+    expect(
+      JSON.parse(decodedJWT[0].props.plaintextOutput).header,
+    ).toBeDefined();
+    const secret = tuiBoxSources.find((source) => source.name === 'K8s Secret');
+    if (!secret) throw new Error('K8s Secret missing from terminal registry');
+    const boxes = await runBoxes(secret.defaultInput, [secret]);
+    expect(boxes[0].props.plaintextOutput).toContain('username: user');
+    expect(boxes[0].view).toBe('keyValue');
+  });
+
+  it('isolates source errors without discarding successful conversions', async () => {
+    const failing = {
+      ...tuiBoxSources[0],
+      name: 'Broken source',
+      generateBoxes: async () => {
+        throw new Error('unavailable');
+      },
+    };
+    const boxes = await runBoxes('uuid', [failing, ...tuiBoxSources]);
+    expect(boxes[0].props.plaintextOutput).toBe('unavailable');
+    expect(boxes.some((box) => box.props.name === 'UUID')).toBe(true);
   });
 });

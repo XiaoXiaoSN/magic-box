@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { SnowflakeBoxSource } from '../SnowflakeBoxSource';
@@ -47,7 +46,7 @@ describe('SnowflakeBoxSource', () => {
         '175928847299117063',
         { snowflake: true },
       );
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('sets priority', async () => {

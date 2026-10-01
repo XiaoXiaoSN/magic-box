@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { parseDateString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -110,7 +109,7 @@ export const WeekNumberBoxSource = {
       const errText = `Invalid date: "${raw}"`;
       return [
         new BoxBuilder('Week Number', errText)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions({ Error: errText })
           .setPriority(this.priority)
           .build(),
@@ -138,7 +137,7 @@ export const WeekNumberBoxSource = {
 
     return [
       new BoxBuilder('Week Number', plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvOptions)
         .setPriority(this.priority)
         .build(),

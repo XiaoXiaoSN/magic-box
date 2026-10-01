@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { GcdLcmBoxSource } from '../GcdLcmBoxSource';
@@ -25,7 +24,7 @@ describe('GcdLcmBoxSource', () => {
       expect(boxes[0].props.name).toBe('GCD / LCM');
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toMatchObject({ GCD: '6', LCM: '72' });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('computes GCD=6 and LCM=72 for 12, 18, 24 with ::lcm', async () => {

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { Pbkdf2BoxSource } from '../Pbkdf2BoxSource';
@@ -79,7 +78,7 @@ describe('Pbkdf2BoxSource', () => {
 
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('PBKDF2');
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
 
       const opts = optionsOf(boxes);
       expect(opts['Derived Key (hex)']).toBe(SHA256_C1_32);

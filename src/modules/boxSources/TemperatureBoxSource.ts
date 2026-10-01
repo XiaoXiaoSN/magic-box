@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -83,7 +82,7 @@ export const TemperatureBoxSource = {
     return [
       new BoxBuilder('Temperature', '')
         .setOptions(kvOptions)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setPriority(this.priority)
         .build(),
     ];

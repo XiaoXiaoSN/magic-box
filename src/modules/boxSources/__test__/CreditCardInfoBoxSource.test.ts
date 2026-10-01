@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { CreditCardInfoBoxSource } from '../CreditCardInfoBoxSource';
@@ -127,7 +126,7 @@ describe('CreditCardInfoBoxSource', () => {
       const boxes = await CreditCardInfoBoxSource.generateBoxes(pan, {
         cardtype: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
   });
 

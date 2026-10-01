@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -79,7 +78,7 @@ function buildCodePointBox(cp: number, priority: number): Box {
   };
   return new BoxBuilder('ASCII Code', kvToPlaintext(kv))
     .setOptions(kv)
-    .setTemplate(KeyValueBoxTemplate)
+    .setView('keyValue')
     .setPriority(priority)
     .build();
 }
@@ -89,7 +88,7 @@ function buildInfoBox(message: string, priority: number): Box {
   const kv: Record<string, string> = { Info: message };
   return new BoxBuilder('ASCII Code', kvToPlaintext(kv))
     .setOptions(kv)
-    .setTemplate(KeyValueBoxTemplate)
+    .setView('keyValue')
     .setPriority(priority)
     .build();
 }

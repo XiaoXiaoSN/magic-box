@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -83,7 +82,7 @@ export const WordWrapBoxSource = {
 
     return [
       new BoxBuilder('Word Wrap', output)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setPriority(this.priority)
         .build(),
     ];

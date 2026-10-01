@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -210,7 +209,7 @@ export const PunycodeBoxSource = {
       }
       boxes.push(
         new BoxBuilder('Punycode (ToASCII)', result)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -226,7 +225,7 @@ export const PunycodeBoxSource = {
       }
       boxes.push(
         new BoxBuilder('Punycode (ToUnicode)', result)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

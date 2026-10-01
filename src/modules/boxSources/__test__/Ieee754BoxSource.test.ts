@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { Ieee754BoxSource } from '../Ieee754BoxSource';
@@ -122,7 +121,7 @@ describe('Ieee754BoxSource', () => {
       const boxes = await Ieee754BoxSource.generateBoxes('1.0', {
         ieee754: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('box name is "IEEE 754"', async () => {
@@ -201,7 +200,7 @@ describe('Ieee754BoxSource', () => {
       const boxes = await Ieee754BoxSource.generateBoxes('0x3f000000', {
         ieee754: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('options include Hex, Value, Type keys', async () => {

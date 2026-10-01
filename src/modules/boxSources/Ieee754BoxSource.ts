@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -132,7 +131,7 @@ export const Ieee754BoxSource = {
 
       return [
         new BoxBuilder('IEEE 754', plaintext)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kvOptions)
           .setPriority(this.priority)
           .build(),
@@ -169,7 +168,7 @@ export const Ieee754BoxSource = {
 
     return [
       new BoxBuilder('IEEE 754', plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvOptions)
         .setPriority(this.priority)
         .build(),

@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { Base32BoxSource } from '../Base32BoxSource';
@@ -52,7 +51,7 @@ describe('Base32BoxSource', () => {
         expect(boxes).toHaveLength(1);
         expect(boxes[0].props.plaintextOutput).toBe(expected);
         expect(boxes[0].props.name).toBe('Base32 (Encode)');
-        expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+        expect(boxes[0].view).toBe('default');
         expect(boxes[0].props.showExpandButton).toBe(false);
       });
     }

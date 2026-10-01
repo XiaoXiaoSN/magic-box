@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { WordWrapBoxSource } from '../WordWrapBoxSource';
@@ -85,7 +84,7 @@ describe('WordWrapBoxSource', () => {
         'The quick brown fox',
         { wrap: '20' },
       );
-      expect(boxes[0].boxTemplate).toBe(CodeBoxTemplate);
+      expect(boxes[0].view).toBe('code');
     });
 
     it('should set priority from WordWrapBoxSource.priority', async () => {

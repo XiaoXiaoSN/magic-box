@@ -106,7 +106,7 @@ describe('WhitespaceCleanBoxSource', () => {
       const boxes = await WhitespaceCleanBoxSource.generateBoxes('  a  b  ', {
         clean: true,
       });
-      expect(boxes[0].boxTemplate).toBeDefined();
+      expect(boxes[0].view).toBeDefined();
     });
   });
 });

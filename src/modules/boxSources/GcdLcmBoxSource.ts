@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -62,7 +61,7 @@ export const GcdLcmBoxSource = {
       return [
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -81,7 +80,7 @@ export const GcdLcmBoxSource = {
       return [
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -92,7 +91,7 @@ export const GcdLcmBoxSource = {
       return [
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -113,7 +112,7 @@ export const GcdLcmBoxSource = {
     return [
       new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
         .setOptions(kv)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setPriority(Priority)
         .build(),
     ];

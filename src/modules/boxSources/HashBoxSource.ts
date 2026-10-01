@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -63,7 +62,7 @@ export const HashBoxSource = {
           'Hash',
           'Hashing requires a secure context (HTTPS). crypto.subtle is not available.',
         )
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -78,7 +77,7 @@ export const HashBoxSource = {
       selectedAlgorithms.map(async (alg) => {
         const hex = await computeHash(alg.name, input);
         return new BoxBuilder(`${alg.label}`, hex)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build();

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -55,7 +54,7 @@ export const SemverBoxSource = {
       const content = `"${raw}" is not a valid semver string`;
       return [
         new BoxBuilder('Semver', content)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions({ Valid: 'false', Input: raw })
           .setShowExpandButton(false)
           .setPriority(this.priority)
@@ -84,7 +83,7 @@ export const SemverBoxSource = {
 
     return [
       new BoxBuilder('Semver', lines)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvOptions)
         .setShowExpandButton(false)
         .setPriority(this.priority)

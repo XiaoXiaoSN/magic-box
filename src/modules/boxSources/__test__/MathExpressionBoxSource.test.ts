@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { MathExpressionBoxSource } from '../MathExpressionBoxSource';
@@ -59,7 +58,7 @@ describe('MathExpressionBoxSource', () => {
       expect(boxes[0].props.priority).toBe(10); // PriorityMathExpression value
       expect(boxes[0].props.name).toBe('Math Expression');
       expect(boxes[0].props.plaintextOutput).toBe('4');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
     });
   });
 });

@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { JWTBoxSource } from '../JWTBoxSource';
@@ -51,7 +50,7 @@ describe('JWTBoxSource', () => {
       expect(parsed.header.alg).toBe('HS256');
       expect(parsed.body.name).toBe('John Doe');
 
-      expect(boxes[0].boxTemplate).toBe(CodeBoxTemplate);
+      expect(boxes[0].view).toBe('code');
     });
   });
 });

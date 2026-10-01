@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { PunycodeBoxSource } from '../PunycodeBoxSource';
@@ -34,7 +33,7 @@ describe('PunycodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Punycode (ToASCII)');
       expect(boxes[0].props.plaintextOutput).toBe('xn--mnchen-3ya.de');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
 

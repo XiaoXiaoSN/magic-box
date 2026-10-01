@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { HaversineBoxSource } from '../HaversineBoxSource';
@@ -65,7 +64,7 @@ describe('HaversineBoxSource', () => {
         '40.7128,-74.0060 to 51.5074,-0.1278',
         { haversine: true },
       );
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('box name is Distance', async () => {

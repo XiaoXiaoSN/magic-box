@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { parseDateString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -110,7 +109,7 @@ export const ZodiacBoxSource = {
       const kv = { Error: `Invalid date "${raw}" — use MM-DD or YYYY-MM-DD` };
       return [
         new BoxBuilder('Zodiac Sign', kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -131,7 +130,7 @@ export const ZodiacBoxSource = {
 
     return [
       new BoxBuilder('Zodiac Sign', kvToPlaintext(kv))
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kv)
         .setPriority(this.priority)
         .build(),

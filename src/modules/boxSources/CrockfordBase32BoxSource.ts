@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -79,7 +78,7 @@ export const CrockfordBase32BoxSource = {
       const encoded = crockfordEncode(input);
       boxes.push(
         new BoxBuilder('Crockford Base32 (Encode)', encoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -94,7 +93,7 @@ export const CrockfordBase32BoxSource = {
             'Crockford Base32 (Decode)',
             'invalid Crockford Base32 input',
           )
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -102,7 +101,7 @@ export const CrockfordBase32BoxSource = {
       } else {
         boxes.push(
           new BoxBuilder('Crockford Base32 (Decode)', decoded)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),

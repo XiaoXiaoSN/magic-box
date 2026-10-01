@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -58,7 +57,7 @@ export const BinaryTextBoxSource = {
       const binary = encodeTextToBinary(input);
       boxes.push(
         new BoxBuilder('Text to Binary', binary)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -73,7 +72,7 @@ export const BinaryTextBoxSource = {
             'Binary to Text',
             'invalid binary: input must be a multiple of 8 bits containing only 0 and 1',
           )
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -81,7 +80,7 @@ export const BinaryTextBoxSource = {
       } else {
         boxes.push(
           new BoxBuilder('Binary to Text', text)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),

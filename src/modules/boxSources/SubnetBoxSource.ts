@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -48,7 +47,7 @@ function buildErrorBox(input: string, priority: number): Box {
   const shown = input.length > 100 ? `${input.slice(0, 100)}…` : input;
   const msg = `Invalid CIDR notation: "${shown}". Expected format: A.B.C.D/0-32`;
   return new BoxBuilder('Subnet', msg)
-    .setTemplate(KeyValueBoxTemplate)
+    .setView('keyValue')
     .setOptions({ Error: msg })
     .setShowExpandButton(false)
     .setPriority(priority)
@@ -121,7 +120,7 @@ export const SubnetBoxSource = {
       .join('\n');
 
     const box = new BoxBuilder('Subnet', plaintext)
-      .setTemplate(KeyValueBoxTemplate)
+      .setView('keyValue')
       .setOptions(kvOptions)
       .setShowExpandButton(false)
       .setPriority(this.priority)

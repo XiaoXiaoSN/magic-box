@@ -1,7 +1,3 @@
-import {
-  DefaultBoxTemplate,
-  KeyValueBoxTemplate,
-} from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
@@ -153,7 +149,7 @@ export const CaseConverterBoxSource = {
         FORMATS.map((f) => [f.label, f.convert(tokens, text)]),
       );
       return [
-        keyValueBox(KeyValueBoxTemplate, BoxName, output, {
+        keyValueBox('keyValue', BoxName, output, {
           priority: this.priority,
         }),
       ];
@@ -162,7 +158,7 @@ export const CaseConverterBoxSource = {
     // one box per requested format so its copy button yields the bare value
     return FORMATS.filter((f) => selected.has(f)).map((format) =>
       new BoxBuilder(format.label, format.convert(tokens, text))
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

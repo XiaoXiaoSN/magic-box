@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -48,7 +47,7 @@ export const TwosComplementBoxSource = {
       };
       return [
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -70,7 +69,7 @@ export const TwosComplementBoxSource = {
       };
       return [
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -95,7 +94,7 @@ export const TwosComplementBoxSource = {
 
     return [
       new BoxBuilder("Two's Complement", kvToPlaintext(kv))
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kv)
         .setPriority(this.priority)
         .build(),

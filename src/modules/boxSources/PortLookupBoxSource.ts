@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -85,7 +84,7 @@ export const PortLookupBoxSource = {
         };
         return [
           new BoxBuilder('Port Lookup', kvToPlaintext(kv))
-            .setTemplate(KeyValueBoxTemplate)
+            .setView('keyValue')
             .setOptions(kv)
             .setPriority(this.priority)
             .build(),
@@ -111,7 +110,7 @@ export const PortLookupBoxSource = {
 
       return [
         new BoxBuilder('Port Lookup', kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -131,7 +130,7 @@ export const PortLookupBoxSource = {
       };
       return [
         new BoxBuilder('Port Lookup', kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -145,7 +144,7 @@ export const PortLookupBoxSource = {
     };
     return [
       new BoxBuilder('Port Lookup', kvToPlaintext(kv))
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kv)
         .setPriority(this.priority)
         .build(),

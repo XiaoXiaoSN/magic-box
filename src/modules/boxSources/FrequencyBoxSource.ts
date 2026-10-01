@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -67,7 +66,7 @@ export const FrequencyBoxSource = {
 
     return [
       new BoxBuilder('Frequency', output)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setShowExpandButton(true)
         .setPriority(this.priority)
         .build(),

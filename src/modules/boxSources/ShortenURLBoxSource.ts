@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import { getShortenUrl, getToolboxUrl } from '@functions/runtimePrefs';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -91,7 +90,7 @@ export const ShortenURLBoxSource = {
     const { shortenURL } = match;
     return [
       new BoxBuilder('Shorten URL', shortenURL)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { decodeBase64 } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
@@ -73,7 +72,7 @@ data:
     }
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'Kubernetes Secret', match.data, {
+      keyValueBox('keyValue', 'Kubernetes Secret', match.data, {
         priority: this.priority,
       }),
     ];

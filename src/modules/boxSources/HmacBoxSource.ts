@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
@@ -151,7 +150,7 @@ export const HmacBoxSource = {
     kv['Key Length'] = String(keyBytes.byteLength);
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'HMAC', kv, {
+      keyValueBox('keyValue', 'HMAC', kv, {
         priority: this.priority,
         showExpandButton: false,
       }),

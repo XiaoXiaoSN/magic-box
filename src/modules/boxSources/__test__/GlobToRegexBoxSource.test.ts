@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { GlobToRegexBoxSource } from '../GlobToRegexBoxSource';
@@ -98,7 +97,7 @@ describe('GlobToRegexBoxSource', () => {
         glob2regex: true,
       });
       expect(boxes[0].props.name).toBe('Glob to Regex');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
   });

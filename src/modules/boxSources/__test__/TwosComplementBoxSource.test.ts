@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { TwosComplementBoxSource } from '../TwosComplementBoxSource';
@@ -35,7 +34,7 @@ describe('TwosComplementBoxSource', () => {
         Hex: '0xd6',
         Unsigned: '214',
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
   });
 

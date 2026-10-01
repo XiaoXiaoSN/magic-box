@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { DurationBoxSource } from '../DurationBoxSource';
@@ -45,7 +44,7 @@ describe('DurationBoxSource', () => {
       expect(opts.Human).toBe('1h 1m 1s');
       expect(opts.Clock).toBe('01:01:01');
       expect(Object.keys(opts)).toEqual(['Seconds', 'Human', 'Clock']);
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
       expect(boxes[0].props.priority).toBe(10);
     });
 
