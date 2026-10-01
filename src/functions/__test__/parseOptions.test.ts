@@ -62,6 +62,19 @@ describe('parseInput', () => {
     });
   });
 
+  describe('directive contract', () => {
+    it('reads an empty value as a bare flag', () => {
+      const [, options] = parseInput('text\n::locale=\n::qrcode');
+      expect(options).toEqual({ locale: true, qrcode: true });
+    });
+
+    it('leaves a directive that does not start a line in the input', () => {
+      const [input, options] = parseInput('hello ::base32');
+      expect(input).toBe('hello ::base32');
+      expect(options).toEqual({});
+    });
+  });
+
   describe('no options', () => {
     it('returns the input unchanged when no directives are present', () => {
       const [input, options] = parseInput('plain text');
@@ -98,6 +111,16 @@ describe('parseOptionsForChips', () => {
     it('normalises option keys to lowercase', () => {
       const opts = parseOptionsForChips('text\n::MyOpt=val');
       expect(opts).toEqual({ myopt: 'val' });
+    });
+  });
+
+  describe('directive contract', () => {
+    it('reads an empty value as a bare flag, like parseInput', () => {
+      expect(parseOptionsForChips('text\n::locale=')).toEqual({ locale: true });
+    });
+
+    it('ignores a directive that does not start a line, like parseInput', () => {
+      expect(parseOptionsForChips('hello ::base32')).toEqual({});
     });
   });
 

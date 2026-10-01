@@ -31,6 +31,8 @@ https://youtu.be/dQw4w9WgXcQ
 ::shorten=document
 ```
 
+Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. `::option=` with nothing after `=` is the same as a bare `::option`.
+
 Based on matching methods, we can roughly classify Boxes into two types:
 
 1. match by the `input` string
