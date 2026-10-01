@@ -38,6 +38,7 @@ import HmacBoxSource from './HmacBoxSource';
 import HsvBoxSource from './HsvBoxSource';
 import Ieee754BoxSource from './Ieee754BoxSource';
 import Ipv6BoxSource from './Ipv6BoxSource';
+import JsonToolsBoxSource from './JsonToolsBoxSource';
 import JWTBoxSource from './JWTBoxSource';
 import K8sSecretBoxSource from './K8sSecretBoxSource';
 import LineToolsBoxSource from './LineToolsBoxSource';
@@ -95,6 +96,7 @@ export const boxSources: BoxSource[] = [
   Base64DecodeBoxSource,
   CronExpressionBoxSource,
   DataConverterBoxSource,
+  JsonToolsBoxSource,
   DateCalculateBoxSource,
   DurationBoxSource,
   GenerateQRCodeBoxSource,

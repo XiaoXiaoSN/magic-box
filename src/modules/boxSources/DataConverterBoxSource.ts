@@ -1,5 +1,6 @@
 import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
+import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
@@ -248,6 +249,13 @@ export const DataConverterBoxSource = {
     const hasAnyTargetOption = FORMATS.some((fmt) =>
       hasOptionKeys(options, ...fmt.keys),
     );
+
+    // a JSON Tools directive (::jsonpick, ::jsonmerge, ...) already says what to
+    // do with this input; the auto-format guess would only add a prettified
+    // copy of the source (or a YAML reading of `---`-separated documents)
+    // next to the requested result
+    if (!hasAnyTargetOption && hasOptionKeys(options, ...JSON_TOOL_OPTION_KEYS))
+      return [];
 
     const result = detectFormat(input);
     if (!result.ok) {
