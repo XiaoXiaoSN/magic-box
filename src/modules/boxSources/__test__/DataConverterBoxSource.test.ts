@@ -1,3 +1,4 @@
+import { parseInput } from '@functions/parseOptions';
 import { describe, expect, it } from 'vitest';
 
 import { DataConverterBoxSource } from '../DataConverterBoxSource';
@@ -340,6 +341,23 @@ path = "/health"`;
       expect(boxes[0].props.plaintextOutput).toContain(
         'Failed to parse input as JSON',
       );
+    });
+  });
+
+  describe('alongside JSON Tools', () => {
+    const converter = (raw: string) => {
+      const [input, options] = parseInput(raw);
+      return DataConverterBoxSource.generateBoxes(input, options);
+    };
+
+    it('skips the auto-format guess for a JSON Tools directive', async () => {
+      expect(await converter('{"a":1,"b":2}\n::jsonpick=a')).toEqual([]);
+      expect(await converter('{"a":1}\n---\n{"b":2}\n::jsonmerge')).toEqual([]);
+    });
+
+    it('still honours an explicit target', async () => {
+      const boxes = await converter('{"a":1,"b":2}\n::jsonpick=a\n::toyaml');
+      expect(boxes.map((b) => b.props.name)).toEqual(['YAML Output']);
     });
   });
 });
