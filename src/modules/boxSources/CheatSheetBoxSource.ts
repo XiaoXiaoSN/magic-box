@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { cheatSheets, cheatSheetTopics } from '@functions/cheatSheets';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -31,7 +30,7 @@ export const CheatSheetBoxSource = {
       `No bundled cheat sheet for "${query}".\nAvailable topics: ${cheatSheetTopics.join(', ')}.\nUse cheat:<topic> or ::cheat=<topic>.`;
     return [
       new BoxBuilder(sheet ? `Cheat Sheet: ${topic}` : 'Cheat Sheet', output)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setOptions({ language: 'plaintext' })
         .build(),
     ];
