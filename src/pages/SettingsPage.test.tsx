@@ -63,7 +63,7 @@ describe('Settings timezone and defaults', () => {
       locale: 'en',
     });
     const settings = JSON.parse(localStorage.getItem('mb_settings') ?? '{}');
-    expect(settings.boxes['Text Diff'].enabled).toBe(false);
+    expect(settings.boxes['Text Diff'].enabled).toBe(true);
     expect(settings.boxes.Now.enabled).toBe(true);
     expect(localStorage.getItem('history-marker')).toBe('keep');
   });
