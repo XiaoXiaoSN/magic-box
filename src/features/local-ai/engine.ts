@@ -87,7 +87,7 @@ export class LocalAIEngine {
     const cached = await runtime.ModelRegistry.is_pipeline_cached(
       'text-generation',
       MODEL.id,
-      MODEL_OPTIONS,
+      { ...MODEL_OPTIONS, local_files_only: true },
     );
     return { bytes: MODEL.downloadBytes, cached };
   }

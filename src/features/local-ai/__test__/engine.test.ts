@@ -84,7 +84,10 @@ const setupEngine = () => {
         calls.cacheChecks++;
         expect(task).toBe('text-generation');
         expect(id).toBe(MODEL.id);
-        expect(config).toEqual(MODEL_OPTIONS);
+        expect(config).toEqual({
+          ...MODEL_OPTIONS,
+          local_files_only: true,
+        });
         if (options.cacheError) throw options.cacheError;
         return options.cached;
       },
