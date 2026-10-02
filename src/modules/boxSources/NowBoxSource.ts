@@ -19,7 +19,7 @@ interface Match {
 export const NowBoxSource = {
   name: 'Now',
   description:
-    'Display the current time in RFC 3339, RFC 3339 (UTC+8), and Unix timestamp.',
+    'Display the current time in UTC, the preferred timezone (default UTC+8), and Unix timestamp.',
   defaultInput: 'now',
   tag: '⏱',
   kind: 'Time',
@@ -36,7 +36,7 @@ export const NowBoxSource = {
       const date = new Date(timestamp);
       // `twDate` keeps its name for back-compat but now follows the configured
       // default timezone offset rather than a hardcoded +8.
-      const twDate = shiftDateToOffset(date, getTimezoneOffset());
+      const twDate = shiftDateToOffset(date, getTimezoneOffset(date));
 
       return { timestamp, date, twDate };
     }
@@ -51,7 +51,7 @@ export const NowBoxSource = {
     }
 
     const { timestamp, date } = match;
-    const offset = getTimezoneOffset();
+    const offset = getTimezoneOffset(date);
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
         .setShowExpandButton(false)

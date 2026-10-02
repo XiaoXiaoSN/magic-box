@@ -26,7 +26,8 @@ import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { aiLanguageOptions, aiTaskOptions } from '../features/local-ai/labels';
 import {
-  isValidTimezoneOffset,
+  DEFAULT_TIMEZONE_OFFSET,
+  formatOffsetLabel,
   MAX_TIMEZONE_OFFSET,
   MIN_TIMEZONE_OFFSET,
 } from '../functions/timezone';
@@ -232,30 +233,30 @@ const SettingsPage = (): React.JSX.Element => {
   const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>([]);
   // draft strings let the user type intermediate/invalid values; we only
   // commit to prefs once the value parses/validates.
-  const [tzDraft, setTzDraft] = useState(String(prefs.timezoneOffset));
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
   const [shortenDraft, setShortenDraft] = useState(prefs.shortenUrl);
 
   // resync drafts when prefs change out of band (e.g. clear local data).
   useEffect(() => {
-    setTzDraft(String(prefs.timezoneOffset));
     setToolboxDraft(prefs.toolboxUrl);
     setShortenDraft(prefs.shortenUrl);
-  }, [prefs.timezoneOffset, prefs.toolboxUrl, prefs.shortenUrl]);
-
-  const tzInvalid = (() => {
-    const parsed = Number(tzDraft);
-    return tzDraft.trim() === '' || !isValidTimezoneOffset(parsed);
-  })();
+  }, [prefs.toolboxUrl, prefs.shortenUrl]);
   const toolboxInvalid = !isValidServerUrl(toolboxDraft);
   const shortenInvalid = !isValidServerUrl(shortenDraft);
 
-  const commitTimezone = (raw: string) => {
-    const parsed = Number(raw);
-    if (raw.trim() !== '' && isValidTimezoneOffset(parsed)) {
-      setPref('timezoneOffset', parsed);
-    }
-  };
+  const timezoneOptions = [
+    { value: 'system', label: t('settings.timezoneSystem') },
+    ...Array.from(
+      { length: (MAX_TIMEZONE_OFFSET - MIN_TIMEZONE_OFFSET) * 4 + 1 },
+      (_, index) => {
+        const offset = MIN_TIMEZONE_OFFSET + index / 4;
+        return {
+          value: String(offset),
+          label: `${formatOffsetLabel(offset)}${offset === DEFAULT_TIMEZONE_OFFSET ? ` (${t('settings.default')})` : ''}`,
+        };
+      },
+    ),
+  ];
 
   const commitServerUrl = (key: 'toolboxUrl' | 'shortenUrl', raw: string) => {
     if (isValidServerUrl(raw)) {
@@ -316,8 +317,8 @@ const SettingsPage = (): React.JSX.Element => {
   const handleResetOrder = () => {
     const defaults = boxSources.map((s, idx) => ({
       id: s.name,
-      enabled: true,
-      priority: 10,
+      enabled: !s.defaultDisabled,
+      priority: s.priority ?? 10,
       secondaryOrder: idx,
     }));
     setOrderedBoxes(defaults);
@@ -337,6 +338,12 @@ const SettingsPage = (): React.JSX.Element => {
     handleResetOrder();
   };
 
+  const handleResetDefaults = () => {
+    resetPrefs();
+    setLocale(DEFAULT_LOCALE);
+    handleResetOrder();
+  };
+
   return (
     <div className="page">
       <div className="page-inner">
@@ -344,7 +351,15 @@ const SettingsPage = (): React.JSX.Element => {
           <div>
             <h1 className="page-title">{t('settings.title')}</h1>
             <p className="page-sub">{t('settings.subtitle')}</p>
+            <p className="page-sub">{t('settings.defaultsHint')}</p>
           </div>
+          <button
+            className="btn-subtle"
+            onClick={handleResetDefaults}
+            type="button"
+          >
+            {t('settings.resetPreferences')}
+          </button>
         </header>
 
         <Section
@@ -441,16 +456,22 @@ const SettingsPage = (): React.JSX.Element => {
             hint={t('settings.timezoneHint')}
             label={t('settings.timezone')}
           >
-            <TextInput
-              ariaLabel={t('settings.timezone')}
-              inputMode="numeric"
-              invalid={tzInvalid}
-              onChange={(v) => {
-                setTzDraft(v);
-                commitTimezone(v);
+            <Select
+              label={t('settings.timezone')}
+              options={timezoneOptions}
+              value={
+                prefs.timezoneMode === 'system'
+                  ? 'system'
+                  : String(prefs.timezoneOffset)
+              }
+              onChange={(value) => {
+                setPref(
+                  'timezoneMode',
+                  value === 'system' ? 'system' : 'fixed',
+                );
+                if (value !== 'system')
+                  setPref('timezoneOffset', Number(value));
               }}
-              placeholder={`${MIN_TIMEZONE_OFFSET}…${MAX_TIMEZONE_OFFSET}`}
-              value={tzDraft}
             />
           </Field>
         </Section>
