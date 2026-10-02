@@ -7,7 +7,7 @@ export type AILanguagePref = 'auto' | AILanguage;
 export type AIErrorCode =
   | 'unsupported'
   | 'storage'
-  | 'metadata'
+  | 'inspect'
   | 'load'
   | 'generation'
   | 'inputLimit'

@@ -37,7 +37,7 @@ export interface RuntimeProgress {
   progress?: number;
 }
 
-// A narrow adapter for the reviewed 4.2.0 standalone module instead of ambient
+// A narrow adapter for the reviewed 4.3.0 standalone module instead of ambient
 // `any`. Keep this contract in sync when bumping the pinned runtime (see
 // docs/local-ai.md) — the version assert below turns a silent API drift into a
 // load error rather than a half-initialized engine.
@@ -54,16 +54,6 @@ export interface TransformersRuntime {
   };
   LogLevel: { NONE: number };
   ModelRegistry: {
-    get_pipeline_files(
-      task: 'text-generation',
-      model: string,
-      options: Record<string, unknown>,
-    ): Promise<string[]>;
-    get_file_metadata(
-      model: string,
-      file: string,
-      options: { revision: string },
-    ): Promise<{ exists: boolean; size: number | null }>;
     is_pipeline_cached(
       task: 'text-generation',
       model: string,
@@ -99,7 +89,7 @@ export async function loadRuntime(): Promise<TransformersRuntime> {
   runtime.env.useBrowserCache = true;
   runtime.env.useWasmCache = true;
   runtime.env.cacheKey = MODEL_CACHE;
-  // Pin metadata discovery too: some registry helpers do not forward revision.
+  // Pin every Hub fetch to the immutable model revision.
   runtime.env.remotePathTemplate = `{model}/resolve/${MODEL.revision}/`;
   runtime.env.logLevel = runtime.LogLevel.NONE;
   runtime.env.backends.onnx.wasm.numThreads = 1;

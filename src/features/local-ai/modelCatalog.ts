@@ -3,9 +3,9 @@
 // external ONNX dependency, and the package root would resolve an entry that
 // can drag native onnxruntime/sharp into the graph. Nothing here is imported
 // outside the inference worker, so the TUI never sees it.
-export const RUNTIME_VERSION = '4.2.0';
+export const RUNTIME_VERSION = '4.3.0';
 export const RUNTIME_URL =
-  'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0/dist/transformers.min.js';
+  'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/dist/transformers.min.js';
 
 export const MODEL = {
   id: 'onnx-community/Qwen2.5-0.5B-Instruct',
@@ -14,6 +14,10 @@ export const MODEL = {
   dtype: 'q4f16',
   device: 'webgpu',
   license: 'Apache-2.0',
+  // Exact bytes fetched by this immutable model revision/dtype. Keep the size
+  // pinned with the model instead of probing every Hub file with browser Range
+  // requests, which are fragile across Safari/CORS/Xet redirects.
+  downloadBytes: 490_035_255,
 } as const;
 
 // Model weights AND the ORT wasm/factory files live in this dedicated cache.
@@ -21,7 +25,7 @@ export const MODEL = {
 // cannot serve stale artifacts, and clearing it can never touch Workbox's app
 // caches or another feature's downloads.
 export const MODEL_CACHE = `magic-box-local-ai-${RUNTIME_VERSION}-${MODEL.revision}-${MODEL.dtype}`;
-export const RUNTIME_CACHE = 'magic-box-local-ai-runtime-v1';
+export const RUNTIME_CACHE = 'magic-box-local-ai-runtime-v2';
 
 export const MAX_INPUT_CHARS = 6000;
 export const MAX_PROMPT_TOKENS = 1024;

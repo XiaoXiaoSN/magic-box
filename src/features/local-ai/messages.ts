@@ -41,8 +41,8 @@ interface Messages {
   autoRun: string;
   autoRunHint: string;
   firstUse: string;
-  // Carries a `{{size}}` placeholder filled with the measured registry total,
-  // so the sentence quotes real bytes rather than a constant that can drift.
+  // Carries a `{{size}}` placeholder filled with the exact byte count pinned
+  // alongside the immutable model revision and dtype.
   firstUseSized: string;
   cached: string;
   source: string;
@@ -93,7 +93,7 @@ export const localAIMessages: Record<UILocale, Messages> = {
     maintenanceTitle: 'Storage',
     inspect: 'Check device & model',
     checkDetail:
-      'Opening this box reads the model size and checks WebGPU support. No weights are fetched until you press the download button. Turn it off in Settings › AI.',
+      'Opening this box checks WebGPU support and the local model cache. The exact download size is pinned to this model revision. No weights are fetched until you press the download button. Turn it off in Settings › AI.',
     run: 'Run locally',
     stop: 'Stop',
     release: 'Release memory',
@@ -133,7 +133,7 @@ export const localAIMessages: Record<UILocale, Messages> = {
     tasks: aiTaskLabels.en,
     phases: {
       idle: 'Not loaded',
-      inspecting: 'Checking device and model metadata…',
+      inspecting: 'Checking device and model…',
       available: 'Ready to download',
       loading: 'Preparing model…',
       ready: 'Model ready',
@@ -148,8 +148,8 @@ export const localAIMessages: Record<UILocale, Messages> = {
         'This browser cannot run the selected model. Use HTTPS and a WebGPU-capable browser with shader-f16. The ordinary tools still work.',
       storage:
         'Browser storage is unavailable or insufficient. Free space or leave private browsing, then check again.',
-      metadata:
-        'Could not inspect the model files. Check your connection and retry. This check requested no model weights.',
+      inspect:
+        'Could not check the local AI runtime or cache. Check your connection and retry. No model weights were requested.',
       load: 'Model initialization failed. The worker was released; check the connection or device resources and retry.',
       generation:
         'Generation failed. The worker was released; load the model again and retry with shorter text.',
@@ -180,7 +180,7 @@ export const localAIMessages: Record<UILocale, Messages> = {
     maintenanceTitle: '儲存',
     inspect: '檢查裝置與模型',
     checkDetail:
-      '開啟這個 box 會讀取模型大小並檢查 WebGPU 支援。在你按下下載按鈕前不會取得任何權重。可在「設定 › AI」關閉。',
+      '開啟這個 box 會檢查 WebGPU 支援與本機模型快取。精確下載大小已和此模型 revision 一起固定；在你按下下載按鈕前不會取得任何權重。可在「設定 › AI」關閉。',
     run: '本機執行',
     stop: '停止',
     release: '釋放記憶體',
@@ -215,7 +215,7 @@ export const localAIMessages: Record<UILocale, Messages> = {
     tasks: aiTaskLabels.tw,
     phases: {
       idle: '尚未載入',
-      inspecting: '正在檢查裝置與模型資訊…',
+      inspecting: '正在檢查裝置與模型…',
       available: '可下載模型',
       loading: '正在準備模型…',
       ready: '模型就緒',
@@ -230,8 +230,8 @@ export const localAIMessages: Record<UILocale, Messages> = {
         '此瀏覽器無法執行所選模型。請使用 HTTPS，以及支援 WebGPU 與 shader-f16 的瀏覽器。一般工具仍可使用。',
       storage:
         '瀏覽器儲存空間不足或不可用。請清出空間或離開無痕模式，再重新檢查。',
-      metadata:
-        '無法取得模型檔案資訊，請檢查網路後重試。此次檢查未要求下載模型權重。',
+      inspect:
+        '無法檢查本機 AI runtime 或快取，請檢查網路後重試。此次檢查未要求下載模型權重。',
       load: '模型初始化失敗，已釋放 Worker。請檢查網路或裝置資源後重試。',
       generation: '生成失敗，已釋放 Worker。請重新載入模型，並縮短輸入後重試。',
       inputLimit:
