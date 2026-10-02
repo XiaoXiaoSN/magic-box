@@ -14,6 +14,8 @@ import Base91BoxSource from './Base91BoxSource';
 import BinaryTextBoxSource from './BinaryTextBoxSource';
 import BmiBoxSource from './BmiBoxSource';
 import CaseConverterBoxSource from './CaseConverterBoxSource';
+import CertificateBoxSource from './CertificateBoxSource';
+import CheatSheetBoxSource from './CheatSheetBoxSource';
 import ColorBoxSource from './ColorBoxSource';
 import ColorContrastBoxSource from './ColorContrastBoxSource';
 import Crc32BoxSource from './Crc32BoxSource';
@@ -176,4 +178,6 @@ export const boxSources: BoxSource[] = [
   Crc32BoxSource,
   CrockfordBase32BoxSource,
   CaseConverterBoxSource,
+  CertificateBoxSource,
+  CheatSheetBoxSource,
 ];

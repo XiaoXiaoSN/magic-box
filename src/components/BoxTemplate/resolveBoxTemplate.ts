@@ -1,4 +1,5 @@
 import type { Box, BoxTemplate, BoxView } from '@modules/Box';
+import DiffBoxTemplate from './DiffBoxTemplate';
 import {
   CodeBoxTemplate,
   DefaultBoxTemplate,
@@ -11,6 +12,7 @@ import {
 const webTemplates: Record<BoxView, BoxTemplate> = {
   default: DefaultBoxTemplate,
   code: CodeBoxTemplate,
+  diff: DiffBoxTemplate,
   keyValue: KeyValueBoxTemplate,
   qrCode: QRCodeBoxTemplate,
   diceRoll: DiceRollBoxTemplate,

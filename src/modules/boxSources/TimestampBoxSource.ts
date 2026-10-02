@@ -28,7 +28,6 @@ export const TimestampBoxSource = {
       return undefined;
     }
 
-    const offset = getTimezoneOffset();
     const minTimestamp = new Date('1600-01-01T00:00:00');
     const maxTimestamp = new Date('2099-12-31T23:59:59');
 
@@ -48,12 +47,15 @@ export const TimestampBoxSource = {
         // guess the big number is a timestamp in ms, convert ms to sec
         date = new Date(inputNumber);
         if (maxTimestamp >= date && date >= minTimestamp) {
-          return { date, twDate: shiftDateToOffset(date, offset) };
+          return {
+            date,
+            twDate: shiftDateToOffset(date, getTimezoneOffset(date)),
+          };
         }
         return undefined;
       }
 
-      return { date, twDate: shiftDateToOffset(date, offset) };
+      return { date, twDate: shiftDateToOffset(date, getTimezoneOffset(date)) };
     } catch {
       /* */
     }
@@ -68,7 +70,7 @@ export const TimestampBoxSource = {
     }
 
     const { date, twDate } = match;
-    const offset = getTimezoneOffset();
+    const offset = getTimezoneOffset(date);
 
     const resp = [];
     if (date.getTime() > 0) {

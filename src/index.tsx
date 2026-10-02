@@ -28,6 +28,7 @@ if (isLocalAIMode(window.location.search)) activateLocalAIPrivacy();
 const initialPrefs = loadPrefs();
 setRuntimePrefs({
   timezoneOffset: initialPrefs.timezoneOffset,
+  timezoneMode: initialPrefs.timezoneMode,
   toolboxUrl: initialPrefs.toolboxUrl,
   shortenUrl: initialPrefs.shortenUrl,
   analytics: initialPrefs.analytics,

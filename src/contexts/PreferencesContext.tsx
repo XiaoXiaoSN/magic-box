@@ -3,6 +3,7 @@ import { setRuntimePrefs } from '@functions/runtimePrefs';
 import {
   DEFAULT_TIMEZONE_OFFSET,
   isValidTimezoneOffset,
+  type TimezoneMode,
 } from '@functions/timezone';
 import type { ThemePref } from '@global/theme';
 import {
@@ -29,6 +30,7 @@ export interface Prefs {
   analytics: boolean;
   // default UTC offset (hours) for time-related boxes.
   timezoneOffset: number;
+  timezoneMode: TimezoneMode;
   // backend host overrides; blank means fall back to the env default.
   toolboxUrl: string;
   shortenUrl: string;
@@ -50,6 +52,7 @@ export const DEFAULT_PREFS: Prefs = {
   copyMode: 'enter',
   analytics: true,
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
+  timezoneMode: 'fixed',
   toolboxUrl: '',
   shortenUrl: '',
   aiTask: 'ask',
@@ -95,6 +98,7 @@ export const loadPrefs = (): Prefs => {
       isValidTimezoneOffset(prefs.timezoneOffset)
         ? prefs.timezoneOffset
         : DEFAULT_PREFS.timezoneOffset,
+    timezoneMode: prefs.timezoneMode === 'system' ? 'system' : 'fixed',
     toolboxUrl:
       typeof prefs.toolboxUrl === 'string' && isValidServerUrl(prefs.toolboxUrl)
         ? prefs.toolboxUrl
@@ -122,6 +126,7 @@ export const loadPrefs = (): Prefs => {
 const syncRuntimePrefs = (prefs: Prefs): void => {
   setRuntimePrefs({
     timezoneOffset: prefs.timezoneOffset,
+    timezoneMode: prefs.timezoneMode,
     toolboxUrl: prefs.toolboxUrl,
     shortenUrl: prefs.shortenUrl,
     analytics: prefs.analytics,

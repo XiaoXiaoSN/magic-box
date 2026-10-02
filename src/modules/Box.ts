@@ -63,6 +63,7 @@ export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
 export type BoxView =
   | 'default'
   | 'code'
+  | 'diff'
   | 'keyValue'
   | 'qrCode'
   | 'diceRoll'

@@ -1,5 +1,6 @@
 import { BoxBuilder } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
+import DiffBoxTemplate from '../DiffBoxTemplate';
 import {
   CodeBoxTemplate,
   DefaultBoxTemplate,
@@ -15,6 +16,9 @@ describe('web semantic view resolver', () => {
     expect(
       resolveBoxTemplate(new BoxBuilder('Code', '').setView('code').build()),
     ).toBe(CodeBoxTemplate);
+    expect(
+      resolveBoxTemplate(new BoxBuilder('Diff', '').setView('diff').build()),
+    ).toBe(DiffBoxTemplate);
     expect(
       resolveBoxTemplate(
         new BoxBuilder('Pairs', '').setView('keyValue').build(),
