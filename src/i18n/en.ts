@@ -146,6 +146,11 @@ const en = {
   'pwa.later': 'Later',
 
   'snackbar.copied': 'Copied',
+  'diff.original': 'Original text',
+  'diff.target': 'Paste the second text',
+  'diff.compare': 'Compare',
+  'diff.result': 'Comparison result',
+  'diff.copy': 'Copy diff',
 };
 
 export type Translations = typeof en;

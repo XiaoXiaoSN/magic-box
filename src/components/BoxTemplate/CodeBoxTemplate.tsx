@@ -23,6 +23,7 @@ const LazyHighlighter = lazy(async () => {
     json,
     yaml,
     xml,
+    diff,
   ] = await Promise.all([
     import('react-syntax-highlighter'),
     import('react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light'),
@@ -30,12 +31,14 @@ const LazyHighlighter = lazy(async () => {
     import('react-syntax-highlighter/dist/esm/languages/hljs/json'),
     import('react-syntax-highlighter/dist/esm/languages/hljs/yaml'),
     import('react-syntax-highlighter/dist/esm/languages/hljs/xml'),
+    import('react-syntax-highlighter/dist/esm/languages/hljs/diff'),
   ]);
 
   SyntaxHighlighter.registerLanguage('json', json.default);
   SyntaxHighlighter.registerLanguage('yaml', yaml.default);
   // xml covers HTML as well
   SyntaxHighlighter.registerLanguage('xml', xml.default);
+  SyntaxHighlighter.registerLanguage('diff', diff.default);
   // hljs has no toml grammar; toml output falls back to plaintext highlighting
 
   // both hljs palettes are plain style objects (a few KB each) and the theme
