@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { PasswordBoxSource } from '../PasswordBoxSource';
@@ -49,7 +48,7 @@ describe('PasswordBoxSource', () => {
       for (const box of boxes) {
         expect(box.props.plaintextOutput).toHaveLength(16);
         expect(box.props.name).toBe('Password Generator');
-        expect(box.boxTemplate).toBe(DefaultBoxTemplate);
+        expect(box.view).toBe('default');
       }
     });
   });

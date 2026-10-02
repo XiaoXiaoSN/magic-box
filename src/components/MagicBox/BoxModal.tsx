@@ -1,4 +1,4 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
+import { resolveBoxTemplate } from '@components/BoxTemplate/resolveBoxTemplate';
 import type { Box as BoxType } from '@modules/Box';
 import { Modal } from '@mui/material';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -13,8 +13,7 @@ interface BoxModalProps {
 
 const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
   const { t } = useLocale();
-  // headless boxSources leave `boxTemplate` undefined; fall back to the default.
-  const Comp = box ? (box.boxTemplate ?? DefaultBoxTemplate) : null;
+  const Comp = box ? resolveBoxTemplate(box) : null;
   if (!box || !Comp) {
     return (
       <Modal aria-labelledby="box-modal-title" onClose={onClose} open={open}>

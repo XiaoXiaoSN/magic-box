@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { decodeCertificates } from '@functions/certificates';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
@@ -22,7 +21,7 @@ export const CertificateBoxSource = {
       const results = await decodeCertificates(input);
       return results.map((result, index) =>
         new BoxBuilder(`Certificate ${index + 1}`, result)
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setOptions({ language: 'plaintext' })
           .build(),
       );

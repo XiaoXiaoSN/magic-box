@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
   errorBox,
@@ -195,7 +194,7 @@ export const Pbkdf2BoxSource = {
       // the password is intentionally excluded from the output — it's a secret
       return prfs.map((prf, i) =>
         keyValueBox(
-          KeyValueBoxTemplate,
+          'keyValue',
           'PBKDF2',
           {
             'Derived Key (hex)': keys[i],

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -547,7 +546,7 @@ export const UnitConverterBoxSource = {
 
     return [
       new BoxBuilder(title, plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvOptions)
         .setPriority(this.priority)
         .build(),

@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -99,7 +98,7 @@ export const Base32BoxSource = {
       const encoded = base32Encode(input);
       boxes.push(
         new BoxBuilder('Base32 (Encode)', encoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -111,7 +110,7 @@ export const Base32BoxSource = {
         const decoded = base32Decode(input);
         boxes.push(
           new BoxBuilder('Base32 (Decode)', decoded)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -120,7 +119,7 @@ export const Base32BoxSource = {
         const message = err instanceof Error ? err.message : 'invalid Base32';
         boxes.push(
           new BoxBuilder('Base32 (Decode)', message)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),

@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -84,7 +83,7 @@ export const QueryStringBoxSource = {
         const output = jsonToQs(trimmed);
         return [
           new BoxBuilder('JSON → Query String', output)
-            .setTemplate(CodeBoxTemplate)
+            .setView('code')
             .setShowExpandButton(true)
             .setPriority(this.priority)
             .build(),
@@ -93,7 +92,7 @@ export const QueryStringBoxSource = {
         const message = err instanceof Error ? err.message : String(err);
         return [
           new BoxBuilder('JSON → Query String (error)', message)
-            .setTemplate(CodeBoxTemplate)
+            .setView('code')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -106,7 +105,7 @@ export const QueryStringBoxSource = {
       const output = qsToJson(trimmed);
       return [
         new BoxBuilder('Query String → JSON', output)
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setShowExpandButton(true)
           .setPriority(this.priority)
           .build(),
@@ -115,7 +114,7 @@ export const QueryStringBoxSource = {
       const message = err instanceof Error ? err.message : String(err);
       return [
         new BoxBuilder('Query String → JSON (error)', message)
-          .setTemplate(CodeBoxTemplate)
+          .setView('code')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

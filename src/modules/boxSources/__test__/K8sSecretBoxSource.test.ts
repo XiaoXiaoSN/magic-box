@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { expect } from 'vitest';
 
 import { K8sSecretBoxSource } from '../K8sSecretBoxSource';
@@ -88,7 +87,7 @@ data:
         username: 'admin',
         password: 'password123',
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('should return empty array for non-readable data', async () => {
@@ -102,7 +101,7 @@ data:
         data: '<unreadable-string>',
         password: 'password123',
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
   });
 });

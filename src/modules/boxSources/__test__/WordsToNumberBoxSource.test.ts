@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { WordsToNumberBoxSource } from '../WordsToNumberBoxSource';
@@ -134,7 +133,7 @@ describe('WordsToNumberBoxSource', () => {
       expect(boxes[0].props.name).toBe('Words to Number');
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.showExpandButton).toBe(false);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
     });
   });
 });

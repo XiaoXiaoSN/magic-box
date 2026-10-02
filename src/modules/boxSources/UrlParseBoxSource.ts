@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
@@ -91,7 +90,7 @@ export const UrlParseBoxSource = {
     if (hash) output.Hash = hash;
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'URL Parse', output, {
+      keyValueBox('keyValue', 'URL Parse', output, {
         priority: this.priority,
       }),
     ];

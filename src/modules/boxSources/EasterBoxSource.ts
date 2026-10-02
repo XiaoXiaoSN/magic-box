@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -106,7 +105,7 @@ export const EasterBoxSource = {
           'Easter',
           'Invalid year. Enter a year between 1583 and 9999.',
         )
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions({
             Error: 'Invalid year. Enter a year between 1583 and 9999.',
           })
@@ -122,7 +121,7 @@ export const EasterBoxSource = {
       const msg = `Year must be between ${MIN_YEAR} and ${MAX_YEAR} for the Gregorian computus.`;
       return [
         new BoxBuilder('Easter', msg)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions({ Error: msg })
           .setShowExpandButton(false)
           .setPriority(this.priority)
@@ -156,7 +155,7 @@ export const EasterBoxSource = {
 
     return [
       new BoxBuilder('Easter', plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(opts)
         .setShowExpandButton(false)
         .setPriority(this.priority)

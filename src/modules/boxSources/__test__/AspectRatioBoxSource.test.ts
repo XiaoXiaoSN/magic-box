@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 import { AspectRatioBoxSource } from '../AspectRatioBoxSource';
 
@@ -116,7 +115,7 @@ describe('AspectRatioBoxSource', () => {
       const boxes = await AspectRatioBoxSource.generateBoxes('1920x1080', {
         ratio: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('sets priority from source constant', async () => {

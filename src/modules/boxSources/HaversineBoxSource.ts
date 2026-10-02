@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -95,7 +94,7 @@ export const HaversineBoxSource = {
     if (raw.length > 100) {
       return [
         new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -105,7 +104,7 @@ export const HaversineBoxSource = {
     if (parts.length !== 2) {
       return [
         new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -117,7 +116,7 @@ export const HaversineBoxSource = {
     if (!coordA || !coordB) {
       return [
         new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -142,7 +141,7 @@ export const HaversineBoxSource = {
 
     return [
       new BoxBuilder(FORMAT_ERROR_BOX_NAME, kvToPlaintext(kv))
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kv)
         .setPriority(this.priority)
         .build(),

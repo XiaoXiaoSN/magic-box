@@ -105,7 +105,7 @@ describe('UlidBoxSource', () => {
       const boxes = await UlidBoxSource.generateBoxes(CANONICAL_ULID, {
         ulid: true,
       });
-      expect(boxes[0].boxTemplate).toBeDefined();
+      expect(boxes[0].view).toBeDefined();
     });
 
     it('box name is ULID', async () => {

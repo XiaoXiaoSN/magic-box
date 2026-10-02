@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isBase64, isObject, isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
@@ -7,13 +6,36 @@ import init, { decode_to_string, encode } from 'base64-box';
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
 
-let isInitialized = false;
+let initPromise: Promise<void> | null = null;
 
 async function initBas64Box() {
-  if (!isInitialized) {
-    await init();
-    isInitialized = true;
+  if (!initPromise) {
+    initPromise = (async () => {
+      const isNode =
+        typeof process !== 'undefined' && process.versions?.node !== undefined;
+      if (isNode) {
+        // Node/Bun cannot fetch a file:// WASM asset. Keep native imports out
+        // of the browser bundle, just as the math-box loader does.
+        const fsName = 'node:fs/promises';
+        const moduleName = 'node:module';
+        const [fs, nodeModule] = await Promise.all([
+          import(/* @vite-ignore */ fsName),
+          import(/* @vite-ignore */ moduleName),
+        ]);
+        const req = nodeModule.createRequire(import.meta.url);
+        const bytes = await fs.readFile(
+          req.resolve('base64-box/base64_box_bg.wasm'),
+        );
+        await init({ module_or_path: bytes });
+      } else {
+        await init();
+      }
+    })().catch((error) => {
+      initPromise = null;
+      throw error;
+    });
   }
+  return initPromise;
 }
 
 interface Match {
@@ -89,7 +111,7 @@ export const Base64DecodeBoxSource = {
     return [
       new BoxBuilder('Base64 decode', decodedText)
         .setOptions(languageOpts)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setShowExpandButton(true)
         .setPriority(this.priority)
         .build(),

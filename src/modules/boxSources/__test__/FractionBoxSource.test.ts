@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { FractionBoxSource } from '../FractionBoxSource';
@@ -24,7 +23,7 @@ describe('FractionBoxSource', () => {
         });
         expect(boxes).toHaveLength(1);
         expect(boxes[0].props.name).toBe('Fraction');
-        expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+        expect(boxes[0].view).toBe('keyValue');
         expect(boxes[0].props.options?.Fraction).toBe('3/4');
         expect(boxes[0].props.options?.Decimal).toBe('0.75');
       });

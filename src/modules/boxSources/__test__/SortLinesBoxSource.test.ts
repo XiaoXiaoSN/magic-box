@@ -160,7 +160,7 @@ describe('SortLinesBoxSource', () => {
       const boxes = await SortLinesBoxSource.generateBoxes('b\na', {
         sortlines: true,
       });
-      expect(boxes[0].boxTemplate).toBeDefined();
+      expect(boxes[0].view).toBeDefined();
     });
   });
 

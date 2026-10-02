@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isJSON, isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
@@ -145,7 +144,7 @@ export const MathExpressionBoxSource = {
     const { answer } = match;
     return [
       new BoxBuilder('Math Expression', answer)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

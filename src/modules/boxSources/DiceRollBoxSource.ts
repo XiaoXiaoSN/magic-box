@@ -1,4 +1,3 @@
-import { DiceRollBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -55,7 +54,7 @@ export const DiceRollBoxSource = {
 
     return [
       new BoxBuilder('Dice Roll', plaintext)
-        .setTemplate(DiceRollBoxTemplate)
+        .setView('diceRoll')
         .setShowExpandButton(false)
         .setOptions(kvOptions)
         .setPriority(this.priority)

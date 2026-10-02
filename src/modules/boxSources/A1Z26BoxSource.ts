@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -92,7 +91,7 @@ export const A1Z26BoxSource = {
       const encoded = encodeA1Z26(input);
       boxes.push(
         new BoxBuilder('A1Z26 (Encode)', encoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -103,7 +102,7 @@ export const A1Z26BoxSource = {
       const decoded = decodeA1Z26(input);
       boxes.push(
         new BoxBuilder('A1Z26 (Decode)', decoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),

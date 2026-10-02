@@ -13,7 +13,7 @@ describe('TextDiffBoxSource', () => {
     });
     expect(box.props.sourceInput).toBe('someword');
     expect(box.props.options).toEqual({ language: 'json', diffTarget: '' });
-    expect(box.boxTemplate).toBeDefined();
+    expect(box.view).toBe('diff');
   });
   it('returns [] when no matching option is provided', async () => {
     const boxes = await TextDiffBoxSource.generateBoxes(

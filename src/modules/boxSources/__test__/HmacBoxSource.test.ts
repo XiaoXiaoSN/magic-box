@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { HmacBoxSource } from '../HmacBoxSource';
@@ -235,7 +234,7 @@ describe('HmacBoxSource', () => {
       const boxes = await HmacBoxSource.generateBoxes(MESSAGE, { hmac: KEY });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('HMAC');
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
 

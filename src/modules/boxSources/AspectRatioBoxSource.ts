@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -71,7 +70,7 @@ export const AspectRatioBoxSource = {
 
     return [
       new BoxBuilder('Aspect Ratio', plaintextOutput)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvOptions)
         .setPriority(this.priority)
         .build(),

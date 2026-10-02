@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { Ipv6BoxSource } from '../Ipv6BoxSource';
@@ -85,7 +84,7 @@ describe('Ipv6BoxSource', () => {
 
     it('uses KeyValueBoxTemplate', async () => {
       const boxes = await Ipv6BoxSource.generateBoxes('::1', { ipv6: true });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('sets priority to 10', async () => {

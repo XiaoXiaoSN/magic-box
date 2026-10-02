@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { contrastRatio, formatRatio, parseHexColor } from '@functions/color';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -62,7 +61,7 @@ export const ColorContrastBoxSource = {
     };
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'Color Contrast', kvOptions, {
+      keyValueBox('keyValue', 'Color Contrast', kvOptions, {
         priority: Priority,
       }),
     ];

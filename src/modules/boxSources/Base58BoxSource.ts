@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -108,7 +107,7 @@ export const Base58BoxSource = {
       const encoded = base58EncodeBytes(bytes);
       boxes.push(
         new BoxBuilder('Base58 (Encode)', encoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -120,7 +119,7 @@ export const Base58BoxSource = {
       if (bytes === null) {
         boxes.push(
           new BoxBuilder('Base58 (Decode)', 'invalid Base58 input')
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -129,7 +128,7 @@ export const Base58BoxSource = {
         const decoded = new TextDecoder().decode(bytes);
         boxes.push(
           new BoxBuilder('Base58 (Decode)', decoded)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),

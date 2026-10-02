@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -71,7 +70,7 @@ export const SpeedConvertBoxSource = {
       return [
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -90,7 +89,7 @@ export const SpeedConvertBoxSource = {
       return [
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -109,7 +108,7 @@ export const SpeedConvertBoxSource = {
     return [
       new BoxBuilder('Speed Convert', kvToPlaintext(kvOutput))
         .setOptions(kvOutput)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setPriority(this.priority)
         .build(),
     ];

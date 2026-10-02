@@ -1,4 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -43,7 +42,7 @@ export const WhitespaceCleanBoxSource = {
 
     return [
       new BoxBuilder('Whitespace Clean', cleaned)
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setPriority(this.priority)
         .build(),
     ];

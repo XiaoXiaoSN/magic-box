@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { TemperatureBoxSource } from '@modules/boxSources/TemperatureBoxSource';
 import { describe, expect, it } from 'vitest';
 
@@ -33,7 +32,7 @@ describe('TemperatureBoxSource', () => {
       const boxes = await TemperatureBoxSource.generateBoxes('100C', {
         temp: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('box name is Temperature', async () => {

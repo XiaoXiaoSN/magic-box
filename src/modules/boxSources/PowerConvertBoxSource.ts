@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -68,7 +67,7 @@ export const PowerConvertBoxSource = {
       };
       return [
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(pairs)
           .setPriority(this.priority)
           .build(),
@@ -87,7 +86,7 @@ export const PowerConvertBoxSource = {
       };
       return [
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(pairs)
           .setPriority(this.priority)
           .build(),
@@ -109,7 +108,7 @@ export const PowerConvertBoxSource = {
 
     return [
       new BoxBuilder('Power Convert', plaintext)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kvPairs)
         .setPriority(this.priority)
         .build(),

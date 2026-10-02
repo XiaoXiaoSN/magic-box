@@ -1,7 +1,6 @@
 // note: this module is intentionally framework-agnostic. it must NOT import any
 // react/mui template so that boxSources can run headlessly in node (e.g. the TUI).
-// the web layer (BoxCard/BoxModal) supplies DefaultBoxTemplate when a box leaves
-// `boxTemplate` undefined.
+// the web layer resolves semantic views (and falls back to DefaultBoxTemplate).
 
 export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
@@ -59,9 +58,21 @@ export interface BoxProps {
 
 export type BoxTemplate<P = BoxProps> = React.FunctionComponent<P>;
 
+// Semantic presentation hints: sources never import a web renderer. Each
+// frontend chooses how to present the same structured options/plaintext.
+export type BoxView =
+  | 'default'
+  | 'code'
+  | 'diff'
+  | 'keyValue'
+  | 'qrCode'
+  | 'diceRoll'
+  | 'localAI';
+
 export interface Box {
   props: BoxProps;
-  // optional: when undefined the web layer falls back to DefaultBoxTemplate.
+  view?: BoxView;
+  // Optional extension override; otherwise the web resolves `view`.
   // headless consumers (TUI) ignore this and render `props.plaintextOutput`.
   boxTemplate?: BoxTemplate;
 }
@@ -69,6 +80,7 @@ export interface Box {
 export class BoxBuilder {
   public showExpandButton: boolean = true;
   public sourceInput?: string;
+  public view?: BoxView;
 
   constructor(
     public name: string,
@@ -98,6 +110,11 @@ export class BoxBuilder {
 
   setTemplate(template?: BoxTemplate): BoxBuilder {
     this.boxTemplate = template;
+    return this;
+  }
+
+  setView(view: BoxView): BoxBuilder {
+    this.view = view;
     return this;
   }
 
@@ -135,17 +152,18 @@ export class BoxBuilder {
         kind: this.kind,
       },
       boxTemplate: this.boxTemplate,
+      view: this.view,
     };
   }
 }
 
 // builds a key/value box: renders the pairs as `k: v` lines for the headless
 // plaintextOutput (TUI/clipboard) AND stores them as structured options for the
-// web template. the template is passed in so this module stays framework-agnostic.
+// web template. A semantic view or custom template keeps this module framework-agnostic.
 // using this avoids the recurring bug where a KeyValue box ships an empty
 // plaintextOutput and renders blank in the headless TUI.
 export function keyValueBox(
-  template: BoxTemplate | undefined,
+  template: BoxTemplate | BoxView | undefined,
   name: string,
   kv: Record<string, string>,
   opts: { priority?: number; showExpandButton?: boolean } = {},
@@ -153,9 +171,9 @@ export function keyValueBox(
   const plaintext = Object.entries(kv)
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n');
-  const builder = new BoxBuilder(name, plaintext)
-    .setOptions(kv)
-    .setTemplate(template);
+  const builder = new BoxBuilder(name, plaintext).setOptions(kv);
+  if (typeof template === 'string') builder.setView(template);
+  else builder.setTemplate(template);
   if (opts.priority !== undefined) builder.setPriority(opts.priority);
   if (opts.showExpandButton !== undefined) {
     builder.setShowExpandButton(opts.showExpandButton);

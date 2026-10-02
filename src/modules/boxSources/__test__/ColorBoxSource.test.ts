@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -238,7 +237,7 @@ describe('ColorBoxSource.generateBoxes', () => {
   it('each box uses DefaultBoxTemplate', async () => {
     const boxes = await ColorBoxSource.generateBoxes('#00ff00');
     for (const box of boxes) {
-      expect(box.boxTemplate).toBe(DefaultBoxTemplate);
+      expect(box.view).toBe('default');
     }
   });
 

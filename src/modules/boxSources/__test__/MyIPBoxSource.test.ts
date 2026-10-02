@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Mock } from 'vitest';
 import { expect, vi } from 'vitest';
 import { MyIPBoxSource } from '../MyIPBoxSource';
@@ -87,7 +86,7 @@ describe('MyIPBoxSource', () => {
         '116.12.57.176 (Auckland, NZ)',
       );
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
     });
   });
 });

@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import {
   BLACK,
   contrastRatio,
@@ -57,7 +56,7 @@ export const OnColorBoxSource = {
     };
 
     return [
-      keyValueBox(KeyValueBoxTemplate, 'Readable Text Color', kvOptions, {
+      keyValueBox('keyValue', 'Readable Text Color', kvOptions, {
         priority: Priority,
       }),
     ];

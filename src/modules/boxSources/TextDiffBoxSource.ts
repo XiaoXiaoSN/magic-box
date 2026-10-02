@@ -1,5 +1,3 @@
-import { CodeBoxTemplate } from '@components/BoxTemplate';
-import DiffBoxTemplate from '@components/BoxTemplate/DiffBoxTemplate';
 import { isString } from '@functions/helper';
 import { computeDiff } from '@functions/textDiff';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -29,7 +27,7 @@ export const TextDiffBoxSource = {
             language: typeof language === 'string' ? language : 'plaintext',
             diffTarget: '',
           })
-          .setTemplate(DiffBoxTemplate)
+          .setView('diff')
           .setPriority(this.priority)
           .build(),
       ];
@@ -38,7 +36,7 @@ export const TextDiffBoxSource = {
     return [
       new BoxBuilder('Text Diff', result.ok ? result.output : result.message)
         .setOptions({ language: result.ok ? 'diff' : 'plaintext' })
-        .setTemplate(CodeBoxTemplate)
+        .setView('code')
         .setPriority(this.priority)
         .build(),
     ];

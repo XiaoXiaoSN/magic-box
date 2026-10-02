@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -128,7 +127,7 @@ export const WordsToNumberBoxSource = {
           'Words to Number',
           `couldn't parse '${result.unrecognized}'`,
         )
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -137,7 +136,7 @@ export const WordsToNumberBoxSource = {
 
     return [
       new BoxBuilder('Words to Number', String(result.value))
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

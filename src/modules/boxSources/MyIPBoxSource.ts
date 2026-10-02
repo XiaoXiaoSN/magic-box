@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
@@ -78,7 +77,7 @@ export const MyIPBoxSource = {
 
     return [
       new BoxBuilder('My IP', displayText)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

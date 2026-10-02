@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -133,7 +132,7 @@ export const MacAddressBoxSource = {
       };
       return [
         new BoxBuilder('MAC Address', kvToPlaintext(kv))
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setOptions(kv)
           .setPriority(this.priority)
           .build(),
@@ -155,7 +154,7 @@ export const MacAddressBoxSource = {
 
     return [
       new BoxBuilder('MAC Address', kvToPlaintext(kv))
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setOptions(kv)
         .setPriority(this.priority)
         .build(),

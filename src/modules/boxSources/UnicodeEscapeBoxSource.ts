@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -62,7 +61,7 @@ export const UnicodeEscapeBoxSource = {
       const escaped = escapeUnicode(input);
       return [
         new BoxBuilder('Unicode Escape', escaped)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -73,7 +72,7 @@ export const UnicodeEscapeBoxSource = {
     const unescaped = unescapeUnicode(input);
     return [
       new BoxBuilder('Unicode Unescape', unescaped)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

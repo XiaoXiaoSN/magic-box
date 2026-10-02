@@ -1,5 +1,5 @@
 import { parseInput } from '@functions/parseOptions';
-import type { Box } from '@modules/Box';
+import { type Box, errorBox } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 
 import { tuiBoxSources } from './sources';
@@ -16,7 +16,18 @@ export async function runBoxes(
 
   const grouped = await Promise.all(
     sources.map(async (source) => {
-      const generated = await source.generateBoxes(input, options);
+      let generated: Box[];
+      try {
+        generated = await source.generateBoxes(input, options);
+      } catch (error) {
+        // One unavailable capability must not hide all other conversions.
+        generated = [
+          errorBox(
+            source.name,
+            error instanceof Error ? error.message : String(error),
+          ),
+        ];
+      }
       return generated.map((box) => ({
         ...box,
         props: {

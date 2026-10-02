@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -101,7 +100,7 @@ export const GlobToRegexBoxSource = {
 
     return [
       new BoxBuilder('Glob to Regex', regex)
-        .setTemplate(DefaultBoxTemplate)
+        .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

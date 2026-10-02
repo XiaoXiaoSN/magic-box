@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { MorseCodeBoxSource } from '../MorseCodeBoxSource';
@@ -40,7 +39,7 @@ describe('MorseCodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Morse Code (Encode)');
       expect(boxes[0].props.plaintextOutput).toBe('... --- ...');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
 
@@ -92,7 +91,7 @@ describe('MorseCodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Morse Code (Decode)');
       expect(boxes[0].props.plaintextOutput).toBe('SOS');
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
 

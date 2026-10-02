@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -164,7 +163,7 @@ export const Ipv6BoxSource = {
       return [
         new BoxBuilder('IPv6', kvToPlaintext(kv))
           .setOptions(kv)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -183,7 +182,7 @@ export const Ipv6BoxSource = {
     return [
       new BoxBuilder('IPv6', kvToPlaintext(kv))
         .setOptions(kv)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setPriority(this.priority)
         .build(),
     ];

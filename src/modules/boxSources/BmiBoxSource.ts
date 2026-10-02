@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -108,7 +107,7 @@ export const BmiBoxSource = {
       return [
         new BoxBuilder('BMI', kvToPlaintext(guideData))
           .setOptions(guideData)
-          .setTemplate(KeyValueBoxTemplate)
+          .setView('keyValue')
           .setPriority(this.priority)
           .build(),
       ];
@@ -129,7 +128,7 @@ export const BmiBoxSource = {
     return [
       new BoxBuilder('BMI', kvToPlaintext(kvData))
         .setOptions(kvData)
-        .setTemplate(KeyValueBoxTemplate)
+        .setView('keyValue')
         .setPriority(this.priority)
         .build(),
     ];

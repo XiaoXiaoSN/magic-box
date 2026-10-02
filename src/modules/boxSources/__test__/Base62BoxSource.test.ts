@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { Base62BoxSource } from '../Base62BoxSource';
@@ -63,7 +62,7 @@ describe('Base62BoxSource', () => {
 
     it('uses KeyValueBoxTemplate for valid encode', async () => {
       const boxes = await Base62BoxSource.generateBoxes('62', { base62: true });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('returns error box for non-digit encode input', async () => {
@@ -110,7 +109,7 @@ describe('Base62BoxSource', () => {
       const boxes = await Base62BoxSource.generateBoxes('10', {
         base62decode: true,
       });
-      expect(boxes[0].boxTemplate).toBe(KeyValueBoxTemplate);
+      expect(boxes[0].view).toBe('keyValue');
     });
 
     it('returns error box for invalid base62 chars', async () => {

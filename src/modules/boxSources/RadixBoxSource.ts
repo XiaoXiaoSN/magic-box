@@ -1,4 +1,3 @@
-import { KeyValueBoxTemplate } from '@components/BoxTemplate';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
@@ -39,7 +38,7 @@ function parseBaseString(str: string, base: number): bigint | null {
 
 function makeErrorBox(message: string): Box {
   return new BoxBuilder('Radix Convert', message)
-    .setTemplate(KeyValueBoxTemplate)
+    .setView('keyValue')
     .setOptions({ Info: message })
     .setPriority(Priority)
     .build();
@@ -119,7 +118,7 @@ export const RadixBoxSource = {
     const decimalStr = decimal.toString();
 
     const box = new BoxBuilder('Radix Convert', resultStr)
-      .setTemplate(KeyValueBoxTemplate)
+      .setView('keyValue')
       .setOptions({
         Input: rawInput,
         From: `base ${fromBase}`,

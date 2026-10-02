@@ -1,4 +1,3 @@
-import { LocalAIBoxTemplate } from '@components/BoxTemplate';
 import { LOCAL_AI_OPTION_KEYS } from '@functions/localAIPrivacy';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -25,8 +24,8 @@ const Priority = 10;
 // the whole line from `input`, so without this the question typed in the most
 // natural chat-style form was silently dropped.
 //
-// Not node-safe: the template pulls in React and a module worker, so this source
-// is excluded from `src/tui/sources.ts`.
+// The source is headless-safe, but generation requires a browser WebGPU worker
+// in the web renderer, so this capability is excluded from the terminal.
 export const LocalAIBoxSource: BoxSource = {
   name: 'Local AI',
   description:
@@ -52,7 +51,7 @@ export const LocalAIBoxSource: BoxSource = {
       new BoxBuilder('Local AI', '')
         .setOptions(options)
         .setSourceInput(prompt)
-        .setTemplate(LocalAIBoxTemplate)
+        .setView('localAI')
         .setPriority(Priority)
         // The panel is tall and stateful; re-mounting it in a modal would drop
         // the loaded model and the in-flight draft.

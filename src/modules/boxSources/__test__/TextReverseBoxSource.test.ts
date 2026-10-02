@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import { describe, expect, it } from 'vitest';
 
 import { TextReverseBoxSource } from '../TextReverseBoxSource';
@@ -32,7 +31,7 @@ describe('TextReverseBoxSource', () => {
       expect(boxes[0].props.name).toBe('Text Reverse');
       expect(boxes[0].props.plaintextOutput).toBe('olleh');
       expect(boxes[0].props.priority).toBe(10);
-      expect(boxes[0].boxTemplate).toBe(DefaultBoxTemplate);
+      expect(boxes[0].view).toBe('default');
     });
 
     it('reverses "abc123" to "321cba"', async () => {

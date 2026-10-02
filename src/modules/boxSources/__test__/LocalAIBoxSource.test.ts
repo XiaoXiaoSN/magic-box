@@ -30,7 +30,7 @@ describe('LocalAIBoxSource', () => {
     // through the box list would re-render every card per token.
     expect(box.props.plaintextOutput).toBe('');
     expect(box.props.showExpandButton).toBe(false);
-    expect(box.boxTemplate).toBeTypeOf('function');
+    expect(box.view).toBe('localAI');
   });
 
   it('carries the text in front of the directive as the prompt', async () => {

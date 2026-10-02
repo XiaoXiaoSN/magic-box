@@ -12,6 +12,7 @@ cypress/screenshots
 # production
 build/
 dist/
+dist-tui/
 
 # misc
 .DS_Store

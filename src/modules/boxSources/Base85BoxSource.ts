@@ -1,4 +1,3 @@
-import { DefaultBoxTemplate } from '@components/BoxTemplate';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -117,7 +116,7 @@ export const Base85BoxSource = {
       const encoded = encodeAscii85(input);
       boxes.push(
         new BoxBuilder('Base85 (Encode)', encoded)
-          .setTemplate(DefaultBoxTemplate)
+          .setView('default')
           .setShowExpandButton(false)
           .setPriority(this.priority)
           .build(),
@@ -132,7 +131,7 @@ export const Base85BoxSource = {
             'Base85 (Decode)',
             'Invalid Ascii85 input: contains out-of-range characters.',
           )
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
@@ -140,7 +139,7 @@ export const Base85BoxSource = {
       } else {
         boxes.push(
           new BoxBuilder('Base85 (Decode)', decoded)
-            .setTemplate(DefaultBoxTemplate)
+            .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
