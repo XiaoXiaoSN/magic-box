@@ -1,3 +1,4 @@
+import { isModelCached } from './modelCache';
 import { MAX_NEW_TOKENS, MODEL, MODEL_OPTIONS } from './modelCatalog';
 import { createRepetitionGuard } from './repetition';
 import type {
@@ -30,6 +31,7 @@ export class LocalAIEngine {
     private readonly send: (event: AIEvent) => void,
     private readonly check: () => Promise<void>,
     private readonly load: () => Promise<TransformersRuntime>,
+    private readonly inspectCache: () => Promise<boolean> = isModelCached,
   ) {}
 
   async handle(command: AICommand): Promise<void> {
@@ -83,12 +85,8 @@ export class LocalAIEngine {
   // Inspection therefore needs no Hugging Face Range metadata requests: it only
   // loads the small runtime, probes the local cache, and reports the pinned size.
   private async inspect() {
-    const runtime = await this.getRuntime();
-    const cached = await runtime.ModelRegistry.is_pipeline_cached(
-      'text-generation',
-      MODEL.id,
-      { ...MODEL_OPTIONS, local_files_only: true },
-    );
+    await this.getRuntime();
+    const cached = await this.inspectCache();
     return { bytes: MODEL.downloadBytes, cached };
   }
 

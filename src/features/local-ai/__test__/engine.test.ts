@@ -1,12 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { LocalAIEngine } from '../engine';
-import {
-  MAX_NEW_TOKENS,
-  MAX_PROMPT_TOKENS,
-  MODEL,
-  MODEL_OPTIONS,
-} from '../modelCatalog';
+import { MAX_NEW_TOKENS, MAX_PROMPT_TOKENS, MODEL } from '../modelCatalog';
 import type { RuntimeProgress, TransformersRuntime } from '../runtime';
 import type { AIEvent } from '../types';
 
@@ -76,20 +71,8 @@ const setupEngine = () => {
   };
   const runtime = {
     ModelRegistry: {
-      async is_pipeline_cached(
-        task: string,
-        id: string,
-        config: Record<string, unknown>,
-      ) {
-        calls.cacheChecks++;
-        expect(task).toBe('text-generation');
-        expect(id).toBe(MODEL.id);
-        expect(config).toEqual({
-          ...MODEL_OPTIONS,
-          local_files_only: true,
-        });
-        if (options.cacheError) throw options.cacheError;
-        return options.cached;
+      async is_pipeline_cached() {
+        throw new Error('Inspection must not enter the upstream registry');
       },
     },
     AutoTokenizer: {
@@ -146,6 +129,11 @@ const setupEngine = () => {
       calls.load++;
       return runtime;
     },
+    async () => {
+      calls.cacheChecks++;
+      if (options.cacheError) throw options.cacheError;
+      return options.cached;
+    },
   );
   return { engine, events, calls, options, stoppingCriteria };
 };
@@ -172,6 +160,22 @@ describe('local AI engine', () => {
     expect(setup.calls.tokenizer).toBe(0);
     expect(setup.calls.model).toBe(0);
     expect(setup.calls.check).toBe(1);
+  });
+
+  it('reports a complete cache without invoking the upstream registry', async () => {
+    const setup = setupEngine();
+    setup.options.cached = true;
+    await setup.engine.handle({ type: 'inspect', id: 8 });
+    expect(setup.events).toEqual([
+      {
+        type: 'available',
+        id: 8,
+        info: { bytes: MODEL.downloadBytes, cached: true },
+      },
+    ]);
+    expect(setup.calls.cacheChecks).toBe(1);
+    expect(setup.calls.tokenizer).toBe(0);
+    expect(setup.calls.model).toBe(0);
   });
 
   it('maps an inspection failure to a sanitized error', async () => {
