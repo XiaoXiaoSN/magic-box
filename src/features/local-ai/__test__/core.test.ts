@@ -488,7 +488,7 @@ describe('describeSetupStep', () => {
     });
   });
 
-  it('puts the measured size on the button and the sources under it', () => {
+  it('puts the pinned exact size on the button and the sources under it', () => {
     expect(describeSetupStep({ ...base, info }, 'en')).toEqual({
       action: 'prepare',
       label: 'Download model · 467.3 MiB',

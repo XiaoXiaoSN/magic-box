@@ -12,9 +12,8 @@ import type { AIEvent } from '../types';
 
 interface Options {
   tokens: number;
-  bytes: number | null;
-  exists: boolean;
   cached: boolean;
+  cacheError: Error | null;
   modelError: Error | null;
   generate: ((config: Record<string, unknown>) => Promise<void>) | null;
 }
@@ -27,15 +26,14 @@ const setupEngine = () => {
     tokenizer: 0,
     model: 0,
     dispose: 0,
-    metadata: [] as { file: string; revision: string }[],
+    cacheChecks: 0,
     generate: [] as Record<string, unknown>[],
     template: null as { messages: unknown; config: unknown } | null,
   };
   const options: Options = {
     tokens: 20,
-    bytes: 100,
-    exists: true,
     cached: false,
+    cacheError: null,
     modelError: null,
     generate: null,
   };
@@ -78,25 +76,16 @@ const setupEngine = () => {
   };
   const runtime = {
     ModelRegistry: {
-      async get_pipeline_files(
+      async is_pipeline_cached(
         task: string,
         id: string,
         config: Record<string, unknown>,
       ) {
+        calls.cacheChecks++;
         expect(task).toBe('text-generation');
         expect(id).toBe(MODEL.id);
         expect(config).toEqual(MODEL_OPTIONS);
-        return ['config.json', 'onnx/model_q4f16.onnx'];
-      },
-      async get_file_metadata(
-        _id: string,
-        file: string,
-        config: { revision: string },
-      ) {
-        calls.metadata.push({ file, revision: config.revision });
-        return { exists: options.exists, size: options.bytes };
-      },
-      async is_pipeline_cached() {
+        if (options.cacheError) throw options.cacheError;
         return options.cached;
       },
     },
@@ -166,25 +155,28 @@ const prepared = async (setup: ReturnType<typeof setupEngine>) => {
 };
 
 describe('local AI engine', () => {
-  it('inspects pinned metadata only, never a tokenizer or weights', async () => {
+  it('inspects the pinned size and local cache only, never tokenizer or weights', async () => {
     const setup = setupEngine();
     await setup.engine.handle({ type: 'inspect', id: 7 });
     expect(setup.events).toEqual([
-      { type: 'available', id: 7, info: { bytes: 200, cached: false } },
+      {
+        type: 'available',
+        id: 7,
+        info: { bytes: MODEL.downloadBytes, cached: false },
+      },
     ]);
-    expect(
-      setup.calls.metadata.every((m) => m.revision === MODEL.revision),
-    ).toBe(true);
+    expect(setup.calls.cacheChecks).toBe(1);
     expect(setup.calls.tokenizer).toBe(0);
     expect(setup.calls.model).toBe(0);
     expect(setup.calls.check).toBe(1);
   });
 
-  it('treats an unknown file size as an error, not a zero-byte download', async () => {
+  it('maps an inspection failure to a sanitized error', async () => {
     const setup = setupEngine();
-    setup.options.bytes = null;
+    setup.options.cacheError = new Error('private cache details');
     await setup.engine.handle({ type: 'inspect', id: 1 });
-    expect(setup.events).toEqual([{ type: 'error', id: 1, code: 'metadata' }]);
+    expect(setup.events).toEqual([{ type: 'error', id: 1, code: 'inspect' }]);
+    expect(JSON.stringify(setup.events)).not.toContain('private cache details');
   });
 
   it('loads once, clamps progress and only reports ready after a warm-up', async () => {
