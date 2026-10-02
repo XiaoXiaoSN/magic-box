@@ -1,7 +1,7 @@
 import env from '@global/env';
 
 import { isLocalAIPrivate, subscribeLocalAIPrivacy } from './localAIPrivacy';
-import { DEFAULT_TIMEZONE_OFFSET } from './timezone';
+import { DEFAULT_TIMEZONE_OFFSET, type TimezoneMode } from './timezone';
 
 // runtime preferences are the single source of truth read by non-react code
 // (box sources, telemetry). the PreferencesContext owns the react state and
@@ -10,6 +10,7 @@ import { DEFAULT_TIMEZONE_OFFSET } from './timezone';
 export interface RuntimePrefs {
   // default UTC offset in hours used by time-related boxes.
   timezoneOffset: number;
+  timezoneMode: TimezoneMode;
   // backend host overrides; empty string means "fall back to env default".
   toolboxUrl: string;
   shortenUrl: string;
@@ -21,6 +22,7 @@ export interface RuntimePrefs {
 
 const current: RuntimePrefs = {
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
+  timezoneMode: 'fixed',
   toolboxUrl: '',
   shortenUrl: '',
   analytics: true,
@@ -32,7 +34,10 @@ export const setRuntimePrefs = (next: Partial<RuntimePrefs>): void => {
   notifyAnalyticsPermission();
 };
 
-export const getTimezoneOffset = (): number => current.timezoneOffset;
+export const getTimezoneOffset = (date = new Date()): number =>
+  current.timezoneMode === 'system'
+    ? -date.getTimezoneOffset() / 60
+    : current.timezoneOffset;
 
 // resolve a configured host, falling back to the env default when blank.
 export const getToolboxUrl = (): string =>
