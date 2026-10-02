@@ -64,10 +64,10 @@ const zhTW: Translations = {
     '在 ::ai 前輸入的文字停止變動後就直接執行，但僅限該分頁已載入模型時。',
   'settings.aiAutoCheck': '自動檢查模型',
   'settings.aiAutoCheckHint':
-    '本地 AI box 開啟時，向 Hugging Face 讀取模型大小並檢查 WebGPU 支援，box 就會直接顯示標有實際大小的下載按鈕。關閉後，只有在你按下「檢查裝置與模型」之後才會連線 jsDelivr 與 Hugging Face。無論如何，權重都只會因你自己的點擊而下載。',
+    '本地 AI box 開啟時，會檢查 WebGPU 支援與本機模型快取。精確下載大小已和固定的模型 revision 一起打包，因此這個檢查不會探測 Hugging Face 模型檔案。關閉後，只有在你按下「檢查裝置與模型」之後才會連線 jsDelivr；只有按下「下載模型」時才會連線 Hugging Face。',
   'settings.aiModel': '模型',
   'settings.aiModelHint':
-    '先下載權重，::ai box 之後就能直接從本機快取啟動。檢查會在下載前回報實際大小；離開此頁稍後會釋放記憶體，但不會刪除下載。',
+    '先下載權重，::ai box 之後就能直接從本機快取啟動。檢查會在取得任何權重前回報固定 revision 的精確大小；離開此頁稍後會釋放記憶體，但不會刪除下載。',
   'settings.aiDelete': '刪除 AI 下載',
   'settings.aiDeleteHint':
     '移除已快取的模型與 runtime。其他工具與設定不受影響。',

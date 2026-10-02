@@ -4,10 +4,11 @@ import { LocalAIClient, type WorkerPort } from './client';
 export interface UseLocalAIOptions {
   // Tests inject a deterministic port instead of spawning a real module worker.
   createWorker?: () => WorkerPort;
-  // Run the metadata check once on mount. An inspect fetches the runtime from
-  // jsDelivr and one metadata request per model file from Hugging Face, never
-  // weights, so callers gate it on `prefs.aiAutoCheck` and keep it off where
-  // mounting is not a request to use the box (the /list preview).
+  // Run the device/cache check once on mount. An inspect fetches the pinned
+  // runtime from jsDelivr, probes WebGPU and reads the local model cache. It
+  // never contacts Hugging Face model files or requests weights, so callers
+  // gate it on `prefs.aiAutoCheck` and keep it off where mounting is not a
+  // request to use the box (the /list preview).
   autoInspect?: boolean;
 }
 
