@@ -76,7 +76,10 @@ describe('LocalAIModelSettings', () => {
 
   it('deletes only this feature’s caches, after terminating its worker', async () => {
     const remove = vi.fn(async () => true);
-    vi.stubGlobal('caches', { delete: remove });
+    vi.stubGlobal('caches', {
+      keys: vi.fn(async () => [MODEL_CACHE, RUNTIME_CACHE]),
+      delete: remove,
+    });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     const workers = setup();
@@ -84,8 +87,8 @@ describe('LocalAIModelSettings', () => {
     fireEvent.click(screen.getByText('Delete'));
 
     expect(workers[0].terminated).toBe(true);
-    expect(remove.mock.calls.flat()).toEqual([MODEL_CACHE, RUNTIME_CACHE]);
     expect(await screen.findByText('AI downloads deleted.')).toBeVisible();
+    expect(remove.mock.calls.flat()).toEqual([MODEL_CACHE, RUNTIME_CACHE]);
   });
 
   it('can stop a download it started, like the box can', () => {

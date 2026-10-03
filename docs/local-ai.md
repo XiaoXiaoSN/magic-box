@@ -282,9 +282,10 @@ becomes a load error instead of a half-initialized engine.
 | `magic-box-local-ai-runtime-v2` | the pinned runtime module (Workbox `CacheFirst`) |
 
 The model cache key carries the runtime version, model revision and dtype, so
-bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes only
-these two caches — never Workbox's app caches, and never another feature's
-storage. Close Local AI in other tabs first: another tab can repopulate a shared
+bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes every
+cache in the reserved `magic-box-local-ai-` namespace, including older runtime
+and model versions. Workbox's app caches and other features' storage are
+untouched. Close Local AI in other tabs first: another tab can repopulate a shared
 cache while this one deletes it.
 
 Workbox's 4 MiB `maximumFileSizeToCacheInBytes` precache budget is untouched;
@@ -444,7 +445,9 @@ Automated (`bun run test`):
 - `src/features/local-ai/__test__/LocalAIModelSettings.test.tsx` — provisioning
   from Settings with no box mounted: no worker on render, the same two steps,
   sanitized errors, Stop for its own download, and a cache deletion that
-  terminates the worker first and touches only this feature's two caches.
+  terminates the worker first and touches only this feature's cache namespace.
+- `src/features/local-ai/__test__/caches.test.ts` — deleting current and older
+  AI downloads while preserving unrelated caches, and sanitized storage errors.
 - `src/features/local-ai/__test__/core.test.ts` also covers `describeSetupStep`
   (device/cache check before a quoted size, the source note on every download step, the
   cached variant, localization) and `describePhase`.

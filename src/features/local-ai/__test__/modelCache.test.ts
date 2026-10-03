@@ -81,7 +81,9 @@ describe('local AI cache-only inspection', () => {
     expect(await isModelCached()).toBe(true);
     expect(storage.match).toHaveBeenCalledTimes(MODEL_CACHE_FILES.length);
     for (const url of urls) {
-      expect(storage.match).toHaveBeenCalledWith(url, { cacheName: MODEL_CACHE });
+      expect(storage.match).toHaveBeenCalledWith(url, {
+        cacheName: MODEL_CACHE,
+      });
     }
     expect(network).not.toHaveBeenCalled();
   });
