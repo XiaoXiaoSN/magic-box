@@ -1,11 +1,10 @@
-import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { useEffect, useRef, useState } from 'react';
 
 import { useLocale } from '../../contexts/LocaleContext';
 import { buildVersion, serviceWorkerUrl } from '../../global/buildInfo';
+
+import './styles.css';
 
 const checkIntervalMs = 60 * 60 * 1000;
 
@@ -187,42 +186,43 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
     <Snackbar
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       open={open}
-      sx={{ mb: 6 }}
+      sx={{
+        bottom: { xs: 'max(16px, env(safe-area-inset-bottom))', sm: 24 },
+        left: { xs: 'max(12px, env(safe-area-inset-left))', sm: '50%' },
+        right: { xs: 'max(12px, env(safe-area-inset-right))', sm: 'auto' },
+      }}
     >
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{
-          alignItems: 'center',
-          bgcolor: 'grey.900',
-          color: 'common.white',
-          px: 2,
-          py: 1.5,
-          borderRadius: 1,
-        }}
-      >
-        <Stack spacing={0.5}>
-          <Typography variant="body2">{t('pwa.newVersion')}</Typography>
-          <Typography variant="caption">{t('pwa.refreshHint')}</Typography>
-        </Stack>
-        <Button
-          color="inherit"
+      <div className="pwa-update-prompt">
+        <div className="pwa-update-copy" role="status">
+          <p className="pwa-update-title">{t('pwa.newVersion')}</p>
+          <p className="pwa-update-hint">{t('pwa.refreshHint')}</p>
+        </div>
+        <button
+          className="pwa-update-button pwa-update-button-primary"
           disabled={upgrading}
           onClick={() => void handleRefresh()}
-          size="small"
-          variant="outlined"
+          type="button"
         >
           {t('pwa.refresh')}
-        </Button>
-        <Button
-          color="inherit"
+        </button>
+        <button
+          aria-label={t('pwa.later')}
+          className="pwa-update-button pwa-update-close"
           disabled={upgrading}
           onClick={handleLater}
-          size="small"
+          type="button"
         >
-          {t('pwa.later')}
-        </Button>
-      </Stack>
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24">
+            <path
+              d="m6 6 12 12M18 6 6 18"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </button>
+      </div>
     </Snackbar>
   );
 };
