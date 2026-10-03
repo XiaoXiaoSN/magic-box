@@ -1,0 +1,100 @@
+.pwa-update-prompt {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: max-content;
+  max-width: min(480px, calc(100vw - 48px));
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elev);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-family: var(--sans);
+}
+
+.pwa-update-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pwa-update-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.pwa-update-hint {
+  margin: 3px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pwa-update-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.pwa-update-button {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-3);
+  font: 500 12px / 1.5 var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 120ms,
+    color 120ms;
+}
+
+.pwa-update-button:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--ink);
+}
+
+.pwa-update-button-primary {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.pwa-update-button-primary:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pwa-update-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pwa-update-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 599.95px) {
+  .pwa-update-prompt {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 14px;
+  }
+
+  .pwa-update-actions {
+    justify-content: flex-end;
+  }
+
+  .pwa-update-button {
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+}

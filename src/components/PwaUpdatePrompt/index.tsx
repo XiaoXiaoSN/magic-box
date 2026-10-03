@@ -1,11 +1,10 @@
-import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { useEffect, useRef, useState } from 'react';
 
 import { useLocale } from '../../contexts/LocaleContext';
 import { buildVersion, serviceWorkerUrl } from '../../global/buildInfo';
+
+import './styles.css';
 
 const checkIntervalMs = 60 * 60 * 1000;
 
@@ -187,42 +186,36 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
     <Snackbar
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       open={open}
-      sx={{ mb: 6 }}
+      sx={{
+        bottom: { xs: 'max(16px, env(safe-area-inset-bottom))', sm: 24 },
+        left: { xs: 'max(12px, env(safe-area-inset-left))', sm: '50%' },
+        right: { xs: 'max(12px, env(safe-area-inset-right))', sm: 'auto' },
+      }}
     >
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{
-          alignItems: 'center',
-          bgcolor: 'grey.900',
-          color: 'common.white',
-          px: 2,
-          py: 1.5,
-          borderRadius: 1,
-        }}
-      >
-        <Stack spacing={0.5}>
-          <Typography variant="body2">{t('pwa.newVersion')}</Typography>
-          <Typography variant="caption">{t('pwa.refreshHint')}</Typography>
-        </Stack>
-        <Button
-          color="inherit"
-          disabled={upgrading}
-          onClick={() => void handleRefresh()}
-          size="small"
-          variant="outlined"
-        >
-          {t('pwa.refresh')}
-        </Button>
-        <Button
-          color="inherit"
-          disabled={upgrading}
-          onClick={handleLater}
-          size="small"
-        >
-          {t('pwa.later')}
-        </Button>
-      </Stack>
+      <div className="pwa-update-prompt">
+        <div className="pwa-update-copy" role="status">
+          <p className="pwa-update-title">{t('pwa.newVersion')}</p>
+          <p className="pwa-update-hint">{t('pwa.refreshHint')}</p>
+        </div>
+        <div className="pwa-update-actions">
+          <button
+            className="pwa-update-button"
+            disabled={upgrading}
+            onClick={handleLater}
+            type="button"
+          >
+            {t('pwa.later')}
+          </button>
+          <button
+            className="pwa-update-button pwa-update-button-primary"
+            disabled={upgrading}
+            onClick={() => void handleRefresh()}
+            type="button"
+          >
+            {t('pwa.refresh')}
+          </button>
+        </div>
+      </div>
     </Snackbar>
   );
 };
