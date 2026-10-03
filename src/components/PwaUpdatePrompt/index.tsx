@@ -197,24 +197,31 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
           <p className="pwa-update-title">{t('pwa.newVersion')}</p>
           <p className="pwa-update-hint">{t('pwa.refreshHint')}</p>
         </div>
-        <div className="pwa-update-actions">
-          <button
-            className="pwa-update-button"
-            disabled={upgrading}
-            onClick={handleLater}
-            type="button"
-          >
-            {t('pwa.later')}
-          </button>
-          <button
-            className="pwa-update-button pwa-update-button-primary"
-            disabled={upgrading}
-            onClick={() => void handleRefresh()}
-            type="button"
-          >
-            {t('pwa.refresh')}
-          </button>
-        </div>
+        <button
+          className="pwa-update-button pwa-update-button-primary"
+          disabled={upgrading}
+          onClick={() => void handleRefresh()}
+          type="button"
+        >
+          {t('pwa.refresh')}
+        </button>
+        <button
+          aria-label={t('pwa.later')}
+          className="pwa-update-button pwa-update-close"
+          disabled={upgrading}
+          onClick={handleLater}
+          type="button"
+        >
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24">
+            <path
+              d="m6 6 12 12M18 6 6 18"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </button>
       </div>
     </Snackbar>
   );
