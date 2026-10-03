@@ -86,8 +86,8 @@ const LocalAISettingsDialog = ({
             </p>
           ) : null}
           <p className="local-ai-lede">{m.privacyFull}</p>
-          {/* Quote real bytes once they are known: "use Wi-Fi" is advice,
-                    a measured size lets the user judge their own connection.
+          {/* Quote exact bytes once the device check succeeds: "use Wi-Fi" is
+                    advice; a pinned size lets the user judge their connection.
                     Once the model is loaded the question is answered; after a
                     release `info.cached` is true, so the line says so. */}
           {state.loaded ? null : (

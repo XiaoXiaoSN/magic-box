@@ -64,10 +64,10 @@ const en = {
     'Run text typed before ::ai as soon as it settles, but only when the model is already loaded in that tab.',
   'settings.aiAutoCheck': 'Check the model automatically',
   'settings.aiAutoCheckHint':
-    'When a Local AI box opens, read the model size from Hugging Face and check WebGPU support, so the box lands on a download button labelled with the real size. Turn this off to contact jsDelivr and Hugging Face only after you press Check device & model. Either way, the weights are downloaded only by your own click.',
+    'When a Local AI box opens, check WebGPU support and the local model cache. The exact download size is bundled with the pinned model revision, so this check does not probe Hugging Face files. Turn this off to contact jsDelivr only after you press Check device & model. Hugging Face is contacted only when you press Download model.',
   'settings.aiModel': 'Model',
   'settings.aiModelHint':
-    'Download the weights ahead of time so the ::ai box starts from the local cache. The check reports the real size before anything is fetched; leaving this page frees the memory shortly after, never the download.',
+    'Download the weights ahead of time so the ::ai box starts from the local cache. The check reports the exact pinned size before any weights are fetched; leaving this page frees the memory shortly after, never the download.',
   'settings.aiDelete': 'Delete AI downloads',
   'settings.aiDeleteHint':
     'Removes the cached model and runtime. Other tools and settings are untouched.',

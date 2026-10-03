@@ -56,8 +56,9 @@ const LocalAIPanel = ({
   const { prefs } = usePreferences();
   // Opening this box IS the request to use local AI, so it answers "can this
   // device run it, and how big is it" by itself instead of charging a click for
-  // a question the user already asked. The check reads metadata only; the
-  // weights stay behind the size-labelled button below.
+  // a question the user already asked. The check probes WebGPU and the local
+  // cache only; the exact size is pinned with the model revision. Weights stay
+  // behind the size-labelled button below.
   const preview = useIsBoxPreview();
   const { client, state } = useLocalAI({
     createWorker,

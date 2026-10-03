@@ -38,8 +38,8 @@ export interface Prefs {
   // the choices survive a reload. none of them starts a download by itself.
   aiTask: AITask;
   aiLanguage: AILanguagePref;
-  // may a mounted local-ai surface read the model registry by itself: the
-  // runtime bundle, the file sizes and a webgpu adapter probe. never the
+  // may a mounted local-ai surface load the pinned runtime and probe WebGPU +
+  // the local model cache by itself. never the Hugging Face model files or
   // weights — those stay behind the size-labelled button, always.
   aiAutoCheck: boolean;
   // run a prompt carried in by `::ai` once the model is ALREADY loaded.

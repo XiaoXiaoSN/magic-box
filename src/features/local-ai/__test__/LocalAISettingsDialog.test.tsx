@@ -89,7 +89,7 @@ describe('LocalAISettingsDialog', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('quotes measured bytes instead of advising about Wi-Fi', () => {
+  it('quotes exact pinned bytes instead of advising about Wi-Fi', () => {
     open();
     // Before a check there is no number to quote, so it stays generic.
     expect(screen.getByTestId('local-ai-size')).toHaveTextContent(

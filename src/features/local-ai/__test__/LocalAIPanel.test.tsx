@@ -71,8 +71,8 @@ describe('LocalAIPanel', () => {
   });
 
   it('answers "can this device run it" without charging a click', () => {
-    // Opening the box IS the request to use local AI. It reads metadata by
-    // itself; it can never request weights without a click.
+    // Opening the box IS the request to use local AI. It checks WebGPU and the
+    // local cache by itself; it can never request weights without a click.
     const workers = setup();
     expect(workers[0].commands).toEqual([{ type: 'inspect', id: 1 }]);
     expect(screen.queryByTestId('local-ai-run')).not.toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('LocalAIPanel', () => {
     // belongs to the download and the generation.
     const workers = setup();
     expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
-      'Checking device and model metadata…',
+      'Checking device and model…',
     );
     expect(screen.queryByTestId('local-ai-stop')).not.toBeInTheDocument();
     workers[0].reply({
@@ -269,7 +269,7 @@ describe('LocalAIPanel', () => {
       fireEvent.click(screen.getByTestId('local-ai-release'));
       closeSettings();
 
-      // Releasing drops the session but keeps the measured size, so the box is
+      // Releasing drops the session but keeps the pinned size, so the box is
       // back at the load step rather than at the device check.
       fireEvent.click(screen.getByTestId('local-ai-setup'));
       workers[1].reply({ type: 'ready' });
@@ -394,7 +394,7 @@ describe('LocalAIPanel', () => {
       // Metadata only — the standing permission never triggers a download.
       expect(workers[0]?.commands).toEqual([{ type: 'inspect', id: 1 }]);
       expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
-        'Checking device and model metadata…',
+        'Checking device and model…',
       );
 
       workers[0].reply({
@@ -411,7 +411,7 @@ describe('LocalAIPanel', () => {
 
     it('does not retry a failed check by itself', () => {
       const workers = setup();
-      workers[0].reply({ type: 'error', code: 'metadata' });
+      workers[0].reply({ type: 'error', code: 'inspect' });
       expect(screen.getByTestId('local-ai-error')).toBeInTheDocument();
       // A retry loop against two CDNs is the failure mode to avoid; retrying is
       // the button's job. The failed check also released the worker.

@@ -1,3 +1,4 @@
+import { isModelCached } from './modelCache';
 import { MAX_NEW_TOKENS, MODEL, MODEL_OPTIONS } from './modelCatalog';
 import { createRepetitionGuard } from './repetition';
 import type {
@@ -30,6 +31,7 @@ export class LocalAIEngine {
     private readonly send: (event: AIEvent) => void,
     private readonly check: () => Promise<void>,
     private readonly load: () => Promise<TransformersRuntime>,
+    private readonly inspectCache: () => Promise<boolean> = isModelCached,
   ) {}
 
   async handle(command: AICommand): Promise<void> {
@@ -70,7 +72,7 @@ export class LocalAIEngine {
             : command.type === 'generate'
               ? 'generation'
               : command.type === 'inspect'
-                ? 'metadata'
+                ? 'inspect'
                 : 'load';
       this.send({ type: 'error', id: command.id, code });
     } finally {
@@ -79,44 +81,13 @@ export class LocalAIEngine {
     }
   }
 
-  // Metadata only: resolves the real download size from the registry so the UI
-  // never has to hardcode an approximate MiB figure, and requests no weights.
+  // The model revision/dtype and exact download byte count are pinned together.
+  // Inspection therefore needs no Hugging Face Range metadata requests: it only
+  // loads the small runtime, probes the local cache, and reports the pinned size.
   private async inspect() {
-    const runtime = await this.getRuntime();
-    const files = await runtime.ModelRegistry.get_pipeline_files(
-      'text-generation',
-      MODEL.id,
-      MODEL_OPTIONS,
-    );
-    const metadata = await Promise.all(
-      files.map((file) =>
-        runtime.ModelRegistry.get_file_metadata(MODEL.id, file, {
-          revision: MODEL.revision,
-        }),
-      ),
-    );
-    if (
-      !metadata.length ||
-      metadata.some(
-        (file) =>
-          !file.exists ||
-          file.size === null ||
-          !Number.isSafeInteger(file.size) ||
-          file.size < 0,
-      )
-    ) {
-      throw new LocalAIError('metadata');
-    }
-    const bytes = metadata.reduce((total, file) => total + (file.size ?? 0), 0);
-    if (!Number.isSafeInteger(bytes) || bytes <= 0) {
-      throw new LocalAIError('metadata');
-    }
-    const cached = await runtime.ModelRegistry.is_pipeline_cached(
-      'text-generation',
-      MODEL.id,
-      MODEL_OPTIONS,
-    );
-    return { bytes, cached };
+    await this.getRuntime();
+    const cached = await this.inspectCache();
+    return { bytes: MODEL.downloadBytes, cached };
   }
 
   private getRuntime(): Promise<TransformersRuntime> {

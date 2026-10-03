@@ -81,13 +81,15 @@ is the size they were shown.
 
 | state | button | note under it |
 | --- | --- | --- |
-| no metadata yet | `Check device & model` | — |
-| metadata known, not cached | `Download model · 467.3 MiB` | the sources: jsDelivr and Hugging Face |
-| metadata known, cached | `Load model · 467.3 MiB` | "found in the cache" |
+| no device/cache check yet | `Check device & model` | — |
+| device supported, not cached | `Download model · 467.3 MiB` | the sources: jsDelivr and Hugging Face |
+| device supported, cached | `Load model · 467.3 MiB` | "found in the cache" |
 | loaded | `Run locally` | — |
 
-The quoted size is the measured registry total, not a constant, so it cannot
-drift from what is actually fetched.
+The quoted size is the exact byte count pinned alongside the immutable model
+revision and dtype (`MODEL.downloadBytes`). The check never probes Hub files
+just to learn their size; when the model pin changes, this byte count must be
+updated from that same revision.
 
 > **On the size.** Earlier revisions of these docs said `~483 MiB`, which was
 > wrong twice. `483,003,582` is the exact *byte* count of `onnx/model_q4f16.onnx`
@@ -105,14 +107,13 @@ cached. Reaching the box means typing `::ai` or picking Local AI from `/list`;
 "can this device run it, and how big is it" is a question the user has already
 asked, so charging a click to answer it bought nothing.
 
-What the check costs is worth stating exactly: the ~155 KiB (compressed) pinned
-runtime from jsDelivr, one metadata request per model file to Hugging Face, and a
-WebGPU adapter probe. Zero weights. The 467.3 MiB stays behind the size-labelled
-button, always, on every visit.
+What the check costs is worth stating exactly: the small pinned runtime from
+jsDelivr, a WebGPU adapter probe, and a local CacheStorage inspection. It makes
+no Hugging Face model-file request and fetches zero weights. The 467.3 MiB stays
+behind the size-labelled button, always, on every visit.
 
 `prefs.aiAutoCheck` (default **on**) is the off-switch, in Settings → Local AI
-only, for anyone who does not want a mounted box contacting those two origins by
-itself. With it off, the box falls back to the explicit `Check device & model`
+only, for anyone who does not want a mounted box contacting jsDelivr by itself. With it off, the box falls back to the explicit `Check device & model`
 button — the same state machine, one extra click.
 
 Three places deliberately do **not** check themselves open:
@@ -130,7 +131,7 @@ Three places deliberately do **not** check themselves open:
 - **A failed check, or a known answer.** The effect runs once per mount and
   only from a blank client (`phase: 'idle'`, no `info`). The client is shared
   (see *Lifecycle*), so a remount must not re-check a size it already knows, and
-  a failure leaves `phase: 'error'`, which a retry loop against two CDNs must
+  a failure leaves `phase: 'error'`, which an automatic network retry loop must
   not re-enter. Retrying is the button's job.
 
 The check does not lock the draft textarea: only a running generation does. A
@@ -145,8 +146,9 @@ the download and the generation.
 Each setup step still needs its own click:
 
 1. **Check device & model** — probes HTTPS, a WebGPU adapter and `shader-f16`
-   inside the worker, then reads the registry metadata for the pinned revision
-   and reports the real total byte size. Requests no weights.
+   inside the worker, loads the pinned runtime, checks the local model cache and
+   reports the exact byte size pinned with the model revision. It makes no
+   Hugging Face model-file request and requests no weights.
 2. **Download model · <size>** — fetches the runtime and the weights, then runs
    a one-token warm-up. Only a successful warm-up reports `ready`: an adapter is
    not proof that the model can execute.
@@ -154,7 +156,7 @@ Each setup step still needs its own click:
 
 ### Consent
 
-The click on step 2 **is** the consent: its label carries the measured byte
+The click on step 2 **is** the consent: its label carries the exact pinned byte
 count and the note under it names jsDelivr and Hugging Face. That is a stronger,
 better-informed act than ticking a box that says a download may happen later.
 
@@ -166,7 +168,7 @@ no permission argument: the source note is attached to the action and shows ever
 time a download is the next step, replaced by `cached` when the click will fetch
 nothing.
 
-`prefs.aiAutoCheck` is **not** that permission. It governs the metadata check
+`prefs.aiAutoCheck` is **not** that permission. It governs the device/cache check
 only, and no code path downloads weights without a click on that button.
 
 ### What the dialog shows by default
@@ -181,20 +183,20 @@ disclosures hold the rest:
 | load state (dot + phase) | jsDelivr and Hugging Face as sources | token budgets, single turn |
 | error text, when there is one | cache eviction is not an offline guarantee | GPU released on background |
 | "Runs in this browser…" | license, model card link | telemetry stays off this visit |
-| measured download size | | |
+| exact pinned download size | | |
 
 Four rules produced that split, and they are worth keeping:
 
 1. **Error conditions are shown when they happen, not in advance.** "Long input
    is rejected" was permanent copy for a state that already renders
    `errors.inputLimit` at the moment it occurs.
-2. **The size is measured, not advised.** `runtimeExtra` said "use Wi-Fi", which
-   is someone else's judgement about the user's connection. Once `state.info`
+2. **The size is exact and pinned, not advised.** `runtimeExtra` said "use Wi-Fi",
+   which is someone else's judgement about the user's connection. Once `state.info`
    exists the dialog says `First use downloads 467.3 MiB` and lets them make it.
 3. **Sources are named where consent is given, not everywhere.** The box's step
    note under `Download model · <size>` names jsDelivr and Hugging Face at the
    click that fetches them. Repeating it in the dialog — next to "model
-   metadata, not model weights" — mostly raised the question "then where do the
+   setup metadata, not model weights" — mostly raised the question "then where do the
    weights come from?" without a decision attached. It moved to `Model details`.
 4. **A preference is not a question.** The dialog carries no permission
    checkbox. The only switch that survives, `aiAutoCheck`, lives in Settings
@@ -225,7 +227,7 @@ three: `Downloading model…` only while `state.progress` is non-null **and**
 full download and its sources again.
 
 Progress is the runtime's aggregate `progress_total` only, shown as one
-percentage. transformers.js 4.2.0 emits it right before every per-file
+percentage. transformers.js 4.3.0 emits it right before every per-file
 `progress`; forwarding both made the bar alternate between the overall and the
 per-file figure at twice the message rate. The tokenizer files have no
 aggregate, so their ticks arrive with `progress: null` — an indeterminate bar,
@@ -264,12 +266,12 @@ current text.
 
 | What | Value | Why |
 | --- | --- | --- |
-| Runtime | `@huggingface/transformers@4.2.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. Loaded with a dynamic `import()` inside the worker, so no npm or lockfile dependency is added. |
+| Runtime | `@huggingface/transformers@4.3.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. Loaded with a dynamic `import()` inside the worker, so no npm or lockfile dependency is added. |
 | Model | `onnx-community/Qwen2.5-0.5B-Instruct`, revision `cc5cc01a…`, dtype `q4f16` | 467.3 MiB, Apache-2.0, fits a phone GPU. |
 | Prompt budget | 6,000 chars / 1,024 tokens of the rendered chat template | Rejected, never silently truncated. |
 | Output budget | 256 new tokens, `do_sample: false`, `logits_processor: [createRepetitionGuard(promptLength)]` | Deterministic and bounded. Pure greedy decoding on this 0.5B model degenerates into repeating one token to the budget — measured on real hardware: one word repeated ~80 times. A repetition penalty of 1.1 plus a 3-gram block ended it. They are applied by `repetition.ts` to **generated tokens only**: the built-in `repetition_penalty` / `no_repeat_ngram_size` see `all_input_ids`, prompt included, which forbade translate, rewrite and summarize from copying any 3-token span of the input — names, numbers, URLs, code, CJK text. The guard is incremental (O(1) amortized per step) where the built-in n-gram processor rebuilt a JSON-keyed map over the whole sequence every token. Neither introduces sampling. |
 
-`loadRuntime` asserts `env.version === '4.2.0'` so an unexpected CDN payload
+`loadRuntime` asserts `env.version === '4.3.0'` so an unexpected CDN payload
 becomes a load error instead of a half-initialized engine.
 
 ### Caches
@@ -277,12 +279,13 @@ becomes a load error instead of a half-initialized engine.
 | Cache | Contents |
 | --- | --- |
 | `magic-box-local-ai-<runtime>-<revision>-<dtype>` | model weights and the ORT wasm/factory files |
-| `magic-box-local-ai-runtime-v1` | the pinned runtime module (Workbox `CacheFirst`) |
+| `magic-box-local-ai-runtime-v2` | the pinned runtime module (Workbox `CacheFirst`) |
 
 The model cache key carries the runtime version, model revision and dtype, so
-bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes only
-these two caches — never Workbox's app caches, and never another feature's
-storage. Close Local AI in other tabs first: another tab can repopulate a shared
+bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes every
+cache in the reserved `magic-box-local-ai-` namespace, including older runtime
+and model versions. Workbox's app caches and other features' storage are
+untouched. Close Local AI in other tabs first: another tab can repopulate a shared
 cache while this one deletes it.
 
 Workbox's 4 MiB `maximumFileSizeToCacheInBytes` precache budget is untouched;
@@ -419,12 +422,12 @@ Automated (`bun run test`):
 - `src/features/local-ai/__test__/repetition.test.ts` — the prompt is never
   penalized or banned, answer trigrams are, and the incremental guard equals a
   from-scratch scan.
-- `src/features/local-ai/__test__/engine.test.ts` — metadata-only inspection,
+- `src/features/local-ai/__test__/engine.test.ts` — pinned-size/cache-only inspection,
   single-flight load, warm-up failure handling, streaming and output budget,
   over-budget rejection, cancel delivery, quota mapping, aggregate-only
   progress, and the answer-scoped logits processor in place of the built-ins.
 - `src/features/local-ai/__test__/LocalAIPanel.test.tsx` — checking on open and
-  its persistence, the measured size, run preconditions, streaming,
+  its persistence, the pinned exact size, run preconditions, streaming,
   settled-output publishing, sanitized errors, and the carried-prompt rules:
   no worker while unloaded, one run per prompt (also across a remount), a stale
   run stopped when the prompt changes, honoring `aiAutoRun`, task and language;
@@ -442,9 +445,11 @@ Automated (`bun run test`):
 - `src/features/local-ai/__test__/LocalAIModelSettings.test.tsx` — provisioning
   from Settings with no box mounted: no worker on render, the same two steps,
   sanitized errors, Stop for its own download, and a cache deletion that
-  terminates the worker first and touches only this feature's two caches.
+  terminates the worker first and touches only this feature's cache namespace.
+- `src/features/local-ai/__test__/caches.test.ts` — deleting current and older
+  AI downloads while preserving unrelated caches, and sanitized storage errors.
 - `src/features/local-ai/__test__/core.test.ts` also covers `describeSetupStep`
-  (metadata before a quoted size, the source note on every download step, the
+  (device/cache check before a quoted size, the source note on every download step, the
   cached variant, localization) and `describePhase`.
 - `src/contexts/__test__/PreferencesContext.test.tsx` — `ai*` defaults and the
   rejection of unknown stored task/language values.
