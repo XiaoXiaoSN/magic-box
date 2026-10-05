@@ -3,7 +3,9 @@
 > Browser and terminal tools for converting, decoding, generating and inspecting text.
 
 - [Interactive tool list](https://mb.10oz.tw/list)
-- [Usage and development](https://github.com/XiaoXiaoSN/magic-box/blob/main/README.md)
+- [Usage and examples](https://github.com/XiaoXiaoSN/magic-box/blob/main/README.md)
+- [Complete tool reference](https://github.com/XiaoXiaoSN/magic-box/blob/main/docs/tools.md)
+- [Developer guide](https://github.com/XiaoXiaoSN/magic-box/blob/main/DEVELOPER.md)
 - [Terminal UI](https://github.com/XiaoXiaoSN/magic-box/blob/main/docs/terminal-ui.md)
 
 ## Tools
