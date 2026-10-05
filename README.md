@@ -19,12 +19,14 @@
 
 ---
 
+Convert, decode, generate and inspect text in one place.
+[Open Magic Box](https://mb.10oz.tw/) · [Browse tools](https://mb.10oz.tw/list)
+
 ## Usage 🏁
 
 Magic Box parses user input into two parts: `input` and `options`.
 
-For example, when Magic Box receives the following user input:
-The input will be `https://youtu.be/dQw4w9WgXcQ` and the option key is `shorten` with the value `document`.
+For example, this input shortens a URL using the alias `document`:
 
 ```
 https://youtu.be/dQw4w9WgXcQ
@@ -33,10 +35,8 @@ https://youtu.be/dQw4w9WgXcQ
 
 Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. `::option=` with nothing after `=` is the same as a bare `::option`.
 
-Based on matching methods, we can roughly classify Boxes into two types:
-
-1. match by the `input` string
-2. match by `options`
+Tools match either the input itself (such as a color or timestamp) or an
+explicit option (such as `::sha256`).
 
 ### Keyboard Shortcuts ⌨️
 
@@ -45,6 +45,14 @@ Based on matching methods, we can roughly classify Boxes into two types:
 - Ctrl + p: move to the previous Box
 - Enter: copy the selected Box output to clipboard
 - Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
+
+## Tools 🧰
+
+Browse the [interactive tool list](https://mb.10oz.tw/list) or the
+[complete tool reference](docs/tools.md) for every tool's description, example
+and options. Tools disabled by default can be enabled in Settings.
+
+Expand the examples below for usage tips and screenshots.
 
 <details>
 <summary> <b>ColorBox</b> </summary>
@@ -76,8 +84,10 @@ Based on matching methods, we can roughly classify Boxes into two types:
 
 | options                          | description                             | example     |
 | -------------------------------- | --------------------------------------- | ----------- |
-| `l`, `lang`, `locate`            | select while human language             | ::locale=tw |
-| ~~`tz`, `timezone`, `tzOffset`~~ | (deprecated) shift to the base timezone | ::tz=8      |
+| `l`, `lang`, `locale`            | select the output language             | ::locale=tw |
+
+Cron uses the app locale unless overridden by one of these options. It does
+not shift schedules with a timezone option.
 
 </details>
 
@@ -153,7 +163,7 @@ Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a 
 | `sha256` | compute SHA-256 digest                   | `::sha256`   |
 | `sha512` | compute SHA-512 digest                   | `::sha512`   |
 
-MD5 is intentionally omitted — it is not available in Web Crypto, and adding an npm dependency for a broken algorithm is not worthwhile.
+MD5 is not supported.
 
 </details>
 
@@ -178,44 +188,24 @@ MD5 is intentionally omitted — it is not available in Web Crypto, and adding a
 <details>
 <summary> <b>LocalAIBox</b> (experimental) </summary>
 
-Runs a small language model entirely in the browser with WebGPU. Opening the box
-measures the real download by itself, so setup is a single button already
-labelled with what it costs: **Download model · <size>** — or **Load model ·
-<size>** when the files are cached. That click is the consent, and no weights are
-fetched before it, on any visit. Turn **Check the model automatically** off in
-**Settings → Local AI** to make the check a click too. You can also download it
-ahead of time from **Settings → Local AI**. Prompts and answers stay in the
-page: they never reach a server or the search history, and telemetry is muted
-for the rest of the visit once the box is open. See [docs/local-ai.md](docs/local-ai.md).
+Ask, translate, rewrite or summarize with a model running locally in your
+browser. Open it with `::ai` or `::localai`, then choose **Download model**
+to get started. Requires HTTPS and a WebGPU browser with `shader-f16`.
 
-Text written in front of the directive — or after it on the same line, as in
-`::ai what is WebGPU?` — is the prompt, so `say hello` + `::ai` runs as soon as
-the model is loaded in that tab — the box says when a
-prompt came from the input, and a share link you create would carry it. Turn
-**Auto-run input prompts** off in Settings → Local AI to always press **Run
-locally** yourself.
+```text
+Explain what WebGPU is
+::ai
+```
 
-| match rule                         | description                                   | example      |
-| ---------------------------------- | --------------------------------------------- | ------------ |
-| contains option `ai` or `localai`  | open the on-device assistant panel            | `::ai`       |
-
-| options            | description                                                   | example      |
-| ------------------ | ------------------------------------------------------------- | ------------ |
-| `ai`, `localai`    | ask, translate, rewrite or summarize with a local model        | `say hello\n::ai` |
-
-Requires HTTPS and a WebGPU browser with `shader-f16`. The model is
-Qwen2.5-0.5B-Instruct (`q4f16`, 467.3 MiB) at a pinned revision; prompts are
-capped at 1,024 tokens and answers at 256 tokens. Small-model answers can be
-wrong, and there is no cloud or CPU fallback.
+Prompts stay on the device. A prompt supplied with the input runs when the
+model is loaded unless **Auto-run input prompts** is disabled in Settings.
+See the [Local AI guide](docs/local-ai.md) for model size, setup and privacy
+controls.
 
 </details>
 
 <details>
 <summary> <b>MathExpressionBox</b> </summary>
-
-Powered by the in-tree [`math-box`](wasmModules/math-box/) WASM module —
-a clean-room expression evaluator written in Rust, replacing `mathjs` since
-v0.2 to keep the bundle small and the licence pure MIT/Apache-2.0.
 
 | match rule         | description               | output                       |
 | ------------------ | ------------------------- | ---------------------------- |
@@ -231,9 +221,8 @@ Supported syntax (highlights):
 - complex numbers: `(2 + 3*i) * (2 - 3*i)` → `13`
 - units: `1 km + 500 m to m` → `1500 m` (length / mass / time SI)
 
-See [wasmModules/math-box/NOTES.md](wasmModules/math-box/NOTES.md) for the
-full design and roadmap, and
-[BENCHMARK.md](wasmModules/math-box/BENCHMARK.md) for performance vs `mathjs`.
+See the [math-box README](wasmModules/math-box/README.md) for the
+implemented syntax, numeric behavior and limits.
 
 </details>
 
@@ -251,7 +240,7 @@ full design and roadmap, and
 
 | match rule          | description                                                                                    | output            |
 | ------------------- | ---------------------------------------------------------------------------------------------- | ----------------- |
-| input matches `now` | show current time in 3 difference formats: `RFC 3339`, `RFC 3339 (UTC+8)`, and `Timestamp (s)` | ![](docs/Now.png) |
+| input matches `now` | show RFC 3339 in UTC and the preferred timezone (default UTC+8), plus Unix timestamp | ![](docs/Now.png) |
 
 </details>
 
@@ -355,88 +344,33 @@ full design and roadmap, and
 
 </details>
 
-## Development ⛑️
+<details>
+<summary> <b>DiceRollBox</b> (disabled by default) </summary>
 
-It is recommended to use Node.js version 22.x
+Enable **Dice Roll** in Settings, then enter `::roll` on its own line for one
+six-sided die, or `::roll=3` for three dice (up to 20).
 
-```bash
-pnpm build:wasm
-pnpm install
-pnpm start
-```
+![Dice Roll output](docs/DiceRoll.png)
 
-### Development Commands
-
-- `pnpm build:wasm` - Build WASM modules before development/deployment (required for base64-box dependency)
-- `pnpm start` - Start development server on port 3000
-- `pnpm build` - Build for production (runs TypeScript compiler + Vite build)
-- `pnpm test` - Run unit tests with Vitest
-- `pnpm test:ui` - Run tests with Vitest UI
-- `pnpm lint` - Run Biome check
-- `pnpm lint:fix` - Run Biome check with auto-fix
-- `pnpm test:e2e` - Run Cypress E2E tests
-- `pnpm cypress` - Open Cypress test runner
-
-### Testing
-
-- Unit tests use Vitest with jsdom environment
-- E2E tests use Cypress with custom commands in `cypress/support/`
-
-### Prepare Deploy
-
-Initial Deployment Preparation
-
-```bash
-npm install -g firebase-tools
-
-firebase login
-firebase init
-```
-
-```bash
-firebase deploy
-```
+</details>
 
 ## Terminal UI (TUI) 🖥️
 
-Magic Box ships an experimental terminal UI built with [ink](https://github.com/vadimdemedes/ink) (React for the terminal). It runs a subset of boxes headlessly in Node — no browser, no WASM, no network.
-
-### Usage
+Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup):
 
 ```bash
-# pass input as a CLI argument
 bun run tui "uuid"
-
-# pipe input via stdin
-echo "1700000000" | bun run tui
-
-# inline ::option directives work too (newline-separated)
 printf 'uuid\n::uppercase' | bun run tui
-
-# no argument and a TTY → interactive prompt (type and press Enter)
-bun run tui
+bun run tui --json '1 + 2 * 3'
 ```
 
-A `magic-box-tui` bin is also exposed via `package.json`'s `bin` field.
+See the [terminal guide](docs/terminal-ui.md) for interactive mode, Node usage,
+preferences and supported tools.
 
-### How it works
+## Development ⛑️
 
-The box-generation core (`src/modules/Box.ts`, `BoxBuilder`, `BoxSource`) is framework-agnostic: it no longer imports any React/MUI template. Each box carries `name` / `plaintextOutput` / `tag` / `kind` / `options` and leaves `boxTemplate` undefined; the web layer (`BoxCard` / `BoxModal`) falls back to `DefaultBoxTemplate`, while the TUI simply renders `plaintextOutput`. This lets the headless sources import cleanly under Node with zero MUI in the module graph (`src/tui/`).
-
-### Foundation limitations
-
-This is a foundation, not full parity. The TUI runs only node-safe sources (`src/tui/sources.ts`):
-
-| Enabled | Excluded | Reason for exclusion |
-| --- | --- | --- |
-| Escape String, Cron, Date Calculate, Now, Random Integer, Readable Bytes, Time Format, Timestamp, URL Decode, UUID | Base64 (encode/decode) | depends on the `base64-box` WASM module |
-| | Math Expression | depends on the `math-box` WASM module |
-| | Data Converter, JWT | render via `CodeBoxTemplate` (React/MUI) |
-| | Generate QR Code | renders via `QRCodeBoxTemplate` (React/MUI, browser canvas) |
-| | K8s Secret, Word Count | render via `KeyValueBoxTemplate` (React/MUI) |
-| | My IP, Shorten URL | perform network `fetch` |
-
-Excluded sources can be added later by giving them plaintext-only headless paths (e.g. WASM bindings loaded from disk, or rendering their `plaintextOutput` without the React template).
+See [DEVELOPER.md](DEVELOPER.md) for setup, development commands, testing,
+documentation maintenance and deployment.
 
 ## License 📃
 

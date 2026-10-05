@@ -6,6 +6,8 @@ export interface BoxSource {
   name: string;
   description: string;
   defaultInput: string;
+  // Shared option definitions for sources that delegate parsing to a helper.
+  optionKeys?: readonly string[];
   tag: string;
   kind: string;
   priority?: number;

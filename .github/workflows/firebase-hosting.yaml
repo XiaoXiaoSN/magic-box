@@ -48,6 +48,9 @@ jobs:
       - name: Setup Environment
         uses: ./.github/actions/setup-env
 
+      - name: Check generated tool documentation
+        run: bun run docs:check
+
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
