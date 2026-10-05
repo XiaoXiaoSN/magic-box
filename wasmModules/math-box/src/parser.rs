@@ -197,7 +197,7 @@ impl<'a> Parser<'a> {
             let op_tok = &self.peek().tok;
 
             // `to` keyword for unit conversion: `expr to label`. low-binding
-            // so it sits below comparison/equality. RHS must be a single
+            // so it sits below arithmetic. RHS must be a single
             // identifier matching a known SI unit.
             if let Tok::Ident(name) = op_tok
                 && name == "to"
@@ -345,12 +345,12 @@ impl<'a> Parser<'a> {
     }
 }
 
-// see NOTES.md §2.2 — derived from public precedence convention.
+// See README.md, "Precedence", for the implemented expression operators.
 fn prefix_bp_unary() -> u8 {
     110
 }
 
-// `to` sits below comparison so `a + b to m` parses as `(a + b) to m`,
+// `to` sits below arithmetic so `a + b to m` parses as `(a + b) to m`,
 // which mathjs follows. assignments (`=`) are still lower so `x = 1 m to cm`
 // binds the converted value.
 const TO_BP: u8 = 60;

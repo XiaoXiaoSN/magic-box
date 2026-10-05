@@ -1,4 +1,5 @@
 import {
+  JSON_TOOL_OPTION_KEYS,
   type RequestedJsonTool,
   requestedJsonTools,
 } from '@functions/json/commands';
@@ -77,6 +78,7 @@ function runTool(tool: RequestedJsonTool, input: string): JsonToolResult {
 }
 
 export const JsonToolsBoxSource = {
+  optionKeys: JSON_TOOL_OPTION_KEYS,
   defaultDisabled: true,
   name: SOURCE_NAME,
   description:
