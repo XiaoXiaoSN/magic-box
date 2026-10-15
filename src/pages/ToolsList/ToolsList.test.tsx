@@ -25,6 +25,9 @@ const RouterState = () => {
       <button onClick={() => navigate(-1)} type="button">
         Back
       </button>
+      <button onClick={() => navigate('/list')} type="button">
+        Open list
+      </button>
     </>
   );
 };
@@ -130,6 +133,31 @@ describe('/list preview input state', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
+  });
+
+  it('updates shared input after same-tool router back navigation', async () => {
+    renderPage(
+      [
+        '/list?box=Word%20Count&input=FIRST',
+        '/list?box=Word%20Count&input=SECOND',
+      ],
+      1,
+    );
+
+    expect(await screen.findByDisplayValue('SECOND')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(await screen.findByDisplayValue('FIRST')).toBeInTheDocument();
+  });
+
+  it('resets shared input when the same-tool route removes its input', async () => {
+    renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
+
+    expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open list' }));
+
+    const input = await screen.findByRole('textbox', { name: '' });
+    expect(input).toHaveValue(WordCountBoxSource.defaultInput);
   });
 
   it('runs the selected source once after input settles', async () => {

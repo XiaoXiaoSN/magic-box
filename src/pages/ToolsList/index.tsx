@@ -352,6 +352,10 @@ const PreviewPane = ({
     return () => window.clearTimeout(id);
   }, [input]);
 
+  useEffect(() => {
+    setInput(initialInput ?? source.defaultInput ?? '');
+  }, [initialInput, source.defaultInput]);
+
   return (
     <div className="preview-stack">
       <div className="preview-meta">
