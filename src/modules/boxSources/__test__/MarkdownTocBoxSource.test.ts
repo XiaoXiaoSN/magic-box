@@ -194,6 +194,36 @@ describe('MarkdownTocBoxSource', () => {
     expect(boxes[0].props.plaintextOutput).toBe('- [link](#link)');
   });
 
+  it('strips nested emphasis sharing a three-marker closing run', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## **bold *italic***',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [bold italic](#bold-italic)',
+    );
+  });
+
+  it('strips inverse nested emphasis sharing a three-marker closing run', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## *italic **bold***',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [italic bold](#italic-bold)',
+    );
+  });
+
+  it('keeps unmatched emphasis delimiters literal', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## **unclosed\n## unclosed*',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\*\\*unclosed](#unclosed)\n- [unclosed\\*](#unclosed-1)',
+    );
+  });
+
   it('keeps escaped markup and code-span text literal in the label', async () => {
     const delimiter = String.fromCharCode(96);
     const input =

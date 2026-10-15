@@ -18,6 +18,11 @@ interface InlineLinks {
   closing: Map<number, number>;
 }
 
+interface EmphasisOpener {
+  index: number;
+  remaining: number;
+}
+
 function isMarkdownEscape(text: string, index: number): boolean {
   if (text[index] !== '\\' || index + 1 === text.length) return false;
   const code = text.charCodeAt(index + 1);
@@ -170,7 +175,7 @@ function findEmphasis(
   codeSpans: Map<number, number>,
   links: InlineLinks,
 ): Map<number, number> {
-  const openers = new Map<string, number[]>();
+  const openers = new Map<string, EmphasisOpener[]>();
   const markers = new Map<number, number>();
 
   for (let index = 0; index < text.length; ) {
@@ -214,20 +219,33 @@ function findEmphasis(
         delimiter === '_'
           ? rightFlanking && (!leftFlanking || afterPunctuation)
           : rightFlanking;
-      const key = delimiter + length;
+      let remaining = length;
 
       if (canClose) {
-        const stack = openers.get(key);
-        const opening = stack?.pop();
-        if (opening !== undefined) {
-          markers.set(opening, length);
-          markers.set(index, length);
+        const stack = openers.get(delimiter);
+        while (remaining > 0 && stack && stack.length > 0) {
+          const opening = stack[stack.length - 1];
+          const matchedLength =
+            delimiter === '~'
+              ? 2
+              : opening.remaining >= 2 && remaining >= 2
+                ? 2
+                : 1;
+
+          markers.set(
+            opening.index,
+            (markers.get(opening.index) ?? 0) + matchedLength,
+          );
+          markers.set(index, (markers.get(index) ?? 0) + matchedLength);
+          opening.remaining -= matchedLength;
+          remaining -= matchedLength;
+          if (opening.remaining === 0) stack.pop();
         }
       }
-      if (canOpen) {
-        const stack = openers.get(key) ?? [];
-        stack.push(index);
-        openers.set(key, stack);
+      if (canOpen && remaining > 0) {
+        const stack = openers.get(delimiter) ?? [];
+        stack.push({ index: index + length - remaining, remaining });
+        openers.set(delimiter, stack);
       }
       index += length;
     } else {
