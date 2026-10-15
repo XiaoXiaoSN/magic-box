@@ -131,4 +131,29 @@ describe('UrlParseBoxSource', () => {
       expect(boxes).toHaveLength(0);
     });
   });
+
+  it.each([
+    ['localhost:3000', 'localhost', '3000', '/'],
+    ['example.com:8080/path', 'example.com', '8080', '/path'],
+  ])('parses a bare host and port: %s', async (input, host, port, path) => {
+    const boxes = await UrlParseBoxSource.generateBoxes(input, {
+      urlparse: true,
+    });
+    expect(boxes[0].props.options).toMatchObject({
+      Protocol: 'https',
+      Host: host,
+      Port: port,
+      Path: path,
+    });
+  });
+
+  it('rejects embedded newlines instead of joining URL components', async () => {
+    const boxes = await UrlParseBoxSource.generateBoxes(
+      'https://a.com/x\ny?q=1',
+      { urlparse: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      'Invalid URL: https://a.com/x\ny?q=1',
+    );
+  });
 });

@@ -40,4 +40,18 @@ describe('WordCountBoxSource', () => {
     const boxes = await WordCountBoxSource.generateBoxes(input);
     expect(boxes).toHaveLength(0);
   });
+
+  it.each([
+    ['😀', '1'],
+    ['e\u0301', '1'],
+    ['👨‍👩‍👧', '1'],
+  ])('counts grapheme clusters in %s', async (input, characters) => {
+    const boxes = await WordCountBoxSource.generateBoxes(input);
+    expect(boxes[0].props.options).toMatchObject({ characters });
+  });
+
+  it('segments CJK text into words', async () => {
+    const boxes = await WordCountBoxSource.generateBoxes('你好世界 こんにちは');
+    expect(boxes[0].props.options).toMatchObject({ words: '3' });
+  });
 });

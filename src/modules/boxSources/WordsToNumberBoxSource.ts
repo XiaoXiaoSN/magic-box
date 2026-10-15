@@ -8,6 +8,8 @@ const MAX_INPUT = 1000;
 // maps unit words (zero–nineteen) to their numeric values
 const UNITS: Record<string, number> = {
   zero: 0,
+  a: 1,
+  an: 1,
   one: 1,
   two: 2,
   three: 3,
@@ -54,39 +56,144 @@ type ParseResult =
   | { ok: true; value: number }
   | { ok: false; unrecognized: string };
 
-/** Converts a list of normalised word tokens into an integer using standard accumulation. */
-function parseWords(words: string[]): ParseResult {
-  let result = 0;
-  let current = 0;
-  let negative = false;
+interface ParsedGroup {
+  value: number;
+  next: number;
+}
 
-  for (const word of words) {
-    if (word === 'negative' || word === 'minus') {
-      negative = true;
-      continue;
-    }
-    if (word === 'and') {
-      continue;
-    }
+function parseGroup(words: string[], start: number): ParsedGroup | null {
+  let index = start;
+  const first = words[index];
+  let value: number;
+  let hasHundred = false;
 
-    if (Object.hasOwn(UNITS, word)) {
-      current += UNITS[word];
-    } else if (Object.hasOwn(TENS, word)) {
-      current += TENS[word];
-    } else if (word === 'hundred') {
-      // hundred multiplies only the sub-hundred accumulator, not the full result
-      current = current === 0 ? 100 : current * 100;
-    } else if (Object.hasOwn(SCALES, word)) {
-      // thousand and above: flush current into result scaled up, then reset current
-      result += current * SCALES[word];
-      current = 0;
+  if (first === 'hundred') {
+    value = 100;
+    hasHundred = true;
+    index++;
+  } else if (Object.hasOwn(UNITS, first)) {
+    value = UNITS[first];
+    if (value >= 1 && value <= 9 && words[index + 1] === 'hundred') {
+      value *= 100;
+      hasHundred = true;
+      index += 2;
     } else {
+      index++;
+    }
+  } else if (Object.hasOwn(TENS, first)) {
+    value = TENS[first];
+    index++;
+  } else {
+    return null;
+  }
+
+  if (hasHundred) {
+    if (Object.hasOwn(TENS, words[index])) {
+      value += TENS[words[index]];
+      index++;
+      const unit = words[index];
+      if (Object.hasOwn(UNITS, unit) && UNITS[unit] >= 1 && UNITS[unit] <= 9) {
+        value += UNITS[unit];
+        index++;
+      }
+    } else if (Object.hasOwn(UNITS, words[index])) {
+      const unit = UNITS[words[index]];
+      if (unit < 1 || unit > 19) return null;
+      value += unit;
+      index++;
+    }
+  } else if (value >= 20) {
+    const unit = words[index];
+    if (Object.hasOwn(UNITS, unit) && UNITS[unit] >= 1 && UNITS[unit] <= 9) {
+      value += UNITS[unit];
+      index++;
+    }
+  }
+
+  return { value, next: index };
+}
+
+function isScale(word: string): boolean {
+  return Object.hasOwn(SCALES, word);
+}
+
+function isGroupStart(word: string): boolean {
+  return (
+    word === 'hundred' ||
+    Object.hasOwn(UNITS, word) ||
+    Object.hasOwn(TENS, word)
+  );
+}
+
+function parseWords(words: string[]): ParseResult {
+  let negative = false;
+  let normalized = words;
+  if (words[0] === 'negative' || words[0] === 'minus') {
+    negative = true;
+    normalized = words.slice(1);
+  }
+
+  if (
+    normalized.length === 0 ||
+    normalized.some((word) => word === 'negative' || word === 'minus')
+  ) {
+    return { ok: false, unrecognized: words.join(' ') };
+  }
+
+  const parsedWords: string[] = [];
+  for (let index = 0; index < normalized.length; index++) {
+    const word = normalized[index];
+    if (word !== 'and') {
+      parsedWords.push(word);
+      continue;
+    }
+
+    const previous = normalized[index - 1];
+    const next = normalized[index + 1];
+    if (
+      (previous !== 'hundred' && !isScale(previous)) ||
+      next === undefined ||
+      !isGroupStart(next)
+    ) {
       return { ok: false, unrecognized: word };
     }
   }
 
-  result += current;
-  return { ok: true, value: negative ? -result : result };
+  let total = 0;
+  let previousScale = Number.POSITIVE_INFINITY;
+  let index = 0;
+
+  while (index < parsedWords.length) {
+    const group = parseGroup(parsedWords, index);
+    let value = 1;
+    if (group) {
+      value = group.value;
+      index = group.next;
+    }
+
+    const scaleWord = parsedWords[index];
+    if (scaleWord !== undefined && isScale(scaleWord)) {
+      const scale = SCALES[scaleWord];
+      if (scale >= previousScale) {
+        return { ok: false, unrecognized: scaleWord };
+      }
+      total += value * scale;
+      previousScale = scale;
+      index++;
+    } else if (group && index === parsedWords.length) {
+      total += value;
+    } else {
+      return {
+        ok: false,
+        unrecognized: parsedWords[index] ?? words.join(' '),
+      };
+    }
+  }
+
+  if (!Number.isSafeInteger(total)) {
+    return { ok: false, unrecognized: words.join(' ') };
+  }
+  return { ok: true, value: negative ? -total : total };
 }
 
 export const WordsToNumberBoxSource = {
@@ -114,6 +221,7 @@ export const WordsToNumberBoxSource = {
     // normalise: lowercase, replace hyphens with spaces, split on whitespace
     const words = input
       .toLowerCase()
+      .replace(/[,.]/g, '')
       .replace(/-/g, ' ')
       .trim()
       .split(/\s+/)

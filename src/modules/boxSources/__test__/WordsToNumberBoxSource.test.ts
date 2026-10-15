@@ -136,4 +136,32 @@ describe('WordsToNumberBoxSource', () => {
       expect(boxes[0].view).toBe('default');
     });
   });
+
+  it.each([
+    ['one thousand, two hundred', '1200'],
+    ['a hundred', '100'],
+    ['an hundred', '100'],
+    ['thousand', '1000'],
+    ['twenty-three', '23'],
+    ['minus two million three thousand', '-2003000'],
+  ])('parses grammatical number words: %s', async (input, expected) => {
+    const boxes = await WordsToNumberBoxSource.generateBoxes(input, {
+      wordstonum: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe(expected);
+  });
+
+  it.each([
+    'one two three',
+    'twenty thirty',
+    'two million million',
+    'five minus two',
+    'minus',
+    'and',
+  ])('rejects invalid number grammar: %s', async (input) => {
+    const boxes = await WordsToNumberBoxSource.generateBoxes(input, {
+      wordstonum: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toMatch(/couldn't parse/i);
+  });
 });

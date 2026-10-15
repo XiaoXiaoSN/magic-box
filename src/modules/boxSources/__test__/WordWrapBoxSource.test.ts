@@ -113,4 +113,12 @@ describe('WordWrapBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('    hello world');
     });
   });
+
+  it('counts leading indentation toward the first wrapped line width', async () => {
+    const boxes = await WordWrapBoxSource.generateBoxes(
+      'x\n    aaaa bbbb cccc',
+      { wrap: '9' },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('x\n    aaaa\nbbbb cccc');
+  });
 });

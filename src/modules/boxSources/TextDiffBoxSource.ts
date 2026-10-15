@@ -48,7 +48,7 @@ export const TextDiffBoxSource = {
           .build(),
       ];
     }
-    const result = computeDiff(input);
+    const result = computeDiff(input.replace(/\r\n?/g, '\n'));
     return [
       new BoxBuilder('Text Diff', result.ok ? result.output : result.message)
         .setOptions({ language: result.ok ? 'diff' : 'plaintext' })

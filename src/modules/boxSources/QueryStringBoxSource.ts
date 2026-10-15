@@ -6,7 +6,14 @@ const Priority = 10;
 const MAX_INPUT = 100_000;
 
 function qsToJson(input: string): string {
-  const stripped = input.startsWith('?') ? input.slice(1) : input;
+  let stripped = input;
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(input)) {
+    stripped = new URL(input).search.slice(1);
+  } else {
+    if (stripped.startsWith('?')) stripped = stripped.slice(1);
+    const fragmentIndex = stripped.indexOf('#');
+    if (fragmentIndex !== -1) stripped = stripped.slice(0, fragmentIndex);
+  }
   const params = new URLSearchParams(stripped);
 
   // use Object.create(null) so the result has no inherited prototype
@@ -40,12 +47,16 @@ function jsonToQs(input: string): string {
     const encodedKey = encodeURIComponent(key);
     if (Array.isArray(value)) {
       for (const item of value) {
+        if (item !== null && typeof item === 'object') {
+          throw new Error('Input must be a flat JSON object');
+        }
         parts.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
       }
     } else if (value !== null && typeof value === 'object') {
       // a nested object can't be a query-string value; the contract is flat
       throw new Error('Input must be a flat JSON object');
     } else {
+      // null is a scalar and is serialized as the literal query value `null`.
       parts.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
     }
   }

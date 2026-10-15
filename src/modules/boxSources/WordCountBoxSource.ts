@@ -1,4 +1,5 @@
 import { isString, trim } from '@functions/helper';
+import { countGraphemes, countWords } from '@functions/unicode';
 import type { Box } from '@modules/Box';
 import { keyValueBox } from '@modules/Box';
 
@@ -13,13 +14,6 @@ function countLines(str: string) {
     return 0;
   }
   return (str.match(/\n/g) ?? []).length + 1;
-}
-
-function countWords(str: string) {
-  if (str.trim() === '') {
-    return 0;
-  }
-  return str.trim().split(/\s+/).length;
 }
 
 export const WordCountBoxSource = {
@@ -53,7 +47,7 @@ i'mdifficult
 
     const lines = countLines(match.text);
     const words = countWords(match.text);
-    const characters = match.text.length;
+    const characters = countGraphemes(match.text);
 
     const output: Record<string, string> = {
       lines: lines.toString(),

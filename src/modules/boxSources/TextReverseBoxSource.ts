@@ -1,4 +1,5 @@
 import { isString } from '@functions/helper';
+import { graphemes } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -9,7 +10,7 @@ export const TextReverseBoxSource = {
   defaultDisabled: true,
   name: 'Text Reverse',
   description:
-    'Reverse the characters of the input string (Unicode code-point aware).',
+    'Reverse the characters of the input string without splitting grapheme clusters.',
   defaultInput: 'hello 😀\n::reverse',
   tag: '#',
   kind: 'Transform',
@@ -23,8 +24,7 @@ export const TextReverseBoxSource = {
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    // iterate by code point so surrogate pairs (emoji, astral chars) stay intact
-    const reversed = [...input].reverse().join('');
+    const reversed = graphemes(input).reverse().join('');
 
     return [
       new BoxBuilder('Text Reverse', reversed)

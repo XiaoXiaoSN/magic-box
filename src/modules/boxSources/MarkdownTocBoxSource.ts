@@ -1,80 +1,116 @@
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import type { MarkdownIt, Token } from 'markdown-it';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
-
-// heading pattern: one to six # chars followed by at least one space and text
-const HEADING_RE = /^(#{1,6})\s+(.+)$/;
-
-// fence delimiter pattern: opening ``` or ~~~ (with optional language tag)
-const FENCE_OPEN_RE = /^(`{3,}|~{3,})/;
-
-/** converts heading text to a github-compatible anchor slug */
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-');
-}
 
 interface Heading {
   level: number;
   text: string;
 }
 
-/** parses ATX headings from markdown, skipping lines inside fenced code blocks */
-function parseHeadings(input: string): Heading[] {
-  const headings: Heading[] = [];
-  let inFence = false;
-  let fenceChar = '';
+let parserPromise: Promise<MarkdownIt> | null = null;
 
-  for (const line of input.split('\n')) {
-    if (inFence) {
-      // exit fence when we see the matching closing delimiter
-      if (line.trimStart().startsWith(fenceChar)) {
-        inFence = false;
-        fenceChar = '';
+async function loadMarkdownParser(): Promise<MarkdownIt> {
+  if (!parserPromise) {
+    parserPromise = import('markdown-it')
+      .then(
+        // tokenize raw HTML so tags can be omitted without rendering them
+        ({ default: MarkdownItParser }) => new MarkdownItParser({ html: true }),
+      )
+      .catch((error: unknown) => {
+        parserPromise = null;
+        throw error;
+      });
+  }
+  return parserPromise;
+}
+
+function visibleText(tokens: readonly Token[]): string {
+  const pending = [...tokens].reverse();
+  const visible: string[] = [];
+
+  while (pending.length > 0) {
+    const token = pending.pop() as Token;
+
+    if (token.children) {
+      for (let index = token.children.length - 1; index >= 0; index--) {
+        pending.push(token.children[index]);
       }
+    } else if (token.type === 'text' || token.type === 'code_inline') {
+      visible.push(token.content);
+    } else if (token.type === 'image') {
+      visible.push(token.content);
+    } else if (token.type === 'softbreak' || token.type === 'hardbreak') {
+      visible.push(' ');
+    }
+  }
+
+  return visible.join('');
+}
+
+/** parses top-level ATX headings and resolves their inline markdown */
+async function parseHeadings(input: string): Promise<Heading[]> {
+  const parser = await loadMarkdownParser();
+  const tokens = parser.parse(input, {});
+  const headings: Heading[] = [];
+
+  for (let index = 0; index + 1 < tokens.length; index++) {
+    const opening = tokens[index];
+    const inline = tokens[index + 1];
+    if (
+      opening.type !== 'heading_open' ||
+      opening.level !== 0 ||
+      !opening.markup.startsWith('#') ||
+      inline.type !== 'inline'
+    ) {
       continue;
     }
 
-    const fenceMatch = FENCE_OPEN_RE.exec(line.trimStart());
-    if (fenceMatch) {
-      inFence = true;
-      // keep the exact opening run; a closing fence must be at least as long
-      fenceChar = fenceMatch[1];
-      continue;
-    }
-
-    const headingMatch = HEADING_RE.exec(line);
-    if (headingMatch) {
-      const rawText = headingMatch[2];
-      // strip trailing # characters and whitespace (setext-style closers)
-      const text = rawText.replace(/\s+#+\s*$/, '').trim();
-      headings.push({ level: headingMatch[1].length, text });
-    }
+    headings.push({
+      level: Number(opening.tag.slice(1)),
+      text: visibleText(inline.children ?? []),
+    });
   }
 
   return headings;
 }
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
+    .replace(/\s/g, '-');
+}
+
 /** builds the nested bullet list string with github-style duplicate slug disambiguation */
 function buildToc(headings: Heading[]): string {
   const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
-  const slugCount = new Map<string, number>();
+  const nextSuffix = new Map<string, number>();
+  const usedSlugs = new Set<string>();
   const lines: string[] = [];
 
   for (const { level, text } of headings) {
     const baseSlug = slugify(text);
-    const count = slugCount.get(baseSlug) ?? 0;
-    slugCount.set(baseSlug, count + 1);
+    let slug = baseSlug;
 
-    // first occurrence uses the base slug; subsequent ones append -1, -2, …
-    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+    if (usedSlugs.has(slug)) {
+      let suffix = nextSuffix.get(baseSlug) ?? 1;
+      do {
+        slug = `${baseSlug}-${suffix}`;
+        suffix++;
+      } while (usedSlugs.has(slug));
+      nextSuffix.set(baseSlug, suffix);
+    }
+    usedSlugs.add(slug);
+
     const indent = ' '.repeat((level - minLevel) * 2);
-    lines.push(`${indent}- [${text}](#${slug})`);
+    const label = text
+      .replace(/([\\[\]])/g, '\\$1')
+      .replace(/([*_~<>\x60])/g, '\\$1');
+    lines.push(`${indent}- [${label}](#${slug})`);
   }
 
   return lines.join('\n');
@@ -98,7 +134,7 @@ export const MarkdownTocBoxSource = {
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    const headings = parseHeadings(input);
+    const headings = await parseHeadings(input);
 
     if (headings.length === 0) {
       return [

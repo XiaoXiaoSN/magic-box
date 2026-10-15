@@ -13,7 +13,7 @@ function cleanWhitespace(input: string): string {
       // normalize CRLF and bare-CR (old Mac) line endings to \n first
       .replace(/\r\n?/g, '\n')
       .split('\n')
-      .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+      .map((line) => line.replace(/[^\S\r\n]+/g, ' ').trim())
       .filter((line) => line.length > 0)
       .join('\n')
   );

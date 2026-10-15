@@ -134,4 +134,19 @@ describe('PunycodeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
     });
   });
+
+  it('uses browser UTS #46 normalization and extracts URL hosts', async () => {
+    const inputs = [
+      ['e\u0301.com', 'xn--9ca.com'],
+      ['ｅｘａｍｐｌｅ.com', 'example.com'],
+      ['例え。jp', 'xn--r8jz45g.jp'],
+      ['https://münchen.de/path', 'xn--mnchen-3ya.de'],
+    ];
+    for (const [input, expected] of inputs) {
+      const boxes = await PunycodeBoxSource.generateBoxes(input, {
+        punycode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(expected);
+    }
+  });
 });

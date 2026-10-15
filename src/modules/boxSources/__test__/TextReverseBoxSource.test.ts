@@ -72,4 +72,18 @@ describe('TextReverseBoxSource', () => {
       expect(second.props.plaintextOutput).toBe(original);
     });
   });
+
+  it('reverses grapheme clusters without splitting flags or accents', async () => {
+    const cases = [
+      ['🇹🇼 flag', 'galf 🇹🇼'],
+      ['e\u0301a', 'ae\u0301'],
+      ['a\r\nb', 'b\r\na'],
+    ];
+    for (const [input, expected] of cases) {
+      const boxes = await TextReverseBoxSource.generateBoxes(input, {
+        reverse: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(expected);
+    }
+  });
 });

@@ -22,7 +22,13 @@ function wrapLine(line: string, width: number): string {
   for (const word of words) {
     if (current === '') {
       current = word;
-    } else if (current.length + 1 + word.length <= width) {
+    } else if (
+      current.length +
+        (lines.length === 0 ? indent.length : 0) +
+        1 +
+        word.length <=
+      width
+    ) {
       current += ` ${word}`;
     } else {
       lines.push(current);

@@ -1,7 +1,53 @@
 import { MarkdownTocBoxSource } from '@modules/boxSources/MarkdownTocBoxSource';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const markdownItMock = vi.hoisted(() => ({
+  constructions: 0,
+  failNextConstruction: false,
+  imports: 0,
+}));
+
+vi.mock('markdown-it', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('markdown-it')>();
+  markdownItMock.imports++;
+
+  return {
+    ...actual,
+    default: class extends actual.default {
+      constructor(...args: ConstructorParameters<typeof actual.default>) {
+        markdownItMock.constructions++;
+        if (markdownItMock.failNextConstruction) {
+          markdownItMock.failNextConstruction = false;
+          throw new Error('markdown parser initialization failed');
+        }
+        super(...args);
+      }
+    },
+  };
+});
 
 describe('MarkdownTocBoxSource', () => {
+  it('loads the parser after input guards and retries failed initialization', async () => {
+    expect(markdownItMock.imports).toBe(0);
+    await MarkdownTocBoxSource.generateBoxes('# Ignored', null);
+    await MarkdownTocBoxSource.generateBoxes('x'.repeat(100_001), {
+      toc: true,
+    });
+    expect(markdownItMock.imports).toBe(0);
+
+    markdownItMock.failNextConstruction = true;
+    await expect(
+      MarkdownTocBoxSource.generateBoxes('# Retry', { toc: true }),
+    ).rejects.toThrow('markdown parser initialization failed');
+    const boxes = await MarkdownTocBoxSource.generateBoxes('# Retry', {
+      toc: true,
+    });
+
+    expect(markdownItMock.imports).toBe(1);
+    expect(markdownItMock.constructions).toBe(2);
+    expect(boxes[0].props.plaintextOutput).toBe('- [Retry](#retry)');
+  });
+
   describe('option gating', () => {
     it('returns [] when no option is provided', async () => {
       const boxes = await MarkdownTocBoxSource.generateBoxes(
@@ -71,6 +117,60 @@ describe('MarkdownTocBoxSource', () => {
       );
       expect(boxes[0].props.plaintextOutput).toBe(
         '- [A](#a)\n- [A](#a-1)\n- [A](#a-2)',
+      );
+    });
+
+    it('reserves slugs emitted before a matching suffixed heading', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## A\n## A\n## A-1',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [A](#a)\n- [A](#a-1)\n- [A-1](#a-1-1)',
+      );
+    });
+
+    it('skips a suffixed slug reserved before duplicate base headings', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## A-1\n## A\n## A',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [A-1](#a-1)\n- [A](#a)\n- [A](#a-2)',
+      );
+    });
+
+    it('reserves Unicode slugs and their explicit suffix variants', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## 安裝\n## 安裝\n## 安裝-1\n## 安裝',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [安裝](#安裝)\n- [安裝](#安裝-1)\n- [安裝-1](#安裝-1-1)\n- [安裝](#安裝-2)',
+      );
+    });
+
+    it('continues after a long reserved suffix collision chain', async () => {
+      const reserved = Array.from(
+        { length: 1_000 },
+        (_, index) => `## A-${index + 1}`,
+      );
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        ['## A', ...reserved, '## A', '## A'].join('\n'),
+        { toc: true },
+      );
+      const lines = boxes[0].props.plaintextOutput.split('\n');
+
+      expect(lines.slice(-2)).toEqual(['- [A](#a-1001)', '- [A](#a-1002)']);
+    });
+
+    it('reserves empty slugs produced by punctuation-only headings', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## !!!\n## ???\n## -1',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [!!!](#)\n- [???](#-1)\n- [-1](#-1-1)',
       );
     });
 
@@ -155,5 +255,151 @@ describe('MarkdownTocBoxSource', () => {
       expect(out).toContain('[real]');
       expect(out).not.toContain('fake');
     });
+  });
+
+  it('builds Unicode anchors and reads every CRLF heading', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '# 安裝\r\n## 使用方式\r\n## Last',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [安裝](#安裝)\n  - [使用方式](#使用方式)\n  - [Last](#last)',
+    );
+  });
+
+  it('matches GitHub whitespace anchors and strips inline markup from labels', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## A & B\n## Use `code` and [link](https://example.test)',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [A & B](#a--b)\n- [Use code and link](#use-code-and-link)',
+    );
+  });
+
+  it('preserves intraword underscores in visible labels and slugs', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes('## foo_bar_baz', {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [foo\\_bar\\_baz](#foo_bar_baz)',
+    );
+  });
+
+  it('strips emphasis and links with balanced parentheses from destinations', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [**link**](https://example.test/a_(b_(c)))',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('- [link](#link)');
+  });
+
+  it('strips nested emphasis sharing a three-marker closing run', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## **bold *italic***',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [bold italic](#bold-italic)',
+    );
+  });
+
+  it('strips inverse nested emphasis sharing a three-marker closing run', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## *italic **bold***',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [italic bold](#italic-bold)',
+    );
+  });
+
+  it('applies the rule of three to adjacent delimiter runs', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## *foo**bar***\n## *foo**bar*',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [foobar](#foobar)\n- [foo\\*\\*bar](#foobar-1)',
+    );
+  });
+
+  it('keeps delimiters literal when link precedence prevents emphasis', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes('## *[foo*](bar)', {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe('- [\\*foo\\*](#foo)');
+  });
+
+  it('extracts resolved references, image alt text, autolinks, and strikethrough', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [reference][target] ![alt *text*](image.png) <https://example.com> ~~gone~~\n\n[target]: /url',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [reference alt text https://example.com gone](#reference-alt-text-httpsexamplecom-gone)',
+    );
+  });
+
+  it('preserves unresolved reference syntax as visible text', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [missing][reference]',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\[missing\\]\\[reference\\]](#missingreference)',
+    );
+  });
+
+  it('supports emphasis delimiter runs longer than three markers', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## ****bold****\n## foo******bar*********baz',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [bold](#bold)\n- [foobar\\*\\*\\*baz](#foobarbaz)',
+    );
+  });
+
+  it('keeps unmatched emphasis delimiters literal', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## **unclosed\n## unclosed*',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\*\\*unclosed](#unclosed)\n- [unclosed\\*](#unclosed-1)',
+    );
+  });
+
+  it('keeps escaped markup and code-span text literal in the label', async () => {
+    const delimiter = String.fromCharCode(96);
+    const input =
+      '## \\*literal\\* ' +
+      delimiter +
+      'code_text' +
+      delimiter +
+      ' [**link**](https://example.test/a_(b))';
+    const boxes = await MarkdownTocBoxSource.generateBoxes(input, {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\*literal\\* code\\_text link](#literal-code_text-link)',
+    );
+  });
+
+  it('strips HTML tags and comments from labels', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## Text <!-- hidden --> <em>HTML</em>',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('- [Text  HTML](#text--html)');
+  });
+
+  it('handles a maximum-length unmatched bracket heading', async () => {
+    const heading = '['.repeat(99_997);
+    const boxes = await MarkdownTocBoxSource.generateBoxes(`## ${heading}`, {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toHaveLength(200_001);
   });
 });

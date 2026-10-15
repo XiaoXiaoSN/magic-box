@@ -1,4 +1,5 @@
 import { isString, trim } from '@functions/helper';
+import { compareCodePoints, iterateGraphemes } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -6,18 +7,16 @@ const Priority = 10;
 const MAX_INPUT = 100_000;
 const MAX_ROWS = 200;
 
-// counts non-whitespace characters by code point, returns entries sorted by
-// count descending then by codepoint ascending for stable tie-breaking
+// counts non-whitespace grapheme clusters and sorts ties by Unicode code point
 function computeFrequency(input: string): [string, number][] {
   const counts = new Map<string, number>();
-  for (const char of input) {
-    // skip whitespace (space, tab, newline, carriage return, etc.)
-    if (/\s/u.test(char)) continue;
-    counts.set(char, (counts.get(char) ?? 0) + 1);
+  for (const cluster of iterateGraphemes(input)) {
+    if (/^\s+$/u.test(cluster)) continue;
+    counts.set(cluster, (counts.get(cluster) ?? 0) + 1);
   }
   return [...counts.entries()].sort(([charA, countA], [charB, countB]) => {
     if (countB !== countA) return countB - countA;
-    return (charA.codePointAt(0) ?? 0) - (charB.codePointAt(0) ?? 0);
+    return compareCodePoints(charA, charB);
   });
 }
 

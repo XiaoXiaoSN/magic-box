@@ -171,4 +171,11 @@ describe('SortLinesBoxSource', () => {
       expect(typeof SortLinesBoxSource.priority).toBe('number');
     });
   });
+
+  it('sorts strings by Unicode code point rather than UTF-16 units', async () => {
+    const boxes = await SortLinesBoxSource.generateBoxes('😀\nＡ', {
+      sortlines: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe('Ａ\n😀');
+  });
 });

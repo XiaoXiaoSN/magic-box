@@ -10,11 +10,6 @@ import {
 const Priority = 10;
 const MAX_INPUT_LENGTH = 100;
 
-// segment regex to match duration tokens: e.g. "1.5h", "10s", "8789sec", "22sec", "1m48s", "1h3s", "500ms"
-// ordered by length of unit to avoid greedy sub-matching
-const SEGMENT_RE =
-  /(\d+(?:\.\d+)?)\s*(milliseconds|millisecond|seconds|minutes|second|minute|weeks|hours|msec|days|week|hour|sec|min|ms|wk|hr|[wdhms])/gi;
-
 const UNIT_MAP: Record<string, bigint> = {
   // milliseconds
   ms: 1n,
@@ -24,16 +19,19 @@ const UNIT_MAP: Record<string, bigint> = {
   // seconds
   s: 1000n,
   sec: 1000n,
+  secs: 1000n,
   second: 1000n,
   seconds: 1000n,
   // minutes
   m: 60000n,
   min: 60000n,
+  mins: 60000n,
   minute: 60000n,
   minutes: 60000n,
   // hours
   h: 3600000n,
   hr: 3600000n,
+  hrs: 3600000n,
   hour: 3600000n,
   hours: 3600000n,
   // days
@@ -46,6 +44,11 @@ const UNIT_MAP: Record<string, bigint> = {
   week: 604800000n,
   weeks: 604800000n,
 };
+
+const UNIT_PATTERN = Object.keys(UNIT_MAP)
+  .sort((a, b) => b.length - a.length)
+  .join('|');
+const SEGMENT_RE = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${UNIT_PATTERN})`, 'gi');
 
 interface DurationParts {
   weeks: bigint;
