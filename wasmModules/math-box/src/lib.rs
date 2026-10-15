@@ -154,8 +154,6 @@ impl Compiled {
         check_display_limit(&value).map_err(|e| e.to_string())?;
         Ok(TypedResult::from_value(&value))
     }
-
-    pub fn free(self) {}
 }
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
