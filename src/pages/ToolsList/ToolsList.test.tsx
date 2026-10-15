@@ -1,18 +1,47 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { MemoryRouter, useNavigate, useSearchParams } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../contexts/PreferencesContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
+import WordCountBoxSource from '../../modules/boxSources/WordCountBoxSource';
 import ToolsListPage from './index';
 
-const renderPage = () =>
+const RouterState = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  return (
+    <>
+      <output data-testid="router-box">{searchParams.get('box')}</output>
+      <output data-testid="router-input">{searchParams.get('input')}</output>
+      <button onClick={() => navigate(-1)} type="button">
+        Back
+      </button>
+    </>
+  );
+};
+
+const renderPage = (
+  initialEntries: string[] = ['/list'],
+  initialIndex = initialEntries.length - 1,
+) =>
   render(
     <LocaleProvider>
       <PreferencesProvider>
         <SettingsProvider>
-          <MemoryRouter initialEntries={['/list']}>
+          <MemoryRouter
+            initialEntries={initialEntries}
+            initialIndex={initialIndex}
+          >
+            <RouterState />
             <ToolsListPage />
           </MemoryRouter>
         </SettingsProvider>
@@ -29,6 +58,11 @@ beforeEach(() => {
       removeEventListener: vi.fn(),
     })),
   );
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe('/list exposes the Local AI box', () => {
@@ -70,5 +104,56 @@ describe('/list exposes the Local AI box', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('local-ai-panel')).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe('/list preview input state', () => {
+  it('uses a matching shared input and clears it when switching tools', async () => {
+    renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
+
+    expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
+
+    expect(await screen.findByDisplayValue('uuid')).toBeInTheDocument();
+    expect(screen.getByTestId('router-box')).toHaveTextContent('UUID');
+    expect(screen.getByTestId('router-input')).toHaveTextContent('');
+  });
+
+  it('hydrates a shared input after router back navigation', async () => {
+    renderPage(
+      ['/list?box=Word%20Count&input=SHARED-INPUT', '/list?box=UUID'],
+      1,
+    );
+
+    expect(await screen.findByDisplayValue('uuid')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
+  });
+
+  it('runs the selected source once after input settles', async () => {
+    vi.useFakeTimers();
+    const generateBoxes = vi.spyOn(WordCountBoxSource, 'generateBoxes');
+    renderPage(['/list?box=Word%20Count']);
+
+    const input = screen.getByRole('textbox', { name: '' });
+    fireEvent.change(input, { target: { value: 'a' } });
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    fireEvent.change(input, { target: { value: 'ab' } });
+    await act(async () => {
+      vi.advanceTimersByTime(399);
+    });
+
+    expect(generateBoxes).not.toHaveBeenCalled();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(generateBoxes).toHaveBeenCalledTimes(1);
+    expect(generateBoxes).toHaveBeenCalledWith('ab', {});
   });
 });
