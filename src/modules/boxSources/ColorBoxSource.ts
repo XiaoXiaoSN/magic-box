@@ -1,3 +1,4 @@
+import { normalizeHue } from '@functions/color';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
@@ -23,9 +24,12 @@ interface CMYK {
   k: number;
 }
 
-// parse 3/6/8-digit hex: #RGB, #RRGGBB, #RRGGBBAA
+// parse 3/4/6/8-digit hex, preserving the source alpha byte as a fraction
 function parseHex(input: string): RGBA | null {
-  const m = /^#([0-9a-fA-F]{3,8})$/.exec(input);
+  const m =
+    /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.exec(
+      input,
+    );
   if (!m) return null;
   const h = m[1];
 
@@ -35,6 +39,14 @@ function parseHex(input: string): RGBA | null {
       g: parseInt(h[1] + h[1], 16),
       b: parseInt(h[2] + h[2], 16),
       a: null,
+    };
+  }
+  if (h.length === 4) {
+    return {
+      r: parseInt(h[0] + h[0], 16),
+      g: parseInt(h[1] + h[1], 16),
+      b: parseInt(h[2] + h[2], 16),
+      a: parseInt(h[3] + h[3], 16) / 255,
     };
   }
   if (h.length === 6) {
@@ -50,18 +62,23 @@ function parseHex(input: string): RGBA | null {
       r: parseInt(h.slice(0, 2), 16),
       g: parseInt(h.slice(2, 4), 16),
       b: parseInt(h.slice(4, 6), 16),
-      a: Math.round((parseInt(h.slice(6, 8), 16) / 255) * 100) / 100,
+      a: parseInt(h.slice(6, 8), 16) / 255,
     };
   }
   return null;
 }
 
-// parse rgb(r, g, b) or rgba(r, g, b, a)
+// parse comma-separated or CSS Color 4 space-separated rgb values
 function parseRgb(input: string): RGBA | null {
-  const m =
-    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/.exec(
+  const commaMatch =
+    /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*(\d+(?:\.\d+)?%?))?\s*\)$/i.exec(
       input,
     );
+  const spaceMatch =
+    /^rgba?\(\s*(\d+)\s+(\d+)\s+(\d+)(?:\s*\/\s*(\d+(?:\.\d+)?%?))?\s*\)$/i.exec(
+      input,
+    );
+  const m = commaMatch ?? spaceMatch;
   if (!m) return null;
 
   const r = Number(m[1]);
@@ -69,29 +86,44 @@ function parseRgb(input: string): RGBA | null {
   const b = Number(m[3]);
   if (r > 255 || g > 255 || b > 255) return null;
 
-  const a = m[4] !== undefined ? Number(m[4]) : null;
+  const a =
+    m[4] === undefined
+      ? null
+      : m[4].endsWith('%')
+        ? Number(m[4].slice(0, -1)) / 100
+        : Number(m[4]);
   if (a !== null && (a < 0 || a > 1)) return null;
 
   return { r, g, b, a };
 }
 
-// parse hsl(h, s%, l%) or hsla(h, s%, l%, a)
+// parse comma-separated or CSS Color 4 space-separated hsl values
 function parseHsl(input: string): RGBA | null {
-  const m =
-    /^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%(?:\s*,\s*([\d.]+))?\s*\)$/.exec(
+  const commaMatch =
+    /^hsla?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%(?:\s*,\s*(\d+(?:\.\d+)?%?))?\s*\)$/i.exec(
       input,
     );
+  const spaceMatch =
+    /^hsla?\(\s*(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%(?:\s*\/\s*(\d+(?:\.\d+)?%?))?\s*\)$/i.exec(
+      input,
+    );
+  const m = commaMatch ?? spaceMatch;
   if (!m) return null;
 
   const h = Number(m[1]);
   const s = Number(m[2]);
   const l = Number(m[3]);
-  if (h < 0 || h >= 360 || s < 0 || s > 100 || l < 0 || l > 100) return null;
+  if (h < 0 || h > 360 || s < 0 || s > 100 || l < 0 || l > 100) return null;
 
-  const a = m[4] !== undefined ? Number(m[4]) : null;
+  const a =
+    m[4] === undefined
+      ? null
+      : m[4].endsWith('%')
+        ? Number(m[4].slice(0, -1)) / 100
+        : Number(m[4]);
   if (a !== null && (a < 0 || a > 1)) return null;
 
-  return { ...hslToRgb(h, s, l), a };
+  return { ...hslToRgb(normalizeHue(h), s, l), a };
 }
 
 function parseCmyk(input: string): RGBA | null {
@@ -116,6 +148,7 @@ export function hslToRgb(
   s: number,
   l: number,
 ): { r: number; g: number; b: number } {
+  h = normalizeHue(h);
   const sn = s / 100;
   const ln = l / 100;
   const c = (1 - Math.abs(2 * ln - 1)) * sn;
@@ -147,8 +180,8 @@ export function hslToRgb(
   };
 }
 
-// convert rgb integers 0-255 to hsl (h deg, s/l percent)
-export function rgbToHsl(
+// convert rgb integers 0-255 to unrounded hsl values
+function rgbToHslPrecise(
   r: number,
   g: number,
   b: number,
@@ -171,16 +204,30 @@ export function rgbToHsl(
       h = 60 * ((rn - gn) / delta + 4);
     }
   }
-  if (h < 0) h += 360;
+  h = normalizeHue(h);
 
   const l = (max + min) / 2;
   const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
 
+  return { h, s: s * 100, l: l * 100 };
+}
+
+// convert rgb integers 0-255 to rounded hsl values
+export function rgbToHsl(
+  r: number,
+  g: number,
+  b: number,
+): { h: number; s: number; l: number } {
+  const precise = rgbToHslPrecise(r, g, b);
   return {
-    h: Math.round(h),
-    s: Math.round(s * 100),
-    l: Math.round(l * 100),
+    h: normalizeHue(Math.round(precise.h)),
+    s: Math.round(precise.s),
+    l: Math.round(precise.l),
   };
+}
+
+function formatAlpha(alpha: number): string {
+  return Number(alpha.toFixed(6)).toString();
 }
 
 // format rgba to 6 or 8-digit lowercase hex
@@ -195,14 +242,17 @@ export function toHex(rgba: RGBA): string {
 // format rgba as rgb() or rgba()
 export function toRgbString(rgba: RGBA): string {
   if (rgba.a === null) return `rgb(${rgba.r}, ${rgba.g}, ${rgba.b})`;
-  return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a})`;
+  return `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${formatAlpha(rgba.a)})`;
 }
 
 // format rgba as hsl() or hsla()
 export function toHslString(rgba: RGBA): string {
-  const { h, s, l } = rgbToHsl(rgba.r, rgba.g, rgba.b);
+  const precise = rgbToHslPrecise(rgba.r, rgba.g, rgba.b);
+  const h = normalizeHue(Math.round(precise.h));
+  const s = Math.round(precise.s);
+  const l = Math.round(precise.l);
   if (rgba.a === null) return `hsl(${h}, ${s}%, ${l}%)`;
-  return `hsla(${h}, ${s}%, ${l}%, ${rgba.a})`;
+  return `hsla(${h}, ${s}%, ${l}%, ${formatAlpha(rgba.a)})`;
 }
 
 function parseColor(input: string): RGBA | null {
@@ -331,7 +381,7 @@ export const ColorBoxSource = {
       const operation = isDarken ? 'darken' : 'lighten';
       const percent = optionPercent(extractOptionKeys(options, operation), 10);
       const original = toHex(rgba);
-      const { h, s, l } = rgbToHsl(rgba.r, rgba.g, rgba.b);
+      const { h, s, l } = rgbToHslPrecise(rgba.r, rgba.g, rgba.b);
       rgba = {
         ...hslToRgb(
           h,

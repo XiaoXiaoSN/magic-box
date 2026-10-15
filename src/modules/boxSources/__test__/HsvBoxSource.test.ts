@@ -30,6 +30,10 @@ describe('rgbToHsv', () => {
     // s=184/255≈72%, h=60*((99-71)/184 % 6)=60*(28/184)≈9.13→9
     expect(rgbToHsv(255, 99, 71)).toEqual({ h: 9, s: 72, v: 100 });
   });
+
+  it('keeps rounded hue below 360 for rgb(255,0,1)', () => {
+    expect(rgbToHsv(255, 0, 1)).toEqual({ h: 0, s: 100, v: 100 });
+  });
 });
 
 describe('hsvToRgb', () => {
@@ -141,6 +145,14 @@ describe('HsvBoxSource.generateBoxes', () => {
     expect(kv.HSV).toBe('hsv(9, 72%, 100%)');
   });
 
+  it('accepts bare six-digit hex input', async () => {
+    const boxes = await HsvBoxSource.generateBoxes('FF6347', { hsv: true });
+    expect(boxes).toHaveLength(1);
+    const kv = boxes[0].props.options as Record<string, string>;
+    expect(kv.Hex).toBe('#ff6347');
+    expect(kv.HSV).toBe('hsv(9, 72%, 100%)');
+  });
+
   // reverse: hsv → rgb/hex
 
   it('reverse hsv(120, 100%, 100%) → Hex #00ff00', async () => {
@@ -178,6 +190,22 @@ describe('HsvBoxSource.generateBoxes', () => {
     expect(boxes).toHaveLength(1);
     const kv = boxes[0].props.options as Record<string, string>;
     expect(kv.Hex).toBe('#0000ff');
+  });
+
+  it('normalizes hsv hue wraparound after parsing and display rounding', async () => {
+    const exact = await HsvBoxSource.generateBoxes('hsv(360, 100%, 100%)', {
+      hsv: true,
+    });
+    const rounded = await HsvBoxSource.generateBoxes('hsv(359.6, 100%, 100%)', {
+      hsv: true,
+    });
+
+    expect((exact[0].props.options as Record<string, string>).HSV).toBe(
+      'hsv(0, 100%, 100%)',
+    );
+    expect((rounded[0].props.options as Record<string, string>).HSV).toBe(
+      'hsv(0, 100%, 100%)',
+    );
   });
 
   // invalid input → format hint box

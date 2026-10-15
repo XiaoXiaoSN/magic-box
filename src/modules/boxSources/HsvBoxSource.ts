@@ -1,3 +1,4 @@
+import { normalizeHue } from '@functions/color';
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -38,13 +39,11 @@ export function rgbToHsv(r: number, g: number, b: number): HSV {
       h = 60 * ((rn - gn) / delta + 4);
     }
   }
-  if (h < 0) h += 360;
-
   const s = max === 0 ? 0 : delta / max;
   const v = max;
 
   return {
-    h: Math.round(h),
+    h: normalizeHue(Math.round(h)),
     s: Math.round(s * 100),
     v: Math.round(v * 100),
   };
@@ -52,6 +51,7 @@ export function rgbToHsv(r: number, g: number, b: number): HSV {
 
 // convert hsv (h deg, s/v percent) to rgb integers 0-255
 export function hsvToRgb(h: number, s: number, v: number): RGB {
+  h = normalizeHue(h);
   const sn = s / 100;
   const vn = v / 100;
 
@@ -90,11 +90,12 @@ export function rgbToHex(r: number, g: number, b: number): string {
   return `#${hex(r)}${hex(g)}${hex(b)}`;
 }
 
-// parse 3 or 6-digit hex to rgb, or null if invalid
+// parse #RGB, #RRGGBB, or bare RRGGBB to rgb
 function parseHex(input: string): RGB | null {
-  const m = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(input);
+  const m = /^(#?)([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(input);
   if (!m) return null;
-  const h = m[1];
+  if (!m[1] && m[2].length !== 6) return null;
+  const h = m[2];
   if (h.length === 3) {
     return {
       r: Number.parseInt(h[0] + h[0], 16),
@@ -131,7 +132,11 @@ function parseHsv(input: string): HSV | null {
   const s = Number.parseFloat(m[2]);
   const v = Number.parseFloat(m[3]);
   if (h < 0 || h > 360 || s < 0 || s > 100 || v < 0 || v > 100) return null;
-  return { h: Math.round(h), s: Math.round(s), v: Math.round(v) };
+  return {
+    h: normalizeHue(Math.round(h)),
+    s: Math.round(s),
+    v: Math.round(v),
+  };
 }
 
 // build the key:value plaintext for headless/TUI consumers
@@ -233,7 +238,7 @@ export const HsvBoxSource = {
 
     // unknown direction: show format hint
     const kv: Record<string, string> = {
-      Accepted: '#RRGGBB, #RGB, rgb(r,g,b), hsv(h,s%,v%), hsb(h,s%,v%)',
+      Accepted: '#RRGGBB, RRGGBB, #RGB, rgb(r,g,b), hsv(h,s%,v%), hsb(h,s%,v%)',
     };
 
     return [

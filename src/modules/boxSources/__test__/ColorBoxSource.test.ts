@@ -117,6 +117,11 @@ describe('ColorBoxSource.checkMatch', () => {
     expect(ColorBoxSource.checkMatch('uuid')).toBeUndefined();
   });
 
+  it('rejects malformed numeric tokens instead of producing NaN', () => {
+    expect(ColorBoxSource.checkMatch('hsl(1.2.3, 50%, 50%)')).toBeUndefined();
+    expect(ColorBoxSource.checkMatch('rgba(1, 2, 3, 0.1.2)')).toBeUndefined();
+  });
+
   it('parses 6-digit hex #ff0000', () => {
     const m = ColorBoxSource.checkMatch('#ff0000');
     expect(m).toBeDefined();
@@ -138,6 +143,20 @@ describe('ColorBoxSource.checkMatch', () => {
     expect(m?.rgba.a).toBeCloseTo(0.5, 2);
   });
 
+  it('preserves 8-digit hex alpha bytes exactly', () => {
+    expect(ColorBoxSource.checkMatch('#ff634781')?.rgba.a).toBe(129 / 255);
+    expect(ColorBoxSource.checkMatch('#ff000001')?.rgba.a).toBe(1 / 255);
+  });
+
+  it('parses 4-digit hex with an alpha nibble', () => {
+    expect(ColorBoxSource.checkMatch('#f00a')?.rgba).toEqual({
+      r: 255,
+      g: 0,
+      b: 0,
+      a: 170 / 255,
+    });
+  });
+
   it('parses rgb(255, 0, 0)', () => {
     const m = ColorBoxSource.checkMatch('rgb(255, 0, 0)');
     expect(m).toBeDefined();
@@ -150,16 +169,53 @@ describe('ColorBoxSource.checkMatch', () => {
     expect(m?.rgba).toMatchObject({ r: 255, g: 0, b: 0, a: 0.5 });
   });
 
+  it('parses CSS Color 4 space and slash rgb syntax', () => {
+    expect(ColorBoxSource.checkMatch('rgb(255 99 71)')?.rgba).toEqual({
+      r: 255,
+      g: 99,
+      b: 71,
+      a: null,
+    });
+    expect(ColorBoxSource.checkMatch('rgb(255 99 71 / 0.5)')?.rgba).toEqual({
+      r: 255,
+      g: 99,
+      b: 71,
+      a: 0.5,
+    });
+    expect(ColorBoxSource.checkMatch('rgb(255 99 71 / 50%)')?.rgba.a).toBe(0.5);
+  });
+
   it('parses hsl(0, 100%, 50%)', () => {
     const m = ColorBoxSource.checkMatch('hsl(0, 100%, 50%)');
     expect(m).toBeDefined();
     expect(m?.rgba).toMatchObject({ r: 255, g: 0, b: 0, a: null });
   });
 
+  it('accepts hue 360 as the red wraparound', () => {
+    expect(ColorBoxSource.checkMatch('hsl(360, 100%, 50%)')?.rgba).toEqual({
+      r: 255,
+      g: 0,
+      b: 0,
+      a: null,
+    });
+  });
+
   it('parses hsla(0, 100%, 50%, 0.5)', () => {
     const m = ColorBoxSource.checkMatch('hsla(0, 100%, 50%, 0.5)');
     expect(m).toBeDefined();
     expect(m?.rgba).toMatchObject({ r: 255, g: 0, b: 0, a: 0.5 });
+  });
+
+  it('parses CSS Color 4 space and slash hsl syntax', () => {
+    expect(ColorBoxSource.checkMatch('hsl(120 100% 50% / 0.5)')?.rgba).toEqual({
+      r: 0,
+      g: 255,
+      b: 0,
+      a: 0.5,
+    });
+    expect(ColorBoxSource.checkMatch('hsl(120 100% 50% / 50%)')?.rgba.a).toBe(
+      0.5,
+    );
   });
 
   it('rejects rgb with out-of-range channel', () => {
@@ -223,6 +279,46 @@ describe('ColorBoxSource.generateBoxes', () => {
     expect(byName.HSL).toBe('hsla(0, 100%, 50%, 0.5)');
   });
 
+  it('preserves alpha bytes in every displayed format', async () => {
+    const precise = await ColorBoxSource.generateBoxes('#ff634781');
+    const tiny = await ColorBoxSource.generateBoxes('#ff000001');
+    const preciseByName = Object.fromEntries(
+      precise.map((box) => [box.props.name, box.props.plaintextOutput]),
+    );
+    const tinyByName = Object.fromEntries(
+      tiny.map((box) => [box.props.name, box.props.plaintextOutput]),
+    );
+
+    expect(preciseByName.HEX).toBe('#ff634781');
+    expect(preciseByName.RGB).toBe('rgba(255, 99, 71, 0.505882)');
+    expect(preciseByName.HSL).toBe('hsla(9, 100%, 64%, 0.505882)');
+    expect(tinyByName.HEX).toBe('#ff000001');
+    expect(tinyByName.RGB).toBe('rgba(255, 0, 0, 0.003922)');
+    expect(tinyByName.HSL).toBe('hsla(0, 100%, 50%, 0.003922)');
+  });
+
+  it('keeps rounded HSL hue in the canonical range', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#ff0001');
+    expect(
+      boxes.find((box) => box.props.name === 'HSL')?.props.plaintextOutput,
+    ).toBe('hsl(0, 100%, 50%)');
+  });
+
+  it('supports CSS Color 4 output inputs', async () => {
+    const rgb = await ColorBoxSource.generateBoxes('rgb(255 99 71)');
+    const hsl = await ColorBoxSource.generateBoxes('hsl(120 100% 50% / 0.5)');
+
+    expect(
+      rgb.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#ff6347');
+    expect(
+      hsl.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
+    ).toBe('#00ff0080');
+    expect(
+      hsl.find((box) => box.props.name === 'RGB')?.props.plaintextOutput,
+    ).toBe('rgba(0, 255, 0, 0.5)');
+  });
+
   it('round-trip: hsl(120, 100%, 50%) converts to green', async () => {
     const boxes = await ColorBoxSource.generateBoxes('hsl(120, 100%, 50%)');
     const byName = Object.fromEntries(
@@ -255,6 +351,16 @@ describe('ColorBoxSource.generateBoxes', () => {
     );
     expect(byName.HEX).toBe('#ff0000');
     expect(byName.RGB).toBe('rgb(255, 0, 0)');
+  });
+
+  it('supports 4-digit shorthand #f00a', async () => {
+    const boxes = await ColorBoxSource.generateBoxes('#f00a');
+    const byName = Object.fromEntries(
+      boxes.map((b) => [b.props.name, b.props.plaintextOutput]),
+    );
+    expect(byName.HEX).toBe('#ff0000aa');
+    expect(byName.RGB).toBe('rgba(255, 0, 0, 0.666667)');
+    expect(byName.HSL).toBe('hsla(0, 100%, 50%, 0.666667)');
   });
 
   it('converts CMYK input through the same color source', async () => {
@@ -368,6 +474,22 @@ describe('ColorBoxSource.generateBoxes', () => {
     );
   });
 
+  it('keeps RGB unchanged when adjustment is zero', async () => {
+    const dark = await ColorBoxSource.generateBoxes('#3b82f6', {
+      darken: '0',
+    });
+    const light = await ColorBoxSource.generateBoxes('#123456', {
+      lighten: '0',
+    });
+
+    expect((dark[0].props.options as Record<string, string>).Adjusted).toBe(
+      '#3b82f6',
+    );
+    expect((light[0].props.options as Record<string, string>).Adjusted).toBe(
+      '#123456',
+    );
+  });
+
   it('composes mixing then adjustment in one source', async () => {
     const boxes = await ColorBoxSource.generateBoxes('#000000 #ffffff', {
       colormix: '50',
@@ -384,7 +506,7 @@ describe('ColorBoxSource.generateBoxes', () => {
     );
     expect(
       boxes.find((box) => box.props.name === 'HEX')?.props.plaintextOutput,
-    ).toBe('#999999');
+    ).toBe('#9a9a9a');
     expect(
       boxes.find((box) => box.props.name === 'CMYK')?.props.plaintextOutput,
     ).toBe('cmyk(0%, 0%, 0%, 40%)');
