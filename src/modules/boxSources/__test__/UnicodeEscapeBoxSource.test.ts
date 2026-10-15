@@ -90,6 +90,33 @@ describe('UnicodeEscapeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('😀');
     });
 
+    it.each([
+      String.raw`\U0041`,
+      String.raw`\U0001F600`,
+      String.raw`\U{1f600}`,
+    ])('preserves unsupported uppercase U syntax: %s', async (input) => {
+      const boxes = await UnicodeEscapeBoxSource.generateBoxes(input, {
+        unicodeunescape: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(input);
+    });
+
+    it('does not reinterpret a backslash produced by a braces escape', async () => {
+      const boxes = await UnicodeEscapeBoxSource.generateBoxes(
+        String.raw`\u{5c}u0041`,
+        { unicodeunescape: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(String.raw`\u0041`);
+    });
+
+    it('decodes escaped backslashes without decoding the following token', async () => {
+      const boxes = await UnicodeEscapeBoxSource.generateBoxes(
+        String.raw`\\u0041`,
+        { unicodeunescape: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(String.raw`\u0041`);
+    });
+
     it('leaves text outside escape sequences unchanged', async () => {
       const boxes = await UnicodeEscapeBoxSource.generateBoxes(
         'hi \\u0021 there',
@@ -106,6 +133,14 @@ describe('UnicodeEscapeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       // code point is out of range — the sequence must remain as-is
       expect(boxes[0].props.plaintextOutput).toBe('\\u{110000}');
+    });
+
+    it('preserves malformed Unicode escape sequences', async () => {
+      const input = String.raw`before \u{110000} \u{not-hex} after`;
+      const boxes = await UnicodeEscapeBoxSource.generateBoxes(input, {
+        unicodeunescape: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(input);
     });
 
     it('accepts ::uunescape alias', async () => {

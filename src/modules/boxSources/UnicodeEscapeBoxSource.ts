@@ -4,6 +4,7 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
+const UNICODE_ESCAPE_REGEX = /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/y;
 
 // escape each UTF-16 code unit: keep printable ASCII (0x20–0x7e), \uXXXX everything else.
 // astral chars (e.g. emoji) are naturally emitted as surrogate pairs (\uD800–\uDFFF).
@@ -20,19 +21,43 @@ function escapeUnicode(input: string): string {
   return result;
 }
 
-// unescape \u{XXXXX} (1–6 hex, cp <= 0x10ffff) and \uXXXX (exactly 4 hex) sequences.
-// unrecognised text is passed through unchanged.
+// unescape Unicode tokens once, while treating escaped backslashes as literal text.
 function unescapeUnicode(input: string): string {
-  // replace braces form first so \u{...} does not conflict with the 4-hex pattern
-  let result = input.replace(/\\u\{([0-9a-fA-F]{1,6})\}/g, (match, hex) => {
-    const cp = Number.parseInt(hex, 16);
-    if (cp > 0x10ffff) return match; // guard against invalid code point
-    return String.fromCodePoint(cp);
-  });
+  let result = '';
+  let index = 0;
 
-  result = result.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => {
-    return String.fromCharCode(Number.parseInt(hex, 16));
-  });
+  while (index < input.length) {
+    if (input[index] !== '\\') {
+      result += input[index];
+      index += 1;
+      continue;
+    }
+
+    if (input[index + 1] === '\\') {
+      result += '\\';
+      index += 2;
+      continue;
+    }
+
+    UNICODE_ESCAPE_REGEX.lastIndex = index;
+    const match = UNICODE_ESCAPE_REGEX.exec(input);
+    if (match?.index === index) {
+      const hex = match[1] ?? match[2];
+      const cp = Number.parseInt(hex, 16);
+      if (match[1] !== undefined && cp <= 0x10ffff) {
+        result += String.fromCodePoint(cp);
+      } else if (match[1] === undefined) {
+        result += String.fromCharCode(cp);
+      } else {
+        result += match[0];
+      }
+      index += match[0].length;
+      continue;
+    }
+
+    result += input[index];
+    index += 1;
+  }
 
   return result;
 }

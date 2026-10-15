@@ -49,10 +49,34 @@ describe('EscapeStringBoxSource', () => {
 
     it('should unescape \\n and \\t as well', () => {
       const result = EscapeStringBoxSource.checkMatch(
-        '{\\"line1\\":\\"a\\\\nb\\"}',
+        String.raw`{\"line1\":\"a\\nb\"}`,
       );
       expect(result).toBeDefined();
-      expect(result?.unescapedText).toContain('"line1"');
+      expect(result?.unescapedText).toBe(String.raw`{"line1":"a\nb"}`);
+    });
+
+    it('should decode a valid quoted JSON string in one pass', () => {
+      const result = EscapeStringBoxSource.checkMatch(
+        String.raw`"C:\\new\\table \"x\""`,
+      );
+      expect(result?.unescapedText).toBe(String.raw`C:\new\table "x"`);
+    });
+
+    it('should decode all supported JSON escapes', () => {
+      const result = EscapeStringBoxSource.checkMatch(
+        String.raw`\u0041 \/ \b \f \n \r \t`,
+      );
+      expect(result?.unescapedText).toBe('A / \b \f \n \r \t');
+    });
+
+    it('should not decode an escaped Unicode token twice', () => {
+      const result = EscapeStringBoxSource.checkMatch(String.raw`\\u0041`);
+      expect(result?.unescapedText).toBe(String.raw`\u0041`);
+    });
+
+    it('should not reinterpret a backslash decoded from a Unicode token', () => {
+      const result = EscapeStringBoxSource.checkMatch(String.raw`\u005cu0041`);
+      expect(result?.unescapedText).toBe(String.raw`\u0041`);
     });
 
     it('should handle various ANSI CSI sequences', () => {
@@ -78,6 +102,17 @@ describe('EscapeStringBoxSource', () => {
       expect(result?.unescapedText).toBe(
         '2026-03-15T05:43:40.072934Z  INFO processor-worker ThreadId(17) subscribe{exchange="Hyperliquid" shard=2 replica=1}: market::websocket::manager: Will reconnect after 20.14 hours',
       );
+    });
+
+    it('should handle real two-character ANSI escapes', () => {
+      const result = EscapeStringBoxSource.checkMatch('\x1BMtext');
+      expect(result?.unescapedText).toBe('text');
+    });
+
+    it('should not treat regular expressions as literal ANSI escapes', () => {
+      for (const input of ['^[A-Z0-9]+$', String.raw`^[\d+$`, '^[^,]+']) {
+        expect(EscapeStringBoxSource.checkMatch(input)).toBeUndefined();
+      }
     });
   });
 
