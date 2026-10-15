@@ -46,17 +46,38 @@ const ShareLinkButton = ({
 }: ShareLinkButtonProps) => {
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
+  const copySequence = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      copySequence.current += 1;
+      clearTimeout(timerRef.current);
+    };
   }, []);
 
   const handleClick = () => {
-    copyTextToClipboard(getShareLink());
-    setCopied(true);
+    const sequence = ++copySequence.current;
+    setCopied(false);
     clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCopied(false), 1200);
+    timerRef.current = undefined;
+
+    void (async () => {
+      let copied = false;
+      try {
+        copied = (await copyTextToClipboard(getShareLink())) === true;
+      } catch {
+        copied = false;
+      }
+      if (!copied || sequence !== copySequence.current) return;
+
+      setCopied(true);
+      timerRef.current = setTimeout(() => {
+        if (sequence !== copySequence.current) return;
+        timerRef.current = undefined;
+        setCopied(false);
+      }, 1200);
+    })();
   };
 
   return (

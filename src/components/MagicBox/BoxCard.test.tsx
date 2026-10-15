@@ -5,6 +5,7 @@ import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 import { Modal } from '@mui/material';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,7 +13,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { useEffect } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import MagicBox from './index';
@@ -46,6 +47,10 @@ vi.mock('../../features/local-ai/LocalAIPanel', () => ({
 afterEach(() => {
   cleanup();
   vi.mocked(copyTextToClipboard).mockClear();
+});
+
+beforeEach(() => {
+  vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
 });
 
 // An interactive template: its own controls, a dialog in a portal, and some
@@ -93,6 +98,24 @@ const stableTemplate = ({ plaintextOutput }: BoxProps): React.JSX.Element => (
   <span data-testid="stable-output">{plaintextOutput}</span>
 );
 
+const changingTemplate = ({
+  onResultChange,
+  plaintextOutput,
+}: BoxProps): React.JSX.Element => (
+  <>
+    <span data-testid="changing-output">{plaintextOutput}</span>
+    <button
+      data-testid="change-output"
+      onClick={() =>
+        onResultChange?.({ options: null, plaintextOutput: 'next output' })
+      }
+      type="button"
+    >
+      change output
+    </button>
+  </>
+);
+
 describe('BoxCard click handling', () => {
   it('leaves clicks on a template’s own controls to those controls', async () => {
     // Regression: clicking into the Local AI textarea to paste overwrote the
@@ -117,6 +140,111 @@ describe('BoxCard click handling', () => {
     );
     fireEvent.click(await screen.findByTestId('plain'));
     expect(copyTextToClipboard).toHaveBeenCalledWith('card output');
+  });
+
+  it('only shows Copied after the clipboard confirms success', async () => {
+    let resolveCopy!: (value: boolean) => void;
+    const copyPromise = new Promise<boolean>((resolve) => {
+      resolveCopy = resolve;
+    });
+    vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[interactive]} />
+      </LocaleProvider>,
+    );
+
+    const button = (
+      await screen.findByTestId('magic-box-result')
+    ).querySelector('button.box-copy') as HTMLButtonElement;
+    fireEvent.click(button);
+    expect(button).toHaveTextContent('Copy');
+
+    await act(async () => {
+      resolveCopy(false);
+      await copyPromise;
+    });
+
+    expect(button).toHaveTextContent('Copy');
+  });
+
+  it('keeps the copy label unchanged when the clipboard rejects', async () => {
+    vi.mocked(copyTextToClipboard).mockRejectedValue(new Error('denied'));
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[interactive]} />
+      </LocaleProvider>,
+    );
+
+    const button = (
+      await screen.findByTestId('magic-box-result')
+    ).querySelector('button.box-copy') as HTMLButtonElement;
+    fireEvent.click(button);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(button).toHaveTextContent('Copy');
+  });
+
+  it('does not mark a new output copied when an old copy resolves later', async () => {
+    let resolveCopy!: (value: boolean) => void;
+    const copyPromise = new Promise<boolean>((resolve) => {
+      resolveCopy = resolve;
+    });
+    vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
+    const changing = source(() =>
+      new BoxBuilder('Changing output', 'first output')
+        .setTemplate(changingTemplate)
+        .build(),
+    );
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[changing]} />
+      </LocaleProvider>,
+    );
+
+    const card = await screen.findByTestId('magic-box-result');
+    const copyButton = card.querySelector(
+      'button.box-copy',
+    ) as HTMLButtonElement;
+    fireEvent.click(copyButton);
+    fireEvent.click(await screen.findByTestId('change-output'));
+    expect(screen.getByTestId('changing-output')).toHaveTextContent(
+      'next output',
+    );
+
+    await act(async () => {
+      resolveCopy(true);
+      await copyPromise;
+    });
+
+    expect(copyButton).toHaveTextContent('Copy');
+  });
+
+  it('resets Copied when the card output changes', async () => {
+    const changing = source(() =>
+      new BoxBuilder('Changing output', 'first output')
+        .setTemplate(changingTemplate)
+        .build(),
+    );
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[changing]} />
+      </LocaleProvider>,
+    );
+
+    const card = await screen.findByTestId('magic-box-result');
+    const copyButton = card.querySelector(
+      'button.box-copy',
+    ) as HTMLButtonElement;
+    fireEvent.click(copyButton);
+    await waitFor(() => expect(copyButton).toHaveTextContent('Copied'));
+
+    fireEvent.click(await screen.findByTestId('change-output'));
+    expect(copyButton).toHaveTextContent('Copy');
   });
 });
 

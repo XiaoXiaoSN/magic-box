@@ -3,7 +3,14 @@ import ErrorBoundary, {
   TemplateErrorFallback,
 } from '@components/ErrorBoundary';
 import type { BoxProps, Box as BoxType } from '@modules/Box';
-import { forwardRef, useCallback, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
 // Anything a template renders that the user operates. The card itself is a
@@ -35,7 +42,7 @@ interface BoxCardProps {
   box: BoxType;
   selected: boolean;
   onSelect: () => void;
-  onCopy: (text: string) => void;
+  onCopy: (text: string) => Promise<boolean>;
   onExpand?: () => void;
   onResultChange?: BoxProps['onResultChange'];
 }
@@ -46,6 +53,8 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
   ({ box, selected, onSelect, onCopy, onExpand, onResultChange }, ref) => {
     const { t } = useLocale();
     const [justCopied, setJustCopied] = useState(false);
+    const copySequence = useRef(0);
+    const copiedTimer = useRef<number | null>(null);
     const {
       name,
       plaintextOutput,
@@ -56,17 +65,65 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
       kind,
       onClick,
     } = box.props;
+    const previousPlaintextOutput = useRef(plaintextOutput);
     const showExpand = box.props.showExpandButton !== false && !!onExpand;
+
+    useEffect(() => {
+      return () => {
+        copySequence.current += 1;
+        if (copiedTimer.current !== null) {
+          window.clearTimeout(copiedTimer.current);
+          copiedTimer.current = null;
+        }
+      };
+    }, []);
+
+    useLayoutEffect(() => {
+      if (previousPlaintextOutput.current === plaintextOutput) return;
+
+      previousPlaintextOutput.current = plaintextOutput;
+      copySequence.current += 1;
+      if (copiedTimer.current !== null) {
+        window.clearTimeout(copiedTimer.current);
+        copiedTimer.current = null;
+      }
+      setJustCopied(false);
+    }, [plaintextOutput]);
+
+    const markCopied = useCallback(
+      async (text: string): Promise<void> => {
+        const sequence = ++copySequence.current;
+        setJustCopied(false);
+        if (copiedTimer.current !== null) {
+          window.clearTimeout(copiedTimer.current);
+          copiedTimer.current = null;
+        }
+
+        let copied = false;
+        try {
+          copied = await onCopy(text);
+        } catch {
+          copied = false;
+        }
+        if (!copied || sequence !== copySequence.current) return;
+
+        setJustCopied(true);
+        copiedTimer.current = window.setTimeout(() => {
+          if (sequence !== copySequence.current) return;
+          copiedTimer.current = null;
+          setJustCopied(false);
+        }, COPIED_TIMEOUT_MS);
+      },
+      [onCopy],
+    );
 
     const handleCopy = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
-        onCopy(plaintextOutput);
+        void markCopied(plaintextOutput);
         onClick(plaintextOutput);
-        setJustCopied(true);
-        window.setTimeout(() => setJustCopied(false), COPIED_TIMEOUT_MS);
       },
-      [plaintextOutput, onCopy, onClick],
+      [markCopied, onClick, plaintextOutput],
     );
 
     const handleExpand = useCallback(
@@ -79,7 +136,7 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
 
     const handleCardClick = () => {
       onSelect();
-      onCopy(plaintextOutput);
+      void Promise.resolve(onCopy(plaintextOutput)).catch(() => undefined);
       onClick(plaintextOutput);
     };
 
@@ -162,7 +219,7 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
               kind={kind}
               name={name}
               onClick={(text) => {
-                onCopy(text);
+                void Promise.resolve(onCopy(text)).catch(() => undefined);
                 onClick(text);
               }}
               onResultChange={onResultChange}

@@ -11,7 +11,7 @@ interface BoxModalProps {
   box: BoxType | null;
   open: boolean;
   onClose: () => void;
-  onCopy: (text: string) => void;
+  onCopy: (text: string) => Promise<boolean>;
 }
 
 const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
@@ -37,7 +37,7 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
   } = box.props;
 
   const handleClick = (text: string) => {
-    onCopy(text);
+    void Promise.resolve(onCopy(text)).catch(() => undefined);
     onClick(text);
   };
 

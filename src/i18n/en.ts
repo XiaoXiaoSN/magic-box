@@ -155,6 +155,7 @@ const en = {
   'pwa.later': 'Later',
 
   'snackbar.copied': 'Copied',
+  'snackbar.copyFailed': 'Copy failed',
   'diff.original': 'Original text',
   'diff.target': 'Paste the second text',
   'diff.compare': 'Compare',
