@@ -23,7 +23,7 @@ import {
   usePreferences,
 } from '../contexts/PreferencesContext';
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
-import { useSettings } from '../contexts/SettingsContext';
+import { buildDefaultSettings, useSettings } from '../contexts/SettingsContext';
 import { aiLanguageOptions, aiTaskOptions } from '../features/local-ai/labels';
 import {
   DEFAULT_TIMEZONE_OFFSET,
@@ -228,9 +228,13 @@ const Shortcut = ({ keys, label }: { keys: string[]; label: string }) => (
 
 const SettingsPage = (): React.JSX.Element => {
   const { t, locale, setLocale } = useLocale();
-  const { settings, updateSettings } = useSettings();
+  const { resetSettings, settings, updateSettings } = useSettings();
   const { prefs, setPref, resetPrefs } = usePreferences();
-  const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>([]);
+  const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>(() =>
+    Object.values(settings.boxes).sort(
+      (a, b) => a.secondaryOrder - b.secondaryOrder,
+    ),
+  );
   // draft strings let the user type intermediate/invalid values; we only
   // commit to prefs once the value parses/validates.
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
@@ -315,14 +319,10 @@ const SettingsPage = (): React.JSX.Element => {
   };
 
   const handleResetOrder = () => {
-    const defaults = boxSources.map((s, idx) => ({
-      id: s.name,
-      enabled: !s.defaultDisabled,
-      priority: s.priority ?? 10,
-      secondaryOrder: idx,
-    }));
-    setOrderedBoxes(defaults);
-    persistOrder(defaults);
+    const defaults = buildDefaultSettings();
+    const orderedDefaults = Object.values(defaults.boxes);
+    setOrderedBoxes(orderedDefaults);
+    updateSettings(defaults);
   };
 
   const handleClearLocalData = () => {
@@ -335,7 +335,7 @@ const SettingsPage = (): React.JSX.Element => {
     window.localStorage.clear();
     setLocale(DEFAULT_LOCALE);
     resetPrefs();
-    handleResetOrder();
+    resetSettings();
   };
 
   const handleResetDefaults = () => {

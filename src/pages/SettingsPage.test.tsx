@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../contexts/LocaleContext';
 import { PreferencesProvider } from '../contexts/PreferencesContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
+import { boxSources } from '../modules/boxSources';
 import SettingsPage from './SettingsPage';
 
 vi.mock('../features/local-ai/LocalAIModelSettings', () => ({
@@ -66,5 +67,78 @@ describe('Settings timezone and defaults', () => {
     expect(settings.boxes['Text Diff'].enabled).toBe(true);
     expect(settings.boxes.Now.enabled).toBe(true);
     expect(localStorage.getItem('history-marker')).toBe('keep');
+  });
+
+  it('restores each source default when resetting the box order', () => {
+    localStorage.setItem(
+      'mb_settings',
+      JSON.stringify({
+        version: 1,
+        boxes: Object.fromEntries(
+          boxSources.map((source, index) => [
+            source.name,
+            {
+              id: source.name,
+              enabled: true,
+              priority: 10,
+              secondaryOrder: index,
+            },
+          ]),
+        ),
+      }),
+    );
+
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
+
+    const settings = JSON.parse(
+      localStorage.getItem('mb_settings') ?? '{}',
+    ) as {
+      boxes: Record<string, { enabled: boolean }>;
+    };
+    expect(
+      Object.values(settings.boxes).filter((box) => box.enabled),
+    ).toHaveLength(
+      boxSources.filter((source) => !source.defaultDisabled).length,
+    );
+    for (const [index, source] of boxSources.entries()) {
+      expect(settings.boxes[source.name]).toMatchObject({
+        enabled: !source.defaultDisabled,
+        secondaryOrder: index,
+      });
+    }
+  });
+
+  it('clears the settings key while applying source defaults in memory', () => {
+    localStorage.setItem(
+      'mb_settings',
+      JSON.stringify({
+        version: 1,
+        boxes: Object.fromEntries(
+          boxSources.map((source, index) => [
+            source.name,
+            {
+              id: source.name,
+              enabled: true,
+              priority: 10,
+              secondaryOrder: index,
+            },
+          ]),
+        ),
+      }),
+    );
+
+    mount();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+
+    expect(localStorage.getItem('mb_settings')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /^Enable / })).toHaveLength(
+      boxSources.filter((source) => source.defaultDisabled).length,
+    );
+    expect(screen.getAllByRole('button', { name: /^Disable / })).toHaveLength(
+      boxSources.filter((source) => !source.defaultDisabled).length,
+    );
+    confirmSpy.mockRestore();
   });
 });

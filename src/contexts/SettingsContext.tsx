@@ -5,7 +5,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -24,7 +23,21 @@ export interface Settings {
 
 const SETTINGS_VERSION = 1;
 
-const defaultSettings: Settings = {
+const SETTINGS_ID_MIGRATIONS: Record<string, string> = {
+  'DMS Coordinates': 'Coordinates',
+};
+
+const SETTINGS_STORAGE_KEY = 'mb_settings';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const validatePriority = (value: number): number =>
+  typeof value !== 'number' || Number.isNaN(value)
+    ? 10
+    : Math.max(0, Math.min(99, value));
+
+export const buildDefaultSettings = (): Settings => ({
   version: SETTINGS_VERSION,
   boxes: Object.fromEntries(
     boxSources.map((box, idx) => [
@@ -32,70 +45,81 @@ const defaultSettings: Settings = {
       {
         id: box.name,
         enabled: !box.defaultDisabled,
-        priority: box.priority ?? 10,
+        priority: validatePriority(box.priority ?? 10),
         secondaryOrder: idx,
       },
     ]),
   ) as Record<string, BoxSetting>,
+});
+
+const migrateBoxIds = (
+  boxes: Record<string, unknown>,
+): Record<string, unknown> => {
+  const migrated = { ...boxes };
+  for (const [oldId, currentId] of Object.entries(SETTINGS_ID_MIGRATIONS)) {
+    if (!Object.hasOwn(migrated, currentId) && Object.hasOwn(migrated, oldId)) {
+      migrated[currentId] = migrated[oldId];
+    }
+    delete migrated[oldId];
+  }
+  return migrated;
 };
 
-const SETTINGS_STORAGE_KEY = 'mb_settings';
+const normalizeSettings = (value: unknown): Settings => {
+  const defaults = buildDefaultSettings();
+  if (!isRecord(value)) return defaults;
 
-const validatePriority = (value: number): number => {
-  return Number.isNaN(value) ? 10 : Math.max(0, Math.min(99, value));
+  const storedBoxes = isRecord(value.boxes) ? migrateBoxIds(value.boxes) : {};
+  const storedVersion = typeof value.version === 'number' ? value.version : 0;
+  const boxes = Object.fromEntries(
+    boxSources.map((box, idx) => {
+      const fallback = defaults.boxes[box.name];
+      const stored = storedBoxes[box.name];
+      const setting = isRecord(stored) ? stored : {};
+      const normalized: BoxSetting = {
+        id: box.name,
+        enabled:
+          typeof setting.enabled === 'boolean'
+            ? setting.enabled
+            : fallback.enabled,
+        priority: validatePriority(
+          typeof setting.priority === 'number'
+            ? setting.priority
+            : fallback.priority,
+        ),
+        secondaryOrder:
+          typeof setting.secondaryOrder === 'number' &&
+          Number.isFinite(setting.secondaryOrder)
+            ? setting.secondaryOrder
+            : idx,
+      };
+
+      if (storedVersion < 1 && box.name === 'Duration') {
+        normalized.enabled = true;
+      }
+
+      return [box.name, normalized];
+    }),
+  ) as Record<string, BoxSetting>;
+
+  return { version: SETTINGS_VERSION, boxes };
 };
 
 export const SettingsStorage = {
   get(): Settings {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (stored) {
-      const parsed: Settings = JSON.parse(stored);
-      const storedVersion = parsed.version ?? 0;
+    if (!stored) return buildDefaultSettings();
 
-      // Ensure all box sources exist in settings
-      boxSources.forEach((box, idx) => {
-        if (!parsed.boxes[box.name]) {
-          parsed.boxes[box.name] = {
-            id: box.name,
-            enabled: !box.defaultDisabled,
-            priority: validatePriority(box.priority ?? 10),
-            secondaryOrder: idx,
-          };
-        } else {
-          // Validate existing priority values
-          parsed.boxes[box.name].priority = validatePriority(
-            parsed.boxes[box.name].priority,
-          );
-        }
-      });
-
-      if (storedVersion < 1) {
-        const durationSetting = parsed.boxes.Duration;
-        if (durationSetting) {
-          durationSetting.enabled = true;
-        }
-      }
-
-      parsed.version = SETTINGS_VERSION;
-      return parsed;
+    try {
+      return normalizeSettings(JSON.parse(stored) as unknown);
+    } catch {
+      return buildDefaultSettings();
     }
-    return defaultSettings;
   },
   save(settings: Settings): void {
-    // Validate priorities before saving
-    const validatedSettings = {
-      ...settings,
-      version: SETTINGS_VERSION,
-      boxes: Object.fromEntries(
-        Object.entries(settings.boxes).map(([key, box]) => [
-          key,
-          { ...box, priority: validatePriority(box.priority) },
-        ]),
-      ),
-    };
     localStorage.setItem(
       SETTINGS_STORAGE_KEY,
-      JSON.stringify(validatedSettings),
+      JSON.stringify(normalizeSettings(settings)),
     );
   },
 };
@@ -103,6 +127,7 @@ export const SettingsStorage = {
 interface SettingsContextType {
   settings: Settings;
   filteredBoxSources: BoxSource[];
+  resetSettings: () => void;
   updateSettings: (newSettings: Settings) => void;
   validatePriority: (value: string) => number;
 }
@@ -126,11 +151,10 @@ interface SettingsProviderProps {
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   children,
 }) => {
-  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [settings, setSettings] = useState<Settings>(SettingsStorage.get);
 
-  useEffect(() => {
-    const loaded = SettingsStorage.get();
-    setSettings(loaded);
+  const resetSettings = useCallback(() => {
+    setSettings(buildDefaultSettings());
   }, []);
 
   const updateSettings = useCallback((newSettings: Settings) => {
@@ -170,12 +194,14 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
   const value = useMemo<SettingsContextType>(
     () => ({
+      resetSettings,
       settings,
       updateSettings,
       filteredBoxSources: getFilteredAndSortedBoxSources,
       validatePriority: validatePriorityInput,
     }),
     [
+      resetSettings,
       settings,
       updateSettings,
       getFilteredAndSortedBoxSources,
