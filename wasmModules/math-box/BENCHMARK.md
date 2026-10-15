@@ -128,9 +128,12 @@ cargo bench --no-default-features --features "std bigint fraction unit complex"
 
 ## 7. Issue #565: compiled user-function reuse
 
-The VM now stores immutable `UserFn` bodies behind `Rc`. A function call and a
-definition clone only the pointer and increment its reference count; the
-compiled instruction body is no longer copied. The compiler also moves the
+The VM now stores immutable `UserFn` bodies behind `Arc` on native targets and
+`Rc` on `wasm32`. This preserves native `Compiled: Send + Sync` while keeping
+non-atomic reference counts in the WASM VM. A function call and a definition
+clone only the pointer and increment its reference count; the compiled
+instruction body is no longer copied. Native calls pay atomic reference-count
+updates instead of copying the body. The compiler also moves the
 lambda AST into lowering, so the body is not cloned merely to compile it.
 The runtime still creates a fresh scope for every evaluation, resolves free
 names through caller frames, and permits function redefinition. Compile-time
@@ -139,42 +142,76 @@ frame model; this change makes no slot claim.
 
 ### Native before/after measurement
 
-The baseline was an archive of exact source SHA
-`e9f54897188433517a58abfbc77432ff8d129a19` before the change. Both sides used
-the same Rust harness, `std bigint fraction unit complex`, release profile,
-Apple Silicon arm64 macOS, rustc `1.95.0 (59807616e 2026-04-14)`, and 100,000
-iterations after 10,000 warm-up calls. Each row is the median of nine timed
-runs; the complete samples are kept here so an outlier is visible.
-
-| case | baseline median | final median | observed change |
-|---|---:|---:|---:|
-| `Compiled::evaluate()` | 2,652.98250 ns/op | 1,265.58625 ns/op | 2.10x faster (52.3% lower) |
-| `evaluate()` parse + compile + eval | 11,310.17791 ns/op | 7,748.60416 ns/op | 1.46x faster (31.5% lower) |
+The refreshed baseline is exact source SHA
+`b40cf6a6caf4516b702e45c585a612fb492903ff`; the measured candidate source is
+`763f66d9c5d6d387731e1270bdc9a4d02d575552` and uses native `Arc`, replacing
+the earlier native `Rc` implementation. To identify the measured code
+independently of a later branch rebase, its runtime source SHA-256 values are:
 
 ```text
-compiled baseline: [269820666, 266512125, 264555208, 265298250, 272051250, 264724250, 269924125, 264439042, 263991125] ns / 100000 calls
-compiled final:    [128660792, 185826500, 156597209, 124909959, 123349250, 126558625, 124070875, 238602375, 123893500] ns / 100000 calls
-full baseline:     [1131017791, 1238609250, 1127146083, 1160635292, 1296245375, 1121573666, 1461104333, 1127246125, 1130463834] ns / 100000 calls
-full final:        [767237708, 775911666, 776124958, 774860416, 771084958, 773898750, 769754750, 776605042, 780545416] ns / 100000 calls
+src/compiler.rs: 247f311e63a486629ba3476dba2c5bb407c61a15c1a2f2bac079ee406cb94673
+src/vm.rs:       1e5bfe30b74b9e9662e74f13165168149c3cfa3dc207085693a17670564f8061
+```
+
+Both sides used the same checked-in `examples/measure_user_fn.rs` harness,
+`std bigint fraction unit complex`, Apple Silicon arm64 macOS (Darwin 27.0.0),
+and rustc `1.95.0 (59807616e 2026-04-14)` on 2026-10-15. Each library was built
+with the locked dependencies and release profile in its own target directory.
+The harness was linked directly with the same optimization settings to avoid
+the unrelated release development-dependency failure described below. Both
+builds completed before timing, then baseline and candidate ran serially on
+the same host. Each row reports the median and observed min–max of nine timed
+runs of 100,000 calls, after 10,000 warm-up calls; these ranges are sample
+extrema, not confidence intervals.
+
+| case | baseline median ns/op (min–max) | native `Arc` median ns/op (min–max) | observed change |
+|---|---:|---:|---:|
+| `Compiled::evaluate()` | 1,917.09250 (1,903.45917–2,015.78959) | 977.11709 (969.27584–1,026.47208) | 1.96x faster (49.03% lower) |
+| `evaluate()` parse + compile + eval | 7,835.78042 (7,766.83833–8,176.83083) | 5,576.06792 (5,539.42542–5,631.86209) | 1.41x faster (28.84% lower) |
+
+```text
+compiled baseline: [201578959, 192371959, 192694292, 191709250, 197129042, 190345917, 190681958, 191034625, 190596000] ns / 100000 calls
+compiled native Arc: [102647208, 97475958, 97131291, 97474666, 98342625, 97711709, 96927584, 98557375, 99427375] ns / 100000 calls
+full baseline: [817683083, 781151417, 787763084, 791615750, 779984041, 776683833, 783578042, 796343167, 779938458] ns / 100000 calls
+full native Arc: [558505125, 553942542, 554403083, 554703875, 563186209, 554155417, 558145750, 559843500, 557606792] ns / 100000 calls
 ```
 
 The in-tree Criterion bench contains both the repeated compiled case and the
-full pipeline case. The reproducible non-Criterion harness is
-`examples/measure_user_fn.rs` and can be run with:
+full pipeline case. On this host, release example/bench builds that include
+development dependencies fail with `E0463` resolving the existing
+`rustversion` proc macro. No Criterion speedup is inferred from that failure.
+The library-only release build succeeds; the exact direct-harness procedure
+used for each source tree was:
 
 ```bash
-env RUSTC_WRAPPER= CARGO_BUILD_JOBS=1 \
-  cargo run --manifest-path wasmModules/math-box/Cargo.toml \
-  --example measure_user_fn --release --no-default-features \
+native_target=/tmp/math-box-native-target
+RUSTC_WRAPPER= CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$native_target" \
+  cargo build --manifest-path wasmModules/math-box/Cargo.toml \
+  --locked --lib --release --no-default-features \
   --features "std bigint fraction unit complex"
+rustc --edition 2024 -C opt-level=3 -C lto=fat -C codegen-units=1 \
+  -C panic=abort \
+  --extern "math_box=$native_target/release/libmath_box.rlib" \
+  -L "dependency=$native_target/release/deps" \
+  wasmModules/math-box/examples/measure_user_fn.rs \
+  -o "$native_target/measure-user-fn"
+"$native_target/measure-user-fn"
 ```
 
-The baseline archive was run with the same example copied into that source
-tree. On this host, `cargo bench` could not resolve existing release
-proc-macro dependencies (`E0463`, first `rustversion` and then
-`zerocopy_derive`), so no Criterion speedup is inferred from that failed run.
+The baseline was extracted with `git archive` and received an unchanged copy
+of the candidate's harness, whose SHA-256 is
+`ebc577ab423b346de250ab058b7505ea31f46e7b4d1025ef32ce08a9b762715f`.
+These measurements supersede the earlier native `Rc` timings; they do not
+isolate the native `Arc` versus `Rc` overhead.
 
 ### Shipping WASM measurement
+
+The native thread-safety correction still selects `Rc` for `wasm32`, and the
+WASM-target library check passes. The package tables below describe the named
+historical revisions. Equality of the corrected generated WASM package has
+not yet been verified, so these are not new measurements of the native `Arc`
+correction. A hosted package build must confirm binary equality or provide
+fresh runtime measurements before carrying these results forward.
 
 `bench/measure-shipping-profiles.sh` builds both `math-box` and `base64-box`
 for `opt-level=3`, `s`, and `z` in isolated output directories, then invokes
