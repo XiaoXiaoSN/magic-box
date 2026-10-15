@@ -20,7 +20,12 @@ import type {
 } from '../../modules/computeWorker/dto';
 import MagicBox from './index';
 
-const { noSources } = vi.hoisted(() => ({ noSources: [] }));
+const { noSources, preferenceState } = vi.hoisted(() => ({
+  noSources: [],
+  preferenceState: {
+    copyMode: 'enter' as 'enter' | 'paste' | 'off',
+  },
+}));
 
 vi.mock('@functions/clipboard', () => ({ default: vi.fn() }));
 vi.mock('../../contexts/SettingsContext', () => ({
@@ -28,7 +33,11 @@ vi.mock('../../contexts/SettingsContext', () => ({
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
   usePreferences: () => ({
-    prefs: { copyMode: 'enter', timezoneOffset: 8, timezoneMode: 'fixed' },
+    prefs: {
+      copyMode: preferenceState.copyMode,
+      timezoneOffset: 8,
+      timezoneMode: 'fixed',
+    },
   }),
 }));
 
@@ -124,6 +133,7 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
+  preferenceState.copyMode = 'enter';
   FakeComputeWorker.requests = [];
 });
 
@@ -497,6 +507,43 @@ describe('MagicBox live input and keyboard boundaries', () => {
     expect(cards[1]).not.toHaveClass('is-selected');
   });
 
+  it('moves global Alt selection in both directions and clamps Home/End boundaries', async () => {
+    render(
+      <LocaleProvider>
+        <textarea aria-label="Main input" data-magic-input="true" />
+        <MagicBox
+          input="settled"
+          liveInput="settled"
+          sources={[
+            sourceWithResult('first', Promise.resolve([box('First')])),
+            sourceWithResult('second', Promise.resolve([box('Second')])),
+            sourceWithResult('third', Promise.resolve([box('Third')])),
+          ]}
+        />
+      </LocaleProvider>,
+    );
+    const cards = await screen.findAllByTestId('magic-box-result');
+    screen.getByRole('textbox', { name: 'Main input' }).focus();
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' });
+    await waitFor(() => expect(cards[2]).toHaveClass('is-selected'));
+
+    fireEvent.keyDown(window, { altKey: true, key: 'Home' });
+    await waitFor(() => expect(cards[0]).toHaveClass('is-selected'));
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' });
+    await waitFor(() => expect(cards[0]).toHaveClass('is-selected'));
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowDown' });
+    await waitFor(() => expect(cards[1]).toHaveClass('is-selected'));
+
+    fireEvent.keyDown(window, { altKey: true, key: 'End' });
+    await waitFor(() => expect(cards[2]).toHaveClass('is-selected'));
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowDown' });
+    await waitFor(() => expect(cards[2]).toHaveClass('is-selected'));
+  });
+
   it('does not intercept Alt+Arrow in a nested editable control', async () => {
     const nestedSource: BoxSource = {
       ...immediateSource,
@@ -570,6 +617,68 @@ describe('MagicBox live input and keyboard boundaries', () => {
     expect(
       screen.getByTestId('magic-box-result').querySelector('button'),
     ).toBeDisabled();
+  });
+
+  it.each([
+    {
+      mode: 'paste' as const,
+      copyCalls: 1,
+      commitCalls: 1,
+      pasteCalls: 1,
+      clickCalls: 1,
+    },
+    {
+      mode: 'off' as const,
+      copyCalls: 0,
+      commitCalls: 0,
+      pasteCalls: 0,
+      clickCalls: 0,
+    },
+  ])('honors regular Enter copy mode $mode without leaking callbacks', async ({
+    mode,
+    copyCalls,
+    commitCalls,
+    pasteCalls,
+    clickCalls,
+  }) => {
+    preferenceState.copyMode = mode;
+    const onInputCommit = vi.fn();
+    const onPasteInput = vi.fn();
+    const onClick = vi.fn();
+    const selected = new BoxBuilder('Selected', 'selected output')
+      .setOnClick(onClick)
+      .setShowExpandButton(false)
+      .build();
+    const source = sourceWithResult('selected', Promise.resolve([selected]));
+
+    render(
+      <LocaleProvider>
+        <MagicBox
+          input="source input"
+          onInputCommit={onInputCommit}
+          onPasteInput={onPasteInput}
+          sources={[source]}
+        />
+      </LocaleProvider>,
+    );
+
+    await screen.findByText('selected output');
+    fireEvent.click(screen.getByRole('button', { name: 'Select Selected' }));
+    vi.mocked(copyTextToClipboard).mockClear();
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    if (copyCalls > 0) {
+      await waitFor(() =>
+        expect(copyTextToClipboard).toHaveBeenCalledWith('selected output'),
+      );
+    } else {
+      await Promise.resolve();
+    }
+    expect(copyTextToClipboard).toHaveBeenCalledTimes(copyCalls);
+    expect(onInputCommit).toHaveBeenCalledTimes(commitCalls);
+    expect(onPasteInput).toHaveBeenCalledTimes(pasteCalls);
+    expect(onClick).toHaveBeenCalledTimes(clickCalls);
   });
 
   it('marks old results stale as soon as the debounced input becomes current', async () => {

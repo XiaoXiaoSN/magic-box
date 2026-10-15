@@ -116,6 +116,23 @@ jobs:
       - name: Run unit tests
         run: bun run test --run
 
+      - name: Run date and timezone tests in Los Angeles
+        run: >
+          bunx --no-install vitest run
+          src/functions/__test__/timezone.test.ts
+          src/contexts/__test__/PreferencesContext.test.tsx
+          src/pages/SettingsPage.test.tsx
+          src/modules/boxSources/__test__/CronExpressionBoxSource.test.ts
+          src/modules/boxSources/__test__/DateCalculateBoxSource.test.ts
+          src/modules/boxSources/__test__/NowBoxSource.test.ts
+          src/modules/boxSources/__test__/TimestampBoxSource.test.ts
+          src/modules/boxSources/__test__/WeekNumberBoxSource.test.ts
+          src/modules/boxSources/__test__/sourceContracts.test.ts
+          src/modules/boxSources/__test__/timezoneWiring.test.ts
+          --reporter=dot
+        env:
+          TZ: America/Los_Angeles
+
       - name: Test bundle budget fixtures
         run: bun run test:bundle-budget
 
