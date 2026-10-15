@@ -463,7 +463,11 @@ impl<'a> Parser<'a> {
 
     fn unit_label(&self) -> Option<String> {
         match &self.peek().tok {
-            Tok::Ident(label) if crate::units::is_label(label) => Some(label.clone()),
+            Tok::Ident(label)
+                if crate::units::is_label(label) && !matches!(self.peek_n(1).tok, Tok::LParen) =>
+            {
+                Some(label.clone())
+            }
             _ => None,
         }
     }

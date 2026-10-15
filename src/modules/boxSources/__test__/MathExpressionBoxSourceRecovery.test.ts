@@ -80,4 +80,41 @@ describe('MathExpressionBoxSource recovery', () => {
     expect(await source.checkMatch('17 +')).toBeUndefined();
     expect(evaluateTyped).toHaveBeenCalledTimes(1);
   });
+
+  it('copies typed results before freeing the native handle', async () => {
+    const free = vi.fn();
+    type TypedResultInstance = ReturnType<MockedMathBox['evaluate_typed']>;
+    const handle = {
+      kind: 'num',
+      text: '18',
+      exact: false,
+      finite: true,
+      free,
+    } as unknown as TypedResultInstance;
+    vi.mocked(mathBox.evaluate_typed).mockReturnValueOnce(handle);
+
+    expect(await source.checkMatch('13 + 5')).toEqual({ answer: '18' });
+    expect(free).toHaveBeenCalledTimes(1);
+  });
+
+  it('frees a typed result when copying its fields fails', async () => {
+    const free = vi.fn();
+    type TypedResultInstance = ReturnType<MockedMathBox['evaluate_typed']>;
+    const handle = {
+      kind: 'num',
+      get text(): string {
+        throw new Error('injected getter failure');
+      },
+      exact: false,
+      finite: true,
+      free,
+    } as unknown as TypedResultInstance;
+    vi.mocked(mathBox.evaluate_typed).mockReturnValueOnce(handle);
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(await source.checkMatch('13 + 6')).toBeUndefined();
+    expect(free).toHaveBeenCalledTimes(1);
+
+    log.mockRestore();
+  });
 });

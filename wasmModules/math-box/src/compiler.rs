@@ -27,6 +27,7 @@ pub enum Inst {
     Compare(CmpOp),
     JumpIfFalse(usize),
     JumpIfTrue(usize),
+    RequireBool(&'static str),
     Neg,
     Not,
     Percent,
@@ -140,6 +141,35 @@ fn fold(
         },
         Expr::Var(name) => Expr::Var(name),
 
+        Expr::Bin { op, lhs, rhs } if matches!(op, BinOp::And | BinOp::Or) => {
+            let l = fold(*lhs, ns, shadowed, budget)?;
+            let Some(left) = (match l {
+                Expr::Bool(value) => Some(value),
+                _ => None,
+            }) else {
+                return Ok(Expr::Bin {
+                    op,
+                    lhs: Box::new(l),
+                    rhs,
+                });
+            };
+            if (matches!(op, BinOp::And) && !left) || (matches!(op, BinOp::Or) && left) {
+                return Ok(Expr::Bool(left));
+            }
+            let r = fold(*rhs, ns, shadowed, budget)?;
+            if let Expr::Bool(right) = r {
+                return Ok(Expr::Bool(match op {
+                    BinOp::And => left && right,
+                    BinOp::Or => left || right,
+                    _ => unreachable!(),
+                }));
+            }
+            Expr::Bin {
+                op,
+                lhs: Box::new(Expr::Bool(left)),
+                rhs: Box::new(r),
+            }
+        }
         Expr::Bin { op, lhs, rhs } => {
             let l = fold(*lhs, ns, shadowed, budget)?;
             let r = fold(*rhs, ns, shadowed, budget)?;
@@ -295,6 +325,7 @@ fn lower(
                 prog.code.push(Inst::JumpIfFalse(usize::MAX));
                 prog.code.push(Inst::Drop);
                 lower(rhs, prog, ns, shadowed, budget)?;
+                prog.code.push(Inst::RequireBool("&&"));
                 let target = prog.code.len();
                 prog.code[jump] = Inst::JumpIfFalse(target);
             }
@@ -304,6 +335,7 @@ fn lower(
                 prog.code.push(Inst::JumpIfTrue(usize::MAX));
                 prog.code.push(Inst::Drop);
                 lower(rhs, prog, ns, shadowed, budget)?;
+                prog.code.push(Inst::RequireBool("||"));
                 let target = prog.code.len();
                 prog.code[jump] = Inst::JumpIfTrue(target);
             }
@@ -367,11 +399,10 @@ fn lower(
                     name: name.clone(),
                     fn_idx,
                 });
-                // function definitions are statements; push a string sentinel so
-                // the result of `f(x) = …` displays as `<fn name/arity>` rather
-                // than the previous surprising `params.len()` numeric value.
+                // function definitions are statements; retain a distinct value
+                // kind so a user string cannot be mistaken for a function.
                 let sentinel = alloc::format!("<fn {}/{}>", name, params.len());
-                prog.code.push(Inst::PushVal(Value::Str(sentinel)));
+                prog.code.push(Inst::PushVal(Value::Function(sentinel)));
             } else {
                 lower(value, prog, ns, shadowed, budget)?;
                 prog.code.push(Inst::StoreKeep(name.clone()));

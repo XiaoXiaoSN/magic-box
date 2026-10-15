@@ -84,15 +84,8 @@ impl TypedResult {
         let (kind, exact, finite) = match value {
             Value::Num(value) => ("num", false, value.is_finite()),
             Value::Bool(_) => ("bool", false, true),
-            Value::Str(value) => (
-                if value.starts_with("<fn ") {
-                    "function"
-                } else {
-                    "string"
-                },
-                false,
-                true,
-            ),
+            Value::Str(_) => ("string", false, true),
+            Value::Function(_) => ("function", false, true),
             #[cfg(feature = "bigint")]
             Value::Big(_) => ("big", true, true),
             #[cfg(feature = "fraction")]
@@ -195,6 +188,10 @@ fn eval_value(input: &str) -> Result<Value> {
 }
 
 fn check_display_limit(value: &Value) -> Result<()> {
+    #[cfg(feature = "unit")]
+    if let Value::Unit(unit) = value {
+        unit.validate_display()?;
+    }
     if value.display_len_upper_bound() > MAX_DISPLAY_LEN {
         return Err(Error::LimitExceeded {
             what: "display length",

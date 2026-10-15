@@ -373,7 +373,8 @@ fn sqrt_value(args: &[Value]) -> Result<Value> {
         };
         return Ok(Value::Unit(crate::value::UnitValue {
             base_value: value.base_value.sqrt(),
-            unit_label: alloc::format!("sqrt({})", value.unit_label),
+            unit_label: crate::units::format_sqrt(&value.unit_label)
+                .unwrap_or_else(|| value.dim.canonical_label()),
             display_factor: value.display_factor.sqrt(),
             display_offset: 0.0,
             dim,

@@ -71,6 +71,13 @@ describe('MathExpressionBoxSource', () => {
       expect(result).toBeDefined();
       expect(result?.answer).toBe('3.75');
     });
+
+    it('should expose unary boolean results in automatic mode', async () => {
+      expect(await MathExpressionBoxSource.checkMatch('!false')).toEqual({
+        answer: 'true',
+      });
+      expect(await MathExpressionBoxSource.checkMatch('true')).toBeUndefined();
+    });
   });
 
   describe('generateBoxes', () => {

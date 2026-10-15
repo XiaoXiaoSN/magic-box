@@ -138,16 +138,16 @@ impl UnitParser<'_> {
     fn parse_product(&mut self) -> Result<UnitSpec> {
         let mut result = self.parse_factor()?;
         while self.position < self.input.len() {
-            let divide = match self.input.as_bytes()[self.position] {
-                b'*' | 0xc2 => false,
-                b'/' => true,
+            let operator = self.input[self.position..]
+                .chars()
+                .next()
+                .ok_or(Error::UnexpectedEof)?;
+            let divide = match operator {
+                '*' => false,
+                '/' => true,
                 _ => break,
             };
-            if self.input.as_bytes()[self.position] == 0xc2 {
-                self.position = self.position.saturating_add(2);
-            } else {
-                self.position += 1;
-            }
+            self.position += operator.len_utf8();
             let rhs = self.parse_factor()?;
             result = combine(result, rhs, divide)?;
         }
@@ -160,13 +160,37 @@ impl UnitParser<'_> {
             return Err(Error::DepthExceeded { limit: 16 });
         }
         let start = self.position;
-        while self.position < self.input.len() {
-            let c = self.input.as_bytes()[self.position];
-            if c.is_ascii_alphabetic() || c == b'_' || c == 0xc2 {
-                self.position += 1;
-            } else {
-                break;
+        let first = self.input[self.position..]
+            .chars()
+            .next()
+            .ok_or(Error::UnexpectedEof)?;
+        if first == '°' {
+            self.position += first.len_utf8();
+            let suffix = self.input[self.position..]
+                .chars()
+                .next()
+                .ok_or(Error::Domain {
+                    what: "unknown unit label",
+                })?;
+            if !matches!(suffix, 'C' | 'F') {
+                return Err(Error::Domain {
+                    what: "unknown unit label",
+                });
             }
+            self.position += suffix.len_utf8();
+        } else if first.is_ascii_alphabetic() || first == '_' {
+            self.position += first.len_utf8();
+            while let Some(c) = self.input[self.position..].chars().next() {
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    self.position += c.len_utf8();
+                } else {
+                    break;
+                }
+            }
+        } else {
+            return Err(Error::Domain {
+                what: "unknown unit label",
+            });
         }
         let label = &self.input[start..self.position];
         let mut result = lookup(label).ok_or(Error::Domain {
@@ -248,25 +272,150 @@ pub fn parse_expression(_input: &str) -> crate::error::Result<()> {
 
 #[cfg(feature = "unit")]
 pub fn format_product(lhs: &str, rhs: &str) -> String {
-    if lhs.is_empty() {
-        return rhs.to_string();
-    }
-    if rhs.is_empty() {
-        return lhs.to_string();
-    }
-    alloc::format!("{lhs}·{rhs}")
+    format_combined(lhs, rhs, false)
 }
 
 #[cfg(feature = "unit")]
 pub fn format_quotient(lhs: &str, rhs: &str) -> String {
-    if lhs.is_empty() {
-        if rhs.contains('/') || rhs.contains('·') || rhs.contains('^') {
-            return alloc::format!("({rhs})^-1");
+    format_combined(lhs, rhs, true)
+}
+
+#[cfg(feature = "unit")]
+pub fn format_power(label: &str, exponent: i8) -> String {
+    let Some(mut terms) = parse_terms(label) else {
+        return alloc::format!("{label}^{exponent}");
+    };
+    for (_, term_exponent) in &mut terms {
+        *term_exponent = term_exponent.saturating_mul(i16::from(exponent));
+    }
+    format_terms(&terms)
+}
+
+#[cfg(feature = "unit")]
+pub fn format_sqrt(label: &str) -> Option<String> {
+    let mut terms = parse_terms(label)?;
+    for (_, exponent) in &mut terms {
+        if *exponent % 2 != 0 {
+            return None;
         }
-        return alloc::format!("{rhs}^-1");
+        *exponent /= 2;
     }
-    if rhs.is_empty() {
-        return lhs.to_string();
+    Some(format_terms(&terms))
+}
+
+#[cfg(feature = "unit")]
+fn format_combined(lhs: &str, rhs: &str, divide_rhs: bool) -> String {
+    let mut terms = parse_terms(lhs).unwrap_or_default();
+    let rhs_terms = parse_terms(rhs).unwrap_or_default();
+    if terms.is_empty() && lhs.is_empty() && rhs.is_empty() {
+        return String::new();
     }
-    alloc::format!("{lhs}/{rhs}")
+    if terms.is_empty() && !lhs.is_empty() {
+        return if divide_rhs {
+            alloc::format!("{lhs}/{rhs}")
+        } else {
+            alloc::format!("{lhs}*{rhs}")
+        };
+    }
+    if rhs_terms.is_empty() && !rhs.is_empty() {
+        return if divide_rhs {
+            alloc::format!("{lhs}/{rhs}")
+        } else {
+            alloc::format!("{lhs}*{rhs}")
+        };
+    }
+    for (term, exponent) in rhs_terms {
+        let exponent = if divide_rhs { -exponent } else { exponent };
+        if let Some((_, current)) = terms.iter_mut().find(|(name, _)| name == &term) {
+            *current = current.saturating_add(exponent);
+        } else {
+            terms.push((term, exponent));
+        }
+    }
+    terms.retain(|(_, exponent)| *exponent != 0);
+    format_terms(&terms)
+}
+
+#[cfg(feature = "unit")]
+fn parse_terms(label: &str) -> Option<alloc::vec::Vec<(String, i16)>> {
+    if label.is_empty() {
+        return Some(alloc::vec::Vec::new());
+    }
+    let mut terms: alloc::vec::Vec<(String, i16)> = alloc::vec::Vec::new();
+    let mut start = 0;
+    let mut sign = 1_i16;
+    for (index, operator) in label.char_indices() {
+        if matches!(operator, '*' | '/') {
+            let term = &label[start..index];
+            add_term(&mut terms, term, sign)?;
+            sign = if operator == '/' { -1 } else { 1 };
+            start = index + operator.len_utf8();
+        }
+    }
+    add_term(&mut terms, &label[start..], sign)?;
+    Some(terms)
+}
+
+#[cfg(feature = "unit")]
+fn add_term(terms: &mut alloc::vec::Vec<(String, i16)>, raw: &str, sign: i16) -> Option<()> {
+    if raw.is_empty() {
+        return None;
+    }
+    let (base, exponent) = raw
+        .rsplit_once('^')
+        .map_or((raw, 1_i16), |(base, exponent)| {
+            (base, exponent.parse::<i16>().ok().unwrap_or(0))
+        });
+    if base.is_empty() || exponent == 0 {
+        return None;
+    }
+    let exponent = sign.checked_mul(exponent)?;
+    if let Some((_, current)) = terms.iter_mut().find(|(term, _)| term == base) {
+        *current = current.checked_add(exponent)?;
+    } else {
+        terms.push((base.to_string(), exponent));
+    }
+    Some(())
+}
+
+#[cfg(feature = "unit")]
+fn format_terms(terms: &[(String, i16)]) -> String {
+    let mut numerator = alloc::vec::Vec::new();
+    let mut denominator = alloc::vec::Vec::new();
+    for (term, exponent) in terms {
+        if *exponent > 0 {
+            numerator.push(format_term(term, *exponent));
+        } else if *exponent < 0 {
+            denominator.push(format_term(term, exponent.saturating_abs()));
+        }
+    }
+    if numerator.is_empty() {
+        if denominator.len() == 1 {
+            let Some((term, exponent)) = terms.iter().find(|(_, exponent)| *exponent < 0) else {
+                return String::new();
+            };
+            return alloc::format!("{term}^{exponent}");
+        }
+        return terms
+            .iter()
+            .filter(|(_, exponent)| *exponent < 0)
+            .map(|(term, exponent)| alloc::format!("{term}^{}", exponent))
+            .collect::<alloc::vec::Vec<_>>()
+            .join("*");
+    }
+    let mut result = numerator.join("*");
+    for term in denominator {
+        result.push('/');
+        result.push_str(&term);
+    }
+    result
+}
+
+#[cfg(feature = "unit")]
+fn format_term(term: &str, exponent: i16) -> String {
+    if exponent == 1 {
+        term.to_string()
+    } else {
+        alloc::format!("{term}^{exponent}")
+    }
 }

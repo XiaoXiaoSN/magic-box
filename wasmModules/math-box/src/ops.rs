@@ -995,11 +995,15 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
                 return Ok(Num(value.base_value.powi(i32::from(exponent))));
             }
             let base_value = value.base_value.powi(i32::from(exponent));
+            let display_factor = value.display_factor.powi(i32::from(exponent));
+            if !display_factor.is_finite() || display_factor == 0.0 {
+                return Err(Error::Overflow);
+            }
             check_temperature(base_value, dim)?;
             Ok(Unit(crate::value::UnitValue {
                 base_value,
-                unit_label: alloc::format!("{}^{}", value.unit_label, exponent),
-                display_factor: value.display_factor.powi(i32::from(exponent)),
+                unit_label: crate::units::format_power(&value.unit_label, exponent),
+                display_factor,
                 display_offset: 0.0,
                 dim,
                 affine: false,
@@ -1165,10 +1169,24 @@ pub fn compare(a: Value, b: Value, op: CmpOp) -> Result<Value> {
     }
 
     #[cfg(feature = "bigint")]
+    if let (Value::Big(left), Value::Num(right)) = (&a, &b)
+        && !right.is_finite()
+    {
+        return Ok(Value::Bool(compare_big_nonfinite(left, *right, op)));
+    }
+
+    #[cfg(feature = "bigint")]
     if let (Value::Num(left), Value::Big(right)) = (&a, &b)
         && let Some(left) = num_to_bigint(*left)
     {
         return Ok(Value::Bool(left.cmp(right).matches(op)));
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Num(left), Value::Big(right)) = (&a, &b)
+        && !left.is_finite()
+    {
+        return Ok(Value::Bool(compare_num_nonfinite(*left, right, op)));
     }
 
     #[cfg(feature = "fraction")]
@@ -1246,6 +1264,32 @@ fn compare_f64(left: f64, right: f64, op: CmpOp) -> bool {
         CmpOp::Gt => ordering == Some(Ordering::Greater),
         CmpOp::GtEq => matches!(ordering, Some(Ordering::Greater | Ordering::Equal)),
     }
+}
+
+#[cfg(feature = "bigint")]
+fn compare_big_nonfinite(_left: &BigInt, right: f64, op: CmpOp) -> bool {
+    if right.is_nan() {
+        return matches!(op, CmpOp::NotEq);
+    }
+    let ordering = if right.is_sign_positive() {
+        core::cmp::Ordering::Less
+    } else {
+        core::cmp::Ordering::Greater
+    };
+    ordering.matches(op)
+}
+
+#[cfg(feature = "bigint")]
+fn compare_num_nonfinite(left: f64, _right: &BigInt, op: CmpOp) -> bool {
+    if left.is_nan() {
+        return matches!(op, CmpOp::NotEq);
+    }
+    let ordering = if left.is_sign_positive() {
+        core::cmp::Ordering::Greater
+    } else {
+        core::cmp::Ordering::Less
+    };
+    ordering.matches(op)
 }
 
 trait OrderingMatches {
@@ -1380,6 +1424,13 @@ pub fn neg(a: Value) -> Result<Value> {
             return Err(Error::TypeMismatch {
                 op: "unary -",
                 lhs: "string",
+                rhs: "(none)",
+            });
+        }
+        Function(_) => {
+            return Err(Error::TypeMismatch {
+                op: "unary -",
+                lhs: "function",
                 rhs: "(none)",
             });
         }

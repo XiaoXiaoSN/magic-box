@@ -23,13 +23,17 @@ interface TypedResult {
   finite?: boolean;
 }
 
+interface TypedResultHandle extends TypedResult {
+  free(): void;
+}
+
 type MathBoxModule = typeof import('math-box') & {
-  evaluate_typed?: (input: string) => TypedResult;
+  evaluate_typed?: (input: string) => TypedResultHandle;
   Compiled?: new (
     input: string,
   ) => {
     evaluate(): string;
-    evaluate_typed(): TypedResult;
+    evaluate_typed(): TypedResultHandle;
     free(): void;
   };
 };
@@ -239,19 +243,31 @@ function normalizeTypedResult(
 ): TypedResult {
   if ('evaluate_typed' in module) {
     const evaluateTyped = module.evaluate_typed;
-    if (evaluateTyped) return evaluateTyped(input);
+    if (evaluateTyped) {
+      const handle = evaluateTyped(input);
+      try {
+        return {
+          kind: handle.kind,
+          text: handle.text,
+          exact: handle.exact,
+          finite: handle.finite,
+        };
+      } finally {
+        handle.free();
+      }
+    }
   }
   const text = module.evaluate(input);
   const finite = !/^(?:NaN|[+-]?Infinity)$/.test(text);
   return {
-    kind: text.startsWith('<fn ') ? 'function' : 'num',
+    kind: 'num',
     text,
     finite,
   };
 }
 
 function isBooleanComparison(input: string): boolean {
-  return /(?:<|>|==|!=|<=|>=|&&|\|\|)/.test(input);
+  return /(?:!|<|>|==|!=|<=|>=|&&|\|\|)/.test(input);
 }
 
 function typedResultMatches(

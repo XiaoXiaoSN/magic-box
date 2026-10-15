@@ -527,7 +527,7 @@ fn typed_math_b_operations() {
     assert_eval("min(1 km, 500 m)", "500 m");
     assert_eval("1 km % 300 m", "0.1 km");
     assert_eval("(2 m)^2", "4 m^2");
-    assert_eval("sqrt(4 m^2)", "2 sqrt(m^2)");
+    assert_eval("sqrt(4 m^2)", "2 m");
     assert_eval("abs(-5 km)", "5 km");
     assert_eval("abs(-9007199254740993n)", "9007199254740993");
     assert_eval("abs(-frac(1, 3))", "1/3");
@@ -612,4 +612,40 @@ fn typed_results_and_compiled_budget_reset() {
     let bounded = Compiled::new("3n^11000").expect("bounded compile");
     assert!(bounded.evaluate().is_err());
     assert!(bounded.evaluate().is_err());
+}
+
+#[test]
+#[cfg(feature = "unit")]
+fn reviewed_unit_parser_and_display_regressions() {
+    assert!(math_box::evaluate(r#"unit(1, "°C/s")"#).is_err());
+    assert!(math_box::evaluate("1 °C/s").is_err());
+    assert!(math_box::evaluate(r#"convert(unit(1, "m"), "m/°C")"#).is_err());
+    assert_eval("(1 m/s)^2", "1 m^2/s^2");
+    assert_eval("(1 km/h)^2", "1 km^2/h^2");
+    assert_eval("1 m^2/s^2", "1 m^2/s^2");
+    assert_eval(r#"unit(1, "m/s") / unit(1, "m/s^2")"#, "1 s");
+    assert_eval(r#"unit(1, "s^-1") * unit(1, "s^-1")"#, "1 s^-2");
+    assert_eval("5 / 2 m^2", "2.5 m^-2");
+    assert_eval("1e-13 m", "1e-13 m");
+    assert!(math_box::evaluate("1 nm^50").is_err());
+}
+
+#[test]
+fn reviewed_logical_and_numeric_regressions() {
+    assert!(math_box::evaluate("true && 1").is_err());
+    assert!(math_box::evaluate("false || 1").is_err());
+    assert_eval("false && ((-1)! == 1)", "false");
+    assert_eval("true || ((-1)! == 1)", "true");
+    assert_eval("2 min(1, 2)", "2");
+    assert_eval("2 min", "2 min");
+    assert_eval("2n^2000 < Infinity", "true");
+    assert_eval("2n^2000 == Infinity", "false");
+}
+
+#[test]
+fn reviewed_function_result_kind_does_not_match_string_text() {
+    let string = evaluate_typed(r#""<fn f/1>""#).expect("literal string");
+    assert_eq!(string.kind(), "string");
+    let function = evaluate_typed("f(x) = x").expect("function definition");
+    assert_eq!(function.kind(), "function");
 }

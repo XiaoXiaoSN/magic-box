@@ -210,6 +210,16 @@ fn exec(
                     continue;
                 }
             }
+            Inst::RequireBool(op) => {
+                let value = stack.last().ok_or(Error::UnexpectedEof)?;
+                if !matches!(value, Value::Bool(_)) {
+                    return Err(Error::TypeMismatch {
+                        op,
+                        lhs: value.type_name(),
+                        rhs: "boolean",
+                    });
+                }
+            }
 
             Inst::Neg => unop(stack, ops::neg)?,
             Inst::Not => unop(stack, ops::logical_not)?,

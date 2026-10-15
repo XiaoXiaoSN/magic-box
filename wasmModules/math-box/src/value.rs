@@ -11,6 +11,7 @@ pub enum Value {
     Num(f64),
     Bool(bool),
     Str(String),
+    Function(String),
     #[cfg(feature = "bigint")]
     Big(num_bigint::BigInt),
     #[cfg(feature = "fraction")]
@@ -26,7 +27,7 @@ impl Value {
         match self {
             Self::Num(n) => Some(*n),
             Self::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
-            Self::Str(_) => None,
+            Self::Str(_) | Self::Function(_) => None,
             #[cfg(feature = "bigint")]
             Self::Big(b) => bigint_to_f64(b),
             #[cfg(feature = "fraction")]
@@ -55,7 +56,7 @@ impl Value {
         match self {
             Self::Num(n) => format_num(*n),
             Self::Bool(b) => b.to_string(),
-            Self::Str(s) => s.clone(),
+            Self::Str(s) | Self::Function(s) => s.clone(),
             #[cfg(feature = "bigint")]
             Self::Big(b) => b.to_string(),
             #[cfg(feature = "fraction")]
@@ -71,7 +72,7 @@ impl Value {
         match self {
             Self::Num(_) => 400,
             Self::Bool(_) => 5,
-            Self::Str(value) => value.len(),
+            Self::Str(value) | Self::Function(value) => value.len(),
             #[cfg(feature = "bigint")]
             Self::Big(value) => {
                 decimal_digits_upper_bound(value.bits())
@@ -108,6 +109,7 @@ impl Value {
             Self::Num(_) => "number",
             Self::Bool(_) => "boolean",
             Self::Str(_) => "string",
+            Self::Function(_) => "function",
             #[cfg(feature = "bigint")]
             Self::Big(_) => "big",
             #[cfg(feature = "fraction")]
@@ -718,12 +720,23 @@ impl Dimension {
                 denominator.push(dimension_factor(unit, -i16::from(exponent)));
             }
         }
-        let numerator = numerator.join(" ");
-        let denominator = denominator.join(" ");
+        let numerator = numerator.join("*");
+        let denominator = denominator.join("*");
         if denominator.is_empty() {
             numerator
         } else if numerator.is_empty() {
-            alloc::format!("1/{denominator}")
+            [
+                ("m", self.length),
+                ("kg", self.mass),
+                ("s", self.time),
+                ("K", self.temperature),
+                ("B", self.data),
+            ]
+            .into_iter()
+            .filter(|(_, exponent)| *exponent < 0)
+            .map(|(unit, exponent)| dimension_factor(unit, i16::from(exponent)))
+            .collect::<Vec<_>>()
+            .join("*")
         } else {
             alloc::format!("{numerator}/{denominator}")
         }
@@ -744,11 +757,23 @@ impl UnitValue {
     pub fn display_value(&self) -> f64 {
         let value = (self.base_value - self.display_offset) / self.display_factor;
         let rounded = value.round();
-        if (value - rounded).abs() < 1e-12 {
+        let tolerance = f64::EPSILON * value.abs() * 32.0;
+        if (value - rounded).abs() <= tolerance {
             rounded
         } else {
             value
         }
+    }
+
+    pub fn validate_display(&self) -> Result<()> {
+        if !self.display_factor.is_finite() || self.display_factor == 0.0 {
+            return Err(Error::Overflow);
+        }
+        let value = (self.base_value - self.display_offset) / self.display_factor;
+        if !value.is_finite() {
+            return Err(Error::Overflow);
+        }
+        Ok(())
     }
 
     pub fn to_display_string(&self) -> String {
