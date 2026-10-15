@@ -3,7 +3,14 @@ import ErrorBoundary, {
   TemplateErrorFallback,
 } from '@components/ErrorBoundary';
 import type { BoxProps, Box as BoxType } from '@modules/Box';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
 // Anything a template renders that the user operates. The card itself is a
@@ -58,6 +65,7 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
       kind,
       onClick,
     } = box.props;
+    const previousPlaintextOutput = useRef(plaintextOutput);
     const showExpand = box.props.showExpandButton !== false && !!onExpand;
 
     useEffect(() => {
@@ -69,6 +77,18 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
         }
       };
     }, []);
+
+    useLayoutEffect(() => {
+      if (previousPlaintextOutput.current === plaintextOutput) return;
+
+      previousPlaintextOutput.current = plaintextOutput;
+      copySequence.current += 1;
+      if (copiedTimer.current !== null) {
+        window.clearTimeout(copiedTimer.current);
+        copiedTimer.current = null;
+      }
+      setJustCopied(false);
+    }, [plaintextOutput]);
 
     const markCopied = useCallback(
       async (text: string): Promise<void> => {

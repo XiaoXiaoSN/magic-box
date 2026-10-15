@@ -98,6 +98,24 @@ const stableTemplate = ({ plaintextOutput }: BoxProps): React.JSX.Element => (
   <span data-testid="stable-output">{plaintextOutput}</span>
 );
 
+const changingTemplate = ({
+  onResultChange,
+  plaintextOutput,
+}: BoxProps): React.JSX.Element => (
+  <>
+    <span data-testid="changing-output">{plaintextOutput}</span>
+    <button
+      data-testid="change-output"
+      onClick={() =>
+        onResultChange?.({ options: null, plaintextOutput: 'next output' })
+      }
+      type="button"
+    >
+      change output
+    </button>
+  </>
+);
+
 describe('BoxCard click handling', () => {
   it('leaves clicks on a template’s own controls to those controls', async () => {
     // Regression: clicking into the Local AI textarea to paste overwrote the
@@ -167,6 +185,66 @@ describe('BoxCard click handling', () => {
     });
 
     expect(button).toHaveTextContent('Copy');
+  });
+
+  it('does not mark a new output copied when an old copy resolves later', async () => {
+    let resolveCopy!: (value: boolean) => void;
+    const copyPromise = new Promise<boolean>((resolve) => {
+      resolveCopy = resolve;
+    });
+    vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
+    const changing = source(() =>
+      new BoxBuilder('Changing output', 'first output')
+        .setTemplate(changingTemplate)
+        .build(),
+    );
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[changing]} />
+      </LocaleProvider>,
+    );
+
+    const card = await screen.findByTestId('magic-box-result');
+    const copyButton = card.querySelector(
+      'button.box-copy',
+    ) as HTMLButtonElement;
+    fireEvent.click(copyButton);
+    fireEvent.click(await screen.findByTestId('change-output'));
+    expect(screen.getByTestId('changing-output')).toHaveTextContent(
+      'next output',
+    );
+
+    await act(async () => {
+      resolveCopy(true);
+      await copyPromise;
+    });
+
+    expect(copyButton).toHaveTextContent('Copy');
+  });
+
+  it('resets Copied when the card output changes', async () => {
+    const changing = source(() =>
+      new BoxBuilder('Changing output', 'first output')
+        .setTemplate(changingTemplate)
+        .build(),
+    );
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[changing]} />
+      </LocaleProvider>,
+    );
+
+    const card = await screen.findByTestId('magic-box-result');
+    const copyButton = card.querySelector(
+      'button.box-copy',
+    ) as HTMLButtonElement;
+    fireEvent.click(copyButton);
+    await waitFor(() => expect(copyButton).toHaveTextContent('Copied'));
+
+    fireEvent.click(await screen.findByTestId('change-output'));
+    expect(copyButton).toHaveTextContent('Copy');
   });
 });
 
