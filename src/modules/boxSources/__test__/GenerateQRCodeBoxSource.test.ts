@@ -53,5 +53,27 @@ describe('GenerateQRCodeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe(input);
       expect(boxes[0].view).toBe('qrCode');
     });
+
+    const byteLimitCases: Array<[string, string, boolean]> = [
+      ['ASCII at the byte limit', 'a'.repeat(2953), false],
+      ['ASCII over the byte limit', 'a'.repeat(2954), true],
+      ['multibyte input at the byte limit', `${'中'.repeat(983)}abcd`, false],
+      ['multibyte input over the byte limit', `${'中'.repeat(983)}abcde`, true],
+    ];
+
+    for (const [label, input, tooLong] of byteLimitCases) {
+      it(label, async () => {
+        const [box] = await GenerateQRCodeBoxSource.generateBoxes(input, {
+          qr: true,
+        });
+
+        expect(box.props.name).toBe('QRCode');
+        expect(box.props.priority).toBe(10);
+        expect(box.props.plaintextOutput).toBe(
+          tooLong ? 'Input too long for a QR code (max 2953 bytes)' : input,
+        );
+        expect(box.view).toBe(tooLong ? undefined : 'qrCode');
+      });
+    }
   });
 });

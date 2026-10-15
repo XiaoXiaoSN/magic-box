@@ -21,6 +21,13 @@ const box: Box = {
   boxTemplate: Template,
 };
 
+const throwingBox: Box = {
+  ...box,
+  boxTemplate: () => {
+    throw new Error('private template details');
+  },
+};
+
 describe('<BoxModal />', () => {
   it('closes when clicking the overlay outside the card', () => {
     const onClose = vi.fn();
@@ -50,5 +57,24 @@ describe('<BoxModal />', () => {
     fireEvent.click(screen.getByTestId('modal-content'));
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('keeps modal controls usable when a template throws', async () => {
+    const onClose = vi.fn();
+
+    render(
+      <LocaleProvider>
+        <BoxModal
+          box={throwingBox}
+          onClose={onClose}
+          onCopy={vi.fn()}
+          open={true}
+        />
+      </LocaleProvider>,
+    );
+
+    expect(await screen.findByTestId('box-template-error')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

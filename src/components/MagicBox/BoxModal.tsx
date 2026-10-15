@@ -1,4 +1,7 @@
 import { resolveBoxTemplate } from '@components/BoxTemplate/resolveBoxTemplate';
+import ErrorBoundary, {
+  TemplateErrorFallback,
+} from '@components/ErrorBoundary';
 import type { Box as BoxType } from '@modules/Box';
 import { Modal } from '@mui/material';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -49,18 +52,23 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
       title={name}
       titleId="box-modal-title"
     >
-      <Comp
-        kind={kind}
-        largeModal
-        name={name}
-        onClick={handleClick}
-        onClose={onClose}
-        options={options}
-        plaintextOutput={plaintextOutput}
-        priority={priority}
-        sourceInput={sourceInput}
-        tag={tag}
-      />
+      <ErrorBoundary
+        fallback={(retry) => <TemplateErrorFallback retry={retry} />}
+        resetKey={box}
+      >
+        <Comp
+          kind={kind}
+          largeModal
+          name={name}
+          onClick={handleClick}
+          onClose={onClose}
+          options={options}
+          plaintextOutput={plaintextOutput}
+          priority={priority}
+          sourceInput={sourceInput}
+          tag={tag}
+        />
+      </ErrorBoundary>
     </ModalShell>
   );
 };

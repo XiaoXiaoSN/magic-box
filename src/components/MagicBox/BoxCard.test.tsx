@@ -85,6 +85,14 @@ const interactive = source(() =>
     .build(),
 );
 
+const throwingTemplate = (): React.JSX.Element => {
+  throw new Error('private template details');
+};
+
+const stableTemplate = ({ plaintextOutput }: BoxProps): React.JSX.Element => (
+  <span data-testid="stable-output">{plaintextOutput}</span>
+);
+
 describe('BoxCard click handling', () => {
   it('leaves clicks on a template’s own controls to those controls', async () => {
     // Regression: clicking into the Local AI textarea to paste overwrote the
@@ -146,5 +154,62 @@ describe('Local AI card output across input edits', () => {
         .mocked(copyTextToClipboard)
         .mock.calls.every(([t]) => t === 'the answer'),
     ).toBe(true);
+  });
+});
+
+describe('template error isolation', () => {
+  it('keeps sibling cards available when one template throws', async () => {
+    const broken = source(() =>
+      new BoxBuilder('Broken', 'broken output')
+        .setTemplate(throwingTemplate)
+        .build(),
+    );
+    const healthy = source(() =>
+      new BoxBuilder('Healthy', 'healthy output')
+        .setTemplate(stableTemplate)
+        .build(),
+    );
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[broken, healthy]} />
+      </LocaleProvider>,
+    );
+
+    expect(await screen.findByTestId('box-template-error')).toBeInTheDocument();
+    expect(screen.getByTestId('stable-output')).toHaveTextContent(
+      'healthy output',
+    );
+    expect(
+      screen.getAllByTestId('magic-box-result-title')[0],
+    ).toHaveTextContent('Broken');
+  });
+
+  it('recovers a card when a new input produces a valid template', async () => {
+    const changing = source((input) =>
+      new BoxBuilder('Changing', input)
+        .setTemplate(({ plaintextOutput }) => {
+          if (plaintextOutput === 'bad') {
+            throw new Error('private template details');
+          }
+          return <span data-testid="recovered-output">{plaintextOutput}</span>;
+        })
+        .build(),
+    );
+    const tree = (input: string) => (
+      <LocaleProvider>
+        <MagicBox input={input} sources={[changing]} />
+      </LocaleProvider>
+    );
+    const { rerender } = render(tree('bad'));
+
+    expect(await screen.findByTestId('box-template-error')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(screen.getByTestId('box-template-error')).toBeInTheDocument();
+
+    rerender(tree('good'));
+    expect(await screen.findByTestId('recovered-output')).toHaveTextContent(
+      'good',
+    );
   });
 });
