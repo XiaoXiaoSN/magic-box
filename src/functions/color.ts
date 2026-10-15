@@ -17,6 +17,9 @@ export interface ParsedHexColor extends RgbColor {
 export const BLACK: RgbColor = { r: 0, g: 0, b: 0 };
 export const WHITE: RgbColor = { r: 255, g: 255, b: 255 };
 
+// keep hue values in the canonical [0, 360) range
+export const normalizeHue = (h: number): number => ((h % 360) + 360) % 360;
+
 // canonical lowercase `#rrggbb` form of an rgb color
 export const formatHex = (color: RgbColor): string =>
   `#${((color.r << 16) | (color.g << 8) | color.b)
