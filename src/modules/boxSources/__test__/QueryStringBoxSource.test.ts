@@ -86,30 +86,23 @@ describe('QueryStringBoxSource', () => {
   });
 
   describe('prototype pollution guard', () => {
-    it('skips __proto__ key and does not pollute Object.prototype', async () => {
+    it('preserves special keys without polluting Object.prototype', async () => {
       const boxes = await QueryStringBoxSource.generateBoxes(
-        '__proto__=polluted&a=1',
+        '__proto__=polluted&constructor=evil&prototype=proto&toString=method&a=1',
         { qs: true },
       );
       expect(boxes).toHaveLength(1);
       const parsed = JSON.parse(boxes[0].props.plaintextOutput);
-      // the legitimate key survives
       expect(parsed.a).toBe('1');
-      // the dangerous key is absent from the result
-      expect(Object.keys(parsed)).not.toContain('__proto__');
-      // Object.prototype is clean
+      expect(parsed.constructor).toBe('evil');
+      expect(parsed.prototype).toBe('proto');
+      expect(parsed.toString).toBe('method');
+      expect(parsed.__proto__).toBe('polluted');
+      expect(Object.hasOwn(parsed, 'constructor')).toBe(true);
+      expect(Object.hasOwn(parsed, 'prototype')).toBe(true);
+      expect(Object.hasOwn(parsed, 'toString')).toBe(true);
+      expect(Object.hasOwn(parsed, '__proto__')).toBe(true);
       expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-    });
-
-    it('skips constructor key', async () => {
-      const boxes = await QueryStringBoxSource.generateBoxes(
-        'constructor=evil&x=ok',
-        { qs: true },
-      );
-      expect(boxes).toHaveLength(1);
-      const parsed = JSON.parse(boxes[0].props.plaintextOutput);
-      expect(parsed.x).toBe('ok');
-      expect(Object.hasOwn(parsed, 'constructor')).toBe(false);
     });
   });
 

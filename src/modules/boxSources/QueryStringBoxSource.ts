@@ -5,9 +5,6 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
-// keys that must not be set on a plain object to prevent prototype pollution
-const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-
 function qsToJson(input: string): string {
   const stripped = input.startsWith('?') ? input.slice(1) : input;
   const params = new URLSearchParams(stripped);
@@ -16,8 +13,6 @@ function qsToJson(input: string): string {
   const obj = Object.create(null) as Record<string, string | string[]>;
 
   for (const [key, value] of params.entries()) {
-    if (FORBIDDEN_KEYS.has(key)) continue;
-
     const existing = obj[key];
     if (existing === undefined) {
       obj[key] = value;

@@ -73,6 +73,16 @@ describe('MarkdownTocBoxSource', () => {
         '- [A](#a)\n- [A](#a-1)\n- [A](#a-2)',
       );
     });
+
+    it('treats constructor as an ordinary slug and counts duplicates', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## constructor\n## constructor',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [constructor](#constructor)\n- [constructor](#constructor-1)',
+      );
+    });
   });
 
   describe('fenced code block exclusion', () => {

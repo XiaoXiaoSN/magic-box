@@ -113,6 +113,14 @@ describe('MorseCodeBoxSource', () => {
       // unknown symbol maps to '' so result is just 'H'
       expect(boxes[0].props.plaintextOutput).toBe('H');
     });
+
+    it('does not resolve inherited property names as Morse symbols', async () => {
+      const boxes = await MorseCodeBoxSource.generateBoxes(
+        'constructor toString __proto__',
+        { morsedecode: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('');
+    });
   });
 
   describe('generateBoxes - both encode and decode options together', () => {

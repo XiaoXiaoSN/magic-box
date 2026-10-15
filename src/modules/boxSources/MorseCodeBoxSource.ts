@@ -4,66 +4,66 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // ITU-R M.1677-1 morse code table plus common non-standard extensions ($)
-const MORSE_ENCODE: Record<string, string> = {
-  A: '.-',
-  B: '-...',
-  C: '-.-.',
-  D: '-..',
-  E: '.',
-  F: '..-.',
-  G: '--.',
-  H: '....',
-  I: '..',
-  J: '.---',
-  K: '-.-',
-  L: '.-..',
-  M: '--',
-  N: '-.',
-  O: '---',
-  P: '.--.',
-  Q: '--.-',
-  R: '.-.',
-  S: '...',
-  T: '-',
-  U: '..-',
-  V: '...-',
-  W: '.--',
-  X: '-..-',
-  Y: '-.--',
-  Z: '--..',
-  '0': '-----',
-  '1': '.----',
-  '2': '..---',
-  '3': '...--',
-  '4': '....-',
-  '5': '.....',
-  '6': '-....',
-  '7': '--...',
-  '8': '---..',
-  '9': '----.',
-  '.': '.-.-.-',
-  ',': '--..--',
-  '?': '..--..',
-  "'": '.----.',
-  '!': '-.-.--',
-  '/': '-..-.',
-  '(': '-.--.',
-  ')': '-.--.-',
-  '&': '.-...',
-  ':': '---...',
-  ';': '-.-.-.',
-  '=': '-...-',
-  '+': '.-.-.',
-  '-': '-....-',
-  _: '..--.-',
-  '"': '.-..-.',
-  $: '...-..-',
-  '@': '.--.-.',
-};
+const MORSE_ENCODE = new Map<string, string>([
+  ['A', '.-'],
+  ['B', '-...'],
+  ['C', '-.-.'],
+  ['D', '-..'],
+  ['E', '.'],
+  ['F', '..-.'],
+  ['G', '--.'],
+  ['H', '....'],
+  ['I', '..'],
+  ['J', '.---'],
+  ['K', '-.-'],
+  ['L', '.-..'],
+  ['M', '--'],
+  ['N', '-.'],
+  ['O', '---'],
+  ['P', '.--.'],
+  ['Q', '--.-'],
+  ['R', '.-.'],
+  ['S', '...'],
+  ['T', '-'],
+  ['U', '..-'],
+  ['V', '...-'],
+  ['W', '.--'],
+  ['X', '-..-'],
+  ['Y', '-.--'],
+  ['Z', '--..'],
+  ['0', '-----'],
+  ['1', '.----'],
+  ['2', '..---'],
+  ['3', '...--'],
+  ['4', '....-'],
+  ['5', '.....'],
+  ['6', '-....'],
+  ['7', '--...'],
+  ['8', '---..'],
+  ['9', '----.'],
+  ['.', '.-.-.-'],
+  [',', '--..--'],
+  ['?', '..--..'],
+  ["'", '.----.'],
+  ['!', '-.-.--'],
+  ['/', '-..-.'],
+  ['(', '-.--.'],
+  [')', '-.--.-'],
+  ['&', '.-...'],
+  [':', '---...'],
+  [';', '-.-.-.'],
+  ['=', '-...-'],
+  ['+', '.-.-.'],
+  ['-', '-....-'],
+  ['_', '..--.-'],
+  ['"', '.-..-.'],
+  ['$', '...-..-'],
+  ['@', '.--.-.'],
+]);
 
 // reverse map for decoding
-const MORSE_DECODE: Record<string, string> = Object.fromEntries(
-  Object.entries(MORSE_ENCODE).map(([char, code]) => [code, char]),
+const MORSE_DECODE = new Map(
+  [...MORSE_ENCODE].map(([char, code]) => [code, char]),
 );
 
 /** encodes a plain-text string to Morse code. words are separated by ` / `, letters by ` `. */
@@ -73,8 +73,8 @@ function encode(text: string): string {
     .map((word) =>
       word
         .split('')
-        .map((ch) => MORSE_ENCODE[ch])
-        .filter(Boolean)
+        .map((ch) => MORSE_ENCODE.get(ch))
+        .filter((code): code is string => code !== undefined)
         .join(' '),
     )
     .filter(Boolean)
@@ -89,7 +89,7 @@ function decode(morse: string): string {
       word
         .trim()
         .split(' ')
-        .map((sym) => MORSE_DECODE[sym] ?? '')
+        .map((sym) => MORSE_DECODE.get(sym) ?? '')
         .join(''),
     )
     .join(' ');

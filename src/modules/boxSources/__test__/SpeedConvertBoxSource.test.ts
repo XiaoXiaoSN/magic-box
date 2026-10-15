@@ -124,6 +124,19 @@ describe('SpeedConvertBoxSource', () => {
       expect(opts['Supported units']).toBeTruthy();
       expect(opts.Error).toMatch(/warp/i);
     });
+
+    it('treats constructor as an unknown unit', async () => {
+      const boxes = await SpeedConvertBoxSource.generateBoxes(
+        '100 constructor',
+        {
+          speed: true,
+        },
+      );
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toMatch(/constructor/i);
+      expect(boxes[0].props.plaintextOutput).not.toContain('NaN');
+    });
   });
 
   describe('alias support', () => {

@@ -511,7 +511,9 @@ export const UnitConverterBoxSource = {
 
     if (Number.isNaN(numVal)) return [];
 
-    const srcDef = UNITS[srcUnitRaw];
+    const srcDef = Object.hasOwn(UNITS, srcUnitRaw)
+      ? UNITS[srcUnitRaw]
+      : undefined;
     if (!srcDef) return [];
 
     const category = srcDef.category;
@@ -522,7 +524,9 @@ export const UnitConverterBoxSource = {
     };
 
     if (dstUnitRaw) {
-      const dstDef = UNITS[dstUnitRaw];
+      const dstDef = Object.hasOwn(UNITS, dstUnitRaw)
+        ? UNITS[dstUnitRaw]
+        : undefined;
       if (dstDef && dstDef.category === category) {
         const converted = convertValue(numVal, srcDef, dstDef);
         kvOptions[`Target (${dstDef.name})`] =
