@@ -47,7 +47,7 @@ without network side effects are included in the TUI. Build a standalone
 `magic-box-tui` binary with `bun run tui:build`, then install it with
 `bun run tui:install -- --bin-dir "$HOME/.local/bin"`. The binary embeds Bun,
 the TUI and both WASM packages, so build it on each target host; runtime proof
-in this repository currently covers macOS.
+in this repository currently covers macOS arm64.
 
 ## Validation
 
@@ -90,7 +90,7 @@ bun run docs:check
 ```
 
 Commit `docs/tools.md` and `public/llms.txt` with the source change. The
-quality CI job checks both outputs on every PR without rewriting them.
+`docs` CI job checks both outputs on every PR without rewriting them.
 The README stays hand-edited: add useful screenshots or usage tips inside a
 matching `<details>` block, and link to the reference for the full inventory.
 

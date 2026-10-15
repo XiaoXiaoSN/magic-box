@@ -195,11 +195,12 @@ f(x) = x^2; f(5)                → 25
 
 ## Validation and benchmarks
 
+From the repository root:
+
 ```sh
-cd wasmModules/math-box
-cargo test
-cargo bench --no-default-features --features "std bigint fraction unit complex"
-# From the repository root, after building/installing the WASM packages:
+cargo test --manifest-path wasmModules/math-box/Cargo.toml
+cargo bench --manifest-path wasmModules/math-box/Cargo.toml --no-default-features --features "std bigint fraction unit complex"
+# after building and installing the WASM packages:
 node wasmModules/math-box/bench/compare.mjs
 bun run test --run src/modules/boxSources/__test__/MathExpressionBoxSource.test.ts
 ```

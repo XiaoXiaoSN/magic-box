@@ -293,9 +293,15 @@ implemented syntax, numeric behavior and limits.
 <details>
 <summary> <b>TimestampBox</b> </summary>
 
-| match rule                                                                               | description                                | output                  |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
-| valid timestamp. to avoid match all of number string, it only receive 1600 AD to 2500 AD | the time of timestamp in `RFC 3339` format | ![](docs/Timestamp.png) |
+| match rule | description | output |
+| ---------- | ----------- | ------ |
+| signed integer with 9–22 significant digits | convert a Unix timestamp to RFC 3339 in UTC and the preferred timezone | ![](docs/Timestamp.png) |
+
+Up to 11 digits means seconds, 12–14 milliseconds, 15–17 microseconds and
+18–22 nanoseconds; leading zeros do not count toward these lengths.
+Use `::timestamp`, `::unix` or `::ts` on its own line to also accept shorter
+integers, including `0`. Dates must fit JavaScript's supported date range;
+microseconds and nanoseconds are truncated to milliseconds.
 
 </details>
 
@@ -386,7 +392,7 @@ magic-box-tui --json '1 + 2 * 3'
 
 The standalone binary embeds the Bun runtime, the TUI and the WASM packages.
 Build it on each target host; the repository currently has runtime proof on
-macOS only. See the [terminal guide](docs/terminal-ui.md) for interactive mode,
+macOS arm64 only. See the [terminal guide](docs/terminal-ui.md) for interactive mode,
 preferences and supported tools.
 
 ## Development ⛑️
