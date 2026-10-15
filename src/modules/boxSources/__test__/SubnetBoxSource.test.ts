@@ -45,6 +45,13 @@ describe('SubnetBoxSource', () => {
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Netmask).toBe('255.255.255.0');
     });
+
+    it('accepts a CIDR supplied as the directive value', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes('', {
+        subnet: '10.0.0.1/8',
+      });
+      expect(boxes[0].props.options?.CIDR).toBe('10.0.0.0/8');
+    });
   });
 
   describe('generateBoxes - /8 class A', () => {
@@ -101,6 +108,68 @@ describe('SubnetBoxSource', () => {
       expect(opts.Netmask).toBe('0.0.0.0');
       expect(opts.Network).toBe('0.0.0.0');
       expect(opts.Broadcast).toBe('255.255.255.255');
+    });
+  });
+
+  describe('netmask, split, and contains forms', () => {
+    it('accepts an IPv4 address followed by a contiguous netmask', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes(
+        '10.0.0.1 255.255.255.0',
+        { subnet: true },
+      );
+      expect(boxes[0].props.options?.CIDR).toBe('10.0.0.0/24');
+      expect(boxes[0].props.options?.Network).toBe('10.0.0.0');
+    });
+
+    it('rejects non-contiguous netmasks', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes(
+        '10.0.0.1 255.0.255.0',
+        { subnet: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
+    });
+
+    it('splits a network into a bounded power-of-two list', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes('192.168.1.0/24', {
+        split: '4',
+      });
+      const options = boxes[0].props.options as Record<string, string>;
+      expect(options.Split).toBe('4');
+      expect(options.Subnets).toBe(
+        '192.168.1.0/26, 192.168.1.64/26, 192.168.1.128/26, 192.168.1.192/26',
+      );
+    });
+
+    it('reports an explicit single-subnet split', async () => {
+      const boxes = await SubnetBoxSource.generateBoxes('192.168.1.0/24', {
+        split: '1',
+      });
+      const options = boxes[0].props.options as Record<string, string>;
+      expect(options.Split).toBe('1');
+      expect(options.Subnets).toBe('192.168.1.0/24');
+    });
+
+    it('rejects invalid split counts and prefix overflow', async () => {
+      const invalidCount = await SubnetBoxSource.generateBoxes('10.0.0.0/24', {
+        split: '3',
+      });
+      expect(invalidCount[0].props.plaintextOutput).toMatch(/invalid/i);
+
+      const overflow = await SubnetBoxSource.generateBoxes('10.0.0.0/31', {
+        split: '4',
+      });
+      expect(overflow[0].props.plaintextOutput).toMatch(/invalid/i);
+    });
+
+    it('checks inclusive network and broadcast membership', async () => {
+      const inside = await SubnetBoxSource.generateBoxes('10.0.0.0/24', {
+        contains: '10.0.0.255',
+      });
+      const outside = await SubnetBoxSource.generateBoxes('10.0.0.0/24', {
+        contains: '10.0.1.0',
+      });
+      expect(inside[0].props.options?.Contains).toBe('true');
+      expect(outside[0].props.options?.Contains).toBe('false');
     });
   });
 
