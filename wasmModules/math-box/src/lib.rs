@@ -18,6 +18,7 @@ use alloc::string::{String, ToString};
 
 use self::builtins::default_namespace;
 use self::error::Result;
+use self::limits::{MAX_DISPLAY_LEN, WorkBudget};
 use self::namespace::Namespace;
 
 pub use self::error::Error;
@@ -64,13 +65,21 @@ fn eval_to_string(input: &str) -> Result<String> {
         let ns = default_namespace();
         eval_with(input, &ns)?
     };
+    let display_len = value.display_len_upper_bound();
+    if display_len > MAX_DISPLAY_LEN {
+        return Err(Error::LimitExceeded {
+            what: "display length",
+            limit: MAX_DISPLAY_LEN,
+        });
+    }
     Ok(value.to_display_string())
 }
 
 pub fn eval_with(input: &str, ns: &Namespace) -> Result<Value> {
     let tokens = lexer::tokenize(input)?;
     let ast = parser::parse(&tokens)?;
-    let program = compiler::compile(ast, ns)?;
+    let mut budget = WorkBudget::new();
+    let program = compiler::compile(ast, ns, &mut budget)?;
     let mut scope = vm::Scope::new();
-    vm::run(&program, ns, &mut scope)
+    vm::run(&program, ns, &mut scope, &mut budget)
 }

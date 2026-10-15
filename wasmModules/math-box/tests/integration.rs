@@ -85,6 +85,14 @@ fn assignment_uses_constants() {
 }
 
 #[test]
+fn assigned_and_parameter_names_shadow_constants() {
+    assert_eval("e = 5; e + 1", "6");
+    assert_eval("pi = 3; pi + 1", "4");
+    assert_eval("f(e) = e * 2; f(1)", "2");
+    assert_eval("area(pi) = pi + 1; area(1)", "2");
+}
+
+#[test]
 fn user_defined_function() {
     assert_eval("f(x) = x * 2; f(5)", "10");
     assert_eval("g(a, b) = a + b * 2; g(1, 3)", "7");
@@ -250,4 +258,107 @@ fn gcd_lcm() {
     // lcm with a zero operand yields zero (the empty intersection of
     // multiples).
     assert_eval("lcm(0, 5)", "0");
+}
+
+#[test]
+fn ast_height_limits_long_postfix_and_infix_chains() {
+    let postfix = format!("1{}", "!".repeat(300));
+    let infix = (0..300).map(|_| "1").collect::<Vec<_>>().join("+");
+
+    assert!(
+        math_box::evaluate(&postfix)
+            .unwrap_err()
+            .contains("AST height limit")
+    );
+    assert!(
+        math_box::evaluate(&infix)
+            .unwrap_err()
+            .contains("AST height limit")
+    );
+}
+
+#[test]
+fn shared_budget_stops_expanding_user_function_calls() {
+    let mut expression = String::from("f0(x)=x+x;");
+    for depth in 1..=20 {
+        expression.push_str(&format!("f{depth}(x)=f{}(x)+f{}(x);", depth - 1, depth - 1));
+    }
+    expression.push_str("f20(1)");
+
+    assert!(
+        math_box::evaluate(&expression)
+            .unwrap_err()
+            .contains("evaluation steps limit")
+    );
+}
+
+#[test]
+fn shared_budget_includes_compilation_and_execution_work() {
+    let mut expression = String::from("f(x)=x+x+x+x;");
+    expression.push_str(&"f(1);".repeat(816));
+
+    assert_eq!(expression.len(), 4093);
+    assert!(
+        math_box::evaluate(&expression)
+            .unwrap_err()
+            .contains("evaluation steps limit")
+    );
+}
+
+#[test]
+#[cfg(feature = "bigint")]
+fn bigint_growth_is_bounded_before_large_results_or_display() {
+    let expected = num_bigint::BigInt::from(3).pow(8193).to_string();
+    assert_eval("3n^8193", &expected);
+
+    assert!(
+        math_box::evaluate("3n^11000")
+            .unwrap_err()
+            .contains("numeric bit length limit")
+    );
+
+    let square_chain = format!("x=10n;{}x", "x=x*x;".repeat(20));
+    assert!(
+        math_box::evaluate(&square_chain)
+            .unwrap_err()
+            .contains("numeric bit length limit")
+    );
+
+    assert!(
+        math_box::evaluate("2n^15000")
+            .unwrap_err()
+            .contains("display length limit")
+    );
+    assert!(
+        math_box::evaluate("2n^16383+1n")
+            .unwrap_err()
+            .contains("display length limit")
+    );
+    assert!(
+        math_box::evaluate("2n^16382*2n")
+            .unwrap_err()
+            .contains("display length limit")
+    );
+}
+
+#[test]
+#[cfg(feature = "fraction")]
+fn fraction_power_growth_is_bounded() {
+    assert!(
+        math_box::evaluate("x=frac(3,7);x=x^63;x=x^63;x=x^63;1")
+            .unwrap_err()
+            .contains("fraction bit length limit")
+    );
+}
+
+#[test]
+#[cfg(feature = "unit")]
+fn unit_dimensions_are_checked_and_labels_are_canonical() {
+    let squares = format!("x=1 m;{}x", "x=x*x;".repeat(7));
+    assert!(
+        math_box::evaluate(&squares)
+            .unwrap_err()
+            .contains("numeric overflow")
+    );
+    assert_eval(r#"unit(2, "km") * unit(3, "m")"#, "6000 m^2");
 }

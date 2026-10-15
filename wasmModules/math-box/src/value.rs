@@ -3,6 +3,8 @@ use alloc::vec::Vec;
 use core::fmt;
 
 use crate::error::{Error, Result};
+#[cfg(feature = "bigint")]
+use crate::limits::MAX_NUMERIC_BITS;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
@@ -65,6 +67,42 @@ impl Value {
         }
     }
 
+    pub fn display_len_upper_bound(&self) -> usize {
+        match self {
+            Self::Num(_) => 400,
+            Self::Bool(_) => 5,
+            Self::Str(value) => value.len(),
+            #[cfg(feature = "bigint")]
+            Self::Big(value) => {
+                decimal_digits_upper_bound(value.bits())
+                    + usize::from(value.sign() == num_bigint::Sign::Minus)
+            }
+            #[cfg(feature = "fraction")]
+            Self::Frac(value) => value.display_len_upper_bound(),
+            #[cfg(feature = "complex")]
+            Self::Complex(_) => 800,
+            #[cfg(feature = "unit")]
+            Self::Unit(value) => 400 + value.unit_label.len(),
+        }
+    }
+
+    pub fn check_numeric_limits(&self) -> Result<()> {
+        #[cfg(feature = "bigint")]
+        if let Self::Big(value) = self
+            && value.bits() > MAX_NUMERIC_BITS as u64
+        {
+            return Err(Error::LimitExceeded {
+                what: "numeric bit length",
+                limit: MAX_NUMERIC_BITS,
+            });
+        }
+        #[cfg(feature = "fraction")]
+        if let Self::Frac(value) = self {
+            value.check_size()?;
+        }
+        Ok(())
+    }
+
     pub fn type_name(&self) -> &'static str {
         match self {
             Self::Num(_) => "number",
@@ -99,7 +137,12 @@ pub fn format_num(n: f64) -> String {
         return "NaN".to_string();
     }
     if n.is_infinite() {
-        return if n.is_sign_negative() { "-Infinity" } else { "Infinity" }.to_string();
+        return if n.is_sign_negative() {
+            "-Infinity"
+        } else {
+            "Infinity"
+        }
+        .to_string();
     }
     if n.fract() == 0.0 && n.abs() < 1e16 {
         return (n as i64).to_string();
@@ -176,25 +219,145 @@ impl Fraction {
         }
     }
 
-    pub fn add(&self, other: &Self) -> Self {
-        Self(&self.0 + &other.0)
+    pub fn add(&self, other: &Self) -> Result<Self> {
+        self.check_growth(
+            self.numerator_bits()
+                .saturating_add(other.denominator_bits())
+                .max(
+                    other
+                        .numerator_bits()
+                        .saturating_add(self.denominator_bits()),
+                )
+                .saturating_add(1),
+            self.denominator_bits()
+                .saturating_add(other.denominator_bits()),
+        )?;
+        let result = Self(&self.0 + &other.0);
+        result.check_size()?;
+        Ok(result)
     }
-    pub fn sub(&self, other: &Self) -> Self {
-        Self(&self.0 - &other.0)
+    pub fn sub(&self, other: &Self) -> Result<Self> {
+        self.check_growth(
+            self.numerator_bits()
+                .saturating_add(other.denominator_bits())
+                .max(
+                    other
+                        .numerator_bits()
+                        .saturating_add(self.denominator_bits()),
+                )
+                .saturating_add(1),
+            self.denominator_bits()
+                .saturating_add(other.denominator_bits()),
+        )?;
+        let result = Self(&self.0 - &other.0);
+        result.check_size()?;
+        Ok(result)
     }
-    pub fn mul(&self, other: &Self) -> Self {
-        Self(&self.0 * &other.0)
+    pub fn mul(&self, other: &Self) -> Result<Self> {
+        self.check_growth(
+            self.numerator_bits().saturating_add(other.numerator_bits()),
+            self.denominator_bits()
+                .saturating_add(other.denominator_bits()),
+        )?;
+        let result = Self(&self.0 * &other.0);
+        result.check_size()?;
+        Ok(result)
     }
     pub fn div(&self, other: &Self) -> Result<Self> {
         use num_traits::Zero;
         if other.0.numer().is_zero() {
             return Err(Error::DivisionByZero);
         }
-        Ok(Self(&self.0 / &other.0))
+        self.check_growth(
+            self.numerator_bits()
+                .saturating_add(other.denominator_bits()),
+            self.denominator_bits()
+                .saturating_add(other.numerator_bits()),
+        )?;
+        let result = Self(&self.0 / &other.0);
+        result.check_size()?;
+        Ok(result)
     }
     pub fn neg(&self) -> Self {
         Self(-&self.0)
     }
+
+    pub fn pow(&self, exponent: u32) -> Result<Self> {
+        self.check_growth(
+            self.numerator_bits().saturating_mul(exponent as u64),
+            self.denominator_bits().saturating_mul(exponent as u64),
+        )?;
+        let mut power = exponent;
+        let mut base = self.clone();
+        let mut result = Self::from_int(1);
+        while power > 0 {
+            if power & 1 == 1 {
+                result = result.mul(&base)?;
+            }
+            power >>= 1;
+            if power > 0 {
+                base = base.mul(&base)?;
+            }
+        }
+        Ok(result)
+    }
+
+    pub fn check_size(&self) -> Result<()> {
+        self.check_growth(self.numerator_bits(), self.denominator_bits())
+    }
+
+    pub fn display_len_upper_bound(&self) -> usize {
+        use num_traits::{One, Signed};
+        decimal_digits_upper_bound(self.numerator_bits())
+            + decimal_digits_upper_bound(self.denominator_bits())
+            + usize::from(self.0.numer().is_negative())
+            + usize::from(!self.0.denom().is_one())
+    }
+
+    fn check_growth(&self, numerator_bits: u64, denominator_bits: u64) -> Result<()> {
+        #[cfg(feature = "bigint")]
+        let limit = MAX_NUMERIC_BITS as u64;
+        #[cfg(not(feature = "bigint"))]
+        let limit = (i64::BITS - 1) as u64;
+
+        if numerator_bits > limit || denominator_bits > limit {
+            return Err(Error::LimitExceeded {
+                what: "fraction bit length",
+                limit: limit as usize,
+            });
+        }
+        Ok(())
+    }
+
+    fn numerator_bits(&self) -> u64 {
+        integer_bits(self.0.numer())
+    }
+
+    fn denominator_bits(&self) -> u64 {
+        integer_bits(self.0.denom())
+    }
+}
+
+#[cfg(feature = "bigint")]
+fn integer_bits(value: &FracInt) -> u64 {
+    value.bits()
+}
+
+#[cfg(all(feature = "fraction", not(feature = "bigint")))]
+fn integer_bits(value: &FracInt) -> u64 {
+    value
+        .unsigned_abs()
+        .checked_ilog2()
+        .map_or(0, |bits| bits as u64 + 1)
+}
+
+fn decimal_digits_upper_bound(bits: u64) -> usize {
+    if bits == 0 {
+        return 1;
+    }
+    bits.saturating_mul(30_103)
+        .saturating_add(99_999)
+        .div_ceil(100_000) as usize
 }
 
 #[cfg(feature = "fraction")]
@@ -228,10 +391,16 @@ impl Complex {
     }
 
     pub fn add(&self, other: &Self) -> Self {
-        Self { re: self.re + other.re, im: self.im + other.im }
+        Self {
+            re: self.re + other.re,
+            im: self.im + other.im,
+        }
     }
     pub fn sub(&self, other: &Self) -> Self {
-        Self { re: self.re - other.re, im: self.im - other.im }
+        Self {
+            re: self.re - other.re,
+            im: self.im - other.im,
+        }
     }
     pub fn mul(&self, other: &Self) -> Self {
         Self {
@@ -250,7 +419,10 @@ impl Complex {
         })
     }
     pub fn neg(&self) -> Self {
-        Self { re: -self.re, im: -self.im }
+        Self {
+            re: -self.re,
+            im: -self.im,
+        }
     }
     pub fn abs(&self) -> f64 {
         (self.re * self.re + self.im * self.im).sqrt()
@@ -259,7 +431,10 @@ impl Complex {
         self.im.atan2(self.re)
     }
     pub fn conj(&self) -> Self {
-        Self { re: self.re, im: -self.im }
+        Self {
+            re: self.re,
+            im: -self.im,
+        }
     }
 
     pub fn to_display_string(self) -> String {
@@ -277,7 +452,11 @@ impl Complex {
         }
         let sign = if self.im >= 0.0 { "+" } else { "-" };
         let im_abs = format_num(self.im.abs());
-        let im_part = if im_abs == "1" { "i".to_string() } else { alloc::format!("{im_abs}i") };
+        let im_part = if im_abs == "1" {
+            "i".to_string()
+        } else {
+            alloc::format!("{im_abs}i")
+        };
         alloc::format!("{}{sign}{im_part}", format_num(self.re))
     }
 }
@@ -304,24 +483,76 @@ pub struct Dimension {
 
 #[cfg(feature = "unit")]
 impl Dimension {
-    pub const SCALAR: Self = Self { length: 0, mass: 0, time: 0 };
-    pub const LENGTH: Self = Self { length: 1, mass: 0, time: 0 };
-    pub const MASS: Self = Self { length: 0, mass: 1, time: 0 };
-    pub const TIME: Self = Self { length: 0, mass: 0, time: 1 };
+    pub const SCALAR: Self = Self {
+        length: 0,
+        mass: 0,
+        time: 0,
+    };
+    pub const LENGTH: Self = Self {
+        length: 1,
+        mass: 0,
+        time: 0,
+    };
+    pub const MASS: Self = Self {
+        length: 0,
+        mass: 1,
+        time: 0,
+    };
+    pub const TIME: Self = Self {
+        length: 0,
+        mass: 0,
+        time: 1,
+    };
 
-    pub fn add(&self, other: &Self) -> Self {
-        Self {
-            length: self.length + other.length,
-            mass: self.mass + other.mass,
-            time: self.time + other.time,
+    pub fn checked_add(&self, other: &Self) -> Result<Self> {
+        Ok(Self {
+            length: self
+                .length
+                .checked_add(other.length)
+                .ok_or(Error::Overflow)?,
+            mass: self.mass.checked_add(other.mass).ok_or(Error::Overflow)?,
+            time: self.time.checked_add(other.time).ok_or(Error::Overflow)?,
+        })
+    }
+    pub fn checked_sub(&self, other: &Self) -> Result<Self> {
+        Ok(Self {
+            length: self
+                .length
+                .checked_sub(other.length)
+                .ok_or(Error::Overflow)?,
+            mass: self.mass.checked_sub(other.mass).ok_or(Error::Overflow)?,
+            time: self.time.checked_sub(other.time).ok_or(Error::Overflow)?,
+        })
+    }
+
+    pub fn canonical_label(&self) -> String {
+        let mut numerator = Vec::new();
+        let mut denominator = Vec::new();
+        for (unit, exponent) in [("m", self.length), ("kg", self.mass), ("s", self.time)] {
+            if exponent > 0 {
+                numerator.push(dimension_factor(unit, i16::from(exponent)));
+            } else if exponent < 0 {
+                denominator.push(dimension_factor(unit, -i16::from(exponent)));
+            }
+        }
+        let numerator = numerator.join(" ");
+        let denominator = denominator.join(" ");
+        if denominator.is_empty() {
+            numerator
+        } else if numerator.is_empty() {
+            alloc::format!("1/{denominator}")
+        } else {
+            alloc::format!("{numerator}/{denominator}")
         }
     }
-    pub fn sub(&self, other: &Self) -> Self {
-        Self {
-            length: self.length - other.length,
-            mass: self.mass - other.mass,
-            time: self.time - other.time,
-        }
+}
+
+#[cfg(feature = "unit")]
+fn dimension_factor(unit: &str, exponent: i16) -> String {
+    if exponent == 1 {
+        unit.into()
+    } else {
+        alloc::format!("{unit}^{exponent}")
     }
 }
 
@@ -349,10 +580,9 @@ impl UnitValue {
 pub fn values_to_f64(args: &[Value]) -> Result<Vec<f64>> {
     let mut out = Vec::with_capacity(args.len());
     for a in args {
-        out.push(
-            a.as_f64()
-                .ok_or(Error::Domain { what: "expected a numeric argument" })?,
-        );
+        out.push(a.as_f64().ok_or(Error::Domain {
+            what: "expected a numeric argument",
+        })?);
     }
     Ok(out)
 }

@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use crate::error::{Error, Result};
 use crate::lexer::{Spanned, Tok};
-use crate::limits::{MAX_CALL_ARITY, MAX_DEPTH};
+use crate::limits::{MAX_AST_HEIGHT, MAX_CALL_ARITY, MAX_DEPTH};
 
 #[derive(Clone, Debug)]
 pub enum Expr {
@@ -12,15 +12,28 @@ pub enum Expr {
     BigLit(String),
     Str(String),
     Var(String),
-    Call { name: String, args: Vec<Expr> },
+    Call {
+        name: String,
+        args: Vec<Expr>,
+    },
     Neg(Box<Expr>),
     Pos(Box<Expr>),
     Not(Box<Expr>),
     Fact(Box<Expr>),
-    Bin { op: BinOp, lhs: Box<Expr>, rhs: Box<Expr> },
-    Assign { name: String, value: Box<Expr> },
+    Bin {
+        op: BinOp,
+        lhs: Box<Expr>,
+        rhs: Box<Expr>,
+    },
+    Assign {
+        name: String,
+        value: Box<Expr>,
+    },
     Block(Vec<Expr>),
-    Lambda { params: Vec<String>, body: Box<Expr> },
+    Lambda {
+        params: Vec<String>,
+        body: Box<Expr>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,24 +47,35 @@ pub enum BinOp {
 }
 
 pub fn parse(tokens: &[Spanned]) -> Result<Expr> {
-    let mut p = Parser { toks: tokens, idx: 0, depth: 0 };
+    let mut p = Parser {
+        toks: tokens,
+        idx: 0,
+        depth: 0,
+    };
     let mut stmts = Vec::new();
-    stmts.push(p.parse_stmt()?);
+    let (first, mut height) = p.parse_stmt()?;
+    stmts.push(first);
     while matches!(p.peek().tok, Tok::Semicolon) {
         p.advance();
         if matches!(p.peek().tok, Tok::Eof) {
             break;
         }
-        stmts.push(p.parse_stmt()?);
+        let (stmt, stmt_height) = p.parse_stmt()?;
+        height = height.max(stmt_height);
+        stmts.push(stmt);
     }
     if !matches!(p.peek().tok, Tok::Eof) {
-        return Err(Error::UnexpectedToken { what: "end of input", pos: p.peek().pos });
+        return Err(Error::UnexpectedToken {
+            what: "end of input",
+            pos: p.peek().pos,
+        });
     }
-    Ok(if stmts.len() == 1 {
-        stmts.pop().expect("len==1")
+    if stmts.len() == 1 {
+        Ok(stmts.pop().expect("len==1"))
     } else {
-        Expr::Block(stmts)
-    })
+        p.checked_ast_height(height.saturating_add(1))?;
+        Ok(Expr::Block(stmts))
+    }
 }
 
 struct Parser<'a> {
@@ -76,7 +100,7 @@ impl<'a> Parser<'a> {
     // statement = `ident = expr`, `(p1, p2) -> expr`, or just expr.
     // assignments and lambdas are detected via lookahead on tokens after
     // the identifier/parenthesised list.
-    fn parse_stmt(&mut self) -> Result<Expr> {
+    fn parse_stmt(&mut self) -> Result<(Expr, usize)> {
         // ident = expr (assignment) — ident can be plain or function form
         // ident(p1, p2, ...) = expr (function definition sugar)
         if let Tok::Ident(_) = self.peek().tok {
@@ -88,8 +112,15 @@ impl<'a> Parser<'a> {
                     if matches!(next.tok, Tok::Eq) {
                         self.advance(); // ident
                         self.advance(); // =
-                        let value = self.parse_expr(0)?;
-                        return Ok(Expr::Assign { name, value: Box::new(value) });
+                        let (value, height) = self.parse_expr(0)?;
+                        let height = self.checked_ast_height(height.saturating_add(1))?;
+                        return Ok((
+                            Expr::Assign {
+                                name,
+                                value: Box::new(value),
+                            },
+                            height,
+                        ));
                     }
                     // function definition sugar: f(x, y) = body
                     if matches!(next.tok, Tok::LParen)
@@ -105,10 +136,23 @@ impl<'a> Parser<'a> {
                             return self.parse_expr(0);
                         }
                         self.advance(); // =
-                        let body = self.parse_expr(0)?;
+                        let (body, body_height) = self.parse_expr(0)?;
                         let _ = eq_idx;
-                        let lambda = Expr::Lambda { params, body: Box::new(body) };
-                        return Ok(Expr::Assign { name, value: Box::new(lambda) });
+                        let lambda_height =
+                            self.checked_ast_height(body_height.saturating_add(1))?;
+                        let assign_height =
+                            self.checked_ast_height(lambda_height.saturating_add(1))?;
+                        let lambda = Expr::Lambda {
+                            params,
+                            body: Box::new(body),
+                        };
+                        return Ok((
+                            Expr::Assign {
+                                name,
+                                value: Box::new(lambda),
+                            },
+                            assign_height,
+                        ));
                     }
                 }
             }
@@ -129,7 +173,11 @@ impl<'a> Parser<'a> {
                     depth -= 1;
                     if depth == 0 {
                         let next = self.toks.get(i + 1)?;
-                        return if matches!(next.tok, Tok::Eq) { Some(i + 1) } else { None };
+                        return if matches!(next.tok, Tok::Eq) {
+                            Some(i + 1)
+                        } else {
+                            None
+                        };
                     }
                 }
                 Tok::Eof | Tok::Semicolon => return None,
@@ -166,7 +214,10 @@ impl<'a> Parser<'a> {
                     return Ok(params);
                 }
                 _ => {
-                    return Err(Error::UnexpectedToken { what: "',' or ')'", pos: self.peek().pos });
+                    return Err(Error::UnexpectedToken {
+                        what: "',' or ')'",
+                        pos: self.peek().pos,
+                    });
                 }
             }
         }
@@ -184,12 +235,21 @@ impl<'a> Parser<'a> {
         self.depth -= 1;
     }
 
-    // pratt loop. returns expression at or above the given minimum binding
-    // power. recursion happens through self.parse_expr to keep precedence
-    // climbing simple; depth is bounded by MAX_DEPTH.
-    fn parse_expr(&mut self, min_bp: u8) -> Result<Expr> {
+    fn checked_ast_height(&self, height: usize) -> Result<usize> {
+        if height > MAX_AST_HEIGHT {
+            return Err(Error::LimitExceeded {
+                what: "AST height",
+                limit: MAX_AST_HEIGHT,
+            });
+        }
+        Ok(height)
+    }
+
+    // Pratt parsing bounds both recursive nesting and the height of the AST
+    // built by iterative postfix and infix chains.
+    fn parse_expr(&mut self, min_bp: u8) -> Result<(Expr, usize)> {
         self.enter()?;
-        let mut lhs = self.parse_prefix()?;
+        let (mut lhs, mut lhs_height) = self.parse_prefix()?;
 
         loop {
             // peek by reference to avoid cloning Tok::Ident's String for
@@ -214,6 +274,7 @@ impl<'a> Parser<'a> {
                         });
                     }
                 };
+                lhs_height = self.checked_ast_height(lhs_height.max(1).saturating_add(1))?;
                 lhs = Expr::Call {
                     name: alloc::string::String::from("convert"),
                     args: alloc::vec![lhs, Expr::Str(label)],
@@ -227,6 +288,7 @@ impl<'a> Parser<'a> {
                 }
                 let kind = op_tok.clone();
                 self.advance();
+                lhs_height = self.checked_ast_height(lhs_height.saturating_add(1))?;
                 lhs = match kind {
                     Tok::Bang => Expr::Fact(Box::new(lhs)),
                     _ => unreachable!(),
@@ -248,8 +310,14 @@ impl<'a> Parser<'a> {
                     _ => unreachable!(),
                 };
                 self.advance();
-                let rhs = self.parse_expr(r_bp)?;
-                lhs = Expr::Bin { op, lhs: Box::new(lhs), rhs: Box::new(rhs) };
+                let (rhs, rhs_height) = self.parse_expr(r_bp)?;
+                lhs_height =
+                    self.checked_ast_height(lhs_height.max(rhs_height).saturating_add(1))?;
+                lhs = Expr::Bin {
+                    op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                };
                 continue;
             }
 
@@ -257,10 +325,10 @@ impl<'a> Parser<'a> {
         }
 
         self.leave();
-        Ok(lhs)
+        Ok((lhs, lhs_height))
     }
 
-    fn parse_prefix(&mut self) -> Result<Expr> {
+    fn parse_prefix(&mut self) -> Result<(Expr, usize)> {
         let head = self.advance().clone();
         match head.tok {
             Tok::Num(n) => {
@@ -272,30 +340,38 @@ impl<'a> Parser<'a> {
                 {
                     let label = label.clone();
                     self.advance();
-                    return Ok(Expr::Call {
-                        name: alloc::string::String::from("unit"),
-                        args: alloc::vec![Expr::Num(n), Expr::Str(label)],
-                    });
+                    return Ok((
+                        Expr::Call {
+                            name: alloc::string::String::from("unit"),
+                            args: alloc::vec![Expr::Num(n), Expr::Str(label)],
+                        },
+                        2,
+                    ));
                 }
-                Ok(Expr::Num(n))
+                Ok((Expr::Num(n), 1))
             }
-            Tok::BigLit(text) => Ok(Expr::BigLit(text)),
-            Tok::Str(s) => Ok(Expr::Str(s)),
+            Tok::BigLit(text) => Ok((Expr::BigLit(text), 1)),
+            Tok::Str(s) => Ok((Expr::Str(s), 1)),
 
             Tok::Minus => {
-                let rhs = self.parse_expr(prefix_bp_unary())?;
-                Ok(Expr::Neg(Box::new(rhs)))
+                let (rhs, height) = self.parse_expr(prefix_bp_unary())?;
+                let height = self.checked_ast_height(height.saturating_add(1))?;
+                Ok((Expr::Neg(Box::new(rhs)), height))
             }
             Tok::Plus => {
-                let rhs = self.parse_expr(prefix_bp_unary())?;
-                Ok(Expr::Pos(Box::new(rhs)))
+                let (rhs, height) = self.parse_expr(prefix_bp_unary())?;
+                let height = self.checked_ast_height(height.saturating_add(1))?;
+                Ok((Expr::Pos(Box::new(rhs)), height))
             }
 
             Tok::LParen => {
                 let inner = self.parse_expr(0)?;
                 let next = self.advance();
                 if !matches!(next.tok, Tok::RParen) {
-                    return Err(Error::UnexpectedToken { what: ")", pos: next.pos });
+                    return Err(Error::UnexpectedToken {
+                        what: ")",
+                        pos: next.pos,
+                    });
                 }
                 Ok(inner)
             }
@@ -304,6 +380,7 @@ impl<'a> Parser<'a> {
                 if matches!(self.peek().tok, Tok::LParen) {
                     self.advance();
                     let mut args = Vec::new();
+                    let mut args_height = 0;
                     if !matches!(self.peek().tok, Tok::RParen) {
                         loop {
                             if args.len() >= MAX_CALL_ARITY {
@@ -313,7 +390,9 @@ impl<'a> Parser<'a> {
                                     got: args.len() + 1,
                                 });
                             }
-                            args.push(self.parse_expr(0)?);
+                            let (arg, height) = self.parse_expr(0)?;
+                            args_height = args_height.max(height);
+                            args.push(arg);
                             match self.peek().tok {
                                 Tok::Comma => {
                                     self.advance();
@@ -324,23 +403,31 @@ impl<'a> Parser<'a> {
                     }
                     let close = self.advance();
                     if !matches!(close.tok, Tok::RParen) {
-                        return Err(Error::UnexpectedToken { what: ")", pos: close.pos });
+                        return Err(Error::UnexpectedToken {
+                            what: ")",
+                            pos: close.pos,
+                        });
                     }
-                    Ok(Expr::Call { name, args })
+                    let height = self.checked_ast_height(args_height.max(1).saturating_add(1))?;
+                    Ok((Expr::Call { name, args }, height))
                 } else {
-                    Ok(Expr::Var(name))
+                    Ok((Expr::Var(name), 1))
                 }
             }
 
             Tok::Bang => {
                 // logical not. wires to fact's spot via a separate node so
                 // compiler distinguishes prefix-not from postfix-fact.
-                let rhs = self.parse_expr(prefix_bp_unary())?;
-                Ok(Expr::Not(Box::new(rhs)))
+                let (rhs, height) = self.parse_expr(prefix_bp_unary())?;
+                let height = self.checked_ast_height(height.saturating_add(1))?;
+                Ok((Expr::Not(Box::new(rhs)), height))
             }
 
             Tok::Eof => Err(Error::UnexpectedEof),
-            _ => Err(Error::UnexpectedToken { what: "expression", pos: head.pos }),
+            _ => Err(Error::UnexpectedToken {
+                what: "expression",
+                pos: head.pos,
+            }),
         }
     }
 }

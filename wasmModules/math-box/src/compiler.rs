@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use crate::error::{Error, Result};
+use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
 use crate::parser::{BinOp, Expr};
 use crate::value::Value;
@@ -39,10 +40,10 @@ pub struct Program {
     pub user_fns: Vec<UserFn>,
 }
 
-pub fn compile(expr: Expr, ns: &Namespace) -> Result<Program> {
+pub fn compile(expr: Expr, ns: &Namespace, budget: &mut WorkBudget) -> Result<Program> {
     let mut shadowed = BTreeSet::new();
-    collect_user_fn_names(&expr, &mut shadowed);
-    compile_with(expr, ns, &shadowed)
+    collect_shadowed_names(&expr, &mut shadowed);
+    compile_with(expr, ns, &shadowed, budget)
 }
 
 // shared compile path used by both top-level entry and recursive lambda body
@@ -50,59 +51,69 @@ pub fn compile(expr: Expr, ns: &Namespace) -> Result<Program> {
 // `compile` pass cannot fold a call that the program redefined. expr is
 // taken by value so fold can move sub-expressions out of the AST without
 // re-cloning the tree at the entry point.
-fn compile_with(expr: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Program> {
-    let folded = fold(expr, ns, shadowed)?;
+fn compile_with(
+    expr: Expr,
+    ns: &Namespace,
+    shadowed: &BTreeSet<String>,
+    budget: &mut WorkBudget,
+) -> Result<Program> {
+    let folded = fold(expr, ns, shadowed, budget)?;
     let mut prog = Program::default();
-    lower(&folded, &mut prog, ns, shadowed)?;
+    lower(&folded, &mut prog, ns, shadowed, budget)?;
     Ok(prog)
 }
 
-fn collect_user_fn_names(e: &Expr, set: &mut BTreeSet<String>) {
+fn collect_shadowed_names(e: &Expr, set: &mut BTreeSet<String>) {
     match e {
         Expr::Assign { name, value } => {
-            if matches!(value.as_ref(), Expr::Lambda { .. }) {
-                set.insert(name.clone());
-            }
-            collect_user_fn_names(value, set);
+            set.insert(name.clone());
+            collect_shadowed_names(value, set);
         }
         Expr::Block(stmts) => {
             for s in stmts {
-                collect_user_fn_names(s, set);
+                collect_shadowed_names(s, set);
             }
         }
         Expr::Bin { lhs, rhs, .. } => {
-            collect_user_fn_names(lhs, set);
-            collect_user_fn_names(rhs, set);
+            collect_shadowed_names(lhs, set);
+            collect_shadowed_names(rhs, set);
         }
         Expr::Neg(x) | Expr::Pos(x) | Expr::Not(x) | Expr::Fact(x) => {
-            collect_user_fn_names(x, set);
+            collect_shadowed_names(x, set);
         }
         Expr::Call { args, .. } => {
             for a in args {
-                collect_user_fn_names(a, set);
+                collect_shadowed_names(a, set);
             }
         }
-        Expr::Lambda { body, .. } => collect_user_fn_names(body, set),
+        Expr::Lambda { body, .. } => collect_shadowed_names(body, set),
         Expr::Num(_) | Expr::BigLit(_) | Expr::Str(_) | Expr::Var(_) => {}
     }
 }
 
-fn fold(e: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Expr> {
+fn fold(
+    e: Expr,
+    ns: &Namespace,
+    shadowed: &BTreeSet<String>,
+    budget: &mut WorkBudget,
+) -> Result<Expr> {
+    budget.consume(1)?;
     Ok(match e {
         Expr::Num(_) => e,
         Expr::BigLit(_) => e,
         Expr::Str(_) => e,
 
-        Expr::Var(name) => match ns.lookup_const(&name) {
+        Expr::Var(name) if !shadowed.contains(&name) => match ns.lookup_const(&name) {
             Some(Value::Num(v)) => Expr::Num(v),
             // non-numeric constants (e.g. complex `i`) cannot be folded into
             // an Expr::Num; leave as Var, runtime LoadVar will resolve.
             _ => Expr::Var(name),
         },
+        Expr::Var(name) => Expr::Var(name),
 
         Expr::Bin { op, lhs, rhs } => {
-            let l = fold(*lhs, ns, shadowed)?;
-            let r = fold(*rhs, ns, shadowed)?;
+            let l = fold(*lhs, ns, shadowed, budget)?;
+            let r = fold(*rhs, ns, shadowed, budget)?;
             if let (Expr::Num(a), Expr::Num(b)) = (&l, &r) {
                 let folded = match op {
                     BinOp::Add => Some(a + b),
@@ -116,26 +127,30 @@ fn fold(e: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Expr> {
                     return Ok(Expr::Num(v));
                 }
             }
-            Expr::Bin { op, lhs: Box::new(l), rhs: Box::new(r) }
+            Expr::Bin {
+                op,
+                lhs: Box::new(l),
+                rhs: Box::new(r),
+            }
         }
 
         Expr::Neg(x) => {
-            let x = fold(*x, ns, shadowed)?;
+            let x = fold(*x, ns, shadowed, budget)?;
             if let Expr::Num(n) = x {
                 return Ok(Expr::Num(-n));
             }
             Expr::Neg(Box::new(x))
         }
-        Expr::Pos(x) => fold(*x, ns, shadowed)?,
+        Expr::Pos(x) => fold(*x, ns, shadowed, budget)?,
         Expr::Not(x) => {
-            let x = fold(*x, ns, shadowed)?;
+            let x = fold(*x, ns, shadowed, budget)?;
             if let Expr::Num(n) = x {
                 return Ok(Expr::Num(if n == 0.0 { 1.0 } else { 0.0 }));
             }
             Expr::Not(Box::new(x))
         }
         Expr::Fact(x) => {
-            let x = fold(*x, ns, shadowed)?;
+            let x = fold(*x, ns, shadowed, budget)?;
             if let Expr::Num(n) = x {
                 return Ok(Expr::Num(crate::builtins::factorial_f64(n)?));
             }
@@ -145,7 +160,7 @@ fn fold(e: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Expr> {
         Expr::Call { name, args } => {
             let mut folded = Vec::with_capacity(args.len());
             for a in args {
-                folded.push(fold(a, ns, shadowed)?);
+                folded.push(fold(a, ns, shadowed, budget)?);
             }
 
             if !shadowed.contains(&name)
@@ -165,21 +180,25 @@ fn fold(e: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Expr> {
                 }
                 if all_literal
                     && entry.arity.accepts(nums.len())
-                    && let Ok(Value::Num(v)) = (entry.call)(&nums)
+                    && let Ok(value) = (entry.call)(&nums)
                 {
-                    return Ok(Expr::Num(v));
+                    value.check_numeric_limits()?;
+                    if let Value::Num(v) = value {
+                        return Ok(Expr::Num(v));
+                    }
                 }
             }
             Expr::Call { name, args: folded }
         }
 
-        Expr::Assign { name, value } => {
-            Expr::Assign { name, value: Box::new(fold(*value, ns, shadowed)?) }
-        }
+        Expr::Assign { name, value } => Expr::Assign {
+            name,
+            value: Box::new(fold(*value, ns, shadowed, budget)?),
+        },
         Expr::Block(stmts) => {
             let mut out = Vec::with_capacity(stmts.len());
             for s in stmts {
-                out.push(fold(s, ns, shadowed)?);
+                out.push(fold(s, ns, shadowed, budget)?);
             }
             Expr::Block(out)
         }
@@ -187,30 +206,40 @@ fn fold(e: Expr, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<Expr> {
     })
 }
 
-fn lower(e: &Expr, prog: &mut Program, ns: &Namespace, shadowed: &BTreeSet<String>) -> Result<()> {
+fn lower(
+    e: &Expr,
+    prog: &mut Program,
+    ns: &Namespace,
+    shadowed: &BTreeSet<String>,
+    budget: &mut WorkBudget,
+) -> Result<()> {
+    budget.consume(1)?;
     match e {
         Expr::Num(n) => prog.code.push(Inst::PushVal(Value::Num(*n))),
         Expr::BigLit(text) => {
             #[cfg(feature = "bigint")]
             {
                 use core::str::FromStr;
-                let v = num_bigint::BigInt::from_str(text)
-                    .map_err(|_| Error::InvalidNumber { text: text.clone(), pos: 0 })?;
+                let v = num_bigint::BigInt::from_str(text).map_err(|_| Error::InvalidNumber {
+                    text: text.clone(),
+                    pos: 0,
+                })?;
                 prog.code.push(Inst::PushVal(Value::Big(v)));
             }
             #[cfg(not(feature = "bigint"))]
             {
-                let n: f64 = text
-                    .parse()
-                    .map_err(|_| Error::InvalidNumber { text: text.clone(), pos: 0 })?;
+                let n: f64 = text.parse().map_err(|_| Error::InvalidNumber {
+                    text: text.clone(),
+                    pos: 0,
+                })?;
                 prog.code.push(Inst::PushVal(Value::Num(n)));
             }
         }
         Expr::Str(s) => prog.code.push(Inst::PushVal(Value::Str(s.clone()))),
         Expr::Var(name) => prog.code.push(Inst::LoadVar(name.clone())),
         Expr::Bin { op, lhs, rhs } => {
-            lower(lhs, prog, ns, shadowed)?;
-            lower(rhs, prog, ns, shadowed)?;
+            lower(lhs, prog, ns, shadowed, budget)?;
+            lower(rhs, prog, ns, shadowed, budget)?;
             prog.code.push(match op {
                 BinOp::Add => Inst::Add,
                 BinOp::Sub => Inst::Sub,
@@ -221,23 +250,26 @@ fn lower(e: &Expr, prog: &mut Program, ns: &Namespace, shadowed: &BTreeSet<Strin
             });
         }
         Expr::Neg(x) => {
-            lower(x, prog, ns, shadowed)?;
+            lower(x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Neg);
         }
-        Expr::Pos(x) => lower(x, prog, ns, shadowed)?,
+        Expr::Pos(x) => lower(x, prog, ns, shadowed, budget)?,
         Expr::Not(x) => {
-            lower(x, prog, ns, shadowed)?;
+            lower(x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Not);
         }
         Expr::Fact(x) => {
-            lower(x, prog, ns, shadowed)?;
+            lower(x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Fact);
         }
         Expr::Call { name, args } => {
             for a in args {
-                lower(a, prog, ns, shadowed)?;
+                lower(a, prog, ns, shadowed, budget)?;
             }
-            prog.code.push(Inst::Call { name: name.clone(), arity: args.len() });
+            prog.code.push(Inst::Call {
+                name: name.clone(),
+                arity: args.len(),
+            });
         }
         Expr::Assign { name, value } => {
             if let Expr::Lambda { params, body } = value.as_ref() {
@@ -246,17 +278,25 @@ fn lower(e: &Expr, prog: &mut Program, ns: &Namespace, shadowed: &BTreeSet<Strin
                 // name as a user-defined function in the surrounding program.
                 // we clone the body sub-tree because lower owns only a borrow
                 // of the surrounding Assign node.
-                let body_prog = compile_with((**body).clone(), ns, shadowed)?;
+                let mut body_shadowed = shadowed.clone();
+                body_shadowed.extend(params.iter().cloned());
+                let body_prog = compile_with((**body).clone(), ns, &body_shadowed, budget)?;
                 let fn_idx = prog.user_fns.len();
-                prog.user_fns.push(UserFn { params: params.clone(), body: body_prog });
-                prog.code.push(Inst::DefineFn { name: name.clone(), fn_idx });
+                prog.user_fns.push(UserFn {
+                    params: params.clone(),
+                    body: body_prog,
+                });
+                prog.code.push(Inst::DefineFn {
+                    name: name.clone(),
+                    fn_idx,
+                });
                 // function definitions are statements; push a string sentinel so
                 // the result of `f(x) = …` displays as `<fn name/arity>` rather
                 // than the previous surprising `params.len()` numeric value.
                 let sentinel = alloc::format!("<fn {}/{}>", name, params.len());
                 prog.code.push(Inst::PushVal(Value::Str(sentinel)));
             } else {
-                lower(value, prog, ns, shadowed)?;
+                lower(value, prog, ns, shadowed, budget)?;
                 prog.code.push(Inst::StoreKeep(name.clone()));
             }
         }
@@ -267,7 +307,7 @@ fn lower(e: &Expr, prog: &mut Program, ns: &Namespace, shadowed: &BTreeSet<Strin
             }
             let last = stmts.len() - 1;
             for (i, s) in stmts.iter().enumerate() {
-                lower(s, prog, ns, shadowed)?;
+                lower(s, prog, ns, shadowed, budget)?;
                 if i != last {
                     prog.code.push(Inst::Drop);
                 }
