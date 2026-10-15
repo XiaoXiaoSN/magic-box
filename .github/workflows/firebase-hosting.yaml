@@ -20,6 +20,9 @@ jobs:
   tests:
     name: Test suite
     uses: ./.github/workflows/test.yaml
+    permissions:
+      actions: read
+      contents: read
     secrets:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
