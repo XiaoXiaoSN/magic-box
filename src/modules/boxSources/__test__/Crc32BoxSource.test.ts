@@ -65,6 +65,9 @@ describe('Crc32BoxSource', () => {
       expect(Hex).toMatch(/^[0-9a-f]{8}$/);
       expect(Uppercase).toBe(Hex.toUpperCase());
       expect(Number.parseInt(Decimal, 10)).toBe(Number.parseInt(Hex, 16));
+      expect(boxes[0].props.plaintextOutput).toBe(
+        `Hex: ${Hex}\nDecimal: ${Decimal}\nUppercase: ${Uppercase}`,
+      );
     });
 
     it('uses KeyValueBoxTemplate', async () => {

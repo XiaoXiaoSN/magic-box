@@ -1,6 +1,6 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
+import { extractOptionKeys, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const Priority = 10;
 
@@ -80,11 +80,9 @@ export const TemperatureBoxSource = {
     };
 
     return [
-      new BoxBuilder('Temperature', '')
-        .setOptions(kvOptions)
-        .setView('keyValue')
-        .setPriority(this.priority)
-        .build(),
+      keyValueBox('keyValue', 'Temperature', kvOptions, {
+        priority: this.priority,
+      }),
     ];
   },
 };

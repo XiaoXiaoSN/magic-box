@@ -26,6 +26,9 @@ describe('TemperatureBoxSource', () => {
       expect(options?.Celsius).toBe('100');
       expect(options?.Fahrenheit).toBe('212');
       expect(options?.Kelvin).toBe('373.15');
+      expect(boxes[0].props.plaintextOutput).toBe(
+        'Celsius: 100\nFahrenheit: 212\nKelvin: 373.15',
+      );
     });
 
     it('uses KeyValueBoxTemplate', async () => {
