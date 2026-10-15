@@ -6,6 +6,12 @@ describe('MagicBox Page', () => {
     cy.visit('/', {
       timeout: 30000,
       retryOnStatusCodeFailure: true,
+      onBeforeLoad: (window) => {
+        window.localStorage.setItem(
+          'mb_prefs',
+          JSON.stringify({ timezoneMode: 'fixed', timezoneOffset: 8 }),
+        );
+      },
     });
 
     // Wait for the page to be fully loaded
@@ -83,10 +89,21 @@ describe('MagicBox Page', () => {
       {
         testTitle: 'Cron Expression',
         input: '* */2 * * 1',
+        freezeAt: '2024-01-01T00:00:00.000Z',
         output: [
           {
             title: 'Cron Expression',
             text: 'Every minute, every 2 hours, only on Monday',
+          },
+          {
+            title: 'Next executions',
+            text: [
+              '1: 2024-01-01T08:01:00.000+08:00',
+              '2: 2024-01-01T08:02:00.000+08:00',
+              '3: 2024-01-01T08:03:00.000+08:00',
+              '4: 2024-01-01T08:04:00.000+08:00',
+              '5: 2024-01-01T08:05:00.000+08:00',
+            ].join('\n'),
           },
           {
             title: 'Base64 Encode',
@@ -102,10 +119,21 @@ describe('MagicBox Page', () => {
         testTitle: 'Cron Expression in Chinese',
         input: `* */2 * * 3
 ::lang=tw`,
+        freezeAt: '2024-01-01T00:00:00.000Z',
         output: [
           {
             title: 'Cron Expression',
             text: '每分鐘, 每 2 小時, 僅在 星期三',
+          },
+          {
+            title: 'Next executions',
+            text: [
+              '1: 2024-01-03T00:00:00.000+08:00',
+              '2: 2024-01-03T00:01:00.000+08:00',
+              '3: 2024-01-03T00:02:00.000+08:00',
+              '4: 2024-01-03T00:03:00.000+08:00',
+              '5: 2024-01-03T00:04:00.000+08:00',
+            ].join('\n'),
           },
           {
             title: 'Base64 Encode',
@@ -235,6 +263,10 @@ describe('MagicBox Page', () => {
 
     testCases.forEach((testCase) => {
       it(`MagicBox input: ${testCase.testTitle}`, () => {
+        if ('freezeAt' in testCase && typeof testCase.freezeAt === 'string') {
+          cy.clock(new Date(testCase.freezeAt).getTime(), ['Date']);
+        }
+
         // MUI TextField with multiline uses textarea
         cy.get('input[name="magicInput"], textarea[name="magicInput"]', {
           timeout: 10000,
@@ -258,10 +290,12 @@ describe('MagicBox Page', () => {
                 .should('be.visible')
                 .should('have.text', output.title);
 
-              // Word Count uses KeyValueBoxTemplate, which displays key-value pairs
-              // Other boxes use DefaultBoxTemplate or CodeBoxTemplate with magic-box-result-text
-              if (output.title === 'Word Count') {
-                // For Word Count, check that the key-value pairs are displayed
+              // Structured boxes display key-value pairs instead of plain text.
+              if (
+                output.title === 'Word Count' ||
+                output.title === 'Next executions'
+              ) {
+                // Structured boxes display their key-value pairs separately.
                 // The text format is "lines: X\nwords: Y\ncharacters: Z"
                 // KeyValueBoxTemplate renders these as separate key-value pairs in Paper elements
                 const parts = output.text.split('\n');

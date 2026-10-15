@@ -90,8 +90,31 @@ change needs more headroom.
 
 | options                          | description                             | example     |
 | -------------------------------- | --------------------------------------- | ----------- |
-| `l`, `lang`, `locate`            | select while human language             | ::locale=tw |
+| `l`, `lang`, `locale`            | select the human language               | ::locale=tw |
 | ~~`tz`, `timezone`, `tzOffset`~~ | (deprecated) shift to the base timezone | ::tz=8      |
+
+Cron descriptions accept five-field UNIX expressions, six-field expressions
+with a leading seconds field, and seven-field expressions with a trailing year
+field. Month and weekday names are case-insensitive (`JAN`–`DEC`,
+`SUN`–`SAT`), and the supported macros are `@yearly`, `@annually`,
+`@monthly`, `@weekly`, `@daily`, `@midnight`, and `@hourly`.
+
+Each valid expression also produces a **Next executions** box containing up to
+five RFC 3339 timestamps strictly after the input was evaluated. Fixed timezone
+preferences are rendered with their configured offset, including quarter-hour
+offsets; system timezone preferences use the offset at each candidate. Spring
+DST gaps are skipped, while both valid instants in a repeated fall-back hour
+are retained. Five-field expressions use UNIX day-of-month/day-of-week OR
+semantics when both fields are restricted. Six- and seven-field expressions
+use `?` as the unrestricted day field and require both restricted fields.
+
+The next-time search checks calendar fields directly within a bounded 20-year
+horizon, so impossible dates such as February 31 produce no occurrences. The
+description remains available for `L`, `W`, and `#` expressions, but their next
+times are labelled unavailable because those advanced forms are not calculated.
+Descending ranges are rejected for seconds, minutes, hours, day-of-month,
+months, and years; day-of-week ranges wrap across Sunday (for example,
+`FRI-MON`).
 
 </details>
 
