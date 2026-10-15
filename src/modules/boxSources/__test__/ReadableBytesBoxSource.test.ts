@@ -22,6 +22,24 @@ describe('ReadableBytesBoxSource', () => {
       expect(result?.decodedText).toBe('Hello');
     });
 
+    it('should decode multiline bracketed decimal', () => {
+      const result = ReadableBytesBoxSource.checkMatch('[72,\n101]');
+      expect(result).toBeDefined();
+      expect(result?.decodedText).toBe('He');
+    });
+
+    it('should decode a single byte with explicit array intent', () => {
+      const result = ReadableBytesBoxSource.checkMatch('[65]');
+      expect(result).toBeDefined();
+      expect(result?.decodedText).toBe('A');
+    });
+
+    it('should decode a single byte with explicit hex intent', () => {
+      const result = ReadableBytesBoxSource.checkMatch('0x41');
+      expect(result).toBeDefined();
+      expect(result?.decodedText).toBe('A');
+    });
+
     it('should decode Go-style []byte{} decimal', () => {
       const result = ReadableBytesBoxSource.checkMatch(
         '[]byte{72, 101, 108, 108, 111}',
@@ -72,10 +90,28 @@ describe('ReadableBytesBoxSource', () => {
       expect(result).toBeUndefined();
     });
 
+    it('should not decode whitespace-only output', () => {
+      expect(ReadableBytesBoxSource.checkMatch('[32]')).toBeUndefined();
+    });
+
+    for (const input of ['200', 'be', 'ad', 'fa', '65', '42', '32']) {
+      it(`should not decode a single bare token: ${input}`, () => {
+        expect(ReadableBytesBoxSource.checkMatch(input)).toBeUndefined();
+      });
+    }
+
+    for (const input of ['255 255', '[255, 255]', '[]byte{255, 255}']) {
+      it(`should reject invalid UTF-8 bytes: ${input}`, () => {
+        expect(ReadableBytesBoxSource.checkMatch(input)).toBeUndefined();
+      });
+    }
+
     it('should return undefined for invalid byte values', () => {
       expect(ReadableBytesBoxSource.checkMatch('300')).toBeUndefined();
       expect(ReadableBytesBoxSource.checkMatch('-1')).toBeUndefined();
       expect(ReadableBytesBoxSource.checkMatch('0xGG')).toBeUndefined();
+      expect(ReadableBytesBoxSource.checkMatch('0x123')).toBeUndefined();
+      expect(ReadableBytesBoxSource.checkMatch('48 65g')).toBeUndefined();
       expect(ReadableBytesBoxSource.checkMatch('72 hello')).toBeUndefined();
     });
   });
