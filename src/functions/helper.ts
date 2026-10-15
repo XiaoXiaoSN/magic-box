@@ -97,16 +97,17 @@ const MONTH_MAP: Record<string, number> = {
 
 const MONTH_NAMES_PATTERN =
   '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const ORDINAL_SUFFIX = '(?:st|n[d]|rd|th)?';
 const NAMED_YMD_REGEX = new RegExp(
   `^(\\d{4})([-/])${MONTH_NAMES_PATTERN}\\2(\\d{1,2})(.*)$`,
   'i',
 );
 const MONTH_DAY_YEAR_REGEX = new RegExp(
-  `^${MONTH_NAMES_PATTERN}[-/.,\\s]+(\\d{1,2})(?:st|nd|rd|th)?(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  `^${MONTH_NAMES_PATTERN}[-/.,\\s]+(\\d{1,2})${ORDINAL_SUFFIX}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
   'i',
 );
 const DAY_MONTH_YEAR_REGEX = new RegExp(
-  `^(\\d{1,2})(?:st|nd|rd|th)?[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES_PATTERN}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  `^(\\d{1,2})${ORDINAL_SUFFIX}[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES_PATTERN}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
   'i',
 );
 

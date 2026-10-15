@@ -10,6 +10,7 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const MONTH_NAMES =
   '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
+const ORDINAL_SUFFIX = '(?:st|n[d]|rd|th)?';
 const DATE_SHAPE = [
   '(?:now|today|tomorrow|yesterday)',
   '\\d{8}',
@@ -18,8 +19,8 @@ const DATE_SHAPE = [
   `\\d{4}[-/]${MONTH_NAMES}[-/]\\d{1,2}`,
   '\\d{4}年\\d{1,2}月\\d{1,2}日?',
   '\\d{1,2}[-/.]\\d{1,2}(?:[-/.]\\d{2,4})?',
-  `${MONTH_NAMES}[-/.,\\s]+\\d{1,2}(?:st|nd|rd|th)?(?:[-/.,\\s]+\\d{2,4})?`,
-  `\\d{1,2}(?:st|nd|rd|th)?[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES}(?:[-/.,\\s]+\\d{2,4})?`,
+  `${MONTH_NAMES}[-/.,\\s]+\\d{1,2}${ORDINAL_SUFFIX}(?:[-/.,\\s]+\\d{2,4})?`,
+  `\\d{1,2}${ORDINAL_SUFFIX}[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES}(?:[-/.,\\s]+\\d{2,4})?`,
 ].join('|');
 const DATE_TIME_SUFFIX =
   '(?:[T ]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}(?::?\\d{2})?)?)?';
