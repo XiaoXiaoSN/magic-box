@@ -11,34 +11,38 @@ export interface ErrorBoundaryProps {
 }
 
 interface ErrorBoundaryState {
-  error: unknown | null;
+  hasError: boolean;
 }
+
+// react's default callback forwards caught errors to console.error, which can
+// become a Sentry console breadcrumb. The root installs this redacting hook.
+export const handleRootCaughtError = (): void => {};
 
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { error: null };
+  state: ErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
-    return { error };
+  static getDerivedStateFromError(_error: unknown): ErrorBoundaryState {
+    return { hasError: true };
   }
 
   componentDidUpdate(previousProps: ErrorBoundaryProps): void {
     if (
-      this.state.error !== null &&
+      this.state.hasError &&
       !Object.is(this.props.resetKey, previousProps.resetKey)
     ) {
-      this.setState({ error: null });
+      this.setState({ hasError: false });
     }
   }
 
   private readonly retry = (): void => {
-    this.setState({ error: null });
+    this.setState({ hasError: false });
   };
 
   render(): ReactNode {
-    if (this.state.error === null) {
+    if (!this.state.hasError) {
       return this.props.children;
     }
 
