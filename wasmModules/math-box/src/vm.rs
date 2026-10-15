@@ -1,9 +1,8 @@
 use alloc::collections::BTreeMap;
-use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::{Inst, Program, UserFn};
+use crate::compiler::{Inst, Program, Shared, UserFn};
 use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
@@ -14,7 +13,7 @@ const MAX_FRAME_DEPTH: usize = 32;
 
 pub struct Scope {
     frames: Vec<BTreeMap<String, Value>>,
-    user_fns: BTreeMap<String, Rc<UserFn>>,
+    user_fns: BTreeMap<String, Shared<UserFn>>,
 }
 
 impl Default for Scope {
@@ -63,7 +62,7 @@ impl Scope {
         }
     }
 
-    pub fn define_fn(&mut self, name: String, f: Rc<UserFn>) {
+    pub fn define_fn(&mut self, name: String, f: Shared<UserFn>) {
         self.user_fns.insert(name, f);
     }
 }
@@ -251,7 +250,7 @@ mod tests {
 
     #[test]
     fn calls_share_compiled_function_body() {
-        let function = Rc::new(UserFn {
+        let function = Shared::new(UserFn {
             params: Vec::new(),
             body: Program {
                 code: vec![Inst::PushVal(Value::Num(7.0))],
@@ -274,14 +273,14 @@ mod tests {
                     arity: 0,
                 },
             ],
-            user_fns: vec![Rc::clone(&function)],
+            user_fns: vec![Shared::clone(&function)],
         };
         let mut scope = Scope::new();
         let mut budget = WorkBudget::new();
         let value = run(&program, &Namespace::new(), &mut scope, &mut budget).expect("run");
 
         assert_eq!(value, Value::Num(7.0));
-        assert!(Rc::ptr_eq(
+        assert!(Shared::ptr_eq(
             scope.user_fns.get("f").expect("defined function"),
             &function
         ));

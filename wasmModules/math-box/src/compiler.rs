@@ -1,8 +1,13 @@
 use alloc::boxed::Box;
 use alloc::collections::BTreeSet;
-use alloc::rc::Rc;
 use alloc::string::String;
 use alloc::vec::Vec;
+
+// preserve native thread safety without atomic reference counts in the WASM VM.
+#[cfg(target_arch = "wasm32")]
+pub(crate) use alloc::rc::Rc as Shared;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use alloc::sync::Arc as Shared;
 
 use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
@@ -44,7 +49,7 @@ pub struct UserFn {
 #[derive(Clone, Debug, Default)]
 pub struct Program {
     pub code: Vec<Inst>,
-    pub user_fns: Vec<Rc<UserFn>>,
+    pub user_fns: Vec<Shared<UserFn>>,
 }
 
 pub fn compile(expr: Expr, ns: &Namespace, budget: &mut WorkBudget) -> Result<Program> {
@@ -386,7 +391,7 @@ fn lower(
                 let body_prog = compile_with(*body, ns, &body_shadowed, budget)?;
                 let fn_idx = prog.user_fns.len();
                 let param_count = params.len();
-                prog.user_fns.push(Rc::new(UserFn {
+                prog.user_fns.push(Shared::new(UserFn {
                     params,
                     body: body_prog,
                 }));

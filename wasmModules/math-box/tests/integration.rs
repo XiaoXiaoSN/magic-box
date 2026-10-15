@@ -5,6 +5,29 @@ fn assert_eval(input: &str, expected: &str) {
     assert_eq!(got, expected, "input={input}");
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn compiled_user_functions_are_send_sync() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Compiled>();
+
+    let compiled = Compiled::new("f(x) = x + y; g(y) = f(2); g(5)").expect("compile");
+    std::thread::scope(|scope| {
+        let first = scope.spawn(|| compiled.evaluate());
+        let second = scope.spawn(|| compiled.evaluate());
+        assert_eq!(first.join().expect("first thread").expect("evaluate"), "7");
+        assert_eq!(
+            second.join().expect("second thread").expect("evaluate"),
+            "7"
+        );
+    });
+    let result = std::thread::spawn(move || compiled.evaluate())
+        .join()
+        .expect("owned thread")
+        .expect("evaluate");
+    assert_eq!(result, "7");
+}
+
 #[test]
 fn basic_arithmetic() {
     assert_eval("1000 + 2000", "3000");
