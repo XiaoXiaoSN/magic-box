@@ -3,15 +3,16 @@ import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
 const PriorityReadableBytes = 10;
+const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+const hexTokenPattern = /^(?:0x)?[0-9a-f]{1,2}$/i;
+const decimalTokenPattern = /^\d+$/;
 
 interface Match {
   decodedText: string;
 }
 
 function hasDisplayableChar(str: string): boolean {
-  // Match at least one non-control, displayable Unicode character
-  // Exclude C0/C1 control chars, but allow letters, symbols, emoji, etc.
-  return /\P{C}/u.test(str);
+  return /(?:(?!\s)\P{C})/u.test(str);
 }
 
 export const ReadableBytesBoxSource = {
@@ -32,59 +33,45 @@ export const ReadableBytesBoxSource = {
       return undefined;
     }
 
-    // Remove brackets or Go-style []byte{}
-    if (/^\[.*\]$/.test(content)) {
-      content = content.replace(/^\[|\]$/g, '');
-    } else if (/^\[\]byte\{.*\}$/.test(content)) {
-      content = content.replace(/^\[\]byte\{|\}$/g, '');
+    const bracketed = /^\[.*\]$/s.test(content);
+    const goStyle = /^\[\]byte\{.*\}$/s.test(content);
+    const explicitIntent = bracketed || goStyle || content.includes(',');
+
+    if (bracketed) {
+      content = content.slice(1, -1);
+    } else if (goStyle) {
+      content = content.slice(7, -1);
     }
 
-    // Remove commas if present
     content = content.replace(/,/g, ' ');
 
-    // Split by whitespace
     const parts = content.split(/\s+/).filter((p) => Boolean(p));
     if (parts.length === 0) return undefined;
 
-    // Detect if any part is hex (0x or contains a-f)
-    let isHex = false;
-    if (parts.some((p) => /^0x/i.test(p))) {
-      isHex = true;
-    } else if (parts.some((p) => /[a-fA-F]/.test(p))) {
-      isHex = true;
-    }
+    const isHex = parts.some(
+      (part) => /^0x/i.test(part) || /[a-f]/i.test(part),
+    );
+    const hasExplicitIntent =
+      explicitIntent || parts.some((part) => /^0x/i.test(part));
 
-    // Parse bytes
     const bytes: number[] = [];
-    let invalid = false;
-    parts.forEach((part) => {
-      let value: number | undefined;
-      if (/^0x[0-9a-fA-F]+$/.test(part)) {
-        value = parseInt(part, 16);
-      } else if (isHex) {
-        value = parseInt(part, 16);
-      } else if (/^\d+$/.test(part)) {
-        value = parseInt(part, 10);
+    for (const part of parts) {
+      let value: number;
+      if (isHex) {
+        if (!hexTokenPattern.test(part)) return undefined;
+        const digits = /^0x/i.test(part) ? part.slice(2) : part;
+        value = Number.parseInt(digits, 16);
       } else {
-        invalid = true;
-        return;
-      }
-      if (value < 0 || value > 255 || Number.isNaN(value)) {
-        invalid = true;
-        return;
+        if (!decimalTokenPattern.test(part)) return undefined;
+        value = Number(part);
+        if (value > 255) return undefined;
       }
       bytes.push(value);
-    });
-    if (invalid) return undefined;
+    }
+    if (!hasExplicitIntent && bytes.length < 2) return undefined;
 
-    // Convert to string (ASCII/UTF-8)
     try {
-      let decodedText: string;
-      if (typeof TextDecoder !== 'undefined') {
-        decodedText = new TextDecoder('utf-8').decode(new Uint8Array(bytes));
-      } else {
-        decodedText = String.fromCharCode(...bytes);
-      }
+      const decodedText = utf8Decoder.decode(new Uint8Array(bytes));
 
       if (!hasDisplayableChar(decodedText)) {
         return undefined;
