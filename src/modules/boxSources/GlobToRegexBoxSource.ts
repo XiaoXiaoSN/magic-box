@@ -26,9 +26,30 @@ function escapeRegexChar(char: string): string {
   return REGEX_SPECIAL.has(char) ? `\\${char}` : char;
 }
 
+function findNextClosingBrackets(glob: string): Int32Array {
+  // Index closers once so unmatched brackets do not rescan each remaining suffix.
+  const closing = new Uint8Array(glob.length);
+  for (let index = 0; index < glob.length; ) {
+    if (glob[index] === '\\' && index + 1 < glob.length) {
+      index += 2;
+    } else {
+      if (glob[index] === ']') closing[index] = 1;
+      index++;
+    }
+  }
+
+  const nextClosing = new Int32Array(glob.length + 1);
+  nextClosing[glob.length] = -1;
+  for (let index = glob.length - 1; index >= 0; index--) {
+    nextClosing[index] = closing[index] ? index : nextClosing[index + 1];
+  }
+  return nextClosing;
+}
+
 function parseCharacterClass(
   glob: string,
   start: number,
+  nextClosing: Int32Array,
 ): { regex: string; next: number } | null {
   let index = start + 1;
   const negated = glob[index] === '!';
@@ -36,10 +57,8 @@ function parseCharacterClass(
 
   const contentStart = index;
   if (glob[index] === ']') index++;
-  while (index < glob.length && glob[index] !== ']') {
-    index += glob[index] === '\\' && index + 1 < glob.length ? 2 : 1;
-  }
-  if (index === glob.length) return null;
+  index = nextClosing[index];
+  if (index === -1) return null;
 
   const content = glob.slice(contentStart, index);
   if (content.length === 0) return null;
@@ -70,6 +89,7 @@ function parseCharacterClass(
 function globToRegex(glob: string): string {
   let result = '^';
   let index = 0;
+  const nextClosing = findNextClosingBrackets(glob);
 
   while (index < glob.length) {
     const char = glob[index];
@@ -95,7 +115,7 @@ function globToRegex(glob: string): string {
       result += '[^/]';
       index++;
     } else if (char === '[') {
-      const parsed = parseCharacterClass(glob, index);
+      const parsed = parseCharacterClass(glob, index, nextClosing);
       if (parsed) {
         result += parsed.regex;
         index = parsed.next;

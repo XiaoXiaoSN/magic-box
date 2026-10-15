@@ -147,4 +147,11 @@ describe('GlobToRegexBoxSource', () => {
     expect(regex.test(']')).toBe(true);
     expect(regex.test('a')).toBe(false);
   });
+
+  it('handles a maximum-length run of unmatched opening brackets', async () => {
+    const boxes = await GlobToRegexBoxSource.generateBoxes('['.repeat(10_000), {
+      glob2regex: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toHaveLength(20_002);
+  });
 });

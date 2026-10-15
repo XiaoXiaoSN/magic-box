@@ -176,4 +176,53 @@ describe('MarkdownTocBoxSource', () => {
       '- [A & B](#a--b)\n- [Use code and link](#use-code-and-link)',
     );
   });
+
+  it('preserves intraword underscores in visible labels and slugs', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes('## foo_bar_baz', {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [foo\\_bar\\_baz](#foo_bar_baz)',
+    );
+  });
+
+  it('strips emphasis and links with balanced parentheses from destinations', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [**link**](https://example.test/a_(b_(c)))',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('- [link](#link)');
+  });
+
+  it('keeps escaped markup and code-span text literal in the label', async () => {
+    const delimiter = String.fromCharCode(96);
+    const input =
+      '## \\*literal\\* ' +
+      delimiter +
+      'code_text' +
+      delimiter +
+      ' [**link**](https://example.test/a_(b))';
+    const boxes = await MarkdownTocBoxSource.generateBoxes(input, {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\*literal\\* code\\_text link](#literal-code_text-link)',
+    );
+  });
+
+  it('strips HTML tags and comments from labels', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## Text <!-- hidden --> <em>HTML</em>',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('- [Text  HTML](#text--html)');
+  });
+
+  it('handles a maximum-length unmatched bracket heading', async () => {
+    const heading = '['.repeat(99_997);
+    const boxes = await MarkdownTocBoxSource.generateBoxes(`## ${heading}`, {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toHaveLength(200_001);
+  });
 });
