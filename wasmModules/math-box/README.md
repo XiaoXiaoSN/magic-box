@@ -205,13 +205,15 @@ bun run test --run src/modules/boxSources/__test__/MathExpressionBoxSource.test.
 ```
 
 Current Rust coverage lives in [tests/integration.rs](tests/integration.rs).
-Although `wasm-bindgen-test` is declared and the repository has a generic WASM
-workflow, this package currently has no `#[wasm_bindgen_test]` tests. It also has
-no proptest suite or cargo-fuzz target. The TypeScript tests exercise the app's
-Math source; they are not evidence of browser fuzzing coverage.
+The [tests/web.rs](tests/web.rs) module defines three `wasm_bindgen_test` cases;
+the CI matrix runs them headlessly in both Chrome and Firefox. The TypeScript
+tests exercise the app's Math source and are separate from the browser WASM
+tests. There is no proptest suite or cargo-fuzz target.
 
-[benches/eval.rs](benches/eval.rs) benchmarks six full-pipeline cases: simple,
-medium, trig, hex, factorial and nested expressions. It does not benchmark a
-precompiled handle. See [BENCHMARK.md](BENCHMARK.md) for validated native and
-shipping WASM measurements, exact artifacts, provenance, raw samples and
-reproduction commands.
+[benches/eval.rs](benches/eval.rs) uses Criterion for six full-pipeline cases:
+simple, medium, trig, hex, factorial and nested expressions. It also benchmarks
+a precompiled user-function handle through `Compiled::evaluate`. See
+[BENCHMARK.md](BENCHMARK.md) for validated native and shipping WASM
+measurements, exact artifacts, provenance, raw samples and reproduction
+commands. Run `bun run test:math-box-compare` to verify that generated
+comparison reports leave the canonical benchmark unchanged.

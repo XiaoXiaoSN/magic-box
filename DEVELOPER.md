@@ -5,10 +5,10 @@ working on the application and maintaining its documentation.
 
 ## Local setup
 
-Install Bun 1.3.4 (the `packageManager` version in `package.json`), a current
-stable Rust toolchain with the `wasm32-unknown-unknown` target, and wasm-pack
-0.15.0. CI also installs Node.js 22 for tooling; Bun runs the development
-scripts.
+Install Node.js 22 for documentation and benchmark tooling, Bun 1.3.4 (the
+`packageManager` version in `package.json`), a current stable Rust toolchain
+with the `wasm32-unknown-unknown` target, and wasm-pack 0.15.0. Bun runs the
+development scripts.
 
 From the repository root, build both local WASM packages before installing
 root dependencies:
@@ -39,6 +39,7 @@ Rebuild them when their Rust source changes.
 | `bun run cypress` | Open Cypress |
 | `bun run docs:generate` | Regenerate the tool reference and llms.txt |
 | `bun run docs:check` | Run generator tests and check for documentation drift |
+| `bun run test:math-box-compare` | Verify generated comparison reports preserve the canonical math benchmark |
 
 The [terminal guide](docs/terminal-ui.md) covers interactive mode and
 `bun run tui`. The registry has 93 sources in total; 89 headless sources
@@ -62,7 +63,9 @@ cargo test --manifest-path wasmModules/math-box/Cargo.toml
 
 See the [math-box README](wasmModules/math-box/README.md) for the implemented
 syntax and test coverage, and its [benchmark report](wasmModules/math-box/BENCHMARK.md)
-for the measured artifact and reproduction commands.
+for validated measurements. `compare.mjs --write` emits a separate generated
+report under `wasmModules/math-box/bench/COMPARISON.md`; it never replaces the
+canonical benchmark. Use `--output <path>` for a temporary report.
 
 ## Documentation
 

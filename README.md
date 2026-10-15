@@ -154,16 +154,18 @@ Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a 
 
 | match rule                               | description                           | output           |
 | ---------------------------------------- | ------------------------------------- | ---------------- |
-| contains option `hash`, `sha1`, `sha256`, or `sha512` | compute cryptographic hash of the input | lowercase hex digest |
+| contains option `hash`, `md5`, `sha1`, `sha256`, `sha384`, or `sha512` | compute cryptographic hash of the input | lowercase hex digest |
 
 | options  | description                              | example      |
 | -------- | ---------------------------------------- | ------------ |
-| `hash`   | compute SHA-1, SHA-256, and SHA-512      | `::hash`     |
+| `hash`   | compute MD5, SHA-1, SHA-256, SHA-384, and SHA-512 | `::hash`     |
+| `md5`    | compute MD5 digest                       | `::md5`      |
 | `sha1`   | compute SHA-1 digest                     | `::sha1`     |
 | `sha256` | compute SHA-256 digest                   | `::sha256`   |
+| `sha384` | compute SHA-384 digest                   | `::sha384`   |
 | `sha512` | compute SHA-512 digest                   | `::sha512`   |
 
-MD5 is not supported.
+The `hash` option returns all five digests; individual options select one.
 
 </details>
 
