@@ -151,6 +151,7 @@ const en = {
 
   'pwa.newVersion': 'New version available.',
   'pwa.refreshHint': 'Refresh to update the app.',
+  'pwa.updateStalled': 'Update did not finish. Refresh the page to continue.',
   'pwa.refresh': 'Update',
   'pwa.later': 'Later',
 

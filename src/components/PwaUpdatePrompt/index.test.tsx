@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
@@ -16,6 +22,17 @@ interface ServiceWorkerMock extends EventTarget {
   state: ServiceWorkerState;
 }
 
+interface ServiceWorkerContainerMock extends EventTarget {
+  controller: ServiceWorkerMock | null;
+  register: ReturnType<typeof vi.fn>;
+}
+
+interface ServiceWorkerRegistrationMock {
+  active: ServiceWorkerMock | null;
+  installing: ServiceWorkerMock | null;
+  waiting: ServiceWorkerMock | null;
+}
+
 function createWorker(
   scriptURL: string,
   state: ServiceWorkerState = 'activated',
@@ -27,18 +44,25 @@ function createWorker(
   });
 }
 
-function installServiceWorkerMock(register: ReturnType<typeof vi.fn>): void {
+function installServiceWorkerMock(
+  register: ReturnType<typeof vi.fn>,
+  controller: ServiceWorkerMock | null = createWorker(
+    'http://localhost:3000/current-worker.js',
+  ),
+): ServiceWorkerContainerMock {
   const container = Object.assign(new EventTarget(), {
-    controller: createWorker('http://localhost:3000/current-worker.js'),
+    controller,
     register,
   });
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
     value: container,
   });
+  return container;
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   if (originalServiceWorker) {
     Object.defineProperty(navigator, 'serviceWorker', originalServiceWorker);
@@ -61,7 +85,8 @@ describe('<PwaUpdatePrompt />', () => {
         installing: null,
         waiting: waitingWorker,
       });
-    installServiceWorkerMock(register);
+    const serviceWorker = installServiceWorkerMock(register);
+    const onReload = vi.fn();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -77,7 +102,7 @@ describe('<PwaUpdatePrompt />', () => {
 
     render(
       <LocaleProvider>
-        <PwaUpdatePrompt />
+        <PwaUpdatePrompt onReload={onReload} />
       </LocaleProvider>,
     );
 
@@ -99,6 +124,15 @@ describe('<PwaUpdatePrompt />', () => {
         type: 'SKIP_WAITING',
       });
     });
+
+    waitingWorker.state = 'activated';
+    waitingWorker.dispatchEvent(new Event('statechange'));
+    expect(onReload).not.toHaveBeenCalled();
+
+    serviceWorker.controller = waitingWorker;
+    serviceWorker.dispatchEvent(new Event('controllerchange'));
+    serviceWorker.dispatchEvent(new Event('controllerchange'));
+    expect(onReload).toHaveBeenCalledOnce();
   });
 
   it('ignores an older waiter while the requested worker installs', async () => {
@@ -110,7 +144,7 @@ describe('<PwaUpdatePrompt />', () => {
       'installed',
     );
     const installingWorker = createWorker(latestWorkerUrl, 'installing');
-    const updateRegistration = {
+    const updateRegistration: ServiceWorkerRegistrationMock = {
       active: null,
       installing: installingWorker,
       waiting: olderWorker,
@@ -146,5 +180,268 @@ describe('<PwaUpdatePrompt />', () => {
     expect(installingWorker.postMessage).toHaveBeenCalledWith({
       type: 'SKIP_WAITING',
     });
+  });
+
+  it('reloads an uncontrolled page when the requested worker activates', async () => {
+    const latestVersion = '0.2.0-2026-09-04T08:00:00.000Z';
+    const latestWorkerPath = '/sw-0-2-0-2026-09-04T08-00-00-000Z.js';
+    const latestWorkerUrl = `http://localhost:3000${latestWorkerPath}`;
+    const waitingWorker = createWorker(latestWorkerUrl, 'installed');
+    const updateRegistration: ServiceWorkerRegistrationMock = {
+      active: null,
+      installing: null,
+      waiting: waitingWorker,
+    };
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockResolvedValueOnce(updateRegistration);
+    const serviceWorker = installServiceWorkerMock(register, null);
+    const onReload = vi.fn();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: latestVersion,
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Update' }));
+    await waitFor(() => {
+      expect(waitingWorker.postMessage).toHaveBeenCalledWith({
+        type: 'SKIP_WAITING',
+      });
+    });
+
+    waitingWorker.state = 'activated';
+    updateRegistration.active = waitingWorker;
+    waitingWorker.dispatchEvent(new Event('statechange'));
+    serviceWorker.dispatchEvent(new Event('controllerchange'));
+
+    expect(onReload).toHaveBeenCalledOnce();
+  });
+
+  it('restores the update controls and manual refresh hint after a timeout', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-05T08-00-00-000Z.js';
+    const waitingWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockResolvedValueOnce({
+        active: null,
+        installing: null,
+        waiting: waitingWorker,
+      });
+    const onReload = vi.fn();
+    installServiceWorkerMock(register);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-05T08:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(updateButton);
+      await Promise.resolve();
+    });
+    expect(waitingWorker.postMessage).toHaveBeenCalledWith({
+      type: 'SKIP_WAITING',
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(
+      screen.getByText('Update did not finish. Refresh the page to continue.'),
+    ).toBeVisible();
+    expect(updateButton).toBeEnabled();
+    expect(onReload).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('cleans up the activation listener and timeout when unmounted', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-06T08-00-00-000Z.js';
+    const waitingWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockResolvedValueOnce({
+        active: null,
+        installing: null,
+        waiting: waitingWorker,
+      });
+    const onReload = vi.fn();
+    installServiceWorkerMock(register);
+    const removeEventListener = vi.spyOn(waitingWorker, 'removeEventListener');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-06T08:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const { unmount } = render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(updateButton);
+      await Promise.resolve();
+    });
+    expect(vi.getTimerCount()).toBe(1);
+
+    unmount();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'statechange',
+      expect.any(Function),
+    );
+    expect(vi.getTimerCount()).toBe(0);
+    waitingWorker.state = 'activated';
+    waitingWorker.dispatchEvent(new Event('statechange'));
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
+  it('does not observe a worker that registers after unmount', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-08T08-00-00-000Z.js';
+    const waitingWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    let resolveRegistration: (
+      registration: ServiceWorkerRegistrationMock,
+    ) => void = () => {};
+    const pendingRegistration = new Promise<ServiceWorkerRegistrationMock>(
+      (resolve) => {
+        resolveRegistration = resolve;
+      },
+    );
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockReturnValueOnce(pendingRegistration);
+    const onReload = vi.fn();
+    installServiceWorkerMock(register);
+    const addEventListener = vi.spyOn(waitingWorker, 'addEventListener');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-08T08:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const { unmount } = render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    fireEvent.click(updateButton);
+    expect(register).toHaveBeenCalledTimes(2);
+    unmount();
+
+    await act(async () => {
+      resolveRegistration({
+        active: null,
+        installing: null,
+        waiting: waitingWorker,
+      });
+      await pendingRegistration;
+    });
+
+    expect(addEventListener).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('restores controls and removes listeners when an installing worker fails', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-07T08-00-00-000Z.js';
+    const installingWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installing',
+    );
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockResolvedValueOnce({
+        active: null,
+        installing: installingWorker,
+        waiting: null,
+      });
+    installServiceWorkerMock(register);
+    const removeEventListener = vi.spyOn(
+      installingWorker,
+      'removeEventListener',
+    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-07T08:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={vi.fn()} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    await act(async () => {
+      fireEvent.click(updateButton);
+      await Promise.resolve();
+    });
+
+    act(() => {
+      installingWorker.state = 'redundant';
+      installingWorker.dispatchEvent(new Event('statechange'));
+    });
+
+    expect(
+      screen.getByText('Update did not finish. Refresh the page to continue.'),
+    ).toBeVisible();
+    expect(updateButton).toBeEnabled();
+    expect(removeEventListener).toHaveBeenCalledWith(
+      'statechange',
+      expect.any(Function),
+    );
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

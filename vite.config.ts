@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -7,7 +8,20 @@ import { defineConfig } from 'vitest/config';
 
 import packageJson from './package.json';
 
-const buildVersion = `${packageJson.version}-${new Date().toISOString()}`;
+const getBuildRevision = (): string => {
+  const githubSha = process.env.GITHUB_SHA?.trim();
+  if (githubSha) return githubSha.slice(0, 12);
+
+  try {
+    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], {
+      encoding: 'utf8',
+    }).trim();
+  } catch {
+    return 'local';
+  }
+};
+
+const buildVersion = `${packageJson.version}-${getBuildRevision()}`;
 const buildId = buildVersion.replace(/[^a-zA-Z0-9_-]/g, '-');
 const serviceWorkerFileName = `sw-${buildId}.js`;
 const serviceWorkerUrl = `/${serviceWorkerFileName}`;
@@ -137,22 +151,6 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'magic-box-local-ai-runtime-v2',
                 cacheableResponse: { statuses: [200] },
-              },
-            },
-            {
-              urlPattern:
-                /^https:\/\/mb\.10oz\.tw\/(?!version\.json(?:$|\?)).*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                networkTimeoutSeconds: 10,
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24, // 24 hours
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
               },
             },
           ],

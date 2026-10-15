@@ -1,5 +1,5 @@
 import Snackbar from '@mui/material/Snackbar';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useLocale } from '../../contexts/LocaleContext';
 import { buildVersion, serviceWorkerUrl } from '../../global/buildInfo';
@@ -7,6 +7,7 @@ import { buildVersion, serviceWorkerUrl } from '../../global/buildInfo';
 import './styles.css';
 
 const checkIntervalMs = 60 * 60 * 1000;
+const updateTimeoutMs = 10 * 1000;
 
 interface VersionManifest {
   serviceWorker: string;
@@ -32,18 +33,68 @@ function hasScriptUrl(
   return worker !== null && worker.scriptURL === scriptUrl;
 }
 
-const PwaUpdatePrompt = (): React.JSX.Element | null => {
+const reloadWindow = (): void => window.location.reload();
+
+interface PwaUpdatePromptProps {
+  onReload?: () => void;
+}
+
+const PwaUpdatePrompt = ({
+  onReload = reloadWindow,
+}: PwaUpdatePromptProps): React.JSX.Element | null => {
   const { t } = useLocale();
   const [availableUpdate, setAvailableUpdate] =
     useState<VersionManifest | null>(null);
   const [open, setOpen] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  const [updateStalled, setUpdateStalled] = useState(false);
   const dismissedVersion = useRef<string | null>(null);
   const controlledAtMount = useRef(false);
+  const upgradingRef = useRef(false);
+  const mountedRef = useRef(false);
+  const reloadStartedRef = useRef(false);
+  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activationListenerRef = useRef<{
+    worker: ServiceWorker;
+    listener: () => void;
+  } | null>(null);
+
+  const removeActivationListener = useCallback((): void => {
+    const activationListener = activationListenerRef.current;
+    if (activationListener) {
+      activationListener.worker.removeEventListener(
+        'statechange',
+        activationListener.listener,
+      );
+      activationListenerRef.current = null;
+    }
+  }, []);
+
+  const stopUpdateAttempt = useCallback(
+    (stalled: boolean): void => {
+      if (updateTimeoutRef.current !== null) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+      removeActivationListener();
+      upgradingRef.current = false;
+      setUpgrading(false);
+      if (stalled) setUpdateStalled(true);
+    },
+    [removeActivationListener],
+  );
+
+  const reloadPage = useCallback((): void => {
+    if (reloadStartedRef.current) return;
+    reloadStartedRef.current = true;
+    stopUpdateAttempt(false);
+    onReload();
+  }, [onReload, stopUpdateAttempt]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
+    mountedRef.current = true;
     let disposed = false;
     let checking = false;
     let checkAgain = false;
@@ -89,8 +140,8 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
       if (document.visibilityState === 'visible') void checkForUpdate();
     };
     const reloadControlledClient = (): void => {
-      if (controlledAtMount.current) {
-        window.location.reload();
+      if (controlledAtMount.current || upgradingRef.current) {
+        reloadPage();
       } else {
         controlledAtMount.current = true;
       }
@@ -112,7 +163,14 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
 
     return () => {
       disposed = true;
+      mountedRef.current = false;
       clearInterval(updateIntervalId);
+      if (updateTimeoutRef.current !== null) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
+      }
+      removeActivationListener();
+      upgradingRef.current = false;
       document.removeEventListener('visibilitychange', checkWhenVisible);
       window.removeEventListener('online', checkForUpdate);
       serviceWorker.removeEventListener(
@@ -120,11 +178,22 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
         reloadControlledClient,
       );
     };
-  }, []);
+  }, [reloadPage, removeActivationListener]);
 
   const handleRefresh = async (): Promise<void> => {
-    if (!availableUpdate || !('serviceWorker' in navigator)) return;
+    if (
+      !availableUpdate ||
+      !('serviceWorker' in navigator) ||
+      upgradingRef.current
+    ) {
+      return;
+    }
+    upgradingRef.current = true;
     setUpgrading(true);
+    setUpdateStalled(false);
+    updateTimeoutRef.current = setTimeout(() => {
+      stopUpdateAttempt(true);
+    }, updateTimeoutMs);
 
     try {
       const targetUrl = new URL(
@@ -135,43 +204,59 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
         scope: '/',
         updateViaCache: 'none',
       });
+      if (!mountedRef.current) return;
 
       if (hasScriptUrl(registration.waiting, targetUrl)) {
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        const waitingWorker = registration.waiting;
+        const handleStateChange = (): void => {
+          if (waitingWorker.state === 'activated') {
+            if (navigator.serviceWorker.controller === null) reloadPage();
+          } else if (waitingWorker.state === 'redundant') {
+            stopUpdateAttempt(true);
+          }
+        };
+        waitingWorker.addEventListener('statechange', handleStateChange);
+        activationListenerRef.current = {
+          worker: waitingWorker,
+          listener: handleStateChange,
+        };
+        handleStateChange();
+        if (upgradingRef.current) {
+          waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
         return;
       }
 
       const installingWorker = registration.installing;
       if (!hasScriptUrl(installingWorker, targetUrl)) {
         if (hasScriptUrl(registration.active, targetUrl)) {
-          window.location.reload();
+          reloadPage();
           return;
         }
-        setUpgrading(false);
+        stopUpdateAttempt(true);
         return;
       }
 
       const handleStateChange = (): void => {
-        if (installingWorker.state === 'installed') {
-          installingWorker.removeEventListener(
-            'statechange',
-            handleStateChange,
-          );
+        if (installingWorker.state === 'activated') {
+          if (navigator.serviceWorker.controller === null) reloadPage();
+        } else if (installingWorker.state === 'installed') {
           const waitingWorker = registration.waiting;
           if (hasScriptUrl(waitingWorker, targetUrl)) {
             waitingWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         } else if (installingWorker.state === 'redundant') {
-          installingWorker.removeEventListener(
-            'statechange',
-            handleStateChange,
-          );
-          setUpgrading(false);
+          stopUpdateAttempt(true);
         }
       };
       installingWorker.addEventListener('statechange', handleStateChange);
+      activationListenerRef.current = {
+        worker: installingWorker,
+        listener: handleStateChange,
+      };
+      handleStateChange();
     } catch {
-      setUpgrading(false);
+      if (mountedRef.current) stopUpdateAttempt(true);
     }
   };
 
@@ -195,7 +280,9 @@ const PwaUpdatePrompt = (): React.JSX.Element | null => {
       <div className="pwa-update-prompt">
         <div className="pwa-update-copy" role="status">
           <p className="pwa-update-title">{t('pwa.newVersion')}</p>
-          <p className="pwa-update-hint">{t('pwa.refreshHint')}</p>
+          <p className="pwa-update-hint">
+            {t(updateStalled ? 'pwa.updateStalled' : 'pwa.refreshHint')}
+          </p>
         </div>
         <button
           className="pwa-update-button pwa-update-button-primary"
