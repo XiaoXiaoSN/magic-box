@@ -1,7 +1,7 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
-
+import type { SharedUnitDefinition } from './UnitConversionData';
 import {
   formatConversionValue,
   POWER_UNIT_DEFINITIONS,
@@ -36,13 +36,6 @@ interface UnitDef {
   toBase?: (val: number) => number;
   fromBase?: (val: number) => number;
 }
-
-const POWER_RATIOS = new Map(
-  POWER_UNIT_DEFINITIONS.map(({ symbol, factor }) => [symbol, factor]),
-);
-const SPEED_RATIOS = new Map(
-  SPEED_UNIT_DEFINITIONS.map(({ symbol, factor }) => [symbol, factor]),
-);
 
 const UNITS: Record<string, UnitDef> = {
   // Length (base: m)
@@ -312,56 +305,6 @@ const UNITS: Record<string, UnitDef> = {
     fromBase: (v) => v + 273.15,
   },
 
-  // Speed (base: m/s)
-  'm/s': {
-    category: 'speed',
-    symbol: 'm/s',
-    name: 'Meters per second',
-    ratio: SPEED_RATIOS.get('m/s') ?? 1,
-  },
-  'km/h': {
-    category: 'speed',
-    symbol: 'km/h',
-    name: 'Kilometers per hour',
-    ratio: SPEED_RATIOS.get('km/h') ?? 1,
-  },
-  kmh: {
-    category: 'speed',
-    symbol: 'km/h',
-    name: 'Kilometers per hour',
-    ratio: SPEED_RATIOS.get('km/h') ?? 1,
-  },
-  kph: {
-    category: 'speed',
-    symbol: 'km/h',
-    name: 'Kilometers per hour',
-    ratio: SPEED_RATIOS.get('km/h') ?? 1,
-  },
-  mph: {
-    category: 'speed',
-    symbol: 'mph',
-    name: 'Miles per hour',
-    ratio: SPEED_RATIOS.get('mph') ?? 1,
-  },
-  kn: {
-    category: 'speed',
-    symbol: 'kn',
-    name: 'Knots',
-    ratio: SPEED_RATIOS.get('knot') ?? 1,
-  },
-  knot: {
-    category: 'speed',
-    symbol: 'kn',
-    name: 'Knots',
-    ratio: SPEED_RATIOS.get('knot') ?? 1,
-  },
-  knots: {
-    category: 'speed',
-    symbol: 'kn',
-    name: 'Knots',
-    ratio: SPEED_RATIOS.get('knot') ?? 1,
-  },
-
   // Pressure (base: Pa)
   pa: { category: 'pressure', symbol: 'Pa', name: 'Pascals', ratio: 1 },
   Pa: { category: 'pressure', symbol: 'Pa', name: 'Pascals', ratio: 1 },
@@ -431,50 +374,6 @@ const UNITS: Record<string, UnitDef> = {
     symbol: 'mbar',
     name: 'Millibars',
     ratio: 100,
-  },
-
-  // Power (base: W)
-  w: {
-    category: 'power',
-    symbol: 'W',
-    name: 'Watts',
-    ratio: POWER_RATIOS.get('W') ?? 1,
-  },
-  W: {
-    category: 'power',
-    symbol: 'W',
-    name: 'Watts',
-    ratio: POWER_RATIOS.get('W') ?? 1,
-  },
-  kw: {
-    category: 'power',
-    symbol: 'kW',
-    name: 'Kilowatts',
-    ratio: POWER_RATIOS.get('kW') ?? 1,
-  },
-  kW: {
-    category: 'power',
-    symbol: 'kW',
-    name: 'Kilowatts',
-    ratio: POWER_RATIOS.get('kW') ?? 1,
-  },
-  mW: {
-    category: 'power',
-    symbol: 'mW',
-    name: 'Milliwatts',
-    ratio: POWER_RATIOS.get('mW') ?? 1,
-  },
-  MW: {
-    category: 'power',
-    symbol: 'MW',
-    name: 'Megawatts',
-    ratio: POWER_RATIOS.get('MW') ?? 1,
-  },
-  hp: {
-    category: 'power',
-    symbol: 'hp',
-    name: 'Horsepower',
-    ratio: POWER_RATIOS.get('hp') ?? 1,
   },
 
   // Energy (base: J)
@@ -623,6 +522,25 @@ const UNITS: Record<string, UnitDef> = {
   days: { category: 'duration', symbol: 'd', name: 'Days', ratio: 86400 },
 };
 
+function addSharedUnits(
+  definitions: readonly SharedUnitDefinition[],
+  category: 'power' | 'speed',
+): void {
+  for (const definition of definitions) {
+    const unit: UnitDef = {
+      category,
+      symbol: definition.symbol,
+      name: definition.name,
+      ratio: definition.factor,
+    };
+    UNITS[definition.symbol] = unit;
+    for (const alias of definition.aliases) UNITS[alias] = unit;
+  }
+}
+
+addSharedUnits(POWER_UNIT_DEFINITIONS, 'power');
+addSharedUnits(SPEED_UNIT_DEFINITIONS, 'speed');
+
 const FOLDED_UNITS = new Map<string, UnitDef | null>();
 for (const [key, definition] of Object.entries(UNITS)) {
   const foldedKey = key.toLowerCase();
@@ -651,9 +569,9 @@ const CATEGORY_DISPLAY_UNITS: Record<UnitCategory, string[]> = {
   volume: ['m3', 'l', 'ml', 'gal', 'qt', 'floz'],
   mass: ['t', 'kg', 'g', 'mg', 'lb', 'oz'],
   temperature: ['c', 'f', 'k'],
-  speed: ['km/h', 'm/s', 'mph', 'kn'],
+  speed: ['km/h', 'm/s', 'mph', 'kn', 'ft/s'],
   pressure: ['bar', 'MPa', 'kPa', 'mPa', 'pa', 'psi', 'atm', 'mmHg', 'mbar'],
-  power: ['kW', 'W', 'mW', 'MW', 'hp'],
+  power: ['kW', 'W', 'mW', 'MW', 'hp', 'PS', 'BTU/h'],
   energy: ['kwh', 'j', 'kj', 'kcal', 'wh'],
   datasize: ['TB', 'GB', 'MB', 'KB', 'B', 'Tb', 'Gb', 'Mb', 'Kb', 'b'],
   datarate: ['gbps', 'mbps', 'kbps', 'bps'],
@@ -705,6 +623,18 @@ function requiresUnitSeparator(unit: string): boolean {
   return unit.length === 1 && /^[a-zA-Z]$/.test(unit);
 }
 
+function isBelowAbsoluteZero(value: number, definition: UnitDef): boolean {
+  if (definition.category !== 'temperature') return false;
+
+  const minimum =
+    definition.symbol === 'K'
+      ? 0
+      : definition.symbol === '°F'
+        ? -459.67
+        : -273.15;
+  return value < minimum;
+}
+
 export const UnitConverterBoxSource = {
   defaultDisabled: false,
   name: 'Unit Converter',
@@ -742,12 +672,7 @@ export const UnitConverterBoxSource = {
     const srcDef = resolveUnit(srcUnitRaw);
     if (!srcDef) return [];
 
-    if (
-      srcDef.category === 'temperature' &&
-      (srcDef.toBase ? srcDef.toBase(numVal) : numVal) < -273.15
-    ) {
-      return [];
-    }
+    if (isBelowAbsoluteZero(numVal, srcDef)) return [];
 
     const category = srcDef.category;
     const categoryUnits = CATEGORY_DISPLAY_UNITS[category];

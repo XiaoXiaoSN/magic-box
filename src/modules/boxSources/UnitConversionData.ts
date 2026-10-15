@@ -1,5 +1,6 @@
 export interface SharedUnitDefinition {
   readonly symbol: string;
+  readonly outputSymbol?: string;
   readonly name: string;
   readonly factor: number;
   readonly aliases: readonly string[];
@@ -45,10 +46,11 @@ export const SPEED_UNIT_DEFINITIONS: readonly SharedUnitDefinition[] = [
     aliases: [],
   },
   {
-    symbol: 'knot',
+    symbol: 'kn',
+    outputSymbol: 'knot',
     name: 'Knots',
     factor: 1852 / 3600,
-    aliases: ['kn', 'knots'],
+    aliases: ['knot', 'knots'],
   },
   { symbol: 'ft/s', name: 'Feet per second', factor: 0.3048, aliases: ['fps'] },
 ];

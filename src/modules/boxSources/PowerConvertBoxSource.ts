@@ -14,9 +14,9 @@ import {
 const Priority = 10;
 
 const UNIT_LOOKUP = createUnitLookup(POWER_UNIT_DEFINITIONS);
-const SUPPORTED_UNITS = POWER_UNIT_DEFINITIONS.map(({ symbol }) => symbol).join(
-  ', ',
-);
+const SUPPORTED_UNITS = POWER_UNIT_DEFINITIONS.map(
+  ({ outputSymbol, symbol }) => outputSymbol ?? symbol,
+).join(', ');
 
 // builds a plaintext "key: value" block suitable for headless rendering
 function kvToPlaintext(pairs: Record<string, string>): string {
@@ -103,7 +103,9 @@ export const PowerConvertBoxSource = {
     };
 
     for (const output of POWER_UNIT_DEFINITIONS) {
-      kvPairs[output.symbol] = formatConversionValue(watts / output.factor);
+      kvPairs[output.outputSymbol ?? output.symbol] = formatConversionValue(
+        watts / output.factor,
+      );
     }
 
     const plaintext = kvToPlaintext(kvPairs);

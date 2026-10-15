@@ -21,9 +21,9 @@ function kvToPlaintext(kv: Record<string, string>): string {
 }
 
 const UNIT_LOOKUP = createUnitLookup(SPEED_UNIT_DEFINITIONS);
-const SUPPORTED_UNITS = SPEED_UNIT_DEFINITIONS.map(({ symbol }) => symbol).join(
-  ', ',
-);
+const SUPPORTED_UNITS = SPEED_UNIT_DEFINITIONS.map(
+  ({ outputSymbol, symbol }) => outputSymbol ?? symbol,
+).join(', ');
 const PARSE_RE = new RegExp(
   `^(${STRICT_NUMBER_TOKEN})\\s*([a-zA-Z]+(?:/[a-zA-Z]+)?)$`,
   'i',
@@ -101,7 +101,9 @@ export const SpeedConvertBoxSource = {
       Input: trimmed,
     };
     for (const output of SPEED_UNIT_DEFINITIONS) {
-      kvOutput[output.symbol] = formatConversionValue(ms / output.factor);
+      kvOutput[output.outputSymbol ?? output.symbol] = formatConversionValue(
+        ms / output.factor,
+      );
     }
 
     return [

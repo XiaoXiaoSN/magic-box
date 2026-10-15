@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import { PowerConvertBoxSource } from '../PowerConvertBoxSource';
+import { SpeedConvertBoxSource } from '../SpeedConvertBoxSource';
+import {
+  POWER_UNIT_DEFINITIONS,
+  SPEED_UNIT_DEFINITIONS,
+} from '../UnitConversionData';
 import { UnitConverterBoxSource } from '../UnitConverterBoxSource';
 
 describe('UnitConverterBoxSource', () => {
@@ -164,6 +170,38 @@ describe('UnitConverterBoxSource', () => {
     });
   });
 
+  it('keeps every shared power and speed unit available in both entrypoints', async () => {
+    for (const definition of POWER_UNIT_DEFINITIONS) {
+      for (const raw of [definition.symbol, ...definition.aliases]) {
+        const unitBoxes = await UnitConverterBoxSource.generateBoxes(
+          `1 ${raw}`,
+          { unit: true },
+        );
+        const dedicatedBoxes = await PowerConvertBoxSource.generateBoxes(
+          `1 ${raw}`,
+          { power: true },
+        );
+        expect(unitBoxes, `unit converter: ${raw}`).toHaveLength(1);
+        expect(dedicatedBoxes, `power converter: ${raw}`).toHaveLength(1);
+      }
+    }
+
+    for (const definition of SPEED_UNIT_DEFINITIONS) {
+      for (const raw of [definition.symbol, ...definition.aliases]) {
+        const unitBoxes = await UnitConverterBoxSource.generateBoxes(
+          `1 ${raw}`,
+          { unit: true },
+        );
+        const dedicatedBoxes = await SpeedConvertBoxSource.generateBoxes(
+          `1 ${raw}`,
+          { speed: true },
+        );
+        expect(unitBoxes, `unit converter: ${raw}`).toHaveLength(1);
+        expect(dedicatedBoxes, `speed converter: ${raw}`).toHaveLength(1);
+      }
+    }
+  });
+
   it('supports singular duration, mass, and speed aliases', async () => {
     for (const input of ['1 hour', '1 minute', '1 day', '5 pounds', '5 kmh']) {
       const boxes = await UnitConverterBoxSource.generateBoxes(input, null);
@@ -208,6 +246,18 @@ describe('UnitConverterBoxSource', () => {
   it('rejects temperatures below absolute zero', async () => {
     const boxes = await UnitConverterBoxSource.generateBoxes('-500 C', null);
     expect(boxes).toHaveLength(0);
+  });
+
+  it('checks Kelvin source bounds before converting to Celsius', async () => {
+    for (const input of ['-1e-20 K', '-1e-13 K']) {
+      const boxes = await UnitConverterBoxSource.generateBoxes(input, null);
+      expect(boxes, input).toHaveLength(0);
+    }
+
+    for (const input of ['0 K', '+0 K']) {
+      const boxes = await UnitConverterBoxSource.generateBoxes(input, null);
+      expect(boxes, input).toHaveLength(1);
+    }
   });
 
   it('reports an incompatible target and does not duplicate a requested target', async () => {
