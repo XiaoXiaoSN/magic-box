@@ -372,6 +372,30 @@ fn unit_value_construction_and_conversion() {
 }
 
 #[test]
+fn unit_scaling_rejects_overflow_and_underflow() {
+    for input in [
+        "1e308 km",
+        r#"unit(1e308, "km")"#,
+        "5e-324 nm",
+        r#"unit(5e-324, "nm")"#,
+    ] {
+        assert!(
+            math_box::evaluate(input)
+                .unwrap_err()
+                .contains("numeric overflow"),
+            "{input} should overflow"
+        );
+    }
+
+    assert_eval("5e-324 m", "5e-324 m");
+    assert_eval(r#"unit(5e-324, "m")"#, "5e-324 m");
+    assert_eval("0 nm", "0 nm");
+    assert_eval(r#"unit(0, "nm")"#, "0 nm");
+    assert_eval("-273.15 degC", "-273.15 degC");
+    assert_eval("-273.15 degC to K", "0 K");
+}
+
+#[test]
 fn unit_arithmetic() {
     // adding units of compatible dimension keeps the lhs label
     assert_eval(r#"unit(1, "km") + unit(500, "m")"#, "1.5 km");

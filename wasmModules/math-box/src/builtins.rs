@@ -229,7 +229,11 @@ pub fn default_namespace() -> Namespace {
                 what: "unit() requires a string label as the second argument",
             })?;
             let spec = crate::units::parse_expression(label)?;
-            let base_value = value * spec.factor + spec.offset;
+            let scaled_value = value * spec.factor;
+            if value != 0.0 && (!scaled_value.is_finite() || scaled_value == 0.0) {
+                return Err(Error::Overflow);
+            }
+            let base_value = scaled_value + spec.offset;
             if spec.dim == crate::value::Dimension::TEMPERATURE && base_value < 0.0 {
                 return Err(Error::Domain {
                     what: "temperature below absolute zero",

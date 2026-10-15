@@ -761,7 +761,10 @@ impl UnitValue {
     }
 
     pub fn validate_display(&self) -> Result<()> {
-        if !self.display_factor.is_finite() || self.display_factor == 0.0 {
+        if !self.base_value.is_finite()
+            || !self.display_factor.is_finite()
+            || self.display_factor == 0.0
+        {
             return Err(Error::Overflow);
         }
         let value = self.display_value();
