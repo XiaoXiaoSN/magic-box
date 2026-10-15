@@ -9,5 +9,5 @@ export CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_STRIP=none
 
 for module_dir in "$root_dir"/wasmModules/*/; do
   [ -d "$module_dir" ] || continue
-  wasm-pack build --target web --release "$module_dir"
+  wasm-pack build --target web --release "$module_dir" -- --locked
 done

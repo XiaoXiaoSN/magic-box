@@ -83,6 +83,7 @@
     "test:ui": "vitest --ui",
     "test:e2e": "cypress run",
     "test:e2e:offline-math": "cypress run --config-file cypress.offline.config.ts",
+    "test:bundle-budget": "bun test scripts/check-bundle-budget.test.mjs",
     "cypress": "cypress open",
     "typecheck": "tsc --noEmit",
     "typecheck:cypress": "tsc -p cypress/tsconfig.json --noEmit",

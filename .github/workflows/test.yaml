@@ -48,7 +48,7 @@ jobs:
         run: bash scripts/build-wasm.sh
 
       - name: Package WASM artifacts
-        run: tar -czf wasm-modules.tar.gz -C wasmModules base64-box/pkg math-box/pkg
+        run: tar -czf wasm-modules.tar.gz wasmModules/base64-box/pkg wasmModules/math-box/pkg
 
       - name: Upload WASM artifacts
         id: upload
@@ -116,6 +116,9 @@ jobs:
       - name: Run unit tests
         run: bun run test --run
 
+      - name: Test bundle budget fixtures
+        run: bun run test:bundle-budget
+
   typecheck:
     name: typecheck
     needs: wasm-build
@@ -161,7 +164,7 @@ jobs:
         uses: ./.github/actions/setup-env
 
       - name: Run Biome checks
-        run: bunx --no-install biome ci src cypress -- *.config.ts scripts/check-bundle-budget.mjs
+        run: bunx --no-install biome ci src cypress -- *.config.ts scripts/check-bundle-budget.mjs scripts/check-bundle-budget.test.mjs
 
   codespell:
     name: codespell
@@ -176,7 +179,7 @@ jobs:
       - uses: codespell-project/codespell-problem-matcher@v1
 
       - name: Codespell
-        uses: codespell-project/actions-codespell@v2.1.0
+        uses: codespell-project/actions-codespell@e3258cca84ce02b0bb36a3d41f2c18f719a0cc1a # v2.4.3
         with:
           skip: "./public/images/*,./public/apple-touch-icon.png,./public/favicon.ico,./bun.lock,./wasmModules/math-box/src/*,./wasmModules/math-box/README.md,./wasmModules/math-box/pkg/*"
 
@@ -423,11 +426,13 @@ jobs:
           fi
           node scripts/check-bundle-budget.mjs --build-dir build --output bundle-budget-report.json "${baseline_arg[@]}"
 
-      - uses: actions/upload-artifact@v7
+      - name: Upload bundle budget report
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: bundle-budget-metrics
           path: bundle-budget-report.json
-          if-no-files-found: error
+          if-no-files-found: warn
 
   rust-tests:
     name: rust-tests

@@ -213,13 +213,23 @@ const report = {
 };
 
 await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+const metricLabels = {
+  htmlEntryGzipBytes: 'HTML entry JS/CSS gzip',
+  precacheEntries: 'Precache entries',
+  precacheBytes: 'Precache bytes',
+  jsFiles: 'JavaScript assets',
+};
 const summary = [
   '### Bundle budget',
   '',
-  `- HTML entry JS/CSS gzip: ${metrics.htmlEntryGzipBytes} bytes (budget ${config.budgets.htmlEntryGzipBytes})`,
-  `- Precache manifest: ${metrics.precacheEntries} entries, ${metrics.precacheBytes} bytes`,
-  `- JavaScript assets: ${metrics.jsFiles} files (budget ${config.budgets.jsFiles})`,
   `- Main artifact comparison: ${baseline.status}${baseline.reason ? ` (${baseline.reason})` : ''}`,
+  ...Object.entries(metricLabels).map(([name, label]) => {
+    const comparisonMetric = comparison?.[name];
+    const base = comparisonMetric?.baseline ?? 'unavailable';
+    const delta = comparisonMetric?.delta ?? 'unavailable';
+    const check = budgetChecks[name];
+    return `- ${label}: current ${metrics[name]}, base ${base}, delta ${delta}, limit ${check.maximum}, ${check.passed ? 'PASS' : 'FAIL'}`;
+  }),
   '',
   `Machine-readable report: ${outputPath}`,
   '',
