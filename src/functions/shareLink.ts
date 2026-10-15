@@ -1,3 +1,5 @@
+import { isPrivateInput } from './localAIPrivacy';
+
 export interface ShareLinkParams {
   box?: string;
   input?: string;
@@ -24,6 +26,10 @@ export const buildShareLink = ({
 }: ShareLinkParams & { origin?: string }): string => {
   const url = new URL(pathname, origin);
   setParamIfPresent(url.searchParams, 'box', box);
-  setParamIfPresent(url.searchParams, 'input', input);
+  setParamIfPresent(
+    url.searchParams,
+    'input',
+    input && !isPrivateInput(input) ? input : undefined,
+  );
   return url.toString();
 };

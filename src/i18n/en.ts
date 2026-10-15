@@ -155,6 +155,7 @@ const en = {
 
   'shareLink.copy': 'Copy share link',
   'shareLink.copied': 'Share link copied',
+  'shareLink.privateInput': 'Sharing is disabled for sensitive input',
 
   'pwa.newVersion': 'New version available.',
   'pwa.refreshHint': 'Refresh to update the app.',

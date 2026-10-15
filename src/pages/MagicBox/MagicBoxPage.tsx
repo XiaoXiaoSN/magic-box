@@ -2,7 +2,8 @@ import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
-  isLocalAIInput,
+  isPrivateInput,
+  isSensitiveOptionKey,
 } from '@functions/localAIPrivacy';
 import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
@@ -74,18 +75,31 @@ const MagicBoxPage = (): React.JSX.Element => {
     return () => window.clearTimeout(timeoutID);
   }, [userInput]);
 
-  // Record to search history when debounced input settles. A `::ai` input
-  // carries the model prompt, so it is never recorded: the panel's privacy
-  // promise has to survive the prompt being typed in the magic input rather
-  // than inside the box.
-  //
-  // Skipping the final input is not enough. The prompt is typed BEFORE the
-  // directive, and every pause longer than the debounce settles on a partial
-  // state — `my question`, `my question\n::`, `…::a` — each an ordinary
-  // input that was recorded. So when an `::ai` input settles, the entries this
-  // edit session created are withdrawn too, and the telemetry gate closes here
-  // rather than when the lazy panel chunk finally mounts.
+  const privateInput = useMemo(() => isPrivateInput(userInput), [userInput]);
+
+  // Revoke this edit session as soon as a private directive appears, before
+  // the debounced source run settles. This closes the window where a partial
+  // JWT key or local prompt could otherwise reach history.
   useEffect(() => {
+    if (!privateInput) return;
+    activateLocalAIPrivacy();
+    removeInputs(sessionAddedRef.current);
+    sessionAddedRef.current = [];
+  }, [privateInput, removeInputs]);
+
+  // Record to search history when debounced input settles. Private input
+  // carries a prompt or sensitive option, so it is never recorded: the
+  // privacy promise has to survive the directive being typed in the magic
+  // input rather than inside the box.
+  //
+  // Skipping the final input is not enough. A private value is typed BEFORE
+  // the directive, and every pause longer than the debounce settles on a
+  // partial state — `my question`, `my question\n::`, `…::a` — each an
+  // ordinary input that was recorded. So when a private input settles, the
+  // entries this edit session created are withdrawn too, and the telemetry
+  // gate closes here rather than when a lazy panel chunk mounts.
+  useEffect(() => {
+    if (magicIn !== userInput) return;
     const trimmed = magicIn.trim();
     if (!trimmed) {
       sessionAddedRef.current = [];
@@ -93,7 +107,7 @@ const MagicBoxPage = (): React.JSX.Element => {
     }
     if (trimmed === lastRecordedRef.current) return;
     lastRecordedRef.current = trimmed;
-    if (isLocalAIInput(trimmed)) {
+    if (isPrivateInput(trimmed)) {
       activateLocalAIPrivacy();
       removeInputs(sessionAddedRef.current);
       sessionAddedRef.current = [];
@@ -103,7 +117,7 @@ const MagicBoxPage = (): React.JSX.Element => {
       sessionAddedRef.current.push(trimmed);
     }
     addEntry(trimmed);
-  }, [magicIn, history, addEntry, removeInputs]);
+  }, [magicIn, userInput, history, addEntry, removeInputs]);
 
   const optionChips = useMemo(
     () => Object.entries(parseOptionsForChips(userInput)),
@@ -163,7 +177,7 @@ const MagicBoxPage = (): React.JSX.Element => {
                 {optionChips.map(([k, v]) => (
                   <span className="opt-chip" key={k}>
                     <span className="opt-k">{k}</span>
-                    {v !== true ? (
+                    {v !== true && !isSensitiveOptionKey(k) ? (
                       <>
                         <span className="opt-eq">=</span>
                         <span className="opt-v">{String(v)}</span>
@@ -175,6 +189,8 @@ const MagicBoxPage = (): React.JSX.Element => {
             ) : null}
             <ShareLinkButton
               data-testid="copy-share-link"
+              disabled={privateInput}
+              disabledLabel={t('shareLink.privateInput')}
               getShareLink={() =>
                 buildShareLink({ input: userInput, pathname: '/' })
               }

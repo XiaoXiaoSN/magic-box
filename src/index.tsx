@@ -7,7 +7,7 @@ import App from './App';
 import { loadPrefs } from './contexts/PreferencesContext';
 import {
   activateLocalAIPrivacy,
-  isLocalAIMode,
+  isPrivateInputMode,
   subscribeLocalAIPrivacy,
 } from './functions/localAIPrivacy';
 import {
@@ -18,9 +18,9 @@ import { closeSentry, startSentryWhenAllowed } from './functions/sentry';
 import './index.css';
 import { handleRootCaughtError } from './components/ErrorBoundary';
 
-// a shared `::ai` link mounts the local AI box on first paint, so close the
+// a shared private-input link can mount a box on first paint, so close the
 // telemetry gate before any SDK is constructed rather than after React mounts.
-if (isLocalAIMode(window.location.search)) activateLocalAIPrivacy();
+if (isPrivateInputMode(window.location.search)) activateLocalAIPrivacy();
 
 // seed runtime prefs and theme/density before first paint so plain modules
 // (box sources, telemetry gate) read user values and there is no theme flash.

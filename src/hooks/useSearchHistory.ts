@@ -1,3 +1,4 @@
+import { isPrivateInput } from '@functions/localAIPrivacy';
 import {
   readJsonResult,
   type StorageReadStatus,
@@ -31,6 +32,7 @@ const isHistoryItem = (value: unknown): value is HistoryItem => {
 interface LoadedHistory {
   items: HistoryItem[];
   status: StorageReadStatus;
+  removedPrivate: boolean;
 }
 
 function loadHistory(): LoadedHistory {
@@ -38,9 +40,13 @@ function loadHistory(): LoadedHistory {
     STORAGE_KEY,
     (value): value is unknown[] => Array.isArray(value),
   );
+  const validItems =
+    parsed.status === 'ok' ? parsed.value.filter(isHistoryItem) : [];
+  const items = validItems.filter((item) => !isPrivateInput(item.input));
   return {
-    items: parsed.status === 'ok' ? parsed.value.filter(isHistoryItem) : [],
+    items,
     status: parsed.status,
+    removedPrivate: validItems.length !== items.length,
   };
 }
 
@@ -103,6 +109,7 @@ const reduceHistory = (
       return {
         items: state.pending.reduce(applyHistoryOperation, action.loaded.items),
         status: action.loaded.status,
+        removedPrivate: false,
         dirty: true,
         pending: [],
       };
@@ -143,7 +150,14 @@ export function useSearchHistory(
   const [state, dispatch] = useReducer(
     reduceHistory,
     undefined,
-    (): HistoryState => ({ ...loadHistory(), dirty: false, pending: [] }),
+    (): HistoryState => {
+      const loaded = loadHistory();
+      return {
+        ...loaded,
+        dirty: loaded.removedPrivate,
+        pending: [],
+      };
+    },
   );
 
   useEffect(() => {
@@ -165,7 +179,7 @@ export function useSearchHistory(
   const addEntry = useCallback(
     (input: string) => {
       const trimmed = input.trim();
-      if (!trimmed) return;
+      if (!trimmed || isPrivateInput(trimmed)) return;
 
       dispatch({
         type: 'mutate',

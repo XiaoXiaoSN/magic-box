@@ -154,6 +154,7 @@ const zhTW: Translations = {
 
   'shareLink.copy': '複製分享連結',
   'shareLink.copied': '已複製分享連結',
+  'shareLink.privateInput': '敏感輸入無法分享',
 
   'pwa.newVersion': '有新版本可用。',
   'pwa.refreshHint': '重新整理以更新應用程式。',

@@ -1,5 +1,6 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
+import { isPrivateInput } from '@functions/localAIPrivacy';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
@@ -379,6 +380,8 @@ const PreviewPane = ({
         <span className="preview-hint">{t('toolsList.previewHint')}</span>
         <ShareLinkButton
           data-testid="copy-tool-share-link"
+          disabled={isPrivateInput(input)}
+          disabledLabel={t('shareLink.privateInput')}
           getShareLink={() =>
             buildShareLink({
               box: source.id ?? source.name,

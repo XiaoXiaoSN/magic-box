@@ -133,6 +133,11 @@ describe('MagicBox Page', () => {
         "sub": "1234567890",
         "name": "John Doe",
         "iat": 1516239022
+    },
+    "details": {
+        "Signature": "Unverified (decode only)",
+        "Issued At": "2018-01-18T09:30:22.000+08:00",
+        "Validity": "No validity window"
     }
 }`,
           },
