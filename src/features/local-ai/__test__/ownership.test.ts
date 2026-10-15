@@ -79,10 +79,27 @@ describe('LocalAIModelOwnership', () => {
     expect(await owner.acquire()).toBe('acquired');
     const lease = await deleter.acquireForDeletion();
     expect(lease).toBe(true);
+    expect(await deleter.acquire()).toBe('busy');
     expect(released).toHaveBeenCalledOnce();
     owner.dispose();
     deleter.release();
     deleter.dispose();
+  });
+
+  it('does not treat a deletion lease as a model lease', async () => {
+    vi.stubGlobal('navigator', { locks: createLocks() });
+    vi.stubGlobal(
+      'BroadcastChannel',
+      TestBroadcastChannel as unknown as typeof BroadcastChannel,
+    );
+    const ownership = new LocalAIModelOwnership();
+
+    expect(await ownership.acquireForDeletion()).toBe(true);
+    expect(await ownership.acquire()).toBe('busy');
+    ownership.release();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(await ownership.acquire()).toBe('acquired');
+    ownership.dispose();
   });
 
   it('returns immediately with a safe unsupported result when Web Locks are missing', async () => {

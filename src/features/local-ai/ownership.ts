@@ -20,6 +20,8 @@ export class LocalAIModelOwnership implements ModelOwnership {
   private readonly id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   private channel: BroadcastChannel | null = null;
   private releaseLock: (() => void) | null = null;
+  private leaseType: 'model' | 'deletion' | null = null;
+  private leaseId: symbol | null = null;
   private lockTask: Promise<void> | null = null;
   private requestSequence = 0;
   private releaseHandler = () => {};
@@ -29,7 +31,15 @@ export class LocalAIModelOwnership implements ModelOwnership {
   }
 
   async acquire(): Promise<OwnershipStatus> {
-    if (this.releaseLock) return 'acquired';
+    return this.requestLease('model');
+  }
+
+  private async requestLease(
+    type: 'model' | 'deletion',
+  ): Promise<OwnershipStatus> {
+    if (this.releaseLock) {
+      return this.leaseType === type ? 'acquired' : 'busy';
+    }
     this.openChannel();
     const locks =
       typeof navigator === 'undefined' ? undefined : navigator.locks;
@@ -43,6 +53,7 @@ export class LocalAIModelOwnership implements ModelOwnership {
     const held = new Promise<void>((resolve) => {
       unlock = resolve;
     });
+    const leaseId = Symbol(type);
     const task = locks
       .request(
         LOCK_NAME,
@@ -52,10 +63,16 @@ export class LocalAIModelOwnership implements ModelOwnership {
             resolveAcquired('busy');
             return;
           }
+          this.leaseId = leaseId;
+          this.leaseType = type;
           this.releaseLock = unlock;
           resolveAcquired('acquired');
           await held;
-          this.releaseLock = null;
+          if (this.leaseId === leaseId) {
+            this.releaseLock = null;
+            this.leaseType = null;
+            this.leaseId = null;
+          }
         },
       )
       .catch(() => resolveAcquired('unsupported'));
@@ -72,6 +89,8 @@ export class LocalAIModelOwnership implements ModelOwnership {
   release(): void {
     const unlock = this.releaseLock;
     this.releaseLock = null;
+    this.leaseType = null;
+    this.leaseId = null;
     unlock?.();
   }
 
@@ -88,7 +107,7 @@ export class LocalAIModelOwnership implements ModelOwnership {
 
     const deadline = Date.now() + DELETE_WAIT_MS;
     while (Date.now() < deadline) {
-      const status = await this.acquire();
+      const status = await this.requestLease('deletion');
       if (status === 'acquired') return true;
       if (status === 'unsupported') return false;
       await new Promise<void>((resolve) => setTimeout(resolve, 100));

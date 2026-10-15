@@ -65,6 +65,8 @@ export class LocalAIClient {
   // instead of throwing it away (see `requestRelease`).
   private releaseRequests = new Set<ReleaseReason>();
   private stopReason: 'user' | 'timeout' | null = null;
+  private deletionPending = false;
+  private deletionLeaseActive = false;
 
   constructor(
     private readonly createWorker: () => WorkerPort,
@@ -72,7 +74,6 @@ export class LocalAIClient {
   ) {
     ownership?.setReleaseHandler(() => {
       this.release();
-      this.forgetCache();
     });
   }
 
@@ -88,7 +89,14 @@ export class LocalAIClient {
   // Metadata only. Never requests weights, so it is safe to call before the
   // user has agreed to a download.
   inspect(): boolean {
-    if (isBusy(this.state.phase) || this.state.loaded) return false;
+    if (
+      this.deletionPending ||
+      this.deletionLeaseActive ||
+      isBusy(this.state.phase) ||
+      this.state.loaded
+    ) {
+      return false;
+    }
     return this.start(
       { type: 'inspect', id: ++this.nextId },
       'inspecting',
@@ -97,7 +105,13 @@ export class LocalAIClient {
   }
 
   prepare(options: { cacheOnly?: boolean } = {}): boolean {
-    if (isBusy(this.state.phase) || !this.state.info || this.state.loaded) {
+    if (
+      this.deletionPending ||
+      this.deletionLeaseActive ||
+      isBusy(this.state.phase) ||
+      !this.state.info ||
+      this.state.loaded
+    ) {
       return false;
     }
     const cacheOnly = options.cacheOnly ?? this.state.info.cached;
@@ -110,7 +124,14 @@ export class LocalAIClient {
   }
 
   generate(request: AIRequest): boolean {
-    if (isBusy(this.state.phase) || !this.state.loaded) return false;
+    if (
+      this.deletionPending ||
+      this.deletionLeaseActive ||
+      isBusy(this.state.phase) ||
+      !this.state.loaded
+    ) {
+      return false;
+    }
     // Snapshot the request: editing the draft mid-generation must not change
     // what was actually submitted, or what the result is attributed to.
     const snapshot = { ...request };
@@ -125,7 +146,14 @@ export class LocalAIClient {
   }
 
   count(request: AIRequest): boolean {
-    if (!this.state.loaded || !this.worker) return false;
+    if (
+      this.deletionPending ||
+      this.deletionLeaseActive ||
+      !this.state.loaded ||
+      !this.worker
+    ) {
+      return false;
+    }
     const snapshot = { ...request };
     const id = ++this.nextId;
     this.latestCountId = id;
@@ -145,11 +173,23 @@ export class LocalAIClient {
   }
 
   async acquireDeletionLease(): Promise<(() => void) | null> {
+    if (this.deletionPending || this.deletionLeaseActive) return null;
+    this.deletionPending = true;
     this.release();
-    this.forgetCache();
-    if (!this.ownership) return () => {};
-    if (!(await this.ownership.acquireForDeletion())) return null;
-    return () => this.ownership?.release();
+    if (this.ownership && !(await this.ownership.acquireForDeletion())) {
+      this.deletionPending = false;
+      this.emit();
+      return null;
+    }
+    this.deletionPending = false;
+    this.deletionLeaseActive = true;
+    this.emit();
+    return () => {
+      if (!this.deletionLeaseActive) return;
+      this.deletionLeaseActive = false;
+      this.ownership?.release();
+      this.emit();
+    };
   }
 
   stop(): void {
@@ -358,7 +398,7 @@ export class LocalAIClient {
       this.update({
         phase: timedOut ? 'error' : wasStopping ? 'stopped' : 'complete',
         error: timedOut ? 'timeout' : null,
-        metrics: event.metrics,
+        metrics: timedOut || wasStopping ? null : event.metrics,
       });
     } else {
       const timedOut = this.stopReason === 'timeout';
@@ -401,7 +441,7 @@ export class LocalAIClient {
   private terminate(): void {
     this.clearTimer();
     this.activeId = null;
-    this.ownership?.release();
+    if (!this.deletionLeaseActive) this.ownership?.release();
     const worker = this.worker;
     this.worker = null;
     if (worker) {
@@ -446,6 +486,10 @@ export class LocalAIClient {
     if (this.state.info?.cached) {
       this.update({ info: { ...this.state.info, cached: false } });
     }
+  }
+
+  cacheDeleted(): void {
+    this.forgetCache();
   }
 
   private emit(): void {

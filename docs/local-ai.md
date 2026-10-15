@@ -266,13 +266,19 @@ current text.
 
 | What | Value | Why |
 | --- | --- | --- |
-| Runtime | `@huggingface/transformers@4.3.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. Loaded with a dynamic `import()` inside the worker, so no npm or lockfile dependency is added. |
+| Runtime | `@huggingface/transformers@4.3.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. The worker imports the module from a Blob made from CacheStorage; an ordinary check can fetch and save it, while a cache-only reload requires the saved response. No npm dependency is added. |
 | Model | `onnx-community/Qwen2.5-0.5B-Instruct`, revision `cc5cc01a…`, dtype `q4f16` | 467.3 MiB, Apache-2.0, fits a phone GPU. |
 | Prompt budget | 1,024 tokens in the complete rendered chat template; 6,000 characters is a separate transport safety cap | The loaded tokenizer counts the current task, language and prompt after a short debounce. Before it is available the count is unknown. The worker checks the final rendered prompt again and rejects it rather than truncating. |
 | Output budget | 256 new tokens, `do_sample: false`, explicit `repetition_penalty: 1`, `no_repeat_ngram_size: 0`, and `logits_processor: [createRepetitionGuard(promptLength)]` | The pinned generation config enables sampling and a built-in 1.1 repetition penalty, so runtime options explicitly override both defaults. `repetition.ts` applies a 1.1 penalty only to generated token IDs and bans a token only when a contiguous one-to-four-token sequence is repeating. Pinned tokenizer fixtures cover repeated CJK entities, URL prefixes, similar code loops and a sustained single-token loop. These are decoding contract tests, not a claim of measured answer-quality improvement. |
 
-`loadRuntime` asserts `env.version === '4.3.0'` so an unexpected CDN payload
-becomes a load error instead of a half-initialized engine.
+`loadRuntime` asserts `env.version === '4.3.0'` so an unexpected runtime payload
+becomes a load error instead of a half-initialized engine. Cache-only reloads
+read the runtime module and both pinned ONNX Runtime assets directly from
+CacheStorage, without requiring a controlling service worker. Before session
+creation, the worker gives ONNX Runtime the cached WASM bytes and factory Blob,
+disables its network-capable WASM cache fallback, and replaces the library
+fetcher with a cache-only adapter. If an entry has been evicted, reload stops
+with a load error; an explicit setup action can use the normal download path.
 
 ### Caches
 

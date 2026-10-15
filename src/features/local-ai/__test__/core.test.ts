@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkCapabilities } from '../capabilities';
 import { LocalAIClient, type WorkerPort } from '../client';
 import { MAX_PROMPT_TOKENS, MAX_TRANSPORT_INPUT_CHARS } from '../modelCatalog';
+import type { ModelOwnership } from '../ownership';
 import { describePhase, describeSetupStep } from '../setupStep';
 import { buildMessages, checkTokenBudget } from '../tasks';
 import type {
@@ -68,13 +69,16 @@ class FakeWorker implements WorkerPort {
 
 const clients: LocalAIClient[] = [];
 
-const setupClient = (ready = false) => {
+const setupClient = (
+  ready = false,
+  ownership: ModelOwnership | null = null,
+) => {
   const workers: FakeWorker[] = [];
   const client = new LocalAIClient(() => {
     const worker = new FakeWorker();
     workers.push(worker);
     return worker;
-  });
+  }, ownership);
   clients.push(client);
   if (ready) {
     client.inspect();
@@ -190,8 +194,86 @@ describe('local AI client ownership', () => {
     client.generate(request());
     workers[0].reply({ type: 'delta', text: 'partial' });
     client.stop();
-    workers[0].reply({ type: 'complete' });
-    expect(client.getSnapshot().phase).toBe('stopped');
+    workers[0].reply({
+      type: 'complete',
+      metrics: {
+        outputTokens: 50,
+        tokensPerSecond: 12,
+        timeToFirstTokenMs: 100,
+      },
+    });
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'stopped',
+      output: 'partial',
+      metrics: null,
+    });
+  });
+
+  it('blocks a remounted surface until the deletion lease is released', async () => {
+    const { client } = setupClient(true);
+    const lease = await client.acquireDeletionLease();
+    expect(lease).toEqual(expect.any(Function));
+    expect(client.getSnapshot().info?.cached).toBe(true);
+    expect(client.prepare()).toBe(false);
+    expect(client.generate(request())).toBe(false);
+    expect(client.count(request())).toBe(false);
+
+    client.cacheDeleted();
+    expect(client.getSnapshot().info?.cached).toBe(false);
+    lease?.();
+    expect(client.prepare()).toBe(true);
+  });
+
+  it('blocks operations while a deletion lease is pending', async () => {
+    let grantLease: (granted: boolean) => void = () => {};
+    const leasePending = new Promise<boolean>((resolve) => {
+      grantLease = resolve;
+    });
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      acquire: vi.fn(async () => 'acquired' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(() => leasePending),
+      dispose: vi.fn(),
+    };
+    const { client } = setupClient(true, ownership);
+
+    const cacheStatus = client.getSnapshot().info;
+    const acquiring = client.acquireDeletionLease();
+    expect(client.getSnapshot().info).toEqual(cacheStatus);
+    expect(client.prepare()).toBe(false);
+    expect(client.generate(request())).toBe(false);
+    expect(client.count(request())).toBe(false);
+    grantLease(true);
+    const lease = await acquiring;
+    expect(client.prepare()).toBe(false);
+    lease?.();
+    expect(client.prepare()).toBe(true);
+  });
+
+  it('preserves verified cache status when the deletion lease is denied', async () => {
+    const workers: FakeWorker[] = [];
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      acquire: vi.fn(async () => 'acquired' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(async () => false),
+      dispose: vi.fn(),
+    };
+    const client = new LocalAIClient(() => {
+      const worker = new FakeWorker();
+      workers.push(worker);
+      return worker;
+    }, ownership);
+    clients.push(client);
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: true },
+    });
+
+    await expect(client.acquireDeletionLease()).resolves.toBeNull();
+    expect(client.getSnapshot().info).toEqual({ bytes: 500, cached: true });
   });
 
   it('terminates an unresponsive generation after the cancel deadline', () => {
@@ -273,11 +355,19 @@ describe('local AI client ownership', () => {
     const { client, workers } = setupClient(true);
     client.generate(request());
     vi.advanceTimersByTime(300_000);
-    workers[0].reply({ type: 'complete' });
+    workers[0].reply({
+      type: 'complete',
+      metrics: {
+        outputTokens: 50,
+        tokensPerSecond: 12,
+        timeToFirstTokenMs: 100,
+      },
+    });
 
     expect(client.getSnapshot()).toMatchObject({
       phase: 'error',
       error: 'timeout',
+      metrics: null,
     });
   });
 

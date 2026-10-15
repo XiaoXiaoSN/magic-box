@@ -13,12 +13,19 @@ interface Options {
   modelError: Error | null;
   generate: ((config: Record<string, unknown>) => Promise<void>) | null;
   cacheResults: boolean[];
+  ortCacheResults: boolean[];
+  cacheOnlyConfigError: Error | null;
 }
 
 const setupEngine = () => {
   const events: AIEvent[] = [];
   const calls = {
     load: 0,
+    loadCacheOnly: [] as boolean[],
+    runtimeCacheChecks: 0,
+    ortCacheChecks: 0,
+    cacheOnlyConfigs: 0,
+    networkConfigs: 0,
     check: 0,
     tokenizer: 0,
     model: 0,
@@ -35,6 +42,8 @@ const setupEngine = () => {
     modelError: null,
     generate: null,
     cacheResults: [],
+    ortCacheResults: [],
+    cacheOnlyConfigError: null,
   };
   const stoppingCriteria: { interrupted: boolean }[] = [];
 
@@ -142,8 +151,9 @@ const setupEngine = () => {
     async () => {
       calls.check++;
     },
-    async () => {
+    async (cacheOnly = false) => {
       calls.load++;
+      calls.loadCacheOnly.push(cacheOnly);
       return runtime;
     },
     async () => {
@@ -152,6 +162,23 @@ const setupEngine = () => {
       if (options.cacheResults.length)
         return options.cacheResults.shift() ?? false;
       return options.cached;
+    },
+    async () => {
+      calls.runtimeCacheChecks++;
+      return true;
+    },
+    async () => {
+      calls.ortCacheChecks++;
+      if (options.ortCacheResults.length)
+        return options.ortCacheResults.shift() ?? false;
+      return true;
+    },
+    async () => {
+      calls.cacheOnlyConfigs++;
+      if (options.cacheOnlyConfigError) throw options.cacheOnlyConfigError;
+    },
+    () => {
+      calls.networkConfigs++;
     },
   );
   return { engine, events, calls, options, stoppingCriteria };
@@ -224,6 +251,92 @@ describe('local AI engine', () => {
       cached: false,
     });
     expect(setup.calls.localFilesOnly).toEqual([true, true]);
+  });
+
+  it('reuses an already-loaded runtime for a cache-only session', async () => {
+    const setup = setupEngine();
+    setup.options.cached = true;
+    await setup.engine.handle({ type: 'inspect', id: 1 });
+    await setup.engine.handle({ type: 'prepare', id: 2, cacheOnly: true });
+
+    expect(setup.calls.load).toBe(1);
+    expect(setup.calls.loadCacheOnly).toEqual([false]);
+    expect(setup.calls.ortCacheChecks).toBe(1);
+    expect(setup.calls.cacheOnlyConfigs).toBe(1);
+    expect(setup.events.at(-1)).toEqual({
+      type: 'ready',
+      id: 2,
+      cached: true,
+    });
+  });
+
+  it('allows an explicit network prepare after cache-only runtime setup fails', async () => {
+    const setup = setupEngine();
+    setup.options.cached = true;
+    setup.options.cacheOnlyConfigError = new Error('cache setup failed');
+
+    await setup.engine.handle({ type: 'prepare', id: 3, cacheOnly: true });
+    expect(setup.events.at(-1)).toEqual({
+      type: 'error',
+      id: 3,
+      code: 'load',
+    });
+
+    setup.options.cacheOnlyConfigError = null;
+    await setup.engine.handle({ type: 'prepare', id: 4, cacheOnly: false });
+
+    expect(setup.calls.load).toBe(1);
+    expect(setup.calls.cacheOnlyConfigs).toBe(1);
+    expect(setup.calls.networkConfigs).toBe(1);
+    expect(setup.calls.localFilesOnly).toEqual([false, false]);
+    expect(setup.events.at(-1)).toEqual({
+      type: 'ready',
+      id: 4,
+      cached: true,
+    });
+  });
+
+  it('fails closed when cached model files disappear after a successful prepare', async () => {
+    const setup = setupEngine();
+    setup.options.cacheResults = [true, true, false];
+
+    await setup.engine.handle({ type: 'prepare', id: 5, cacheOnly: true });
+    setup.events.length = 0;
+    await setup.engine.handle({ type: 'prepare', id: 6, cacheOnly: true });
+
+    expect(setup.events).toEqual([
+      {
+        type: 'available',
+        id: 6,
+        info: { bytes: MODEL.downloadBytes, cached: false },
+      },
+    ]);
+    expect(setup.calls.tokenizer).toBe(1);
+    expect(setup.calls.model).toBe(1);
+    expect(setup.calls.cacheOnlyConfigs).toBe(1);
+    expect(setup.calls.networkConfigs).toBe(0);
+  });
+
+  it('fails closed when cached ORT files disappear after a successful prepare', async () => {
+    const setup = setupEngine();
+    setup.options.cached = true;
+    setup.options.ortCacheResults = [true, false];
+
+    await setup.engine.handle({ type: 'prepare', id: 7, cacheOnly: true });
+    setup.events.length = 0;
+    await setup.engine.handle({ type: 'prepare', id: 8, cacheOnly: true });
+
+    expect(setup.events).toEqual([
+      {
+        type: 'available',
+        id: 8,
+        info: { bytes: MODEL.downloadBytes, cached: false },
+      },
+    ]);
+    expect(setup.calls.tokenizer).toBe(1);
+    expect(setup.calls.model).toBe(1);
+    expect(setup.calls.cacheOnlyConfigs).toBe(1);
+    expect(setup.calls.networkConfigs).toBe(0);
   });
 
   it('maps an inspection failure to a sanitized error', async () => {

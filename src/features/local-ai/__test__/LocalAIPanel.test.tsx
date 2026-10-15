@@ -511,6 +511,37 @@ describe('LocalAIPanel', () => {
         Reflect.deleteProperty(document, 'hidden');
       }
     });
+
+    it('cleans up a hidden model after its last surface unmounts', () => {
+      vi.useFakeTimers();
+      const previousHidden = Object.getOwnPropertyDescriptor(
+        document,
+        'hidden',
+      );
+      const setHidden = (hidden: boolean) =>
+        Object.defineProperty(document, 'hidden', {
+          configurable: true,
+          value: hidden,
+        });
+      const workers = setup();
+      loadModel(workers);
+
+      setHidden(true);
+      fireEvent(document, new Event('visibilitychange'));
+      workers.unmount();
+      act(() => vi.advanceTimersByTime(30_000));
+      expect(workers[0].terminated).toBe(true);
+
+      setHidden(false);
+      fireEvent(document, new Event('visibilitychange'));
+      expect(workers).toHaveLength(1);
+
+      if (previousHidden) {
+        Object.defineProperty(document, 'hidden', previousHidden);
+      } else {
+        Reflect.deleteProperty(document, 'hidden');
+      }
+    });
   });
 
   describe('checking on open', () => {

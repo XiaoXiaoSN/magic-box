@@ -73,11 +73,15 @@ const onVisibilityChange = (): void => {
       if (entry.hiddenGrace !== null) clearTimeout(entry.hiddenGrace);
       entry.hiddenGrace = setTimeout(() => {
         entry.hiddenGrace = null;
-        if (!document.hidden) return;
+        if (!document.hidden) {
+          scheduleUnusedCleanup(entry);
+          return;
+        }
         if (entry.client.getSnapshot().phase === 'generating') {
           entry.client.stop();
         }
         entry.client.requestRelease('hidden');
+        scheduleUnusedCleanup(entry);
       }, UNUSED_GRACE_MS);
       continue;
     }
@@ -86,6 +90,7 @@ const onVisibilityChange = (): void => {
     entry.client.withdrawRelease('hidden');
     const state = entry.client.getSnapshot();
     if (
+      entry.surfaces > 0 &&
       entry.preparedCache &&
       !state.loaded &&
       !isBusy(state.phase) &&

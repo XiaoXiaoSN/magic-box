@@ -8,7 +8,14 @@ import type {
   Interruptor,
   RuntimeProgress,
   Tokenizer,
-  TransformersRuntime,
+} from './runtime';
+import {
+  areOrtAssetsCached,
+  configureRuntimeCacheOnly,
+  configureRuntimeForNetwork,
+  isRuntimeCacheComplete,
+  releaseRuntimeCacheOnlyAssets,
+  type TransformersRuntime,
 } from './runtime';
 import { buildMessages, checkTokenBudget } from './tasks';
 import type { AICommand, AIEvent, AIRequest } from './types';
@@ -32,8 +39,22 @@ export class LocalAIEngine {
   constructor(
     private readonly send: (event: AIEvent) => void,
     private readonly check: () => Promise<void>,
-    private readonly load: () => Promise<TransformersRuntime>,
+    private readonly load: (
+      cacheOnly?: boolean,
+    ) => Promise<TransformersRuntime>,
     private readonly inspectCache: () => Promise<boolean> = isModelCached,
+    private readonly inspectRuntimeCache: (
+      runtime: TransformersRuntime,
+    ) => Promise<boolean> = isRuntimeCacheComplete,
+    private readonly inspectOrtCache: (
+      runtime: TransformersRuntime,
+    ) => Promise<boolean> = areOrtAssetsCached,
+    private readonly prepareCacheOnlyRuntime: (
+      runtime: TransformersRuntime,
+    ) => Promise<void> = configureRuntimeCacheOnly,
+    private readonly prepareNetworkRuntime: (
+      runtime: TransformersRuntime,
+    ) => void = configureRuntimeForNetwork,
   ) {}
 
   async handle(command: AICommand): Promise<void> {
@@ -97,9 +118,32 @@ export class LocalAIEngine {
       });
       return;
     }
+    let runtime: TransformersRuntime | undefined;
+    if (cacheOnly) {
+      const runtimeWasLoaded = this.runtimePromise !== null;
+      runtime = await this.getRuntime(true);
+      if (!(await this.inspectOrtCache(runtime))) {
+        this.send({
+          type: 'available',
+          id,
+          info: { bytes: MODEL.downloadBytes, cached: false },
+        });
+        return;
+      }
+      if (!runtimeWasLoaded && !(await this.inspectRuntimeCache(runtime))) {
+        this.send({
+          type: 'available',
+          id,
+          info: { bytes: MODEL.downloadBytes, cached: false },
+        });
+        return;
+      }
+    }
     if (cached) this.send({ type: 'progress', id, progress: 100 });
-    await this.getSession(id, cacheOnly);
-    const verified = await this.inspectCache().catch(() => false);
+    await this.getSession(id, cacheOnly, runtime);
+    const verified = await this.isCompleteCache(
+      runtime ?? (await this.getRuntime()),
+    ).catch(() => false);
     await deleteStaleLocalAIDownloads().catch(() => undefined);
     this.send({ type: 'ready', id, cached: verified });
   }
@@ -133,82 +177,105 @@ export class LocalAIEngine {
   // Inspection therefore needs no Hugging Face Range metadata requests: it only
   // loads the small runtime, probes the local cache, and reports the pinned size.
   private async inspect() {
-    await this.getRuntime();
-    const cached = await this.inspectCache();
+    const runtime = await this.getRuntime();
+    const cached = await this.isCompleteCache(runtime);
     return { bytes: MODEL.downloadBytes, cached };
   }
 
-  private getRuntime(): Promise<TransformersRuntime> {
-    this.runtimePromise ??= this.load().catch((error) => {
+  private async isCompleteCache(
+    runtime: TransformersRuntime,
+  ): Promise<boolean> {
+    const [modelCached, runtimeCached] = await Promise.all([
+      this.inspectCache(),
+      this.inspectRuntimeCache(runtime),
+    ]);
+    return modelCached && runtimeCached;
+  }
+
+  private getRuntime(cacheOnly = false): Promise<TransformersRuntime> {
+    this.runtimePromise ??= this.load(cacheOnly).catch((error) => {
       this.runtimePromise = null;
       throw error;
     });
     return this.runtimePromise;
   }
 
-  private getSession(id: number, localFilesOnly: boolean): Promise<Session> {
+  private getSession(
+    id: number,
+    localFilesOnly: boolean,
+    loadedRuntime?: TransformersRuntime,
+  ): Promise<Session> {
     this.sessionPromise ??= (async () => {
-      const runtime = await this.getRuntime();
-      const progressReporter = createProgressReporter((value) => {
-        this.send({ type: 'progress', id, progress: value });
-      });
-      // The tokenizer (~6.7 MiB) gets no aggregate event, so its per-file ticks
-      // go out without a percentage: an indeterminate bar, and a sign of life
-      // for the client's stall timer, rather than a bar that fills twice.
-      const tokenizer = await runtime.AutoTokenizer.from_pretrained(MODEL.id, {
-        revision: MODEL.revision,
-        local_files_only: localFilesOnly,
-        progress_callback: (event: RuntimeProgress) => {
-          if (event.status === 'progress') progressReporter.report(null);
-        },
-      });
-      const model = await runtime.AutoModelForCausalLM.from_pretrained(
-        MODEL.id,
-        {
-          ...MODEL_OPTIONS,
-          local_files_only: localFilesOnly,
-          // The default wrapper emits a `progress_total` right before every
-          // per-file `progress`. Forwarding both made the bar alternate between
-          // the overall and the per-file percentage at twice the message rate;
-          // the aggregate is the one number a user can act on.
-          progress_callback: (event: RuntimeProgress) => {
-            if (event.status === 'progress_total') {
-              const progress =
-                typeof event.progress === 'number' &&
-                Number.isFinite(event.progress)
-                  ? Math.max(0, Math.min(100, event.progress))
-                  : null;
-              progressReporter.report(progress);
-            } else if (
-              event.status === 'progress' &&
-              !progressReporter.hasAggregate
-            ) {
-              progressReporter.report(null);
-            }
-          },
-        },
-      );
+      const runtime = loadedRuntime ?? (await this.getRuntime(localFilesOnly));
+      if (localFilesOnly) await this.prepareCacheOnlyRuntime(runtime);
+      else this.prepareNetworkRuntime(runtime);
       try {
-        // An adapter is not proof that this model can execute. A one-token
-        // warm-up surfaces unsupported operators and allocation failures here
-        // instead of on the user's first real prompt.
-        const inputs = tokenizer.apply_chat_template(
-          [{ role: 'user', content: 'Hello' }],
-          { tokenize: true, add_generation_prompt: true, return_dict: true },
-        );
-        await model.generate({
-          ...inputs,
-          max_new_tokens: 1,
-          do_sample: false,
-          repetition_penalty: 1,
-          no_repeat_ngram_size: 0,
+        const progressReporter = createProgressReporter((value) => {
+          this.send({ type: 'progress', id, progress: value });
         });
-      } catch (error) {
-        await model.dispose().catch(() => undefined);
-        throw error;
+        // The tokenizer (~6.7 MiB) gets no aggregate event, so its per-file ticks
+        // go out without a percentage: an indeterminate bar, and a sign of life
+        // for the client's stall timer, rather than a bar that fills twice.
+        const tokenizer = await runtime.AutoTokenizer.from_pretrained(
+          MODEL.id,
+          {
+            revision: MODEL.revision,
+            local_files_only: localFilesOnly,
+            progress_callback: (event: RuntimeProgress) => {
+              if (event.status === 'progress') progressReporter.report(null);
+            },
+          },
+        );
+        const model = await runtime.AutoModelForCausalLM.from_pretrained(
+          MODEL.id,
+          {
+            ...MODEL_OPTIONS,
+            local_files_only: localFilesOnly,
+            // The default wrapper emits a `progress_total` right before every
+            // per-file `progress`. Forwarding both made the bar alternate between
+            // the overall and the per-file percentage at twice the message rate;
+            // the aggregate is the one number a user can act on.
+            progress_callback: (event: RuntimeProgress) => {
+              if (event.status === 'progress_total') {
+                const progress =
+                  typeof event.progress === 'number' &&
+                  Number.isFinite(event.progress)
+                    ? Math.max(0, Math.min(100, event.progress))
+                    : null;
+                progressReporter.report(progress);
+              } else if (
+                event.status === 'progress' &&
+                !progressReporter.hasAggregate
+              ) {
+                progressReporter.report(null);
+              }
+            },
+          },
+        );
+        try {
+          // An adapter is not proof that this model can execute. A one-token
+          // warm-up surfaces unsupported operators and allocation failures here
+          // instead of on the user's first real prompt.
+          const inputs = tokenizer.apply_chat_template(
+            [{ role: 'user', content: 'Hello' }],
+            { tokenize: true, add_generation_prompt: true, return_dict: true },
+          );
+          await model.generate({
+            ...inputs,
+            max_new_tokens: 1,
+            do_sample: false,
+            repetition_penalty: 1,
+            no_repeat_ngram_size: 0,
+          });
+        } catch (error) {
+          await model.dispose().catch(() => undefined);
+          throw error;
+        }
+        progressReporter.report(100, true);
+        return { runtime, tokenizer, model };
+      } finally {
+        if (localFilesOnly) releaseRuntimeCacheOnlyAssets(runtime);
       }
-      progressReporter.report(100, true);
-      return { runtime, tokenizer, model };
     })().catch((error) => {
       this.sessionPromise = null;
       throw error;
