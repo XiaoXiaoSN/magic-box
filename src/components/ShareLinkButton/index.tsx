@@ -5,6 +5,8 @@ import { useLocale } from '../../contexts/LocaleContext';
 interface ShareLinkButtonProps {
   getShareLink: () => string;
   'data-testid'?: string;
+  disabled?: boolean;
+  disabledLabel?: string;
 }
 
 const CheckIcon = () => (
@@ -43,6 +45,8 @@ const LinkIcon = () => (
 const ShareLinkButton = ({
   getShareLink,
   'data-testid': testId,
+  disabled = false,
+  disabledLabel,
 }: ShareLinkButtonProps) => {
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
@@ -57,6 +61,7 @@ const ShareLinkButton = ({
   }, []);
 
   const handleClick = () => {
+    if (disabled) return;
     const sequence = ++copySequence.current;
     setCopied(false);
     clearTimeout(timerRef.current);
@@ -80,13 +85,20 @@ const ShareLinkButton = ({
     })();
   };
 
+  const label = disabled
+    ? (disabledLabel ?? t('shareLink.copy'))
+    : copied
+      ? t('shareLink.copied')
+      : t('shareLink.copy');
+
   return (
     <button
-      aria-label={copied ? t('shareLink.copied') : t('shareLink.copy')}
+      aria-label={label}
       className="share-link-button"
       data-testid={testId}
+      disabled={disabled}
       onClick={handleClick}
-      title={copied ? t('shareLink.copied') : t('shareLink.copy')}
+      title={label}
       type="button"
     >
       {copied ? <CheckIcon /> : <LinkIcon />}

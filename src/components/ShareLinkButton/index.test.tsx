@@ -36,6 +36,17 @@ const renderButton = () =>
     </LocaleProvider>,
   );
 
+const renderDisabledButton = () =>
+  render(
+    <LocaleProvider>
+      <ShareLinkButton
+        disabled
+        disabledLabel="Sharing is disabled for sensitive input"
+        getShareLink={() => 'https://example.test/share'}
+      />
+    </LocaleProvider>,
+  );
+
 beforeEach(() => {
   vi.mocked(copyTextToClipboard).mockReset();
 });
@@ -46,6 +57,18 @@ afterEach(() => {
 });
 
 describe('<ShareLinkButton />', () => {
+  it('does not request a link while disabled', () => {
+    vi.mocked(copyTextToClipboard).mockResolvedValue(true);
+    renderDisabledButton();
+
+    const button = screen.getByRole('button', {
+      name: 'Sharing is disabled for sensitive input',
+    });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(copyTextToClipboard).not.toHaveBeenCalled();
+  });
+
   it('does not show copied for a deferred failed copy', async () => {
     const copy = deferred<boolean>();
     vi.mocked(copyTextToClipboard).mockReturnValue(copy.promise);

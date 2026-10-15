@@ -180,6 +180,28 @@ describe('<MagicBoxPage />', () => {
       expect(isLocalAIPrivate()).toBe(true);
     });
 
+    it('withdraws partial input before a secret directive and hides its value', async () => {
+      renderPage();
+
+      await settleInput('jwt body');
+      await settleInput('jwt body\n::se');
+      expect(readHistory()).toHaveLength(2);
+
+      await settleInput('jwt body\n::SECRET = top-secret');
+
+      expect(readHistory()).toEqual([]);
+      expect(screen.getByTestId('input-options')).toHaveTextContent('secret');
+      expect(screen.getByTestId('input-options')).not.toHaveTextContent(
+        'top-secret',
+      );
+
+      const shareButton = screen.getByTestId('copy-share-link');
+      expect(shareButton).toBeDisabled();
+      expect(shareButton).toHaveAccessibleName(
+        'Sharing is disabled for sensitive input',
+      );
+    });
+
     it('keeps entries that existed before this edit session', async () => {
       localStorage.setItem(
         HISTORY_KEY,

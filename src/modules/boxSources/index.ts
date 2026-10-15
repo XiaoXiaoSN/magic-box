@@ -267,15 +267,45 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
   {
     id: 'jwt-decode',
     name: 'JWT Decode',
-    description: 'Decode the header and payload of a JSON Web Token.',
+    description:
+      'Decode a JWT, render NumericDate claims in the preferred timezone, and optionally verify HS256/HS384/HS512 with ::secret.',
     defaultInput:
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
     tag: '🔑',
     kind: 'Decode',
     priority: 10,
-    optionKeys: [],
+    optionKeys: ['secret'],
     headless: true,
     load: () => import('./JWTBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'objectid',
+    name: 'ObjectId',
+    description:
+      'Decode a MongoDB ObjectId timestamp, random value, and counter with ::objectid.',
+    defaultInput: '507f1f77bcf86cd799439011\n::objectid',
+    tag: '#',
+    kind: 'Analyze',
+    priority: 10,
+    defaultDisabled: true,
+    optionKeys: ['objectid', 'object-id'],
+    headless: true,
+    canHandle: optionMatcher(['objectid', 'object-id']),
+    load: () => import('./ObjectIdBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'ksuid',
+    name: 'KSUID',
+    description: 'Decode a KSUID timestamp and 128-bit payload with ::ksuid.',
+    defaultInput: '0ujtsYcgvSTl8PAuAdqWYSMnLOv\n::ksuid',
+    tag: '#',
+    kind: 'Analyze',
+    priority: 10,
+    defaultDisabled: true,
+    optionKeys: ['ksuid'],
+    headless: true,
+    canHandle: optionMatcher(['ksuid']),
+    load: () => import('./KsuidBoxSource').then((module) => module.default),
   },
   {
     id: 'k8s-secret',
@@ -432,12 +462,13 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
   {
     id: 'uuid',
     name: 'UUID',
-    description: 'Generate a fresh UUID v4, uppercase optional.',
+    description:
+      'Generate UUID v4 or v7 values, or inspect RFC 9562 version, variant, and embedded timestamps.',
     defaultInput: 'uuid',
     tag: '⚂',
     kind: 'Generate',
     priority: 10,
-    optionKeys: [],
+    optionKeys: ['uppercase', 'upper'],
     headless: true,
     load: () => import('./UuidBoxSource').then((module) => module.default),
   },
@@ -857,15 +888,16 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
   {
     id: 'subnet',
     name: 'Subnet',
-    description: 'IPv4 CIDR subnet calculator. e.g. 192.168.1.10/24 ::subnet.',
+    description:
+      'Calculate IPv4 CIDR or IP/netmask subnets, split a network, and test membership with ::subnet.',
     defaultInput: '192.168.1.10/24\n::subnet',
     tag: '#',
     kind: 'Analyze',
     priority: 10,
     defaultDisabled: true,
-    optionKeys: ['subnet', 'cidr'],
+    optionKeys: ['subnet', 'cidr', 'split', 'contains'],
     headless: true,
-    canHandle: optionMatcher(['subnet', 'cidr']),
+    canHandle: optionMatcher(['subnet', 'cidr', 'split', 'contains']),
     load: () => import('./SubnetBoxSource').then((module) => module.default),
   },
   {
@@ -1593,6 +1625,8 @@ export const sharedOptionOwners: Readonly<Record<string, readonly string[]>> = {
   sha1: ['hash', 'hmac', 'pbkdf2'],
   sha256: ['hash', 'hmac', 'pbkdf2'],
   sha512: ['hash', 'hmac', 'pbkdf2'],
+  upper: ['uuid', 'case-converter'],
+  uppercase: ['uuid', 'case-converter'],
 };
 
 export const getBoxSource = (idOrName: string): LazyBoxSource | null =>

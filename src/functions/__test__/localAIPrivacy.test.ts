@@ -47,6 +47,32 @@ describe('isLocalAIInput', () => {
   });
 });
 
+describe('private input detection', () => {
+  it('recognizes secret directives with parser case and value forms', async () => {
+    const { privacy } = await load();
+    for (const raw of [
+      'payload\n::secret=top secret',
+      'payload\n::SECRET top secret',
+      'payload\n::secret = top=secret',
+      'payload\n::SeCrEt=top=secret',
+    ]) {
+      expect(privacy.isPrivateInput(raw)).toBe(true);
+      expect(privacy.isSensitiveInput(raw)).toBe(true);
+    }
+    expect(privacy.isPrivateInput('payload\n::secretive=value')).toBe(false);
+  });
+
+  it('detects private shared inputs before React mounts', async () => {
+    const { privacy } = await load();
+    expect(
+      privacy.isPrivateInputMode(
+        '?input=payload%0A%3A%3ASECRET%20%3D%20top-secret',
+      ),
+    ).toBe(true);
+    expect(privacy.isPrivateInputMode('?input=payload')).toBe(false);
+  });
+});
+
 describe('telemetry gating', () => {
   it('is sticky and notifies each subscriber exactly once', async () => {
     const { privacy } = await load();

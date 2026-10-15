@@ -29,6 +29,15 @@ describe('UuidBoxSource', () => {
       expect(UuidBoxSource.checkMatch('')).toBeUndefined();
       expect(UuidBoxSource.checkMatch('random-uuid')).toBeUndefined();
     });
+
+    it('matches strict UUID text for inspection', () => {
+      expect(
+        UuidBoxSource.checkMatch('01890f81-7b9d-7ef0-8000-000000000000'),
+      ).toBeDefined();
+      expect(
+        UuidBoxSource.checkMatch('01890f817b9d7ef08000000000000000'),
+      ).toBeUndefined();
+    });
   });
 
   describe('generateBoxes', () => {
@@ -69,6 +78,75 @@ describe('UuidBoxSource', () => {
         });
         expect(boxes[0].props.plaintextOutput).toMatch(/^[0-9A-F-]+$/);
       });
+    });
+
+    it('generates nil, max, and v7 command forms', async () => {
+      const nil = await UuidBoxSource.generateBoxes('uuid nil');
+      const max = await UuidBoxSource.generateBoxes('uuid max');
+      const v7 = await UuidBoxSource.generateBoxes('uuid v7');
+
+      expect(nil[0].props.plaintextOutput).toBe(
+        '00000000-0000-0000-0000-000000000000',
+      );
+      expect(max[0].props.plaintextOutput).toBe(
+        'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      );
+      expect(v7[0].props.options?.Version).toBe('7');
+      expect(v7[0].props.options?.Variant).toBe('RFC 9562');
+    });
+
+    it('ignores inherited formatting options', async () => {
+      const inherited = Object.create({ uppercase: true }) as Record<
+        string,
+        string | boolean
+      >;
+      const [box] = await UuidBoxSource.generateBoxes('uuid max', inherited);
+      expect(box.props.plaintextOutput).toBe(
+        'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      );
+    });
+
+    it('decodes version, variant, and v7 milliseconds', async () => {
+      const boxes = await UuidBoxSource.generateBoxes(
+        '00000000-0000-7000-8000-000000000000',
+      );
+      const options = boxes[0].props.options as Record<string, string>;
+      expect(options.Version).toBe('7');
+      expect(options.Variant).toBe('RFC 9562');
+      expect(options['Unix (ms)']).toBe('0');
+      expect(options.Timestamp).toBe('1970-01-01T00:00:00.000Z');
+    });
+
+    it('decodes v1 Gregorian timestamps but not non-RFC variants', async () => {
+      const v1 = await UuidBoxSource.generateBoxes(
+        'f47ac10b-58cc-11cf-8f0f-00aa006c42c6',
+      );
+      const v1Options = v1[0].props.options as Record<string, string>;
+      expect(v1Options.Version).toBe('1');
+      expect(v1Options.Variant).toBe('RFC 9562');
+      expect(v1Options.Timestamp).toBeDefined();
+
+      const nonRfc = await UuidBoxSource.generateBoxes(
+        'f47ac10b-58cc-11cf-0f0f-00aa006c42c6',
+      );
+      expect(nonRfc[0].props.options?.Timestamp).toBeUndefined();
+    });
+
+    it('rejects insecure v7 generation when Web Crypto is unavailable', async () => {
+      const originalGetRandomValues = crypto.getRandomValues;
+      Object.defineProperty(crypto, 'getRandomValues', {
+        value: undefined,
+        configurable: true,
+      });
+      try {
+        const boxes = await UuidBoxSource.generateBoxes('uuid v7');
+        expect(boxes[0].props.plaintextOutput).toMatch(/secure web crypto/i);
+      } finally {
+        Object.defineProperty(crypto, 'getRandomValues', {
+          value: originalGetRandomValues,
+          configurable: true,
+        });
+      }
     });
 
     describe('crypto fallback paths', () => {

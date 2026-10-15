@@ -18,6 +18,12 @@ const Probe = (): React.JSX.Element => {
       <button onClick={() => addEntry('newer')} type="button">
         add newer
       </button>
+      <button
+        onClick={() => addEntry('jwt\n::secret=top-secret')}
+        type="button"
+      >
+        add secret
+      </button>
     </>
   );
 };
@@ -89,5 +95,14 @@ describe('useSearchHistory persistence recovery', () => {
     } finally {
       getItem.mockRestore();
     }
+  });
+
+  it('does not keep private input in memory or storage', () => {
+    render(<Probe />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'add secret' }));
+
+    expect(screen.getByTestId('history')).toHaveTextContent('');
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]')).toEqual([]);
   });
 });
