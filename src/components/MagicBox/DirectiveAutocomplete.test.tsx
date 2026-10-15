@@ -179,6 +179,26 @@ describe('DirectiveChips', () => {
     expect(onReplace).toHaveBeenCalledWith('::wrap\r\n::1', 6);
   });
 
+  it('keeps bare-CR directive lines separate while preserving replacement offsets', () => {
+    const onReplace = vi.fn();
+    render(
+      <LocaleProvider>
+        <DirectiveChips input={'::wrp\r::wrap'} onReplace={onReplace} />
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByTestId('directive-chip-wrp')).toHaveTextContent(
+      'Unknown directive',
+    );
+    expect(screen.getByTestId('directive-chip-wrap')).not.toHaveClass(
+      'is-unknown',
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Did you mean ::wrap?' }),
+    );
+    expect(onReplace).toHaveBeenCalledWith('::wrap\r::wrap', 6);
+  });
+
   it('retains parser aliases as known chips', () => {
     render(
       <LocaleProvider>

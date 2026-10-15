@@ -614,20 +614,29 @@ const MagicBox = ({
       if (event.defaultPrevented || event.isComposing) return;
 
       const target = event.target instanceof Element ? event.target : null;
-      const interactive = target?.closest('a, button, [role="button"]');
-      if (interactive && !target?.matches('.box-card')) return;
-
       const focusedElement =
         target ??
         (document.activeElement instanceof Element
           ? document.activeElement
           : null);
+      const editable =
+        target?.closest('textarea, input, select, [contenteditable="true"]') ??
+        (focusedElement?.matches(
+          'textarea, input, select, [contenteditable="true"]',
+        )
+          ? focusedElement
+          : null);
+      const isMainInput =
+        focusedElement?.matches('textarea[data-magic-input="true"]') ?? false;
+      if (editable && !isMainInput) return;
+
+      const interactive = target?.closest('a, button, [role="button"]');
+      if (interactive && !target?.matches('.box-card')) return;
+
       const inDialog = focusedElement?.closest(
         '[role="dialog"], .box-modal-root, .MuiModal-root',
       );
       if (inDialog) return;
-      const isMainInput =
-        focusedElement?.matches('textarea[data-magic-input="true"]') ?? false;
       const isResultFocus = focusedElement?.closest('.box-card') !== null;
       const eventWasDispatchedOnWindow = !(event.target instanceof Element);
       if (!isMainInput && !isResultFocus && !eventWasDispatchedOnWindow) {
@@ -658,8 +667,15 @@ const MagicBox = ({
           if (event.key === 'End') {
             return state.entries.at(-1)?.key ?? null;
           }
-          const current = selectedPosition < 0 ? 0 : selectedPosition;
-          const next = event.key === 'ArrowUp' ? current - 1 : current + 1;
+          if (selectedPosition < 0) {
+            return event.key === 'ArrowUp'
+              ? (state.entries.at(-1)?.key ?? null)
+              : (state.entries[0]?.key ?? null);
+          }
+          const next =
+            event.key === 'ArrowUp'
+              ? selectedPosition - 1
+              : selectedPosition + 1;
           return state.entries[
             Math.max(0, Math.min(state.entries.length - 1, next))
           ]?.key;

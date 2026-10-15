@@ -18,4 +18,13 @@ describe('editable text styles', () => {
       /font-feature-settings:\s*"liga" 0,\s*"clig" 0,\s*"calt" 0/,
     );
   });
+
+  it('keeps the QR launcher above the directive textarea stack', () => {
+    const qrRule = css.match(/\.input-qr-btn\s*\{([^}]*)\}/)?.[1];
+
+    expect(qrRule).toContain('z-index: 6');
+    expect(css).not.toMatch(
+      /\.directive-autocomplete textarea\s*\{[^}]*z-index:\s*1/s,
+    );
+  });
 });

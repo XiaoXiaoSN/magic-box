@@ -321,13 +321,15 @@ const parseDirectiveChips = (
 ): DirectiveChip[] => {
   const entriesByKey = new Map(catalog.map((entry) => [entry.key, entry]));
   const lastByKey = new Map<string, DirectiveChip>();
-  let lineStart = 0;
 
-  for (const line of value.split(/(\r?\n)/)) {
-    if (line === '\n' || line === '\r\n') {
-      lineStart += line.length;
-      continue;
+  for (let lineStart = 0; lineStart <= value.length; ) {
+    let lineEnd = lineStart;
+    while (lineEnd < value.length) {
+      const character = value[lineEnd];
+      if (character === '\n' || character === '\r') break;
+      lineEnd += 1;
     }
+    const line = value.slice(lineStart, lineEnd);
     const parsed = parseInput(line);
     const parsedEntries = Object.entries(parsed[1] ?? {});
     const match = /^::([A-Za-z_][A-Za-z0-9_-]*)/.exec(line);
@@ -346,7 +348,12 @@ const parseDirectiveChips = (
         value: valueForChip,
       });
     }
-    lineStart += line.length;
+
+    if (lineEnd === value.length) break;
+    lineStart =
+      value[lineEnd] === '\r' && value[lineEnd + 1] === '\n'
+        ? lineEnd + 2
+        : lineEnd + 1;
   }
 
   return [...lastByKey.values()];

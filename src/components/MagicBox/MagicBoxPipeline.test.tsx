@@ -482,6 +482,55 @@ describe('MagicBox live input and keyboard boundaries', () => {
     },
   };
 
+  it('starts Alt+Down at the first result when selection is unset', async () => {
+    render(
+      tree('settled', [
+        sourceWithResult('first', Promise.resolve([box('First')])),
+        sourceWithResult('second', Promise.resolve([box('Second')])),
+      ]),
+    );
+    const cards = await screen.findAllByTestId('magic-box-result');
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowDown' });
+
+    await waitFor(() => expect(cards[0]).toHaveClass('is-selected'));
+    expect(cards[1]).not.toHaveClass('is-selected');
+  });
+
+  it('does not intercept Alt+Arrow in a nested editable control', async () => {
+    const nestedSource: BoxSource = {
+      ...immediateSource,
+      async generateBoxes(): Promise<Box[]> {
+        const nested = new BoxBuilder('Nested editor', 'output')
+          .setShowExpandButton(false)
+          .setTemplate(
+            ({ plaintextOutput }: BoxProps): React.JSX.Element => (
+              <textarea
+                aria-label="Local AI prompt"
+                defaultValue={plaintextOutput}
+              />
+            ),
+          )
+          .build();
+        return [nested];
+      },
+    };
+
+    render(tree('settled', [nestedSource]));
+    const input = await screen.findByRole('textbox', {
+      name: 'Local AI prompt',
+    });
+    const event = new KeyboardEvent('keydown', {
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+      key: 'ArrowDown',
+    });
+    input.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   it('disables stale cards and ignores IME, prevented, and outside Enter events', async () => {
     const { rerender } = render(
       <div>

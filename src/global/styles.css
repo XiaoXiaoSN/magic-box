@@ -414,6 +414,7 @@ pre,
 
 .input-qr-btn {
   position: absolute;
+  z-index: 6;
   right: 10px;
   bottom: 10px;
   width: 28px;
@@ -454,11 +455,6 @@ pre,
   flex: 1;
   min-height: 0;
   width: 100%;
-}
-
-.directive-autocomplete textarea {
-  position: relative;
-  z-index: 1;
 }
 
 .directive-menu {
