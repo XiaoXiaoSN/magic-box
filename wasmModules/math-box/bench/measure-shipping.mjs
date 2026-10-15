@@ -66,6 +66,15 @@ function resolveExecutable(command) {
   return result.stdout.trim() || null;
 }
 
+function resolveRustExecutable(name, configured) {
+  if (configured?.includes('/')) return configured;
+  const result = spawnSync('rustup', ['which', name], {
+    encoding: 'utf8',
+  });
+  if (result.status === 0) return result.stdout.trim() || configured || name;
+  return configured || name;
+}
+
 async function commandVersion(command) {
   try {
     const version = await new Promise((resolveVersion) => {
@@ -159,8 +168,12 @@ async function main() {
         version: process.version,
         sha256: await commandInfo(process.execPath).then((info) => info.sha256),
       },
-      rustc: await commandInfo(process.env.RUSTC ?? 'rustc'),
-      cargo: await commandInfo(process.env.CARGO ?? 'cargo'),
+      rustc: await commandInfo(
+        resolveRustExecutable('rustc', process.env.RUSTC),
+      ),
+      cargo: await commandInfo(
+        resolveRustExecutable('cargo', process.env.CARGO),
+      ),
       wasm_pack: await commandInfo(process.env.WASM_PACK ?? 'wasm-pack'),
       wasm_bindgen: await commandInfo(
         process.env.WASM_BINDGEN ?? 'wasm-bindgen',

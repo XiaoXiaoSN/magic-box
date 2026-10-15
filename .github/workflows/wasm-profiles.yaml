@@ -44,15 +44,19 @@ jobs:
           set -euo pipefail
           output="$RUNNER_TEMP/magic-box-wasm-profiles"
           mkdir -p "$output"
+          rustc_path="$(rustup which rustc)"
+          cargo_path="$(rustup which cargo)"
           {
-            echo 'rustc -Vv'
-            rustc -Vv
-            echo 'cargo --version'
-            cargo --version
+            echo "rustc_path=$rustc_path"
+            "$rustc_path" -Vv
+            echo "cargo_path=$cargo_path"
+            "$cargo_path" --version
             echo 'wasm-pack --version'
             wasm-pack --version
             echo 'node --version'
             node --version
+            echo 'strace --version'
+            strace --version
           } > "$output/toolchain.txt"
 
       - name: Prepare exact base revision
@@ -64,16 +68,19 @@ jobs:
           baseline="$RUNNER_TEMP/magic-box-math565-baseline"
           rm -rf "$baseline"
           mkdir -p "$baseline"
-          git fetch --no-tags origin "$BASELINE_REF"
-          git archive "$BASELINE_REF" | tar -x -C "$baseline"
-          echo "path=$baseline" >> "$GITHUB_OUTPUT"
-          echo "ref=$BASELINE_REF" >> "$GITHUB_OUTPUT"
+          baseline_sha="$(bash wasmModules/math-box/bench/prepare-baseline.sh "$BASELINE_REF" "$baseline")"
+          {
+            echo "path=$baseline"
+            echo "requested_ref=$BASELINE_REF"
+            echo "sha=$baseline_sha"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Measure candidate and baseline packages
         env:
           CARGO_NET_OFFLINE: "false"
           REQUIRE_TOOL_METADATA: "1"
           WASM_BASELINE_ROOT: ${{ steps.baseline.outputs.path }}
+          WASM_BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
         run: |
           set -euo pipefail
           bash wasmModules/math-box/bench/measure-shipping-profiles.sh \
@@ -81,13 +88,15 @@ jobs:
 
       - name: Record baseline revision
         env:
-          BASELINE_REF: ${{ steps.baseline.outputs.ref }}
+          BASELINE_REQUESTED_REF: ${{ steps.baseline.outputs.requested_ref }}
+          BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
         run: |
           set -euo pipefail
+          test "$(git cat-file -t "$BASELINE_SHA")" = commit
           {
             echo "candidate=$(git rev-parse HEAD)"
-            echo "baseline=$BASELINE_REF"
-            echo "baseline_sha=$(git rev-parse "$BASELINE_REF")"
+            echo "baseline_requested_ref=$BASELINE_REQUESTED_REF"
+            echo "baseline_sha=$BASELINE_SHA"
           } > "$RUNNER_TEMP/magic-box-wasm-profiles/revisions.txt"
 
       - name: Upload profile measurements and packages

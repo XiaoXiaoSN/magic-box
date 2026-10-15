@@ -182,27 +182,31 @@ for `opt-level=3`, `s`, and `z` in isolated output directories, then invokes
 `*_bg.wasm` raw bytes, deterministic gzip level 9 bytes (equivalent to
 `gzip -n -9`), JS glue bytes, SHA-256, and actual
 runtime calls. It records each tool's resolved executable path, version output,
-and SHA-256 in every profile result. The same tool invocation must be used for
-both crates within a profile; no cargo-only artifact is accepted as a package
-measurement.
+and SHA-256 in every profile result after the build wrapper has bound the
+executables that `wasm-pack` actually launched. The same tool invocation must
+be used for both crates within a profile; no cargo-only artifact is accepted as
+a package measurement.
 
 ```bash
 wasmModules/math-box/bench/measure-shipping-profiles.sh /tmp/magic-box-wasm-profiles
 ```
 
-The authoritative shipping run is GitHub Actions run `38752303306`, artifact
-`wasm-profile-matrix-38752303306`. The baseline checkout was exact source SHA
+The existing shipping run used for the package and runtime numbers below is
+GitHub Actions run `38752303306`, artifact `wasm-profile-matrix-38752303306`.
+The baseline checkout was exact source SHA
 `68ae0495966bf25218c03102588049bdbd450be2`; the candidate package was built
 from GitHub's synthetic merge SHA `e4efcd6a58abfcd30806fa268d6cd536f68d4708`,
 which combines this change's commit `88418399fe4d27411c8aa2ccfa029137d08e75cb`
 with that base. Each profile was built serially for both crates, using the same
 x86_64 Ubuntu host and locked dependencies. The runner used rustc `1.99.0
 (b940084d7 2026-09-28)`, cargo `1.99.0`, wasm-pack `0.15.0`, wasm-bindgen
-`0.2.129`, wasm-opt `117 (version_117)`, and Node `v22.23.3`. The JSON records
-the resolved paths and hashes for all of those executables; the wasm-bindgen
-SHA-256 was `fb59da714982a04273e9e4b09a85e523e5dd04de35b1a4a8b1641785ee7a71cf`
-and the wasm-opt SHA-256 was
-`621b5a984f16d0323ea7aa8b389ac9ccda0950ddee5de0e99292970129f571ed`.
+`0.2.129`, wasm-opt `117 (version_117)`, and Node `v22.23.3`. This original
+run's package sizes and runtime samples remain valid same-host measurements,
+but its tool provenance is limited: the script selected wasm-bindgen and
+wasm-opt after the builds and hashed rustup proxy paths for rustc and cargo.
+Its recorded executable hashes therefore are diagnostic only. A fresh run
+after the tracing fix is required before claiming those hashes as the actual
+shipping tool binaries.
 
 Every runtime row is the median of five samples, with 100,000 calls per sample
 after a 10,000-call warm-up. The min/max ranges below are the extrema of those
