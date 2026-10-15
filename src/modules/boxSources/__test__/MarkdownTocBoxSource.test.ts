@@ -120,6 +120,60 @@ describe('MarkdownTocBoxSource', () => {
       );
     });
 
+    it('reserves slugs emitted before a matching suffixed heading', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## A\n## A\n## A-1',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [A](#a)\n- [A](#a-1)\n- [A-1](#a-1-1)',
+      );
+    });
+
+    it('skips a suffixed slug reserved before duplicate base headings', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## A-1\n## A\n## A',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [A-1](#a-1)\n- [A](#a)\n- [A](#a-2)',
+      );
+    });
+
+    it('reserves Unicode slugs and their explicit suffix variants', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## 安裝\n## 安裝\n## 安裝-1\n## 安裝',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [安裝](#安裝)\n- [安裝](#安裝-1)\n- [安裝-1](#安裝-1-1)\n- [安裝](#安裝-2)',
+      );
+    });
+
+    it('continues after a long reserved suffix collision chain', async () => {
+      const reserved = Array.from(
+        { length: 1_000 },
+        (_, index) => `## A-${index + 1}`,
+      );
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        ['## A', ...reserved, '## A', '## A'].join('\n'),
+        { toc: true },
+      );
+      const lines = boxes[0].props.plaintextOutput.split('\n');
+
+      expect(lines.slice(-2)).toEqual(['- [A](#a-1001)', '- [A](#a-1002)']);
+    });
+
+    it('reserves empty slugs produced by punctuation-only headings', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '## !!!\n## ???\n## -1',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [!!!](#)\n- [???](#-1)\n- [-1](#-1-1)',
+      );
+    });
+
     it('treats constructor as an ordinary slug and counts duplicates', async () => {
       const boxes = await MarkdownTocBoxSource.generateBoxes(
         '## constructor\n## constructor',

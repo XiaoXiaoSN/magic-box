@@ -88,16 +88,24 @@ function slugify(text: string): string {
 /** builds the nested bullet list string with github-style duplicate slug disambiguation */
 function buildToc(headings: Heading[]): string {
   const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
-  const slugCount = new Map<string, number>();
+  const nextSuffix = new Map<string, number>();
+  const usedSlugs = new Set<string>();
   const lines: string[] = [];
 
   for (const { level, text } of headings) {
     const baseSlug = slugify(text);
-    const count = slugCount.get(baseSlug) ?? 0;
-    slugCount.set(baseSlug, count + 1);
+    let slug = baseSlug;
 
-    // first occurrence uses the base slug; subsequent ones append -1, -2, …
-    const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
+    if (usedSlugs.has(slug)) {
+      let suffix = nextSuffix.get(baseSlug) ?? 1;
+      do {
+        slug = `${baseSlug}-${suffix}`;
+        suffix++;
+      } while (usedSlugs.has(slug));
+      nextSuffix.set(baseSlug, suffix);
+    }
+    usedSlugs.add(slug);
+
     const indent = ' '.repeat((level - minLevel) * 2);
     const label = text
       .replace(/([\\[\]])/g, '\\$1')
