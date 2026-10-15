@@ -28,7 +28,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
   usePreferences: () => ({
-    prefs: { copyMode: 'copy', timezoneOffset: 8, timezoneMode: 'fixed' },
+    prefs: { copyMode: 'enter', timezoneOffset: 8, timezoneMode: 'fixed' },
   }),
 }));
 
