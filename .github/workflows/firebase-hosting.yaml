@@ -31,6 +31,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     needs: tests
     permissions:
+      checks: write
       contents: read
       pull-requests: write
     runs-on: ubuntu-latest
@@ -66,6 +67,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: tests
     permissions:
+      checks: write
       contents: read
     runs-on: ubuntu-latest
     steps:
