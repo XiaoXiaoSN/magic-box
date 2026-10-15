@@ -124,6 +124,10 @@ const zhTW: Translations = {
   'boxModal.close': '關閉',
   'boxModal.closeBackdrop': '關閉模態背景',
 
+  'errorBoundary.boxTitle': '此 Box 無法顯示',
+  'errorBoundary.boxMessage': '請重試或更換輸入內容。',
+  'errorBoundary.retry': '重試',
+
   'toolsList.noBoxes': '沒有可用的 Box',
   'toolsList.noBoxesHint': '請在設定中啟用一些 Box 以開始使用。',
   'toolsList.box': 'Box',

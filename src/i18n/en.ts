@@ -125,6 +125,10 @@ const en = {
   'boxModal.close': 'Close',
   'boxModal.closeBackdrop': 'Close modal backdrop',
 
+  'errorBoundary.boxTitle': 'This box could not be rendered',
+  'errorBoundary.boxMessage': 'Try again or change the input.',
+  'errorBoundary.retry': 'Try again',
+
   'toolsList.noBoxes': 'No boxes available',
   'toolsList.noBoxesHint': 'Enable some in Settings to get started.',
   'toolsList.box': 'Box',

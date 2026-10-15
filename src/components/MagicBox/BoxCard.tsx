@@ -1,4 +1,7 @@
 import { resolveBoxTemplate } from '@components/BoxTemplate/resolveBoxTemplate';
+import ErrorBoundary, {
+  TemplateErrorFallback,
+} from '@components/ErrorBoundary';
 import type { BoxProps, Box as BoxType } from '@modules/Box';
 import { forwardRef, useCallback, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -151,21 +154,26 @@ const BoxCard = forwardRef<HTMLDivElement, BoxCardProps>(
           </span>
         </div>
         <div className="box-body">
-          <Comp
-            kind={kind}
-            name={name}
-            onClick={(text) => {
-              onCopy(text);
-              onClick(text);
-            }}
-            onResultChange={onResultChange}
-            options={options}
-            plaintextOutput={plaintextOutput}
-            priority={priority}
-            selected={selected}
-            sourceInput={sourceInput}
-            tag={tag}
-          />
+          <ErrorBoundary
+            fallback={(retry) => <TemplateErrorFallback retry={retry} />}
+            resetKey={box}
+          >
+            <Comp
+              kind={kind}
+              name={name}
+              onClick={(text) => {
+                onCopy(text);
+                onClick(text);
+              }}
+              onResultChange={onResultChange}
+              options={options}
+              plaintextOutput={plaintextOutput}
+              priority={priority}
+              selected={selected}
+              sourceInput={sourceInput}
+              tag={tag}
+            />
+          </ErrorBoundary>
         </div>
       </div>
     );

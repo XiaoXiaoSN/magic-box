@@ -18,6 +18,7 @@ import {
   whenAnalyticsAllowed,
 } from './functions/runtimePrefs';
 import './index.css';
+import { handleRootCaughtError } from './components/ErrorBoundary';
 
 // a shared `::ai` link mounts the local AI box on first paint, so close the
 // telemetry gate before any SDK is constructed rather than after React mounts.
@@ -95,6 +96,7 @@ subscribeLocalAIPrivacy(() => {
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement,
+  { onCaughtError: handleRootCaughtError },
 );
 root.render(
   <React.StrictMode>
