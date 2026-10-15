@@ -102,5 +102,62 @@ describe('PowerConvertBoxSource', () => {
       });
       expect(boxes[0].props.plaintextOutput).toContain('W: 745.699872');
     });
+
+    it('distinguishes milli- and megawatts', async () => {
+      const milli = await PowerConvertBoxSource.generateBoxes('5 mW', {
+        power: true,
+      });
+      const mega = await PowerConvertBoxSource.generateBoxes('5 MW', {
+        power: true,
+      });
+
+      expect(milli[0].props.options).toMatchObject({
+        W: '0.005',
+        MW: '5e-9',
+      });
+      expect(mega[0].props.options).toMatchObject({
+        W: '5,000,000',
+        mW: '5,000,000,000',
+      });
+    });
+
+    it('accepts exponent notation and grouped integers', async () => {
+      const exponent = await PowerConvertBoxSource.generateBoxes('1e3 W', {
+        power: true,
+      });
+      const grouped = await PowerConvertBoxSource.generateBoxes('1,000 W', {
+        power: true,
+      });
+
+      expect(exponent[0].props.options).toMatchObject({ kW: '1' });
+      expect(grouped[0].props.options).toMatchObject({ kW: '1' });
+    });
+
+    it('rejects ambiguous decimal punctuation', async () => {
+      for (const input of ['1,5 W', '1.234.567 W']) {
+        const boxes = await PowerConvertBoxSource.generateBoxes(input, {
+          power: true,
+        });
+        expect(boxes[0].props.options).toMatchObject({
+          Error: 'Invalid format. Expected: <number> <unit>',
+        });
+      }
+    });
+
+    it('keeps small nonzero outputs visible', async () => {
+      const boxes = await PowerConvertBoxSource.generateBoxes('0.1 W', {
+        power: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({ MW: '1e-7' });
+    });
+
+    it('rejects a nonzero input that underflows to zero', async () => {
+      const boxes = await PowerConvertBoxSource.generateBoxes('1e-324 W', {
+        power: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Error: 'Invalid format. Expected: <number> <unit>',
+      });
+    });
   });
 });

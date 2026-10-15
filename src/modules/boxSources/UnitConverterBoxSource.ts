@@ -1,6 +1,14 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
+import type { SharedUnitDefinition } from './UnitConversionData';
+import {
+  formatConversionValue,
+  POWER_UNIT_DEFINITIONS,
+  parseStrictNumber,
+  SPEED_UNIT_DEFINITIONS,
+  STRICT_NUMBER_TOKEN,
+} from './UnitConversionData';
 
 const Priority = 12;
 
@@ -137,7 +145,9 @@ const UNITS: Record<string, UnitDef> = {
 
   // Volume (base: L)
   ml: { category: 'volume', symbol: 'mL', name: 'Milliliters', ratio: 0.001 },
+  mL: { category: 'volume', symbol: 'mL', name: 'Milliliters', ratio: 0.001 },
   l: { category: 'volume', symbol: 'L', name: 'Liters', ratio: 1 },
+  L: { category: 'volume', symbol: 'L', name: 'Liters', ratio: 1 },
   liter: { category: 'volume', symbol: 'L', name: 'Liters', ratio: 1 },
   liters: { category: 'volume', symbol: 'L', name: 'Liters', ratio: 1 },
   m3: { category: 'volume', symbol: 'm³', name: 'Cubic Meters', ratio: 1000 },
@@ -186,8 +196,10 @@ const UNITS: Record<string, UnitDef> = {
   grams: { category: 'mass', symbol: 'g', name: 'Grams', ratio: 0.001 },
   kg: { category: 'mass', symbol: 'kg', name: 'Kilograms', ratio: 1 },
   kilogram: { category: 'mass', symbol: 'kg', name: 'Kilograms', ratio: 1 },
+  kilograms: { category: 'mass', symbol: 'kg', name: 'Kilograms', ratio: 1 },
   t: { category: 'mass', symbol: 't', name: 'Metric Tons', ratio: 1000 },
   ton: { category: 'mass', symbol: 't', name: 'Metric Tons', ratio: 1000 },
+  tons: { category: 'mass', symbol: 't', name: 'Metric Tons', ratio: 1000 },
   oz: { category: 'mass', symbol: 'oz', name: 'Ounces', ratio: 0.028349523125 },
   ounce: {
     category: 'mass',
@@ -198,9 +210,24 @@ const UNITS: Record<string, UnitDef> = {
   lb: { category: 'mass', symbol: 'lb', name: 'Pounds', ratio: 0.45359237 },
   lbs: { category: 'mass', symbol: 'lb', name: 'Pounds', ratio: 0.45359237 },
   pound: { category: 'mass', symbol: 'lb', name: 'Pounds', ratio: 0.45359237 },
+  pounds: { category: 'mass', symbol: 'lb', name: 'Pounds', ratio: 0.45359237 },
 
   // Temperature (base: °C)
   c: {
+    category: 'temperature',
+    symbol: '°C',
+    name: 'Celsius',
+    toBase: (v) => v,
+    fromBase: (v) => v,
+  },
+  C: {
+    category: 'temperature',
+    symbol: '°C',
+    name: 'Celsius',
+    toBase: (v) => v,
+    fromBase: (v) => v,
+  },
+  '°C': {
     category: 'temperature',
     symbol: '°C',
     name: 'Celsius',
@@ -228,6 +255,20 @@ const UNITS: Record<string, UnitDef> = {
     toBase: (v) => ((v - 32) * 5) / 9,
     fromBase: (v) => (v * 9) / 5 + 32,
   },
+  F: {
+    category: 'temperature',
+    symbol: '°F',
+    name: 'Fahrenheit',
+    toBase: (v) => ((v - 32) * 5) / 9,
+    fromBase: (v) => (v * 9) / 5 + 32,
+  },
+  '°F': {
+    category: 'temperature',
+    symbol: '°F',
+    name: 'Fahrenheit',
+    toBase: (v) => ((v - 32) * 5) / 9,
+    fromBase: (v) => (v * 9) / 5 + 32,
+  },
   '°f': {
     category: 'temperature',
     symbol: '°F',
@@ -249,6 +290,13 @@ const UNITS: Record<string, UnitDef> = {
     toBase: (v) => v - 273.15,
     fromBase: (v) => v + 273.15,
   },
+  K: {
+    category: 'temperature',
+    symbol: 'K',
+    name: 'Kelvin',
+    toBase: (v) => v - 273.15,
+    fromBase: (v) => v + 273.15,
+  },
   kelvin: {
     category: 'temperature',
     symbol: 'K',
@@ -257,44 +305,33 @@ const UNITS: Record<string, UnitDef> = {
     fromBase: (v) => v + 273.15,
   },
 
-  // Speed (base: m/s)
-  'm/s': {
-    category: 'speed',
-    symbol: 'm/s',
-    name: 'Meters per second',
-    ratio: 1,
-  },
-  'km/h': {
-    category: 'speed',
-    symbol: 'km/h',
-    name: 'Kilometers per hour',
-    ratio: 1 / 3.6,
-  },
-  kph: {
-    category: 'speed',
-    symbol: 'km/h',
-    name: 'Kilometers per hour',
-    ratio: 1 / 3.6,
-  },
-  mph: {
-    category: 'speed',
-    symbol: 'mph',
-    name: 'Miles per hour',
-    ratio: 0.44704,
-  },
-  kn: { category: 'speed', symbol: 'kn', name: 'Knots', ratio: 0.514444 },
-  knot: { category: 'speed', symbol: 'kn', name: 'Knots', ratio: 0.514444 },
-  knots: { category: 'speed', symbol: 'kn', name: 'Knots', ratio: 0.514444 },
-
   // Pressure (base: Pa)
   pa: { category: 'pressure', symbol: 'Pa', name: 'Pascals', ratio: 1 },
+  Pa: { category: 'pressure', symbol: 'Pa', name: 'Pascals', ratio: 1 },
   kpa: {
     category: 'pressure',
     symbol: 'kPa',
     name: 'Kilopascals',
     ratio: 1000,
   },
-  mpa: { category: 'pressure', symbol: 'MPa', name: 'Megapascals', ratio: 1e6 },
+  kPa: {
+    category: 'pressure',
+    symbol: 'kPa',
+    name: 'Kilopascals',
+    ratio: 1000,
+  },
+  mPa: {
+    category: 'pressure',
+    symbol: 'mPa',
+    name: 'Millipascals',
+    ratio: 0.001,
+  },
+  MPa: {
+    category: 'pressure',
+    symbol: 'MPa',
+    name: 'Megapascals',
+    ratio: 1e6,
+  },
   bar: { category: 'pressure', symbol: 'bar', name: 'Bars', ratio: 100000 },
   psi: {
     category: 'pressure',
@@ -312,28 +349,36 @@ const UNITS: Record<string, UnitDef> = {
     category: 'pressure',
     symbol: 'Torr',
     name: 'Torr',
-    ratio: 133.322368,
+    ratio: 101325 / 760,
   },
   mmhg: {
     category: 'pressure',
     symbol: 'mmHg',
     name: 'Millimeters of Mercury',
-    ratio: 133.322368,
+    ratio: 133.322387415,
   },
-
-  // Power (base: W)
-  w: { category: 'power', symbol: 'W', name: 'Watts', ratio: 1 },
-  kw: { category: 'power', symbol: 'kW', name: 'Kilowatts', ratio: 1000 },
-  mw: { category: 'power', symbol: 'MW', name: 'Megawatts', ratio: 1e6 },
-  hp: {
-    category: 'power',
-    symbol: 'hp',
-    name: 'Horsepower',
-    ratio: 745.699872,
+  mmHg: {
+    category: 'pressure',
+    symbol: 'mmHg',
+    name: 'Millimeters of Mercury',
+    ratio: 133.322387415,
+  },
+  mb: {
+    category: 'pressure',
+    symbol: 'mbar',
+    name: 'Millibars',
+    ratio: 100,
+  },
+  mbar: {
+    category: 'pressure',
+    symbol: 'mbar',
+    name: 'Millibars',
+    ratio: 100,
   },
 
   // Energy (base: J)
   j: { category: 'energy', symbol: 'J', name: 'Joules', ratio: 1 },
+  J: { category: 'energy', symbol: 'J', name: 'Joules', ratio: 1 },
   kj: { category: 'energy', symbol: 'kJ', name: 'Kilojoules', ratio: 1000 },
   cal: { category: 'energy', symbol: 'cal', name: 'Calories', ratio: 4.184 },
   kcal: {
@@ -356,15 +401,34 @@ const UNITS: Record<string, UnitDef> = {
     ratio: 1055.05585,
   },
 
-  // Data Size (base: B)
-  b: { category: 'datasize', symbol: 'B', name: 'Bytes', ratio: 1 },
+  // Data Size (base: B; byte units retain binary powers)
+  B: { category: 'datasize', symbol: 'B', name: 'Bytes', ratio: 1 },
+  byte: { category: 'datasize', symbol: 'B', name: 'Bytes', ratio: 1 },
   bytes: { category: 'datasize', symbol: 'B', name: 'Bytes', ratio: 1 },
-  kb: { category: 'datasize', symbol: 'KB', name: 'Kilobytes', ratio: 1024 },
-  mb: {
+  b: { category: 'datasize', symbol: 'b', name: 'Bits', ratio: 1 / 8 },
+  KB: {
+    category: 'datasize',
+    symbol: 'KB',
+    name: 'Kilobytes',
+    ratio: 1024,
+  },
+  kb: {
+    category: 'datasize',
+    symbol: 'KB',
+    name: 'Kilobytes',
+    ratio: 1024,
+  },
+  MB: {
     category: 'datasize',
     symbol: 'MB',
     name: 'Megabytes',
     ratio: 1024 ** 2,
+  },
+  GB: {
+    category: 'datasize',
+    symbol: 'GB',
+    name: 'Gigabytes',
+    ratio: 1024 ** 3,
   },
   gb: {
     category: 'datasize',
@@ -372,11 +436,41 @@ const UNITS: Record<string, UnitDef> = {
     name: 'Gigabytes',
     ratio: 1024 ** 3,
   },
+  TB: {
+    category: 'datasize',
+    symbol: 'TB',
+    name: 'Terabytes',
+    ratio: 1024 ** 4,
+  },
   tb: {
     category: 'datasize',
     symbol: 'TB',
     name: 'Terabytes',
     ratio: 1024 ** 4,
+  },
+  Kb: {
+    category: 'datasize',
+    symbol: 'Kb',
+    name: 'Kilobits',
+    ratio: 1000 / 8,
+  },
+  Mb: {
+    category: 'datasize',
+    symbol: 'Mb',
+    name: 'Megabits',
+    ratio: 1e6 / 8,
+  },
+  Gb: {
+    category: 'datasize',
+    symbol: 'Gb',
+    name: 'Gigabits',
+    ratio: 1e9 / 8,
+  },
+  Tb: {
+    category: 'datasize',
+    symbol: 'Tb',
+    name: 'Terabits',
+    ratio: 1e12 / 8,
   },
 
   // Data Rate (base: bps)
@@ -414,15 +508,59 @@ const UNITS: Record<string, UnitDef> = {
   },
   s: { category: 'duration', symbol: 's', name: 'Seconds', ratio: 1 },
   sec: { category: 'duration', symbol: 's', name: 'Seconds', ratio: 1 },
+  second: { category: 'duration', symbol: 's', name: 'Seconds', ratio: 1 },
   seconds: { category: 'duration', symbol: 's', name: 'Seconds', ratio: 1 },
   min: { category: 'duration', symbol: 'min', name: 'Minutes', ratio: 60 },
+  minute: { category: 'duration', symbol: 'min', name: 'Minutes', ratio: 60 },
   minutes: { category: 'duration', symbol: 'min', name: 'Minutes', ratio: 60 },
   h: { category: 'duration', symbol: 'h', name: 'Hours', ratio: 3600 },
   hr: { category: 'duration', symbol: 'h', name: 'Hours', ratio: 3600 },
+  hour: { category: 'duration', symbol: 'h', name: 'Hours', ratio: 3600 },
   hours: { category: 'duration', symbol: 'h', name: 'Hours', ratio: 3600 },
   d: { category: 'duration', symbol: 'd', name: 'Days', ratio: 86400 },
+  day: { category: 'duration', symbol: 'd', name: 'Days', ratio: 86400 },
   days: { category: 'duration', symbol: 'd', name: 'Days', ratio: 86400 },
 };
+
+function addSharedUnits(
+  definitions: readonly SharedUnitDefinition[],
+  category: 'power' | 'speed',
+): void {
+  for (const definition of definitions) {
+    const unit: UnitDef = {
+      category,
+      symbol: definition.symbol,
+      name: definition.name,
+      ratio: definition.factor,
+    };
+    UNITS[definition.symbol] = unit;
+    for (const alias of definition.aliases) UNITS[alias] = unit;
+  }
+}
+
+addSharedUnits(POWER_UNIT_DEFINITIONS, 'power');
+addSharedUnits(SPEED_UNIT_DEFINITIONS, 'speed');
+
+const FOLDED_UNITS = new Map<string, UnitDef | null>();
+for (const [key, definition] of Object.entries(UNITS)) {
+  const foldedKey = key.toLowerCase();
+  const existing = FOLDED_UNITS.get(foldedKey);
+  if (existing === undefined) {
+    FOLDED_UNITS.set(foldedKey, definition);
+  } else if (
+    existing === null ||
+    existing.category !== definition.category ||
+    existing.symbol !== definition.symbol
+  ) {
+    FOLDED_UNITS.set(foldedKey, null);
+  }
+}
+
+function resolveUnit(raw: string): UnitDef | null {
+  if (Object.hasOwn(UNITS, raw)) return UNITS[raw];
+  if (raw.length === 1 && raw !== raw.toLowerCase()) return null;
+  return FOLDED_UNITS.get(raw.toLowerCase()) ?? null;
+}
 
 // Target list of canonical units for each category
 const CATEGORY_DISPLAY_UNITS: Record<UnitCategory, string[]> = {
@@ -431,25 +569,14 @@ const CATEGORY_DISPLAY_UNITS: Record<UnitCategory, string[]> = {
   volume: ['m3', 'l', 'ml', 'gal', 'qt', 'floz'],
   mass: ['t', 'kg', 'g', 'mg', 'lb', 'oz'],
   temperature: ['c', 'f', 'k'],
-  speed: ['km/h', 'm/s', 'mph', 'kn'],
-  pressure: ['bar', 'kpa', 'pa', 'psi', 'atm'],
-  power: ['kw', 'w', 'hp', 'mw'],
+  speed: ['km/h', 'm/s', 'mph', 'kn', 'ft/s'],
+  pressure: ['bar', 'MPa', 'kPa', 'mPa', 'pa', 'psi', 'atm', 'mmHg', 'mbar'],
+  power: ['kW', 'W', 'mW', 'MW', 'hp', 'PS', 'BTU/h'],
   energy: ['kwh', 'j', 'kj', 'kcal', 'wh'],
-  datasize: ['tb', 'gb', 'mb', 'kb', 'b'],
+  datasize: ['TB', 'GB', 'MB', 'KB', 'B', 'Tb', 'Gb', 'Mb', 'Kb', 'b'],
   datarate: ['gbps', 'mbps', 'kbps', 'bps'],
   duration: ['d', 'h', 'min', 's', 'ms'],
 };
-
-// Format numeric output nicely (smart precision)
-function formatVal(val: number): string {
-  if (Math.abs(val) >= 1e9 || (Math.abs(val) < 1e-4 && val !== 0)) {
-    return val.toExponential(4);
-  }
-  const str = val.toLocaleString('en-US', {
-    maximumFractionDigits: 6,
-  });
-  return str;
-}
 
 // Convert value from srcDef to dstDef
 function convertValue(val: number, srcDef: UnitDef, dstDef: UnitDef): number {
@@ -464,9 +591,49 @@ function convertValue(val: number, srcDef: UnitDef, dstDef: UnitDef): number {
   return baseVal / (dstDef.ratio || 1);
 }
 
-// Regex to parse expressions like "100 km", "500 MB in GB", "37 C to F"
-const UNIT_INPUT_RE =
-  /^\s*([+-]?[\d,._]+(?:e[+-]?\d+)?)\s*([°²³a-zA-Z%/]+)(?:\s*(?:to|in|->|=|:)\s*([°²³a-zA-Z%/]+))?\s*$/i;
+// Regex to parse expressions like "100 km", "500 MB in GB", "37 C to F".
+const UNIT_INPUT_RE = new RegExp(
+  `^\\s*(${STRICT_NUMBER_TOKEN})(\\s*)([°²³a-zA-Z%/]+)(?:\\s*(?:to|in|->|=|:)\\s*([°²³a-zA-Z%/]+))?\\s*$`,
+  'i',
+);
+
+interface ParsedUnitInput {
+  value: number;
+  source: string;
+  target: string | null;
+  hasSeparator: boolean;
+}
+
+function parseUnitInput(raw: string): ParsedUnitInput | null {
+  const match = UNIT_INPUT_RE.exec(raw);
+  if (!match) return null;
+
+  const value = parseStrictNumber(match[1]);
+  if (value === null) return null;
+
+  return {
+    value,
+    source: match[3],
+    target: match[4] ?? null,
+    hasSeparator: match[2].length > 0,
+  };
+}
+
+function requiresUnitSeparator(unit: string): boolean {
+  return unit.length === 1 && /^[a-zA-Z]$/.test(unit);
+}
+
+function isBelowAbsoluteZero(value: number, definition: UnitDef): boolean {
+  if (definition.category !== 'temperature') return false;
+
+  const minimum =
+    definition.symbol === 'K'
+      ? 0
+      : definition.symbol === '°F'
+        ? -459.67
+        : -273.15;
+  return value < minimum;
+}
 
 export const UnitConverterBoxSource = {
   defaultDisabled: false,
@@ -485,65 +652,75 @@ export const UnitConverterBoxSource = {
     const optionTriggered = hasOptionKeys(options, 'unit', 'convert');
     const trimmedInput = trim(input);
 
-    const match = UNIT_INPUT_RE.exec(trimmedInput);
-    if (!match && !optionTriggered) return [];
-
-    let numVal: number;
-    let srcUnitRaw: string;
-    let dstUnitRaw: string | null = null;
-
-    if (match) {
-      const rawNumStr = match[1].replace(/[,_]/g, '');
-      numVal = Number.parseFloat(rawNumStr);
-      srcUnitRaw = match[2].toLowerCase();
-      dstUnitRaw = match[3] ? match[3].toLowerCase() : null;
-    } else if (optionTriggered) {
+    let parsed: ParsedUnitInput | null = parseUnitInput(trimmedInput);
+    if (!parsed && optionTriggered) {
       const optVal = extractOptionKeys(options, 'unit', 'convert');
       const optStr = typeof optVal === 'string' ? optVal : trimmedInput;
-      const optMatch = UNIT_INPUT_RE.exec(optStr);
-      if (!optMatch) return [];
-      numVal = Number.parseFloat(optMatch[1].replace(/[,_]/g, ''));
-      srcUnitRaw = optMatch[2].toLowerCase();
-      dstUnitRaw = optMatch[3] ? optMatch[3].toLowerCase() : null;
-    } else {
+      parsed = parseUnitInput(optStr);
+    }
+    if (!parsed) return [];
+
+    const { source: srcUnitRaw, target: dstUnitRaw, value: numVal } = parsed;
+    if (
+      !optionTriggered &&
+      !parsed.hasSeparator &&
+      requiresUnitSeparator(srcUnitRaw)
+    ) {
       return [];
     }
 
-    if (Number.isNaN(numVal)) return [];
-
-    const srcDef = Object.hasOwn(UNITS, srcUnitRaw)
-      ? UNITS[srcUnitRaw]
-      : undefined;
+    const srcDef = resolveUnit(srcUnitRaw);
     if (!srcDef) return [];
+
+    if (isBelowAbsoluteZero(numVal, srcDef)) return [];
 
     const category = srcDef.category;
     const categoryUnits = CATEGORY_DISPLAY_UNITS[category];
 
     const kvOptions: Record<string, string> = {
-      Input: `${formatVal(numVal)} ${srcDef.symbol}`,
+      Input: `${formatConversionValue(numVal)} ${srcDef.symbol}`,
     };
 
+    let targetDef: UnitDef | null = null;
     if (dstUnitRaw) {
-      const dstDef = Object.hasOwn(UNITS, dstUnitRaw)
-        ? UNITS[dstUnitRaw]
-        : undefined;
-      if (dstDef && dstDef.category === category) {
-        const converted = convertValue(numVal, srcDef, dstDef);
-        kvOptions[`Target (${dstDef.name})`] =
-          `${formatVal(converted)} ${dstDef.symbol}`;
-      }
-    }
-
-    // Add list of conversions to other canonical units in same category
-    for (const key of categoryUnits) {
-      const dstDef = UNITS[key];
-      if (dstDef && dstDef.symbol !== srcDef.symbol) {
-        const converted = convertValue(numVal, srcDef, dstDef);
-        kvOptions[dstDef.name] = `${formatVal(converted)} ${dstDef.symbol}`;
+      targetDef = resolveUnit(dstUnitRaw);
+      if (!targetDef) {
+        kvOptions.Error = `Unknown target unit: "${dstUnitRaw}"`;
+      } else if (targetDef.category !== category) {
+        kvOptions.Error = `Target unit "${dstUnitRaw}" is incompatible with ${category}`;
+      } else {
+        const converted = convertValue(numVal, srcDef, targetDef);
+        kvOptions[`Target (${targetDef.name})`] =
+          `${formatConversionValue(converted)} ${targetDef.symbol}`;
       }
     }
 
     const title = `Unit Converter (${srcDef.category.toUpperCase()})`;
+    if (kvOptions.Error) {
+      const plaintext = Object.entries(kvOptions)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n');
+      return [
+        new BoxBuilder(title, plaintext)
+          .setView('keyValue')
+          .setOptions(kvOptions)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
+    // Add list of conversions to other canonical units in same category
+    const skippedSymbols = new Set([srcDef.symbol]);
+    if (targetDef) skippedSymbols.add(targetDef.symbol);
+    for (const key of categoryUnits) {
+      const dstDef = UNITS[key];
+      if (dstDef && !skippedSymbols.has(dstDef.symbol)) {
+        const converted = convertValue(numVal, srcDef, dstDef);
+        kvOptions[dstDef.name] =
+          `${formatConversionValue(converted)} ${dstDef.symbol}`;
+      }
+    }
+
     const plaintext = Object.entries(kvOptions)
       .map(([k, v]) => `${k}: ${v}`)
       .join('\n');

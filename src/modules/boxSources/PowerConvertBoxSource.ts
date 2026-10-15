@@ -2,34 +2,21 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
+import {
+  createUnitLookup,
+  formatConversionValue,
+  POWER_UNIT_DEFINITIONS,
+  parseStrictNumber,
+  resolveUnit,
+  STRICT_NUMBER_TOKEN,
+} from './UnitConversionData';
+
 const Priority = 10;
 
-// watts per unit — used for all conversions via W as intermediate
-const TO_W = new Map<string, number>([
-  ['w', 1],
-  ['kw', 1000],
-  ['mw', 1e6],
-  ['hp', 745.6998715822702], // mechanical horsepower (NIST)
-  ['ps', 735.49875], // metric horsepower
-  ['btu/h', 0.29307107017],
-  ['btuh', 0.29307107017],
-]);
-
-// display labels for each output unit, in order
-const OUTPUT_UNITS: { key: string; label: string }[] = [
-  { key: 'w', label: 'W' },
-  { key: 'kw', label: 'kW' },
-  { key: 'mw', label: 'MW' },
-  { key: 'hp', label: 'hp' },
-  { key: 'ps', label: 'PS' },
-  { key: 'btu/h', label: 'BTU/h' },
-];
-
-// formats a converted value: exact integer if whole, else 6 decimal places stripped of trailing zeros
-function formatValue(n: number): string {
-  if (Number.isInteger(n)) return String(n);
-  return String(Number.parseFloat(n.toFixed(6)));
-}
+const UNIT_LOOKUP = createUnitLookup(POWER_UNIT_DEFINITIONS);
+const SUPPORTED_UNITS = POWER_UNIT_DEFINITIONS.map(
+  ({ outputSymbol, symbol }) => outputSymbol ?? symbol,
+).join(', ');
 
 // builds a plaintext "key: value" block suitable for headless rendering
 function kvToPlaintext(pairs: Record<string, string>): string {
@@ -38,8 +25,10 @@ function kvToPlaintext(pairs: Record<string, string>): string {
     .join('\n');
 }
 
-const PARSE_RE = /^(-?\d+(?:\.\d+)?)\s*([a-zA-Z/]+)$/;
-const SUPPORTED_UNITS = 'W, kW, MW, hp, PS, BTU/h';
+const PARSE_RE = new RegExp(
+  `^(${STRICT_NUMBER_TOKEN})\\s*([a-zA-Z]+(?:/[a-zA-Z]+)?)$`,
+  'i',
+);
 
 export const PowerConvertBoxSource = {
   defaultDisabled: true,
@@ -74,11 +63,24 @@ export const PowerConvertBoxSource = {
       ];
     }
 
-    const value = Number.parseFloat(match[1]);
-    const unitKey = match[2].toLowerCase();
-    const factor = TO_W.get(unitKey);
+    const value = parseStrictNumber(match[1]);
+    const definition = resolveUnit(UNIT_LOOKUP, match[2]);
 
-    if (factor === undefined) {
+    if (value === null) {
+      const pairs = {
+        Error: 'Invalid format. Expected: <number> <unit>',
+        'Supported units': SUPPORTED_UNITS,
+      };
+      return [
+        new BoxBuilder('Power Convert', kvToPlaintext(pairs))
+          .setView('keyValue')
+          .setOptions(pairs)
+          .setPriority(this.priority)
+          .build(),
+      ];
+    }
+
+    if (definition === null) {
       // unknown unit — return a box listing supported units
       const pairs = {
         Error: `Unknown unit: ${match[2]}`,
@@ -93,17 +95,17 @@ export const PowerConvertBoxSource = {
       ];
     }
 
-    const watts = value * factor;
+    const watts = value * definition.factor;
 
     // build ordered key-value pairs for all output units + the original input
     const kvPairs: Record<string, string> = {
       Input: raw,
     };
 
-    for (const { key, label } of OUTPUT_UNITS) {
-      const outputFactor = TO_W.get(key);
-      if (outputFactor === undefined) continue;
-      kvPairs[label] = formatValue(watts / outputFactor);
+    for (const output of POWER_UNIT_DEFINITIONS) {
+      kvPairs[output.outputSymbol ?? output.symbol] = formatConversionValue(
+        watts / output.factor,
+      );
     }
 
     const plaintext = kvToPlaintext(kvPairs);
