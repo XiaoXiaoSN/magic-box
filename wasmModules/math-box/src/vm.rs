@@ -2,7 +2,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use crate::compiler::{Inst, Program, UserFn};
+use crate::compiler::{Inst, Program, Shared, UserFn};
 use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
@@ -13,7 +13,7 @@ const MAX_FRAME_DEPTH: usize = 32;
 
 pub struct Scope {
     frames: Vec<BTreeMap<String, Value>>,
-    user_fns: BTreeMap<String, UserFn>,
+    user_fns: BTreeMap<String, Shared<UserFn>>,
 }
 
 impl Default for Scope {
@@ -62,7 +62,7 @@ impl Scope {
         }
     }
 
-    pub fn define_fn(&mut self, name: String, f: UserFn) {
+    pub fn define_fn(&mut self, name: String, f: Shared<UserFn>) {
         self.user_fns.insert(name, f);
     }
 }
@@ -242,4 +242,47 @@ fn unop(stack: &mut Vec<Value>, f: fn(Value) -> Result<Value>) -> Result<()> {
     let a = stack.pop().ok_or(Error::UnexpectedEof)?;
     stack.push(f(a)?);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn calls_share_compiled_function_body() {
+        let function = Shared::new(UserFn {
+            params: Vec::new(),
+            body: Program {
+                code: vec![Inst::PushVal(Value::Num(7.0))],
+                user_fns: Vec::new(),
+            },
+        });
+        let program = Program {
+            code: vec![
+                Inst::DefineFn {
+                    name: String::from("f"),
+                    fn_idx: 0,
+                },
+                Inst::Call {
+                    name: String::from("f"),
+                    arity: 0,
+                },
+                Inst::Drop,
+                Inst::Call {
+                    name: String::from("f"),
+                    arity: 0,
+                },
+            ],
+            user_fns: vec![Shared::clone(&function)],
+        };
+        let mut scope = Scope::new();
+        let mut budget = WorkBudget::new();
+        let value = run(&program, &Namespace::new(), &mut scope, &mut budget).expect("run");
+
+        assert_eq!(value, Value::Num(7.0));
+        assert!(Shared::ptr_eq(
+            scope.user_fns.get("f").expect("defined function"),
+            &function
+        ));
+    }
 }

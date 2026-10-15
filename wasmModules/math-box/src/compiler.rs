@@ -3,6 +3,12 @@ use alloc::collections::BTreeSet;
 use alloc::string::String;
 use alloc::vec::Vec;
 
+// preserve native thread safety without atomic reference counts in the WASM VM.
+#[cfg(target_arch = "wasm32")]
+pub(crate) use alloc::rc::Rc as Shared;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use alloc::sync::Arc as Shared;
+
 use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
@@ -43,7 +49,7 @@ pub struct UserFn {
 #[derive(Clone, Debug, Default)]
 pub struct Program {
     pub code: Vec<Inst>,
-    pub user_fns: Vec<UserFn>,
+    pub user_fns: Vec<Shared<UserFn>>,
 }
 
 pub fn compile(expr: Expr, ns: &Namespace, budget: &mut WorkBudget) -> Result<Program> {
@@ -65,7 +71,7 @@ fn compile_with(
 ) -> Result<Program> {
     let folded = fold(expr, ns, shadowed, budget)?;
     let mut prog = Program::default();
-    lower(&folded, &mut prog, ns, shadowed, budget)?;
+    lower(folded, &mut prog, ns, shadowed, budget)?;
     Ok(prog)
 }
 
@@ -287,7 +293,7 @@ fn fold(
 }
 
 fn lower(
-    e: &Expr,
+    e: Expr,
     prog: &mut Program,
     ns: &Namespace,
     shadowed: &BTreeSet<String>,
@@ -295,53 +301,50 @@ fn lower(
 ) -> Result<()> {
     budget.consume(1)?;
     match e {
-        Expr::Num(n) => prog.code.push(Inst::PushVal(Value::Num(*n))),
-        Expr::Bool(value) => prog.code.push(Inst::PushVal(Value::Bool(*value))),
+        Expr::Num(n) => prog.code.push(Inst::PushVal(Value::Num(n))),
+        Expr::Bool(value) => prog.code.push(Inst::PushVal(Value::Bool(value))),
         Expr::BigLit(text) => {
             #[cfg(feature = "bigint")]
             {
                 use core::str::FromStr;
-                let v = num_bigint::BigInt::from_str(text).map_err(|_| Error::InvalidNumber {
-                    text: text.clone(),
-                    pos: 0,
-                })?;
+                let v = num_bigint::BigInt::from_str(&text)
+                    .map_err(|_| Error::InvalidNumber { text, pos: 0 })?;
                 prog.code.push(Inst::PushVal(Value::Big(v)));
             }
             #[cfg(not(feature = "bigint"))]
             {
-                let n: f64 = text.parse().map_err(|_| Error::InvalidNumber {
-                    text: text.clone(),
-                    pos: 0,
-                })?;
+                let n: f64 = text
+                    .parse()
+                    .map_err(|_| Error::InvalidNumber { text, pos: 0 })?;
                 prog.code.push(Inst::PushVal(Value::Num(n)));
             }
         }
-        Expr::Str(s) => prog.code.push(Inst::PushVal(Value::Str(s.clone()))),
-        Expr::Var(name) => prog.code.push(Inst::LoadVar(name.clone())),
+        Expr::Str(s) => prog.code.push(Inst::PushVal(Value::Str(s))),
+        Expr::Var(name) => prog.code.push(Inst::LoadVar(name)),
         Expr::Bin { op, lhs, rhs } => match op {
             BinOp::And => {
-                lower(lhs, prog, ns, shadowed, budget)?;
+                lower(*lhs, prog, ns, shadowed, budget)?;
                 let jump = prog.code.len();
                 prog.code.push(Inst::JumpIfFalse(usize::MAX));
                 prog.code.push(Inst::Drop);
-                lower(rhs, prog, ns, shadowed, budget)?;
+                lower(*rhs, prog, ns, shadowed, budget)?;
                 prog.code.push(Inst::RequireBool("&&"));
                 let target = prog.code.len();
                 prog.code[jump] = Inst::JumpIfFalse(target);
             }
             BinOp::Or => {
-                lower(lhs, prog, ns, shadowed, budget)?;
+                lower(*lhs, prog, ns, shadowed, budget)?;
                 let jump = prog.code.len();
                 prog.code.push(Inst::JumpIfTrue(usize::MAX));
                 prog.code.push(Inst::Drop);
-                lower(rhs, prog, ns, shadowed, budget)?;
+                lower(*rhs, prog, ns, shadowed, budget)?;
                 prog.code.push(Inst::RequireBool("||"));
                 let target = prog.code.len();
                 prog.code[jump] = Inst::JumpIfTrue(target);
             }
             _ => {
-                lower(lhs, prog, ns, shadowed, budget)?;
-                lower(rhs, prog, ns, shadowed, budget)?;
+                lower(*lhs, prog, ns, shadowed, budget)?;
+                lower(*rhs, prog, ns, shadowed, budget)?;
                 prog.code.push(match op {
                     BinOp::Add => Inst::Add,
                     BinOp::Sub => Inst::Sub,
@@ -349,63 +352,57 @@ fn lower(
                     BinOp::Div => Inst::Div,
                     BinOp::Rem => Inst::Rem,
                     BinOp::Pow => Inst::Pow,
-                    BinOp::Compare(op) => Inst::Compare(*op),
+                    BinOp::Compare(op) => Inst::Compare(op),
                     BinOp::And | BinOp::Or => unreachable!(),
                 });
             }
         },
         Expr::Neg(x) => {
-            lower(x, prog, ns, shadowed, budget)?;
+            lower(*x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Neg);
         }
-        Expr::Pos(x) => lower(x, prog, ns, shadowed, budget)?,
+        Expr::Pos(x) => lower(*x, prog, ns, shadowed, budget)?,
         Expr::Not(x) => {
-            lower(x, prog, ns, shadowed, budget)?;
+            lower(*x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Not);
         }
         Expr::Percent(x) => {
-            lower(x, prog, ns, shadowed, budget)?;
+            lower(*x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Percent);
         }
         Expr::Fact(x) => {
-            lower(x, prog, ns, shadowed, budget)?;
+            lower(*x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Fact);
         }
         Expr::Call { name, args } => {
+            let arity = args.len();
             for a in args {
                 lower(a, prog, ns, shadowed, budget)?;
             }
-            prog.code.push(Inst::Call {
-                name: name.clone(),
-                arity: args.len(),
-            });
+            prog.code.push(Inst::Call { name, arity });
         }
         Expr::Assign { name, value } => {
-            if let Expr::Lambda { params, body } = value.as_ref() {
+            if let Expr::Lambda { params, body } = *value {
                 // recurse with the *outer* shadow set so that calls inside
                 // the body cannot be folded against builtins of the same
                 // name as a user-defined function in the surrounding program.
-                // we clone the body sub-tree because lower owns only a borrow
-                // of the surrounding Assign node.
                 let mut body_shadowed = shadowed.clone();
                 body_shadowed.extend(params.iter().cloned());
-                let body_prog = compile_with((**body).clone(), ns, &body_shadowed, budget)?;
+                let body_prog = compile_with(*body, ns, &body_shadowed, budget)?;
                 let fn_idx = prog.user_fns.len();
-                prog.user_fns.push(UserFn {
-                    params: params.clone(),
+                let param_count = params.len();
+                prog.user_fns.push(Shared::new(UserFn {
+                    params,
                     body: body_prog,
-                });
-                prog.code.push(Inst::DefineFn {
-                    name: name.clone(),
-                    fn_idx,
-                });
+                }));
+                let sentinel = alloc::format!("<fn {name}/{param_count}>");
+                prog.code.push(Inst::DefineFn { name, fn_idx });
                 // function definitions are statements; retain a distinct value
                 // kind so a user string cannot be mistaken for a function.
-                let sentinel = alloc::format!("<fn {}/{}>", name, params.len());
                 prog.code.push(Inst::PushVal(Value::Function(sentinel)));
             } else {
-                lower(value, prog, ns, shadowed, budget)?;
-                prog.code.push(Inst::StoreKeep(name.clone()));
+                lower(*value, prog, ns, shadowed, budget)?;
+                prog.code.push(Inst::StoreKeep(name));
             }
         }
         Expr::Block(stmts) => {
@@ -414,7 +411,7 @@ fn lower(
                 return Ok(());
             }
             let last = stmts.len() - 1;
-            for (i, s) in stmts.iter().enumerate() {
+            for (i, s) in stmts.into_iter().enumerate() {
                 lower(s, prog, ns, shadowed, budget)?;
                 if i != last {
                     prog.code.push(Inst::Drop);
