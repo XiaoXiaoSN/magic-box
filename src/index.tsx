@@ -70,7 +70,7 @@ whenAnalyticsAllowed(() => {
     // of transactions for performance monitoring.
     tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
     // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-    tracePropagationTargets: ['localhost', /^https:\/\/mb\.10oz\.tw/],
+    tracePropagationTargets: ['localhost'],
 
     // No default PII, and no log forwarding: worker failures are already mapped
     // to fixed error codes, so uploading raw logs could only leak user text.
