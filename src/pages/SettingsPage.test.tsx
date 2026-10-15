@@ -24,6 +24,16 @@ function mount() {
 }
 
 describe('Settings timezone and defaults', () => {
+  it('localizes source names and kinds without changing setting IDs', () => {
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify({ locale: 'tw' }));
+    mount();
+
+    expect(screen.getByText('顏色')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('轉換', { selector: '.dnd-kind' }),
+    ).not.toHaveLength(0);
+  });
+
   it('shows UTC+8 as default, saves fractional offsets, and follows the system', () => {
     mount();
     const select = screen.getByRole('combobox', { name: 'Default timezone' });

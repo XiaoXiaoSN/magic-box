@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LocaleProvider } from '../../contexts/LocaleContext';
+import { LocaleProvider, useLocale } from '../../contexts/LocaleContext';
 
 // Mock the heavy children so the page can be tested in isolation without
 // pulling in SettingsContext / WASM box sources. The mocks expose the page's
@@ -53,6 +53,15 @@ const renderPage = () =>
       <MagicBoxPage />
     </LocaleProvider>,
   );
+
+const LocaleSwitcher = () => {
+  const { setLocale } = useLocale();
+  return (
+    <button onClick={() => setLocale('tw')} type="button">
+      switch locale
+    </button>
+  );
+};
 
 const getInput = () => screen.getByTestId('magic-input') as HTMLTextAreaElement;
 
@@ -311,5 +320,27 @@ describe('<MagicBoxPage />', () => {
 
     fireEvent.change(input, { target: { value: '' } });
     expect(input.value).toBe('');
+  });
+
+  it('formats history dates with the active app locale', () => {
+    const timestamp = Date.UTC(2024, 0, 2, 12);
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify([{ id: 'old', timestamp, input: 'old input' }]),
+    );
+    render(
+      <LocaleProvider>
+        <LocaleSwitcher />
+        <MagicBoxPage />
+      </LocaleProvider>,
+    );
+    fireEvent.click(screen.getByTestId('history-toggle'));
+
+    const englishDate = new Date(timestamp).toLocaleDateString('en');
+    const taiwanDate = new Date(timestamp).toLocaleDateString('zh-TW');
+    expect(screen.getByText(englishDate)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'switch locale' }));
+    expect(screen.getByText(taiwanDate)).toBeInTheDocument();
+    expect(englishDate).not.toBe(taiwanDate);
   });
 });

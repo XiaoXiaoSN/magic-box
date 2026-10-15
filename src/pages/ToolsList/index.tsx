@@ -13,6 +13,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { getBoxSourceDisplay, getBoxSourceKind } from '../../i18n';
 import { getBoxSource } from '../../modules/boxSources';
 
 const SELECTION_KEY = 'mb:list:selected';
@@ -28,30 +29,12 @@ const KIND_ORDER = [
   'Generate',
   'Analyze',
   'Info',
+  'Convert',
+  'Calculate',
+  'Hash',
+  'Validate',
+  'Reference',
 ];
-
-type LocaleText = ReturnType<typeof useLocale>['t'];
-
-const getKindLabel = (kind: string | undefined, t: LocaleText) => {
-  if (kind === 'Format') return t('toolsList.kind.format');
-  return kind;
-};
-
-const getSourceDisplay = (source: BoxSource, t: LocaleText) => {
-  if (source.name === 'Data Converter') {
-    return {
-      name: t('toolsList.source.dataConverter.name'),
-      description: t('toolsList.source.dataConverter.description'),
-      kind: getKindLabel(source.kind, t),
-    };
-  }
-
-  return {
-    name: source.name,
-    description: source.description,
-    kind: getKindLabel(source.kind, t),
-  };
-};
 
 const Chevron = ({ direction }: { direction: 'left' | 'right' | 'down' }) => {
   const points =
@@ -109,7 +92,7 @@ const ClearIcon = () => (
 );
 
 const ToolsListPage = (): React.JSX.Element => {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -148,7 +131,7 @@ const ToolsListPage = (): React.JSX.Element => {
     if (!query) return filteredBoxSources;
     const q = query.toLowerCase();
     return filteredBoxSources.filter((b) => {
-      const display = getSourceDisplay(b, t);
+      const display = getBoxSourceDisplay(b, locale);
       return (
         b.name.toLowerCase().includes(q) ||
         b.description?.toLowerCase().includes(q) ||
@@ -158,7 +141,7 @@ const ToolsListPage = (): React.JSX.Element => {
         display.kind?.toLowerCase().includes(q)
       );
     });
-  }, [filteredBoxSources, query, t]);
+  }, [filteredBoxSources, locale, query]);
 
   const grouped = useMemo(() => {
     const byKind: Record<string, BoxSource[]> = {};
@@ -205,7 +188,7 @@ const ToolsListPage = (): React.JSX.Element => {
     );
   }
 
-  const selectedDisplay = getSourceDisplay(selected, t);
+  const selectedDisplay = getBoxSourceDisplay(selected, locale);
   const urlBox = searchParams.get('box');
   const urlInput = searchParams.get('input');
   const initialInput =
@@ -298,11 +281,11 @@ const ToolsListPage = (): React.JSX.Element => {
             {grouped.map(([kind, items]) => (
               <div className="browser-group" key={kind}>
                 <div className="browser-group-head">
-                  <span>{getKindLabel(kind, t)}</span>
+                  <span>{getBoxSourceKind(kind, locale)}</span>
                   <span className="browser-group-count">{items.length}</span>
                 </div>
                 {items.map((b) => {
-                  const display = getSourceDisplay(b, t);
+                  const display = getBoxSourceDisplay(b, locale);
                   return (
                     <button
                       className={`browser-row${b.id === selected.id ? ' active' : ''}`}
@@ -351,8 +334,8 @@ const PreviewPane = ({
   initialInput,
   source,
 }: PreviewPaneProps): React.JSX.Element => {
-  const { t } = useLocale();
-  const display = getSourceDisplay(source, t);
+  const { locale, t } = useLocale();
+  const display = getBoxSourceDisplay(source, locale);
   const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
   const privateInput = useMemo(() => isPrivateInput(input), [input]);

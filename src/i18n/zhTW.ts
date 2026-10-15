@@ -116,6 +116,19 @@ const zhTW: Translations = {
   'time.hoursAgo': '{{n}} 小時前',
   'time.daysAgo': '{{n}} 天前',
 
+  'dice.die': '顆骰子',
+  'dice.dice': '顆骰子',
+  'dice.sixSided': '六面骰',
+  'dice.rolling': '擲骰中…',
+  'dice.gathering': '骰子收集中…',
+  'dice.ready': '擲骰結果',
+  'dice.total': '總和',
+  'dice.reroll': '重新擲骰',
+  'dice.copyTotal': '複製總和：{{total}}',
+  'dice.copyTotalButton': '複製總和',
+  'dice.ariaReady': '第 {{index}} 顆骰子：{{value}}',
+  'dice.ariaRolling': '第 {{index}} 顆骰子：擲骰中',
+
   'boxCard.copy': '複製',
   'boxCard.copied': '已複製',
   'boxCard.expand': '展開',
@@ -147,10 +160,6 @@ const zhTW: Translations = {
   'toolsList.previewOutput': '輸出',
   'toolsList.previewHint': '試試你自己的內容 — 會即時更新',
   'toolsList.noMatch': '沒有符合「{{query}}」的 Box。',
-  'toolsList.kind.format': '格式',
-  'toolsList.source.dataConverter.name': '資料轉換器',
-  'toolsList.source.dataConverter.description':
-    '格式化並在 JSON、YAML、TOML 與 XML 之間轉換。',
 
   'shareLink.copy': '複製分享連結',
   'shareLink.copied': '已複製分享連結',

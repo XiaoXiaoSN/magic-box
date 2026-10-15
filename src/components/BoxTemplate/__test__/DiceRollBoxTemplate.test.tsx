@@ -8,7 +8,9 @@ import {
 } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { LocaleProvider, useLocale } from '../../../contexts/LocaleContext';
 import DiceRollBoxTemplate from '../DiceRollBoxTemplate';
+import { simulateDiceThrow } from '../dicePhysics';
 
 vi.mock('../dicePhysics', () => ({
   simulateDiceThrow: vi.fn(async (rolls: number[]) => ({
@@ -58,10 +60,16 @@ function mockMotion(reduced = false) {
     'matchMedia',
     vi.fn(() => media),
   );
+  let resize: ((width: number) => void) | null = null;
   vi.stubGlobal(
     'ResizeObserver',
     class {
+      constructor(callback: ResizeObserverCallback) {
+        resize = (width) =>
+          callback([{ contentRect: { width } } as ResizeObserverEntry], this);
+      }
       observe() {}
+      unobserve() {}
       disconnect() {}
     },
   );
@@ -69,6 +77,7 @@ function mockMotion(reduced = false) {
     animate,
     cancel,
     media,
+    resize: (width: number) => resize?.(width),
     finish: async () => {
       await act(async () => {
         for (const resolve of pending.splice(0)) resolve();
@@ -77,10 +86,29 @@ function mockMotion(reduced = false) {
   };
 }
 
+function renderDice(
+  props: React.ComponentProps<typeof DiceRollBoxTemplate>,
+): ReturnType<typeof render> {
+  return render(
+    <LocaleProvider>
+      <DiceRollBoxTemplate {...props} />
+    </LocaleProvider>,
+  );
+}
+
+function LocaleSwitcher(): React.JSX.Element {
+  const { setLocale } = useLocale();
+  return (
+    <button onClick={() => setLocale('tw')} type="button">
+      switch locale
+    </button>
+  );
+}
+
 describe('DiceRollBoxTemplate', () => {
   it('waits for physical playback, then gathering, before revealing results and enabling re-roll', async () => {
     const motion = mockMotion();
-    render(<DiceRollBoxTemplate {...props} />);
+    renderDice(props);
     expect(screen.getByRole('button', { name: 'Re-roll' })).toBeDisabled();
     await waitFor(() => expect(motion.animate).toHaveBeenCalledTimes(4));
     await motion.finish();
@@ -93,11 +121,47 @@ describe('DiceRollBoxTemplate', () => {
     expect(props.onClick).toHaveBeenCalledWith('7');
   });
 
+  it('runs one physical simulation per roll and only reapplies layout on resize', async () => {
+    const motion = mockMotion();
+    renderDice({
+      ...props,
+      options: { Dice: '4', Rolls: '[1,2,3,4]', Total: '10' },
+    });
+    await waitFor(() => expect(simulateDiceThrow).toHaveBeenCalledTimes(1));
+
+    motion.resize?.(300);
+    expect(simulateDiceThrow).toHaveBeenCalledTimes(1);
+    expect(
+      screen
+        .getByTestId('magic-box-dice-roll')
+        .querySelector('.dice-roll-tray'),
+    ).toHaveStyle({
+      height: '308px',
+    });
+  });
+
+  it('updates dice labels on locale changes without rerolling', async () => {
+    const motion = mockMotion(true);
+    render(
+      <LocaleProvider>
+        <LocaleSwitcher />
+        <DiceRollBoxTemplate {...props} />
+      </LocaleProvider>,
+    );
+    expect(simulateDiceThrow).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'switch locale' }));
+    expect(simulateDiceThrow).not.toHaveBeenCalled();
+    expect(screen.getByText(/顆骰子/)).toBeInTheDocument();
+    expect(screen.getByText('總和')).toBeInTheDocument();
+    expect(motion.animate).not.toHaveBeenCalled();
+  });
+
   it('re-rolls the same count and publishes consistent plaintext without bubbling a copy', () => {
     mockMotion(true);
     const onResultChange = vi.fn();
     const outerClick = vi.fn();
-    render(<DiceRollBoxTemplate {...props} onResultChange={onResultChange} />);
+    renderDice({ ...props, onResultChange });
     document.body.addEventListener('click', outerClick);
     fireEvent.click(screen.getByRole('button', { name: 'Re-roll' }));
     document.body.removeEventListener('click', outerClick);
@@ -114,13 +178,15 @@ describe('DiceRollBoxTemplate', () => {
 
   it('skips animation for reduced motion and restores external input after a local re-roll', () => {
     const motion = mockMotion(true);
-    const { rerender } = render(<DiceRollBoxTemplate {...props} />);
+    const { rerender } = renderDice(props);
     fireEvent.click(screen.getByRole('button', { name: 'Re-roll' }));
     rerender(
-      <DiceRollBoxTemplate
-        {...props}
-        options={{ Dice: '1', Rolls: '[4]', Total: '4' }}
-      />,
+      <LocaleProvider>
+        <DiceRollBoxTemplate
+          {...props}
+          options={{ Dice: '1', Rolls: '[4]', Total: '4' }}
+        />
+      </LocaleProvider>,
     );
     expect(screen.getAllByRole('img')).toHaveLength(1);
     expect(screen.getByRole('img', { name: 'Die 1: 4' })).toBeTruthy();
@@ -129,7 +195,7 @@ describe('DiceRollBoxTemplate', () => {
 
   it('cancels playback when reduced motion changes and on unmount', async () => {
     const motion = mockMotion();
-    const { unmount } = render(<DiceRollBoxTemplate {...props} />);
+    const { unmount } = renderDice(props);
     await waitFor(() => expect(motion.animate).toHaveBeenCalledTimes(4));
     await act(async () => {
       motion.media.matches = true;

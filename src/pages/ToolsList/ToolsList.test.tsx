@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../contexts/PreferencesContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
+import { LOCAL_PREFS_KEY } from '../../functions/localPrefs';
 import WordCountBoxSource from '../../modules/boxSources/WordCountBoxSource';
 import ToolsListPage from './index';
 
@@ -116,6 +117,24 @@ describe('/list exposes the Local AI box', () => {
 });
 
 describe('/list preview input state', () => {
+  it('localizes source metadata and searches localized names', async () => {
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify({ locale: 'tw' }));
+    renderPage(['/list?box=Word%20Count']);
+
+    expect(
+      await screen.findByRole('heading', { name: '字數統計' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('分析', { selector: '.preview-kind' }),
+    ).toBeInTheDocument();
+
+    const search = screen.getByRole('textbox', { name: '搜尋 Box' });
+    fireEvent.change(search, { target: { value: '字數' } });
+    expect(
+      screen.getByRole('button', { name: '字數統計' }),
+    ).toBeInTheDocument();
+  });
+
   it('uses a matching shared input and clears it when switching tools', async () => {
     renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
 

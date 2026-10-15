@@ -32,7 +32,7 @@ import {
   MAX_TIMEZONE_OFFSET,
   MIN_TIMEZONE_OFFSET,
 } from '../functions/timezone';
-import { DEFAULT_LOCALE, type Locale } from '../i18n';
+import { DEFAULT_LOCALE, getBoxSourceDisplay, type Locale } from '../i18n';
 import { boxSources } from '../modules/boxSources';
 
 // Lazy: the client and its worker-facing modules must not ride along in the
@@ -66,7 +66,10 @@ interface SortableRowProps {
 }
 
 const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
+  const display = source
+    ? getBoxSourceDisplay(source, locale)
+    : { name: box.id, description: '', kind: '' };
   const {
     attributes,
     listeners,
@@ -84,8 +87,6 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
   ]
     .filter(Boolean)
     .join(' ');
-  const displayName = source?.name ?? box.id;
-
   return (
     <div
       ref={setNodeRef}
@@ -96,7 +97,7 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       }}
     >
       <button
-        aria-label={t('settings.dragReorderLabel', { name: displayName })}
+        aria-label={t('settings.dragReorderLabel', { name: display.name })}
         className="dnd-grip"
         ref={setActivatorNodeRef}
         type="button"
@@ -111,13 +112,13 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       <span aria-hidden="true" className="dnd-tag">
         {source?.tag ?? '·'}
       </span>
-      <span className="dnd-title">{displayName}</span>
-      <span className="dnd-kind">{source?.kind ?? ''}</span>
+      <span className="dnd-title">{display.name}</span>
+      <span className="dnd-kind">{display.kind}</span>
       <button
         aria-label={
           box.enabled
-            ? t('settings.disableBoxLabel', { name: displayName })
-            : t('settings.enableBoxLabel', { name: displayName })
+            ? t('settings.disableBoxLabel', { name: display.name })
+            : t('settings.enableBoxLabel', { name: display.name })
         }
         className={`toggle${box.enabled ? ' on' : ''}`}
         onClick={() => onToggle(box.id)}
