@@ -57,6 +57,14 @@ describe('CaseConverterBoxSource', () => {
     expect(boxOptions(box).snake_case).toBe('a'.repeat(100_000));
   });
 
+  it('handles a maximum-size combining-mark run without repeated suffix scans', async () => {
+    const marks = String.fromCodePoint(0x301).repeat(100_000);
+    const [box] = await CaseConverterBoxSource.generateBoxes(`A${marks}`, {
+      case: 'snake',
+    });
+    expect(box.props.plaintextOutput).toBe(`a${marks}`);
+  });
+
   it('splits Unicode case and acronym boundaries while preserving CJK and emoji', async () => {
     const [box] = await CaseConverterBoxSource.generateBoxes(
       'ÄpfelÜber 中文測試 👩‍💻',

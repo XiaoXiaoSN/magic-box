@@ -4,7 +4,7 @@ These tools are disabled by default and run locally in the web app and TUI. Add 
 
 ## Case Converter
 
-Use `::case` to list camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase, and UPPERCASE. Use `::case=snake` or a single-format alias such as `::camel`, `::path`, or `::upper` to show one result. Each non-empty line is converted separately, and its original line endings are preserved. Case boundaries use Unicode uppercase/lowercase letters; letter-to-number boundaries are split, so `v2ApiKey` becomes `v_2_api_key`. CJK and emoji are retained. Inputs are limited to 100 KiB.
+Use `::case` to list camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase, and UPPERCASE. Use `::case=snake` or a single-format alias such as `::camel`, `::path`, or `::upper` to show one result. Each retained line is converted separately, and internal blank lines remain. The shared input parser normalizes CRLF and CR line endings to LF and trims surrounding whitespace before conversion. Case boundaries use Unicode uppercase/lowercase letters; letter-to-number boundaries are split, so `v2ApiKey` becomes `v_2_api_key`. CJK and emoji are retained. Inputs are limited to 100 KiB.
 
 ## HTML Entities
 

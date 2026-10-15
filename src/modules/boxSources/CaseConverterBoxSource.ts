@@ -40,11 +40,14 @@ function tokenize(input: string): string[] {
     }
 
     if (token) {
-      let nextKind = kinds[index + 1] ?? 'other';
-      let lookahead = index + 1;
-      while (nextKind === 'mark') {
-        lookahead += 1;
+      let nextKind = 'other';
+      if (previousKind === 'upper' && kind === 'upper') {
+        let lookahead = index + 1;
         nextKind = kinds[lookahead] ?? 'other';
+        while (nextKind === 'mark') {
+          lookahead += 1;
+          nextKind = kinds[lookahead] ?? 'other';
+        }
       }
       const letterBoundary =
         (previousKind === 'lower' && kind === 'upper') ||
