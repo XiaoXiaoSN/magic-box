@@ -212,5 +212,6 @@ Math source; they are not evidence of browser fuzzing coverage.
 
 [benches/eval.rs](benches/eval.rs) benchmarks six full-pipeline cases: simple,
 medium, trig, hex, factorial and nested expressions. It does not benchmark a
-precompiled handle. See [BENCHMARK.md](BENCHMARK.md) for a dated WASM-versus-JS
-measurement, its exact artifact and the reproduction command.
+precompiled handle. See [BENCHMARK.md](BENCHMARK.md) for validated native and
+shipping WASM measurements, exact artifacts, provenance, raw samples and
+reproduction commands.
