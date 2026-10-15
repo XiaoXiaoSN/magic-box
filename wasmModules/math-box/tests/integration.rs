@@ -627,6 +627,17 @@ fn reviewed_unit_parser_and_display_regressions() {
     assert_eval(r#"unit(1, "s^-1") * unit(1, "s^-1")"#, "1 s^-2");
     assert_eval("5 / 2 m^2", "2.5 m^-2");
     assert_eval("1e-13 m", "1e-13 m");
+    assert_eval("1000000000000000.25 m", "1000000000000000.3 m");
+    assert_eval("1000000000000000.5 m", "1000000000000000.5 m");
+    assert_eval("1000000000000000.5 m - 1000000000000000 m", "0.5 m");
+    assert_eval("sqrt(4 km*m)", "63.245553203367585 m");
+    assert_eval("sqrt(4 km*m) to m", "63.245553203367585 m");
+    assert_eval("sqrt(4 N*kg*m)", "2 m*kg/s");
+    assert_eval("sqrt(4 m/m)", "2");
+    assert_eval("4 km/m", "4000");
+    assert_eval(r#"unit(4, "km/m")"#, "4000");
+    assert_eval("4 km / 1 m", "4000");
+    assert_eval("4 km/m + 1", "4001");
     assert!(math_box::evaluate("1 nm^50").is_err());
 }
 
@@ -638,8 +649,38 @@ fn reviewed_logical_and_numeric_regressions() {
     assert_eval("true || ((-1)! == 1)", "true");
     assert_eval("2 min(1, 2)", "2");
     assert_eval("2 min", "2 min");
+    assert_eval("2 m / min(1, 2)", "2 m");
+    assert_eval("2 m * min(1, 2)", "2 m");
+    assert_eval("2 m/min", "2 m/min");
     assert_eval("2n^2000 < Infinity", "true");
     assert_eval("2n^2000 == Infinity", "false");
+    assert_eval("frac(2n^2000, 1) < Infinity", "true");
+    assert_eval("frac(2n^2000, 1) == Infinity", "false");
+    assert_eval("Infinity > frac(2n^2000, 1)", "true");
+    assert_eval("Infinity == frac(2n^2000, 1)", "false");
+    assert_eval("9007199254740993n == complex(9007199254740992, 0)", "false");
+    assert_eval("complex(9007199254740992, 0) == 9007199254740993n", "false");
+    assert_eval("frac(1, 2) == complex(0.5, 0)", "true");
+    assert_eval("complex(0.5, 0) == frac(1, 2)", "true");
+    assert_eval("frac(1, 10) == complex(0.1, 0)", "false");
+    assert_eval("complex(0.1, 0) == frac(1, 10)", "false");
+}
+
+#[test]
+#[cfg(feature = "fraction")]
+fn fraction_float_comparisons_are_exact_without_bigint() {
+    assert_eval("frac(1, 2) == 0.5", "true");
+    assert_eval("0.5 == frac(1, 2)", "true");
+    assert_eval("frac(1, 10) == 0.1", "false");
+    assert_eval("0.1 == frac(1, 10)", "false");
+    assert_eval("frac(1, 3) < Infinity", "true");
+    assert_eval("Infinity > frac(1, 3)", "true");
+
+    #[cfg(feature = "complex")]
+    {
+        assert_eval("frac(1, 2) == complex(0.5, 0)", "true");
+        assert_eval("complex(0.1, 0) == frac(1, 10)", "false");
+    }
 }
 
 #[test]

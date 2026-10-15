@@ -107,6 +107,7 @@ pub fn default_namespace() -> Namespace {
                 unit_label: value.unit_label.clone(),
                 display_factor: value.display_factor,
                 display_offset: value.display_offset,
+                display_value_override: Some(display_value),
                 dim: value.dim,
                 affine: value.affine,
             }))
@@ -234,11 +235,15 @@ pub fn default_namespace() -> Namespace {
                     what: "temperature below absolute zero",
                 });
             }
+            if spec.dim == crate::value::Dimension::SCALAR {
+                return Ok(Value::Num(base_value));
+            }
             Ok(Value::Unit(crate::value::UnitValue {
                 base_value,
                 unit_label: label.into(),
                 display_factor: spec.factor,
                 display_offset: spec.offset,
+                display_value_override: Some(value),
                 dim: spec.dim,
                 affine: spec.affine,
             }))
@@ -278,6 +283,16 @@ pub fn default_namespace() -> Namespace {
                 unit_label: to_label.into(),
                 display_factor: spec.factor,
                 display_offset: spec.offset,
+                display_value_override: if spec.dim == crate::value::Dimension::TEMPERATURE {
+                    match to_label {
+                        "K" | "k" => Some(unit_v.base_value),
+                        "degC" | "°C" => Some(unit_v.base_value - 273.15),
+                        "degF" | "°F" => Some((unit_v.base_value - 273.15) * (9.0 / 5.0) + 32.0),
+                        _ => None,
+                    }
+                } else {
+                    None
+                },
                 dim: spec.dim,
                 affine: spec.affine,
             }))
@@ -371,12 +386,21 @@ fn sqrt_value(args: &[Value]) -> Result<Value> {
             temperature: value.dim.temperature / 2,
             data: value.dim.data / 2,
         };
+        let base_value = value.base_value.sqrt();
+        if dim == crate::value::Dimension::SCALAR {
+            return Ok(Value::Num(base_value));
+        }
+        let (unit_label, display_factor) = crate::units::format_sqrt(&value.unit_label)
+            .map_or_else(
+                || (dim.canonical_label(), 1.0),
+                |label| (label, value.display_factor.sqrt()),
+            );
         return Ok(Value::Unit(crate::value::UnitValue {
-            base_value: value.base_value.sqrt(),
-            unit_label: crate::units::format_sqrt(&value.unit_label)
-                .unwrap_or_else(|| value.dim.canonical_label()),
-            display_factor: value.display_factor.sqrt(),
+            base_value,
+            unit_label,
+            display_factor,
             display_offset: 0.0,
+            display_value_override: None,
             dim,
             affine: false,
         }));

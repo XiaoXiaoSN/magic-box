@@ -473,8 +473,10 @@ impl<'a> Parser<'a> {
     }
 
     fn unit_label_after_operator(&self) -> Option<String> {
-        match (&self.peek().tok, &self.peek_n(1).tok) {
-            (Tok::Slash | Tok::Star, Tok::Ident(label)) if crate::units::is_label(label) => {
+        match (&self.peek().tok, &self.peek_n(1).tok, &self.peek_n(2).tok) {
+            (Tok::Slash | Tok::Star, Tok::Ident(label), next)
+                if crate::units::is_label(label) && !matches!(next, Tok::LParen) =>
+            {
                 Some(label.clone())
             }
             _ => None,
@@ -484,7 +486,11 @@ impl<'a> Parser<'a> {
     fn parse_unit_target(&mut self) -> Result<String> {
         let first = self.advance().clone();
         let mut label = match first.tok {
-            Tok::Ident(label) if crate::units::is_label(&label) => label,
+            Tok::Ident(label)
+                if crate::units::is_label(&label) && !matches!(self.peek().tok, Tok::LParen) =>
+            {
+                label
+            }
             _ => {
                 return Err(Error::UnexpectedToken {
                     what: "unit label after `to`",

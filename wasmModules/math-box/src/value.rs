@@ -580,7 +580,8 @@ pub struct UnitValue {
     pub unit_label: String,  // structured display label, for example `km/h`
     pub display_factor: f64, // scale from the display unit to the base unit
     pub display_offset: f64, // affine offset in base units, zero for multiplicative units
-    pub dim: Dimension,      // exponents over (length, mass, time)
+    pub display_value_override: Option<f64>, // preserves explicit display values before arithmetic
+    pub dim: Dimension,      // exponents over the base dimensions
     pub affine: bool,
 }
 
@@ -755,21 +756,15 @@ fn dimension_factor(unit: &str, exponent: i16) -> String {
 #[cfg(feature = "unit")]
 impl UnitValue {
     pub fn display_value(&self) -> f64 {
-        let value = (self.base_value - self.display_offset) / self.display_factor;
-        let rounded = value.round();
-        let tolerance = f64::EPSILON * value.abs() * 32.0;
-        if (value - rounded).abs() <= tolerance {
-            rounded
-        } else {
-            value
-        }
+        self.display_value_override
+            .unwrap_or_else(|| (self.base_value - self.display_offset) / self.display_factor)
     }
 
     pub fn validate_display(&self) -> Result<()> {
         if !self.display_factor.is_finite() || self.display_factor == 0.0 {
             return Err(Error::Overflow);
         }
-        let value = (self.base_value - self.display_offset) / self.display_factor;
+        let value = self.display_value();
         if !value.is_finite() {
             return Err(Error::Overflow);
         }

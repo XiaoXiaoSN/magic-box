@@ -103,6 +103,108 @@ fn num_to_bigint(n: f64) -> Option<BigInt> {
     BigInt::from_f64(n)
 }
 
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+fn fraction_from_finite_num(value: f64) -> Fraction {
+    if value == 0.0 {
+        return Fraction::from_int(0);
+    }
+    let bits = value.to_bits();
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i16;
+    let fraction_bits = bits & ((1_u64 << 52) - 1);
+    let (mantissa, exponent) = if exponent_bits == 0 {
+        (fraction_bits, -1074)
+    } else {
+        (fraction_bits | (1_u64 << 52), exponent_bits - 1023 - 52)
+    };
+    let mut numerator = BigInt::from(mantissa);
+    if bits >> 63 != 0 {
+        numerator = -numerator;
+    }
+    if exponent >= 0 {
+        numerator <<= exponent as usize;
+        Fraction::raw_from_int_backend(numerator)
+    } else {
+        let denominator = BigInt::from(1_u8) << (-exponent) as usize;
+        Fraction(num_rational::Ratio::new(numerator, denominator))
+    }
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+fn compare_fraction_finite_num(left: &Fraction, right: f64) -> core::cmp::Ordering {
+    left.0.cmp(&fraction_from_finite_num(right).0)
+}
+
+#[cfg(all(feature = "fraction", not(feature = "bigint")))]
+fn compare_fraction_finite_num(left: &Fraction, right: f64) -> core::cmp::Ordering {
+    use core::cmp::Ordering;
+
+    let numerator = *left.0.numer();
+    if right == 0.0 {
+        return numerator.cmp(&0);
+    }
+    if numerator == 0 {
+        return if right.is_sign_negative() {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        };
+    }
+    let negative = numerator.is_negative();
+    if negative != right.is_sign_negative() {
+        return if negative {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        };
+    }
+
+    let bits = right.to_bits() & !(1_u64 << 63);
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i16;
+    let fraction_bits = bits & ((1_u64 << 52) - 1);
+    let (mantissa, exponent) = if exponent_bits == 0 {
+        (fraction_bits, -1074)
+    } else {
+        (fraction_bits | (1_u64 << 52), exponent_bits - 1023 - 52)
+    };
+    let numerator = u128::from(numerator.unsigned_abs());
+    let denominator = u128::from(*left.0.denom() as u64);
+    let magnitude = if exponent >= 0 {
+        denominator
+            .checked_mul(u128::from(mantissa))
+            .and_then(|value| {
+                1_u128
+                    .checked_shl(exponent as u32)
+                    .and_then(|scale| value.checked_mul(scale))
+            })
+            .map_or(Ordering::Less, |right| numerator.cmp(&right))
+    } else {
+        1_u128
+            .checked_shl((-exponent) as u32)
+            .and_then(|scale| numerator.checked_mul(scale))
+            .map_or(Ordering::Greater, |left| {
+                left.cmp(&(denominator * u128::from(mantissa)))
+            })
+    };
+    if negative {
+        magnitude.reverse()
+    } else {
+        magnitude
+    }
+}
+
+#[cfg(feature = "fraction")]
+fn fraction_num_ordering(left: &Fraction, right: f64) -> Option<core::cmp::Ordering> {
+    if right.is_nan() {
+        None
+    } else if right == f64::INFINITY {
+        Some(core::cmp::Ordering::Less)
+    } else if right == f64::NEG_INFINITY {
+        Some(core::cmp::Ordering::Greater)
+    } else {
+        Some(compare_fraction_finite_num(left, right))
+    }
+}
+
 #[cfg(feature = "bigint")]
 fn promote_num_arithmetic(op: char, x: f64, y: f64) -> Result<Option<Value>> {
     if !x.is_finite()
@@ -267,6 +369,7 @@ pub fn add(a: Value, b: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: x.display_offset,
+                display_value_override: None,
                 dim: x.dim,
                 affine: false,
             })
@@ -382,6 +485,7 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: x.display_offset,
+                display_value_override: None,
                 dim: x.dim,
                 affine: false,
             })
@@ -472,6 +576,7 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: 0.0,
+                display_value_override: None,
                 dim: x.dim,
                 affine: false,
             })
@@ -505,6 +610,7 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
                         x.display_factor * y.display_factor
                     },
                     display_offset: 0.0,
+                    display_value_override: None,
                     dim,
                     affine: false,
                 })
@@ -621,6 +727,7 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: 0.0,
+                display_value_override: None,
                 dim: x.dim,
                 affine: false,
             })
@@ -648,6 +755,7 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
                     unit_label: crate::units::format_quotient("", &y.unit_label),
                     display_factor: 1.0 / y.display_factor,
                     display_offset: 0.0,
+                    display_value_override: None,
                     dim,
                     affine: false,
                 })
@@ -676,6 +784,7 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
                     unit_label: crate::units::format_quotient(&x.unit_label, &y.unit_label),
                     display_factor: x.display_factor / y.display_factor,
                     display_offset: 0.0,
+                    display_value_override: None,
                     dim,
                     affine: false,
                 })
@@ -764,6 +873,7 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: 0.0,
+                display_value_override: None,
                 dim: x.dim,
                 affine: false,
             }))
@@ -1005,6 +1115,7 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
                 unit_label: crate::units::format_power(&value.unit_label, exponent),
                 display_factor,
                 display_offset: 0.0,
+                display_value_override: None,
                 dim,
                 affine: false,
             }))
@@ -1156,6 +1267,36 @@ pub fn compare(a: Value, b: Value, op: CmpOp) -> Result<Value> {
         return Ok(Value::Bool(if op == CmpOp::Eq { equal } else { !equal }));
     }
 
+    #[cfg(feature = "complex")]
+    if let Value::Complex(left) = &a {
+        if !matches!(op, CmpOp::Eq | CmpOp::NotEq) {
+            return Err(Error::TypeMismatch {
+                op: comparison_symbol(op),
+                lhs: "complex",
+                rhs: b.type_name(),
+            });
+        }
+        if left.im != 0.0 {
+            return Ok(Value::Bool(op == CmpOp::NotEq));
+        }
+        return compare(Value::Num(left.re), b, op);
+    }
+
+    #[cfg(feature = "complex")]
+    if let Value::Complex(right) = &b {
+        if !matches!(op, CmpOp::Eq | CmpOp::NotEq) {
+            return Err(Error::TypeMismatch {
+                op: comparison_symbol(op),
+                lhs: a.type_name(),
+                rhs: "complex",
+            });
+        }
+        if right.im != 0.0 {
+            return Ok(Value::Bool(op == CmpOp::NotEq));
+        }
+        return compare(a, Value::Num(right.re), op);
+    }
+
     #[cfg(feature = "bigint")]
     if let (Value::Big(left), Value::Big(right)) = (&a, &b) {
         return Ok(Value::Bool(left.cmp(right).matches(op)));
@@ -1195,17 +1336,17 @@ pub fn compare(a: Value, b: Value, op: CmpOp) -> Result<Value> {
     }
 
     #[cfg(feature = "fraction")]
-    if let (Value::Frac(left), Value::Num(right)) = (&a, &b)
-        && let Ok(right) = Fraction::from_f64_integer(*right)
-    {
-        return Ok(Value::Bool(left.0.cmp(&right.0).matches(op)));
+    if let (Value::Frac(left), Value::Num(right)) = (&a, &b) {
+        return Ok(Value::Bool(fraction_num_ordering(left, *right).matches(op)));
     }
 
     #[cfg(feature = "fraction")]
-    if let (Value::Num(left), Value::Frac(right)) = (&a, &b)
-        && let Ok(left) = Fraction::from_f64_integer(*left)
-    {
-        return Ok(Value::Bool(left.0.cmp(&right.0).matches(op)));
+    if let (Value::Num(left), Value::Frac(right)) = (&a, &b) {
+        return Ok(Value::Bool(
+            fraction_num_ordering(right, *left)
+                .map(core::cmp::Ordering::reverse)
+                .matches(op),
+        ));
     }
 
     #[cfg(all(feature = "bigint", feature = "fraction"))]
@@ -1294,6 +1435,25 @@ fn compare_num_nonfinite(left: f64, _right: &BigInt, op: CmpOp) -> bool {
 
 trait OrderingMatches {
     fn matches(self, op: CmpOp) -> bool;
+}
+
+impl OrderingMatches for Option<core::cmp::Ordering> {
+    fn matches(self, op: CmpOp) -> bool {
+        match op {
+            CmpOp::Eq => self == Some(core::cmp::Ordering::Equal),
+            CmpOp::NotEq => self != Some(core::cmp::Ordering::Equal),
+            CmpOp::Lt => self == Some(core::cmp::Ordering::Less),
+            CmpOp::LtEq => matches!(
+                self,
+                Some(core::cmp::Ordering::Less | core::cmp::Ordering::Equal)
+            ),
+            CmpOp::Gt => self == Some(core::cmp::Ordering::Greater),
+            CmpOp::GtEq => matches!(
+                self,
+                Some(core::cmp::Ordering::Greater | core::cmp::Ordering::Equal)
+            ),
+        }
+    }
 }
 
 impl OrderingMatches for core::cmp::Ordering {
@@ -1454,6 +1614,7 @@ pub fn neg(a: Value) -> Result<Value> {
                 unit_label: x.unit_label,
                 display_factor: x.display_factor,
                 display_offset: x.display_offset,
+                display_value_override: Some(display_value),
                 dim: x.dim,
                 affine: x.affine,
             })
