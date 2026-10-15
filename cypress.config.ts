@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
 const preprocessorDir = join(tmpdir(), 'magic-box-cypress-preprocessor');
 
 // use the pinned Bun toolchain so Cypress does not load a mismatched webpack TypeScript compiler.
-async function preprocessCypressFile(
+export async function preprocessCypressFile(
   file: Cypress.FileObject,
 ): Promise<string> {
   await mkdir(preprocessorDir, { recursive: true });

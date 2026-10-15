@@ -335,6 +335,55 @@ jobs:
             cypress/videos
           if-no-files-found: ignore
 
+  math-offline-smoke:
+    name: math-offline-smoke
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: shipping-build
+          path: build
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: cypress-${{ runner.os }}-
+
+      - name: Install Cypress
+        run: bunx cypress install
+
+      - name: Run math WASM offline recovery test
+        run: bun run test:e2e:offline-math -- --browser chrome
+        env:
+          CYPRESS_DEBUG: 1
+          MATH_WASM_TEST_BUILD_DIR: build
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-math-offline-failures
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
   bundle-budget:
     name: bundle-budget
     needs: build
