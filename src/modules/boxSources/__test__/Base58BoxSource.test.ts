@@ -24,6 +24,12 @@ describe('Base58BoxSource', () => {
     });
   });
 
+  it('allows an empty encode activator', async () => {
+    const boxes = await Base58BoxSource.generateBoxes('', { base58: true });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toBe('');
+  });
+
   describe('generateBoxes - encode known vector', () => {
     it('encodes "Hello World!" to canonical base58', async () => {
       // canonical vector: base58(ASCII bytes of "Hello World!")

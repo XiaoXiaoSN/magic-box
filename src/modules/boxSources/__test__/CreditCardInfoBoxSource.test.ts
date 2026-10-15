@@ -259,6 +259,7 @@ describe('CreditCardInfoBoxSource', () => {
       expect(text).toMatch(/^Masked: /m);
       expect(text).toMatch(/^Brand: /m);
       expect(text).toMatch(/^Length: /m);
+      expect(text).toMatch(/^Length Valid: /m);
       expect(text).toMatch(/^Luhn Valid: /m);
       // must NOT be parseable as JSON object
       expect(() => JSON.parse(text)).toThrow();
@@ -270,6 +271,43 @@ describe('CreditCardInfoBoxSource', () => {
         cardtype: true,
       });
       expect(boxes[0].props.plaintextOutput).not.toContain(pan);
+    });
+  });
+
+  describe('additional brands and length status', () => {
+    it('marks a short Visa number as length invalid', async () => {
+      const boxes = await CreditCardInfoBoxSource.generateBoxes(
+        '411111111111',
+        { cardtype: true },
+      );
+      expect(boxes[0].props.options).toMatchObject({
+        Brand: 'Visa',
+        'Length Valid': 'false',
+      });
+    });
+
+    it('checks the Discover 622126-622925 range before UnionPay', async () => {
+      const boxes = await CreditCardInfoBoxSource.generateBoxes(
+        '6221260000000000',
+        { cardtype: true },
+      );
+      expect(boxes[0].props.options?.Brand).toBe('Discover');
+    });
+
+    it('detects a UnionPay 62 card outside the Discover range', async () => {
+      const boxes = await CreditCardInfoBoxSource.generateBoxes(
+        '6212345678901232',
+        { cardtype: true },
+      );
+      expect(boxes[0].props.options?.Brand).toBe('UnionPay');
+    });
+
+    it('detects a common Maestro prefix', async () => {
+      const boxes = await CreditCardInfoBoxSource.generateBoxes(
+        '6759649826438453',
+        { cardtype: true },
+      );
+      expect(boxes[0].props.options?.Brand).toBe('Maestro');
     });
   });
 });

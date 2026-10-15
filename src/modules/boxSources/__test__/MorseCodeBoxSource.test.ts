@@ -61,14 +61,21 @@ describe('MorseCodeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('... --- ...');
     });
 
-    it('unknown characters are skipped silently', async () => {
-      // digit 1 is known, tilde is not
+    it('marks unknown characters instead of dropping them', async () => {
       const boxes = await MorseCodeBoxSource.generateBoxes('A~B', {
         morse: true,
       });
       expect(boxes).toHaveLength(1);
-      // ~ skipped; A and B encoded and joined
-      expect(boxes[0].props.plaintextOutput).toBe('.- -...');
+      expect(boxes[0].props.plaintextOutput).toBe('.- ..--.. -...');
+    });
+
+    it('normalizes accented letters before encoding', async () => {
+      const boxes = await MorseCodeBoxSource.generateBoxes('héllo wörld', {
+        morse: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '.... . .-.. .-.. --- / .-- --- .-. .-.. -..',
+      );
     });
   });
 
@@ -104,14 +111,24 @@ describe('MorseCodeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('HELLO WORLD');
     });
 
-    it('unknown Morse symbols produce empty characters (skipped)', async () => {
+    it('normalizes typographic marks and slash/newline word boundaries', async () => {
+      const boxes = await MorseCodeBoxSource.generateBoxes('… −−− …\n.-', {
+        morsedecode: true,
+      });
+      const slash = await MorseCodeBoxSource.generateBoxes('... --- .../.-', {
+        morsedecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('SOS A');
+      expect(slash[0].props.plaintextOutput).toBe('SOS A');
+    });
+
+    it('marks unknown Morse symbols with ?', async () => {
       // '....' is H, '.....' is 5, '......' is unknown
       const boxes = await MorseCodeBoxSource.generateBoxes('.... ......', {
         morsedecode: true,
       });
       expect(boxes).toHaveLength(1);
-      // unknown symbol maps to '' so result is just 'H'
-      expect(boxes[0].props.plaintextOutput).toBe('H');
+      expect(boxes[0].props.plaintextOutput).toBe('H?');
     });
 
     it('does not resolve inherited property names as Morse symbols', async () => {
@@ -119,7 +136,7 @@ describe('MorseCodeBoxSource', () => {
         'constructor toString __proto__',
         { morsedecode: true },
       );
-      expect(boxes[0].props.plaintextOutput).toBe('');
+      expect(boxes[0].props.plaintextOutput).toBe('???');
     });
   });
 

@@ -34,8 +34,15 @@ export const SnowflakeBoxSource = {
     const id = BigInt(raw);
     if (id > MAX_SNOWFLAKE) return [];
 
-    const epochOption = extractOptionKeys(options, 'snowflake', 'epoch');
-    const useTwitter = epochOption === 'twitter';
+    const epochOption = extractOptionKeys(options, 'epoch');
+    const snowflakeOption = extractOptionKeys(options, 'snowflake');
+    const epochName =
+      typeof epochOption === 'string'
+        ? epochOption
+        : typeof snowflakeOption === 'string'
+          ? snowflakeOption
+          : '';
+    const useTwitter = epochName.trim().toLowerCase() === 'twitter';
     const epoch = useTwitter ? TWITTER_EPOCH : DISCORD_EPOCH;
     const epochLabel = useTwitter ? 'Twitter' : 'Discord';
 

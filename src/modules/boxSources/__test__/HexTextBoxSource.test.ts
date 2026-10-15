@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { HexTextBoxSource } from '../HexTextBoxSource';
 
@@ -86,6 +86,24 @@ describe('HexTextBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('Hi');
     });
 
+    it.each([
+      '0x48 0x69',
+      '48:69',
+      '\\x48\\x69',
+    ])('accepts grouped byte syntax %s', async (input) => {
+      const boxes = await HexTextBoxSource.generateBoxes(input, {
+        hexdecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('Hi');
+    });
+
+    it('rejects malformed byte groups instead of stripping separators', async () => {
+      const boxes = await HexTextBoxSource.generateBoxes('0x48:0x6', {
+        hexdecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid hex/i);
+    });
+
     it('should return error box for odd-length hex "abc"', async () => {
       const boxes = await HexTextBoxSource.generateBoxes('abc', {
         hexdecode: true,
@@ -102,13 +120,20 @@ describe('HexTextBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid hex/i);
     });
 
-    it('should return an error for bytes that are not valid UTF-8', async () => {
+    it('shows binary bytes with a stable fallback', async () => {
       const boxes = await HexTextBoxSource.generateBoxes('ff', {
         fromhex: true,
       });
 
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.plaintextOutput).toContain('not valid UTF-8');
+      expect(boxes[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: ff)');
+    });
+
+    it('preserves a leading UTF-8 BOM', async () => {
+      const boxes = await HexTextBoxSource.generateBoxes('efbbbf41', {
+        hexdecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('\ufeffA');
     });
   });
 

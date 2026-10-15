@@ -1,15 +1,15 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
 // regex for a valid decimal float literal, including scientific notation and special values
 const FLOAT_LITERAL_RE =
-  /^-?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$|^-?Infinity$|^NaN$/;
+  /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$|^[+-]?Infinity$|^NaN$/;
 
 // regex for a hex bit-pattern (8 digits = single, 16 digits = double)
-const HEX_PATTERN_RE = /^0x([0-9a-fA-F]+)$/;
+const HEX_PATTERN_RE = /^0x([0-9a-fA-F]+)$/i;
 
 // convert an ArrayBuffer to a zero-padded hex string without the 0x prefix
 function bufToHex(buf: ArrayBuffer, byteLength: number): string {
@@ -69,6 +69,10 @@ function encodeSingle(value: number): SingleRepr {
   };
 }
 
+function formatNumber(value: number): string {
+  return Object.is(value, -0) ? '-0' : String(value);
+}
+
 function decodeHex(
   hexDigits: string,
 ): { value: number; type: 'double' | 'single' } | null {
@@ -108,8 +112,15 @@ export const Ieee754BoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'ieee754', 'floatbits')) return [];
 
-    const raw = trim(input).slice(0, 64);
+    const raw = trim(input);
     if (!raw) return [];
+    if (raw.length > 64) {
+      return [
+        errorBox('IEEE 754', 'Input is too long (limit 64 characters).', {
+          priority: this.priority,
+        }),
+      ];
+    }
 
     // check for hex bit-pattern decode (must come before float parse to avoid
     // misidentifying '0x...' as a numeric literal in some environments)
@@ -117,11 +128,19 @@ export const Ieee754BoxSource = {
     if (hexMatch) {
       const hexDigits = hexMatch[1];
       const decoded = decodeHex(hexDigits);
-      if (!decoded) return [];
+      if (!decoded) {
+        return [
+          errorBox(
+            'IEEE 754',
+            'Invalid IEEE 754 hex input: expected exactly 8 or 16 hex digits.',
+            { priority: this.priority },
+          ),
+        ];
+      }
 
       const kvOptions: Record<string, string> = {
         Hex: `0x${hexDigits}`,
-        Value: String(decoded.value),
+        Value: formatNumber(decoded.value),
         Type: decoded.type,
       };
 
@@ -139,27 +158,36 @@ export const Ieee754BoxSource = {
     }
 
     // check for a decimal float literal or special values
-    if (!FLOAT_LITERAL_RE.test(raw)) return [];
+    if (!FLOAT_LITERAL_RE.test(raw)) {
+      return [
+        errorBox('IEEE 754', 'Invalid IEEE 754 number or hex pattern.', {
+          priority: this.priority,
+        }),
+      ];
+    }
 
     const value = Number.parseFloat(raw);
     if (
       !Number.isFinite(value) &&
       !Number.isNaN(value) &&
-      raw !== 'Infinity' &&
-      raw !== '-Infinity'
+      !/^[+-]?Infinity$/.test(raw)
     ) {
-      return [];
+      return [
+        errorBox('IEEE 754', 'Number is outside the finite IEEE 754 range.', {
+          priority: this.priority,
+        }),
+      ];
     }
 
     const dbl = encodeDouble(value);
     const sgl = encodeSingle(value);
 
     const kvOptions: Record<string, string> = {
-      Value: String(value),
+      Value: formatNumber(value),
       'Double (hex)': dbl.hex,
       'Double (bits)': `${dbl.sign} ${dbl.exponent} ${dbl.mantissa}`,
       'Single (hex)': sgl.hex,
-      'Single (value)': String(sgl.roundTrip),
+      'Single (value)': formatNumber(sgl.roundTrip),
     };
 
     const plaintext = Object.entries(kvOptions)

@@ -68,12 +68,16 @@ const MORSE_DECODE = new Map(
 
 /** encodes a plain-text string to Morse code. words are separated by ` / `, letters by ` `. */
 function encode(text: string): string {
-  const words = text.toUpperCase().split(/\s+/).filter(Boolean);
+  const normalizedText = text
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase();
+  const words = normalizedText.split(/\s+/).filter(Boolean);
   return words
     .map((word) =>
       word
         .split('')
-        .map((ch) => MORSE_ENCODE.get(ch))
+        .map((ch) => MORSE_ENCODE.get(ch) ?? MORSE_ENCODE.get('?'))
         .filter((code): code is string => code !== undefined)
         .join(' '),
     )
@@ -83,13 +87,18 @@ function encode(text: string): string {
 
 /** decodes a Morse code string back to plain text. words split on ` / `, symbols on space. */
 function decode(morse: string): string {
-  return morse
-    .split(' / ')
+  const normalized = morse
+    .replaceAll('…', '...')
+    .replace(/[·•]/g, '.')
+    .replace(/[−–—]/g, '-');
+  return normalized
+    .split(/\s*\/\s*|\n/)
     .map((word) =>
       word
         .trim()
-        .split(' ')
-        .map((sym) => MORSE_DECODE.get(sym) ?? '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((sym) => MORSE_DECODE.get(sym) ?? '?')
         .join(''),
     )
     .join(' ');

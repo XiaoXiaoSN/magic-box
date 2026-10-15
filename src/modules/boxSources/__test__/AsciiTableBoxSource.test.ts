@@ -157,12 +157,12 @@ describe('AsciiTableBoxSource', () => {
       expect(opts.Character).toBe('(NUL)');
     });
 
-    it('single digit "0" is the glyph (code point 48)', async () => {
+    it('single digit "0" is available as decimal code point 0', async () => {
       const boxes = await AsciiTableBoxSource.generateBoxes('0', {
         ascii: true,
       });
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Decimal).toBe('48');
+      expect(opts.Decimal).toBe('0');
     });
 
     it('code point 10 → Character contains LF', async () => {
@@ -182,6 +182,20 @@ describe('AsciiTableBoxSource', () => {
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Info).toBeTruthy();
+    });
+
+    it('rejects a UTF-16 surrogate code point', async () => {
+      const boxes = await AsciiTableBoxSource.generateBoxes('0xD800', {
+        ascii: true,
+      });
+      expect(boxes[0].props.options?.Info).toMatch(/surrogate/i);
+    });
+
+    it('rejects a lone surrogate character', async () => {
+      const boxes = await AsciiTableBoxSource.generateBoxes('\uD800', {
+        ascii: true,
+      });
+      expect(boxes[0].props.options?.Info).toMatch(/surrogate/i);
     });
 
     it('two-character input AB (not a number) → info box', async () => {

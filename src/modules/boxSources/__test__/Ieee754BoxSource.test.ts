@@ -30,11 +30,12 @@ describe('Ieee754BoxSource', () => {
   });
 
   describe('invalid input', () => {
-    it('returns [] for non-numeric string', async () => {
+    it('returns an error box for non-numeric string', async () => {
       const boxes = await Ieee754BoxSource.generateBoxes('xyz', {
         ieee754: true,
       });
-      expect(boxes).toHaveLength(0);
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid/i);
     });
 
     it('returns [] for empty string', async () => {
@@ -42,15 +43,41 @@ describe('Ieee754BoxSource', () => {
       expect(boxes).toHaveLength(0);
     });
 
-    it('returns [] for partial hex (not 8 or 16 digits)', async () => {
+    it('returns an error box for partial hex (not 8 or 16 digits)', async () => {
       const boxes = await Ieee754BoxSource.generateBoxes('0xdeadbeef00', {
         ieee754: true,
       });
-      expect(boxes).toHaveLength(0);
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/8 or 16/i);
     });
   });
 
   describe('float encoding — double (64-bit)', () => {
+    it('accepts an explicit plus sign', async () => {
+      const boxes = await Ieee754BoxSource.generateBoxes('+1.5', {
+        ieee754: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options?.Value).toBe('1.5');
+    });
+
+    it('preserves negative zero in Value', async () => {
+      const boxes = await Ieee754BoxSource.generateBoxes('-0', {
+        ieee754: true,
+      });
+      expect(boxes[0].props.options?.Value).toBe('-0');
+      expect(boxes[0].props.options?.['Double (hex)']).toBe(
+        '0x8000000000000000',
+      );
+    });
+
+    it('returns an error for decimal overflow', async () => {
+      const boxes = await Ieee754BoxSource.generateBoxes('1e400', {
+        ieee754: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/outside|finite/i);
+    });
+
     it('3.14 → Double (hex) 0x40091eb851eb851f', async () => {
       const boxes = await Ieee754BoxSource.generateBoxes('3.14', {
         ieee754: true,
@@ -167,6 +194,13 @@ describe('Ieee754BoxSource', () => {
   });
 
   describe('hex decode — double (16 hex digits)', () => {
+    it('accepts uppercase hex prefixes and digits', async () => {
+      const boxes = await Ieee754BoxSource.generateBoxes('0X40490FDB', {
+        ieee754: true,
+      });
+      expect(boxes[0].props.options?.Type).toBe('single');
+      expect(Number(boxes[0].props.options?.Value)).toBeCloseTo(Math.PI);
+    });
     it('0x40091eb851eb851f → Value 3.14', async () => {
       const boxes = await Ieee754BoxSource.generateBoxes('0x40091eb851eb851f', {
         ieee754: true,

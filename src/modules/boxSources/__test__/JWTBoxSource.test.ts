@@ -1,4 +1,4 @@
-import { expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { JWTBoxSource } from '../JWTBoxSource';
 
@@ -30,6 +30,15 @@ describe('JWTBoxSource', () => {
         name: 'John Doe',
         iat: 1516239022,
       });
+    });
+
+    it('accepts a case-insensitive Bearer prefix', () => {
+      expect(JWTBoxSource.checkMatch(`bEaReR ${validJWT}`)).toBeDefined();
+    });
+
+    it('rejects JWTs whose header is a number or array', () => {
+      expect(JWTBoxSource.checkMatch('MTIz.MTIz')).toBeUndefined();
+      expect(JWTBoxSource.checkMatch('WzFd.MTIz')).toBeUndefined();
     });
   });
 

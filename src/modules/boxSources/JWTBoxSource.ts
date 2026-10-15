@@ -9,6 +9,10 @@ interface Match {
   jwtStr: string;
 }
 
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export const JWTBoxSource = {
   name: 'JWT Decode',
   description: 'Decode the header and payload of a JSON Web Token.',
@@ -22,10 +26,11 @@ export const JWTBoxSource = {
     if (!isString(input)) {
       return undefined;
     }
-    const regularInput = trim(input);
+    const regularInput = trim(input).replace(/^Bearer\s+/i, '');
 
     try {
       const jwtHeader = jwtDecode(regularInput, { header: true });
+      if (!isJsonObject(jwtHeader)) return undefined;
       const jwtBody = jwtDecode(regularInput);
       const jwtStr = JSON.stringify(
         { header: jwtHeader, body: jwtBody },

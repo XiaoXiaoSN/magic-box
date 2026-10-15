@@ -87,6 +87,32 @@ describe('BmiBoxSource', () => {
       expect(bmi).toBeGreaterThanOrEqual(22.5);
       expect(bmi).toBeLessThanOrEqual(22.9);
     });
+
+    it('accumulates feet and inches', async () => {
+      const boxes = await BmiBoxSource.generateBoxes('70kg 5ft 10in', {
+        bmi: true,
+      });
+      expect(boxes[0].props.options?.Height).toBe('1.7780 m');
+      expect(boxes[0].props.options?.BMI).toBe('22.1');
+    });
+
+    it('accepts 5\'10" notation', async () => {
+      const boxes = await BmiBoxSource.generateBoxes('70kg 5\'10"', {
+        bmi: true,
+      });
+      expect(boxes[0].props.options?.Height).toBe('1.7780 m');
+    });
+
+    it('rejects duplicate or mixed height units', async () => {
+      const duplicate = await BmiBoxSource.generateBoxes('70kg 5ft 6ft', {
+        bmi: true,
+      });
+      const mixed = await BmiBoxSource.generateBoxes('70kg 5ft 1.8m', {
+        bmi: true,
+      });
+      expect(duplicate[0].props.options?.BMI).toBeUndefined();
+      expect(mixed[0].props.options?.BMI).toBeUndefined();
+    });
   });
 
   describe('generateBoxes — invalid / guidance', () => {
@@ -97,6 +123,7 @@ describe('BmiBoxSource', () => {
       expect(boxes[0].props.options?.BMI).toBeUndefined();
       const text = boxes[0].props.plaintextOutput;
       expect(text).toMatch(/Example/i);
+      expect(text).toContain('70kg 1.75m\n::bmi');
     });
 
     it('returns [] for input longer than 64 characters', async () => {

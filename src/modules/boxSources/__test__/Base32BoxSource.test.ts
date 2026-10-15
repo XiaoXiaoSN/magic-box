@@ -102,6 +102,13 @@ describe('Base32BoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid Base32/i);
     });
 
+    it('rejects an incomplete Base32 quantum', async () => {
+      const boxes = await Base32BoxSource.generateBoxes('M', {
+        base32decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/length/i);
+    });
+
     it('shows undecodable bytes as a stable binary fallback', async () => {
       const boxes = await Base32BoxSource.generateBoxes('74======', {
         base32decode: true,

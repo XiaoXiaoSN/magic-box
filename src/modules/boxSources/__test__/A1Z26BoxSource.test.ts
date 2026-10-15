@@ -85,6 +85,13 @@ describe('A1Z26BoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toBe('??');
     });
+
+    it('rejects partial numeric tokens', async () => {
+      const boxes = await A1Z26BoxSource.generateBoxes('8-5x-12-12-15 1.9', {
+        a1z26decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('h?llo ?');
+    });
   });
 
   describe('round-trip', () => {

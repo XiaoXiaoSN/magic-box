@@ -90,6 +90,24 @@ describe('TemperatureBoxSource', () => {
       expect(boxes[0].props.options?.Celsius).toBe('37.78');
     });
 
+    it.each([
+      ['celsius', '100', '100'],
+      ['fahrenheit', '212', '100'],
+      ['kelvin', '373.15', '100'],
+    ])('accepts the %s option alias', async (unit, input, celsius) => {
+      const boxes = await TemperatureBoxSource.generateBoxes(input, {
+        temp: unit,
+      });
+      expect(boxes[0].props.options?.Celsius).toBe(celsius);
+    });
+
+    it('accepts an optional degree symbol', async () => {
+      const boxes = await TemperatureBoxSource.generateBoxes('100 °C', {
+        temp: true,
+      });
+      expect(boxes[0].props.options?.Celsius).toBe('100');
+    });
+
     it('treats bare number as Celsius by default when option value is boolean true', async () => {
       const boxes = await TemperatureBoxSource.generateBoxes('0', {
         temp: true,
@@ -121,6 +139,24 @@ describe('TemperatureBoxSource', () => {
       expect(
         await TemperatureBoxSource.generateBoxes('', { temp: true }),
       ).toHaveLength(0);
+    });
+
+    it('returns an error box for an unknown unit option', async () => {
+      const boxes = await TemperatureBoxSource.generateBoxes('100', {
+        temp: 'rankine',
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/unknown/i);
+    });
+
+    it('accepts Fahrenheit absolute zero and rejects values below it', async () => {
+      const boundary = await TemperatureBoxSource.generateBoxes('-459.67F', {
+        temp: true,
+      });
+      const below = await TemperatureBoxSource.generateBoxes('-459.671F', {
+        temp: true,
+      });
+      expect(boundary[0].props.options?.Fahrenheit).toBe('-459.67');
+      expect(below[0].props.plaintextOutput).toMatch(/absolute zero/i);
     });
   });
 

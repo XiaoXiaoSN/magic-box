@@ -25,6 +25,31 @@ describe('RadixBoxSource', () => {
       expect(opts?.Input).toBe('ff');
     });
 
+    it('accepts a base-matching prefix and grouped whitespace', async () => {
+      const hex = await RadixBoxSource.generateBoxes('0xff', {
+        radix: '16:10',
+      });
+      const binary = await RadixBoxSource.generateBoxes('1111 0000', {
+        radix: '2:16',
+      });
+      expect(hex[0].props.options?.Result).toBe('255');
+      expect(binary[0].props.options?.Result).toBe('f0');
+    });
+
+    it('rejects a prefix from a different base', async () => {
+      const boxes = await RadixBoxSource.generateBoxes('0xff', {
+        radix: '10:2',
+      });
+      expect(boxes[0].props.options?.Info).toMatch(/prefix/i);
+    });
+
+    it('rejects extra radix segments', async () => {
+      const boxes = await RadixBoxSource.generateBoxes('ff', {
+        radix: '16:2:8',
+      });
+      expect(boxes[0].props.options?.Info).toMatch(/FROM|base/i);
+    });
+
     it('converts decimal 255 to hex (base 10 → base 16)', async () => {
       const boxes = await RadixBoxSource.generateBoxes('255', {
         radix: '10:16',

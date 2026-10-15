@@ -73,6 +73,14 @@ describe('SnowflakeBoxSource', () => {
       const ts = Number(options?.['Unix (ms)']);
       expect(ts).toBeGreaterThan(1288834974657); // after twitter epoch
     });
+
+    it('prefers an explicit epoch option over the boolean activator', async () => {
+      const boxes = await SnowflakeBoxSource.generateBoxes(
+        '1234567890123456789',
+        { snowflake: true, epoch: 'twitter' },
+      );
+      expect(boxes[0].props.options?.Epoch).toBe('Twitter');
+    });
   });
 
   describe('invalid input', () => {
