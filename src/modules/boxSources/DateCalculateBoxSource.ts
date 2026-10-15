@@ -3,6 +3,7 @@ import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
 import { shiftDateToOffset, toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { toIntlLocale } from '../../i18n';
 
 const PriorityDateCalculate = 10;
 const MINUTE_MS = 60_000;
@@ -511,7 +512,9 @@ export const DateCalculateBoxSource = {
                 : abs >= MINUTE_MS
                   ? [sign * Math.round(abs / MINUTE_MS), 'minute' as const]
                   : [sign * Math.round(abs / 1000), 'second' as const];
-      const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' });
+      const rtf = new Intl.RelativeTimeFormat(toIntlLocale(getLocale()), {
+        numeric: 'auto',
+      });
       const relative = rtf.format(value, unit);
       return [
         new BoxBuilder('Relative Time', relative)

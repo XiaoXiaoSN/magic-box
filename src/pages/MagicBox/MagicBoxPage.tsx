@@ -19,12 +19,13 @@ import React, {
 import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
-import type { Translations } from '../../i18n';
+import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
 const formatRelativeTime = (
   timestamp: number,
+  locale: Locale,
   t: (
     key: keyof Translations,
     params?: Record<string, string | number>,
@@ -38,11 +39,11 @@ const formatRelativeTime = (
   if (hours < 24) return t('time.hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
   if (days < 7) return t('time.daysAgo', { n: days });
-  return new Date(timestamp).toLocaleDateString();
+  return new Date(timestamp).toLocaleDateString(toIntlLocale(locale));
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [userInput, setUserInput] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('input') ?? params.get('i') ?? '';
@@ -242,7 +243,7 @@ const MagicBoxPage = (): React.JSX.Element => {
                               : item.input}
                           </span>
                           <span className="history-item-time">
-                            {formatRelativeTime(item.timestamp, t)}
+                            {formatRelativeTime(item.timestamp, locale, t)}
                           </span>
                         </button>
                         <button

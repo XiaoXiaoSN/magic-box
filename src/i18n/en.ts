@@ -117,6 +117,19 @@ const en = {
   'time.hoursAgo': '{{n}}h ago',
   'time.daysAgo': '{{n}}d ago',
 
+  'dice.die': 'die',
+  'dice.dice': 'dice',
+  'dice.sixSided': 'six-sided',
+  'dice.rolling': 'Rolling…',
+  'dice.gathering': 'Gathering dice…',
+  'dice.ready': 'Your roll',
+  'dice.total': 'Total',
+  'dice.reroll': 'Re-roll',
+  'dice.copyTotal': 'Copy total: {{total}}',
+  'dice.copyTotalButton': 'Copy total',
+  'dice.ariaReady': 'Die {{index}}: {{value}}',
+  'dice.ariaRolling': 'Die {{index}}: rolling',
+
   'boxCard.copy': 'Copy',
   'boxCard.copied': 'Copied',
   'boxCard.expand': 'Expand',
@@ -148,10 +161,6 @@ const en = {
   'toolsList.previewOutput': 'Output',
   'toolsList.previewHint': 'try your own — it updates live',
   'toolsList.noMatch': 'No boxes match "{{query}}".',
-  'toolsList.kind.format': 'Format',
-  'toolsList.source.dataConverter.name': 'Data Converter',
-  'toolsList.source.dataConverter.description':
-    'Pretty-print and convert between JSON, YAML, TOML and XML.',
 
   'shareLink.copy': 'Copy share link',
   'shareLink.copied': 'Share link copied',

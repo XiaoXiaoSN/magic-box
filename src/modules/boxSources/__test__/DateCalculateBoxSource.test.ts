@@ -459,5 +459,14 @@ describe('DateCalculateBoxSource', () => {
       );
       expect(boxes[0].props.plaintextOutput).toBe('3 天後');
     });
+
+    it('maps the app Taiwan locale to the Intl locale', async () => {
+      setRuntimePrefs({ locale: 'tw' });
+      const boxes = await DateCalculateBoxSource.generateBoxes(
+        '2024-01-04T00:00:00Z',
+        { relative: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('3 天後');
+    });
   });
 });
