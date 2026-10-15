@@ -4,9 +4,23 @@ import { PowerConvertBoxSource } from '../PowerConvertBoxSource';
 import { SpeedConvertBoxSource } from '../SpeedConvertBoxSource';
 import {
   POWER_UNIT_DEFINITIONS,
+  parseStrictNumber,
   SPEED_UNIT_DEFINITIONS,
 } from '../UnitConversionData';
 import { UnitConverterBoxSource } from '../UnitConverterBoxSource';
+
+describe('parseStrictNumber', () => {
+  it('rejects nonzero literals that underflow to zero', () => {
+    expect(parseStrictNumber('1e-324')).toBeNull();
+    expect(parseStrictNumber('-1e-324')).toBeNull();
+  });
+
+  it('accepts zero literals and the smallest finite subnormal', () => {
+    expect(parseStrictNumber('0e-999')).toBe(0);
+    expect(parseStrictNumber('-0.000e-999')).toBe(-0);
+    expect(parseStrictNumber('5e-324')).toBe(5e-324);
+  });
+});
 
 describe('UnitConverterBoxSource', () => {
   it('uses a single-glyph tag that fits the box-tag chip', () => {
@@ -249,7 +263,7 @@ describe('UnitConverterBoxSource', () => {
   });
 
   it('checks Kelvin source bounds before converting to Celsius', async () => {
-    for (const input of ['-1e-20 K', '-1e-13 K']) {
+    for (const input of ['-1e-324 K', '-1e-20 K', '-1e-13 K']) {
       const boxes = await UnitConverterBoxSource.generateBoxes(input, null);
       expect(boxes, input).toHaveLength(0);
     }

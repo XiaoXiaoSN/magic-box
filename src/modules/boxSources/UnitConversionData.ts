@@ -70,6 +70,10 @@ export function parseStrictNumber(raw: string): number | null {
 
   if (normalized === null) return null;
   const value = Number(normalized);
+  const exponentIndex = normalized.search(/e/i);
+  const mantissa =
+    exponentIndex === -1 ? normalized : normalized.slice(0, exponentIndex);
+  if (value === 0 && /[1-9]/.test(mantissa)) return null;
   return Number.isFinite(value) ? value : null;
 }
 

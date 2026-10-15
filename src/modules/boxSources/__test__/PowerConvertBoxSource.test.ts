@@ -150,5 +150,14 @@ describe('PowerConvertBoxSource', () => {
       });
       expect(boxes[0].props.options).toMatchObject({ MW: '1e-7' });
     });
+
+    it('rejects a nonzero input that underflows to zero', async () => {
+      const boxes = await PowerConvertBoxSource.generateBoxes('1e-324 W', {
+        power: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Error: 'Invalid format. Expected: <number> <unit>',
+      });
+    });
   });
 });
