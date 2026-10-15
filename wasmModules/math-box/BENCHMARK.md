@@ -190,27 +190,103 @@ measurement.
 wasmModules/math-box/bench/measure-shipping-profiles.sh /tmp/magic-box-wasm-profiles
 ```
 
-The baseline package generated from the exact source SHA above was measured
-from the preserved CI artifact with the same script:
+The authoritative shipping run is GitHub Actions run `38752303306`, artifact
+`wasm-profile-matrix-38752303306`. The baseline checkout was exact source SHA
+`68ae0495966bf25218c03102588049bdbd450be2`; the candidate package was built
+from GitHub's synthetic merge SHA `e4efcd6a58abfcd30806fa268d6cd536f68d4708`,
+which combines this change's commit `88418399fe4d27411c8aa2ccfa029137d08e75cb`
+with that base. Each profile was built serially for both crates, using the same
+x86_64 Ubuntu host and locked dependencies. The runner used rustc `1.99.0
+(b940084d7 2026-09-28)`, cargo `1.99.0`, wasm-pack `0.15.0`, wasm-bindgen
+`0.2.129`, wasm-opt `117 (version_117)`, and Node `v22.23.3`. The JSON records
+the resolved paths and hashes for all of those executables; the wasm-bindgen
+SHA-256 was `fb59da714982a04273e9e4b09a85e523e5dd04de35b1a4a8b1641785ee7a71cf`
+and the wasm-opt SHA-256 was
+`621b5a984f16d0323ea7aa8b389ac9ccda0950ddee5de0e99292970129f571ed`.
 
-| package | wasm SHA-256 | raw wasm | gzip-9 wasm | JS glue |
-|---|---|---:|---:|---:|
-| math-box | `7b4381a279eef47400ce059181ad5069ba924a68723703bd26ebd67ee05cfab6` | 346,870 | 140,333 | 15,539 |
-| base64-box | `985d3388d09a711614279714fe70200b310c408042645add1ecec19d3103d423` | 31,366 | 13,334 | 8,352 |
+Every runtime row is the median of five samples, with 100,000 calls per sample
+after a 10,000-call warm-up. The min/max ranges below are the extrema of those
+five raw `samples_ns_per_op` values. `3/measurement.json` and
+`3/baseline-measurement.json` contain the complete raw output for profile 3;
+the corresponding `s/` and `z/` files are in the same artifact.
 
-That artifact's actual Node runtime medians were 2,864.37 ns/op for the
-compiled math expression, 9,525.64 ns/op for full math evaluation, 899.00
-ns/op for base64 encode, and 740.55 ns/op for base64 decode-to-string.
-The preserved artifact was produced by the repository CI wasm-pack `0.15.0`
-action; its transitive wasm-bindgen and wasm-opt versions were not recorded in
-the artifact metadata. The local package measurement runner was Node
-`v26.7.0`. The CI workflow builds the exact PR base and candidate sequentially
-on one Ubuntu host, then uploads the raw JSON and generated package directories
-for all three profiles. Its revision file records both source SHAs.
-The profile script is the bounded CI follow-up for final 3/s/z package sizes and
-runtime; this arm64 host cannot run the repository's x86_64 wasm-bindgen CLI,
-and no wasm-opt binary is installed, so no final shipping profile is selected
-from an incomplete local build. The existing math profile remains opt-level
-3; base64 now uses the same release LTO, single codegen unit, aborting panic,
-and symbol stripping settings so its 3/s/z comparison changes only the
-candidate optimization level.
+| math profile | wasm raw bytes (baseline → candidate) | gzip-9 bytes (baseline → candidate) | compiled median ns/op (baseline → candidate; candidate min–max) | full median ns/op (baseline → candidate; candidate min–max) |
+|---|---:|---:|---:|---:|
+| `3` | 346,870 → 345,783 | 141,225 → 140,522 | 2,415.48995 → 1,471.70275 (-39.07%; 1,400.96171–1,479.06848) | 7,477.66922 → 5,736.31659 (-23.29%; 5,695.68857–5,792.95521) |
+| `s` | 328,777 → 328,315 | 134,516 → 134,088 | 3,190.05175 → 1,900.43134 (-40.43%; 1,876.16706–1,928.25232) | 9,224.18636 → 7,083.65254 (-23.21%; 7,018.11730–7,166.20663) |
+| `z` | 282,511 → 282,653 | 118,831 → 118,620 | 3,951.98757 → 2,480.84120 (-37.23%; 2,451.43965–2,490.39695) | 11,867.93506 → 9,013.77277 (-24.05%; 8,982.46429–9,106.30601) |
+
+The math package retains profile `3`. Profile `s` saves 6,434 gzip bytes versus
+profile `3` but is 29.13% slower for compiled calls and 23.50% slower for the
+full pipeline on this same runner. Profile `z` saves 21,902 gzip bytes but is
+68.55% slower for compiled calls and 57.15% slower for the full pipeline.
+
+The candidate base64 rows below are a measured LTO experiment from the same
+run, before the profile was rolled back. They do not describe the final
+base64 package: the release-profile change was removed because the size saving
+was paired with a material runtime regression, and profile `s`/`z` were both
+larger and slower than the baseline.
+
+| base64 profile | wasm raw bytes (baseline → candidate) | gzip-9 bytes (baseline → candidate) | encode median ns/op (baseline → candidate; candidate min–max) | decode-to-string median ns/op (baseline → candidate; candidate min–max) |
+|---|---:|---:|---:|---:|
+| `3` | 31,366 → 30,364 | 13,449 → 12,975 | 537.12990 → 686.09686 (+27.73%; 664.47567–695.94845) | 489.73938 → 536.42160 (+9.53%; 522.22444–540.94964) |
+| `s` | 32,464 → 31,423 | 14,154 → 13,650 | 615.65210 → 696.72001 (+13.17%; 690.75840–717.75613) | 665.47293 → 883.00667 (+32.69%; 869.38889–888.13523) |
+| `z` | 34,538 → 33,515 | 15,050 → 14,551 | 690.60280 → 771.31237 (+11.69%; 766.38903–801.65836) | 876.09727 → 1,121.10933 (+27.97%; 1,118.49919–1,131.69414) |
+
+The rejected profile-3 experiment saved 474 gzip bytes (3.52%) but added
+1,461 JS-glue bytes and slowed encode by 27.73% and decode by 9.53%. The final
+`base64-box/Cargo.toml` therefore keeps its original release behavior; the
+ordinary shipping build remains the verification for that rollback.
+
+The exact wasm hashes from the uploaded packages are retained in the six raw
+JSON files. For convenient review, the run's hashes were (the base64 candidate
+hashes are the rejected LTO artifacts):
+
+```text
+math baseline 3: 7b4381a279eef47400ce059181ad5069ba924a68723703bd26ebd67ee05cfab6
+math baseline s: bd7527feeff48771423fed786439ddd7d8e4f9784503c9e5e5449312f3af68fe
+math baseline z: 933cf0a23456cf26f0a1280a18496a452f88a114a8308835a48f906f279d8f58
+math candidate 3: 7e19996c9ba593c8cdf9bc179737a42c8cf5b75b38b3520b1e88c735254dae37
+math candidate s: c44cca43fd9831a65f800eec9183d367fe276b5805c36b067a851305293d343f
+math candidate z: 5042b84152dc120d3331a0fa32b3db31437cb8f885a61b62f100ffa2c6d4b373
+base64 baseline 3: 985d3388d09a711614279714fe70200b310c408042645add1ecec19d3103d423
+base64 baseline s: 43eb466becd3bfada380f32546b3c5ec1291094ca753a9f7a60698af7618b1d4
+base64 baseline z: 04b0af39c988404f6a67bb91c32eefc6340517611d03c9b5745028cfc7c1073b
+base64 candidate 3: 7125c2d964b4a4b5e29be8d63c6d697a772a91cbd062b7c25f2b1bca937b1808
+base64 candidate s: 43b8dba772d1829b5edfd1db4f5e9f36a72d6d89513998a8332f071e5a46efe2
+base64 candidate z: 8c514accaf41ca599257c7afb3dfc68a0b36857280af16c76649ce3ff78dcce8
+```
+
+<details>
+<summary>Raw runtime sample arrays (ns/op)</summary>
+
+```text
+3 baseline math compiled: [2446.44345, 2426.68858, 2397.84347, 2353.02362, 2415.48995]
+3 candidate math compiled: [1479.06848, 1400.96171, 1474.16296, 1436.28371, 1471.70275]
+3 baseline math full:     [7669.64826, 7424.63489, 7477.66922, 7505.55189, 7447.87272]
+3 candidate math full:     [5736.31659, 5760.23184, 5695.68857, 5792.95521, 5717.32939]
+3 baseline base64 encode:  [550.58564, 537.12990, 538.05790, 531.18823, 536.03555]
+3 candidate base64 encode:  [695.03677, 664.47567, 686.09686, 671.89949, 695.94845]
+3 baseline base64 decode:  [490.32026, 486.12652, 480.28580, 489.73938, 493.00211]
+3 candidate base64 decode:  [522.22444, 540.46121, 535.96130, 540.94964, 536.42160]
+
+s baseline math compiled: [3208.08466, 3128.64931, 3195.37500, 3190.05175, 3148.64905]
+s candidate math compiled: [1928.25232, 1900.43134, 1885.07793, 1876.16706, 1903.63249]
+s baseline math full:     [9152.09886, 9343.20300, 9189.33246, 9224.18636, 9561.58574]
+s candidate math full:     [7166.20663, 7018.11730, 7079.12888, 7135.85798, 7083.65254]
+s baseline base64 encode:  [615.65210, 630.27291, 608.88807, 630.76635, 608.96158]
+s candidate base64 encode:  [717.75613, 702.88974, 696.72001, 690.75840, 691.15340]
+s baseline base64 decode:  [651.42770, 665.47293, 662.01810, 680.03435, 684.72274]
+s candidate base64 decode:  [869.38889, 883.00667, 873.25853, 888.13523, 887.42115]
+
+z baseline math compiled: [3996.60694, 4133.19959, 3951.98757, 3946.42456, 3943.90094]
+z candidate math compiled: [2481.08537, 2490.39695, 2469.65689, 2451.43965, 2480.84120]
+z baseline math full:     [12107.38210, 11760.78792, 11961.50323, 11867.93506, 11771.53379]
+z candidate math full:     [9106.30601, 8982.46429, 8994.24563, 9013.77277, 9025.87166]
+z baseline base64 encode:  [727.67065, 688.29701, 722.84815, 686.07435, 690.60280]
+z candidate base64 encode:  [801.65836, 767.93567, 792.86306, 771.31237, 766.38903]
+z baseline base64 decode:  [921.95982, 880.81290, 862.44282, 876.09727, 862.81348]
+z candidate base64 decode:  [1121.10933, 1131.69414, 1118.49919, 1119.37511, 1124.25840]
+```
+
+</details>
