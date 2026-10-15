@@ -48,6 +48,25 @@ describe('AspectRatioBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.options).toMatchObject({ Ratio: '1:1' });
     });
+
+    it('preserves exact precision for large dimensions', async () => {
+      const boxes = await AspectRatioBoxSource.generateBoxes(
+        '90071992547409930x90071992547409920',
+        { ratio: true },
+      );
+      expect(boxes[0].props.options).toMatchObject({
+        Ratio: '9007199254740993:9007199254740992',
+      });
+    });
+
+    it('returns an error box before parsing dimensions above the digit limit', async () => {
+      const boxes = await AspectRatioBoxSource.generateBoxes(
+        `${'1'.repeat(129)}x5`,
+        { ratio: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
   });
 
   describe('happy path — ::aspect trigger', () => {
@@ -70,12 +89,31 @@ describe('AspectRatioBoxSource', () => {
       });
     });
 
-    it('omits Common key for non-standard ratios', async () => {
-      // 700x300 simplifies to 7:3, which is not in the common-ratio table
-      const boxes = await AspectRatioBoxSource.generateBoxes('700x300', {
+    it('uses simplified keys for common ratios', async () => {
+      const boxes = await AspectRatioBoxSource.generateBoxes('1920x1200', {
         ratio: true,
       });
-      expect(boxes[0].props.options).toMatchObject({ Ratio: '7:3' });
+      expect(boxes[0].props.options).toMatchObject({
+        Ratio: '8:5',
+        Common: '16:10 Widescreen',
+      });
+    });
+
+    it('marks near ultrawide dimensions as approximate', async () => {
+      const boxes = await AspectRatioBoxSource.generateBoxes('2560x1080', {
+        ratio: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Ratio: '64:27',
+        Common: '≈21:9 Ultrawide',
+      });
+    });
+
+    it('omits Common key for non-standard ratios', async () => {
+      const boxes = await AspectRatioBoxSource.generateBoxes('700x200', {
+        ratio: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({ Ratio: '7:2' });
       expect(boxes[0].props.options).not.toHaveProperty('Common');
     });
   });

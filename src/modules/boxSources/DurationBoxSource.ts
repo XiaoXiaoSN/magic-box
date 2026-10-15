@@ -1,6 +1,11 @@
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { extractOptionKeys, hasOptionKeys, keyValueBox } from '@modules/Box';
+import {
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+  keyValueBox,
+} from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT_LENGTH = 100;
@@ -115,7 +120,7 @@ function toClock(parts: DurationParts): string {
   return base;
 }
 
-function parseTotalSeconds(input: string): number | null {
+function parseTotalSeconds(input: string): number | null | 'unsafe' {
   const cleaned = input.trim();
   if (!cleaned) return null;
 
@@ -139,9 +144,20 @@ function parseTotalSeconds(input: string): number | null {
     const multiplier = UNIT_MAP[unit];
     if (multiplier === undefined) return null;
     total += value * multiplier;
+    if (!Number.isFinite(total) || total > Number.MAX_SAFE_INTEGER) {
+      return 'unsafe';
+    }
   }
 
   return total;
+}
+
+function hasSafeMillisecondPrecision(seconds: number): boolean {
+  return (
+    Number.isFinite(seconds) &&
+    seconds >= 0 &&
+    Number.isSafeInteger(Math.round(seconds * 1000))
+  );
 }
 
 function formatFloat(val: number, decimals: number): string {
@@ -185,7 +201,7 @@ export const DurationBoxSource = {
     const raw = trim(input);
     if (raw.length === 0 || raw.length > MAX_INPUT_LENGTH) return [];
 
-    let totalSeconds: number | null = null;
+    let totalSeconds: number | null | 'unsafe' = null;
 
     // Check if the input is a plain positive number
     if (/^\d+(\.\d+)?$/.test(raw)) {
@@ -209,6 +225,16 @@ export const DurationBoxSource = {
       totalSeconds = parseTotalSeconds(raw);
     }
 
+    if (totalSeconds === 'unsafe') {
+      return [
+        errorBox(
+          'Duration',
+          'Duration exceeds the safe numeric range and cannot be represented exactly.',
+          { priority: this.priority },
+        ),
+      ];
+    }
+
     if (totalSeconds === null || totalSeconds < 0) {
       // If the user triggered with ::duration or ::humantime, return a hint box per PR 361.
       if (hasOptionKeys(options, 'duration', 'humantime')) {
@@ -225,6 +251,16 @@ export const DurationBoxSource = {
         ];
       }
       return [];
+    }
+
+    if (!hasSafeMillisecondPrecision(totalSeconds)) {
+      return [
+        errorBox(
+          'Duration',
+          'Duration exceeds the safe numeric range and cannot be represented exactly.',
+          { priority: this.priority },
+        ),
+      ];
     }
 
     const parts = decompose(totalSeconds);

@@ -1,6 +1,6 @@
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
@@ -77,12 +77,15 @@ export const HexTextBoxSource = {
     if (!wantEncode && !wantDecode) {
       return [];
     }
-    if (
-      !isString(input) ||
-      trim(input).length === 0 ||
-      input.length > MAX_INPUT
-    ) {
-      return [];
+    if (!isString(input) || trim(input).length === 0) return [];
+    if (input.length > MAX_INPUT) {
+      return [
+        errorBox(
+          'Text to Hex',
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
+          { priority: this.priority },
+        ),
+      ];
     }
 
     const boxes: Box[] = [];

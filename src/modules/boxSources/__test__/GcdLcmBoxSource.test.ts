@@ -71,6 +71,21 @@ describe('GcdLcmBoxSource', () => {
       expect(gcdVal * lcmVal).toBe(a * b);
     });
 
+    it('does not truncate operands beyond the operand limit', async () => {
+      const input = `${Array.from({ length: 1_000 }, () => '6').join(',')},7`;
+      const boxes = await GcdLcmBoxSource.generateBoxes(input, { gcd: true });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too many operands/i);
+    });
+
+    it('returns an error box before parsing input beyond the character limit', async () => {
+      const boxes = await GcdLcmBoxSource.generateBoxes('6'.repeat(10_001), {
+        gcd: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
+
     it('returns error box for a single number', async () => {
       const boxes = await GcdLcmBoxSource.generateBoxes('5', { gcd: true });
       expect(boxes).toHaveLength(1);

@@ -1,8 +1,9 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
+const MAX_INPUT = 5_000;
 
 // standard base62 alphabet: digits, uppercase, then lowercase
 const ALPHABET =
@@ -53,8 +54,17 @@ export const Base62BoxSource = {
     const wantDecode = hasOptionKeys(options, 'base62decode');
     if (!wantEncode && !wantDecode) return [];
 
-    // cap input length to avoid DoS on huge strings
-    const raw = trim(input).slice(0, 5000);
+    const raw = trim(input);
+    if (raw.length > MAX_INPUT) {
+      return [
+        errorBox(
+          'Base62',
+          `Input is too large (${raw.length} characters, limit ${MAX_INPUT}).`,
+          { priority: this.priority },
+        ),
+      ];
+    }
+
     const boxes: Box[] = [];
 
     if (wantEncode) {

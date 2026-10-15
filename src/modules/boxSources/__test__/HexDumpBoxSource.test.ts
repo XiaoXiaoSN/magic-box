@@ -79,6 +79,14 @@ describe('HexDumpBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toContain('48 65 6c 6c 6f');
     });
+
+    it('returns an error box for oversized input', async () => {
+      const boxes = await HexDumpBoxSource.generateBoxes('a'.repeat(50_001), {
+        hexdump: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
   });
 
   describe('generateBoxes - two-row output', () => {

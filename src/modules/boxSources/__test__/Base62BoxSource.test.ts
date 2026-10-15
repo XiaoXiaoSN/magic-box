@@ -137,6 +137,14 @@ describe('Base62BoxSource', () => {
       expect(decBoxes).toHaveLength(1);
       expect(decBoxes[0].props.options?.Decimal).toBe(input);
     });
+
+    it('returns an error box instead of truncating oversized input', async () => {
+      const boxes = await Base62BoxSource.generateBoxes('1'.repeat(5_001), {
+        base62: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
   });
 
   describe('both options → two boxes', () => {

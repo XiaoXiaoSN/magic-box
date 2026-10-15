@@ -70,6 +70,14 @@ describe('DurationBoxSource', () => {
       expect(opts.Clock).toBe('00:00:00');
     });
 
+    it('returns an error box for an unsafe numeric duration', async () => {
+      const boxes = await DurationBoxSource.generateBoxes('1'.repeat(25), {
+        duration: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/safe numeric range/i);
+    });
+
     it('604800 (1 week) → Human contains "1w", Clock uses D:HH:MM:SS', async () => {
       const boxes = await DurationBoxSource.generateBoxes('604800', {
         duration: true,
@@ -189,6 +197,15 @@ describe('DurationBoxSource', () => {
         const opts = boxes[0].props.options as Record<string, string>;
         expect(opts.Seconds).toBe(tc.expectedSec);
       }
+    });
+
+    it('returns an error box when accumulated duration is unsafe', async () => {
+      const boxes = await DurationBoxSource.generateBoxes(
+        `${'9'.repeat(24)}s`,
+        { duration: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/safe numeric range/i);
     });
 
     it('parses duration with milliseconds (500ms)', async () => {

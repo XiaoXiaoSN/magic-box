@@ -30,6 +30,14 @@ describe('HexTextBoxSource', () => {
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 
+    it('returns an error box for oversized input', async () => {
+      const boxes = await HexTextBoxSource.generateBoxes('a'.repeat(100_001), {
+        hex: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
+
     it('should encode "Hi" using ::tohex alias', async () => {
       const boxes = await HexTextBoxSource.generateBoxes('Hi', { tohex: true });
       expect(boxes).toHaveLength(1);

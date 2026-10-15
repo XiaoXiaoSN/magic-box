@@ -1,26 +1,58 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
+const MAX_DIMENSION_DIGITS = 128;
+const MAX_INPUT_LENGTH = MAX_DIMENSION_DIGITS * 2 + 9;
+const DIMENSION_RE = /^(\d+)\s*[x:×]\s*(\d+)$/i;
 
 // common aspect ratio names keyed by simplified ratio string
 const CommonRatios: Record<string, string> = {
   '16:9': '16:9 Widescreen',
   '4:3': '4:3 Standard',
-  '21:9': '21:9 Ultrawide',
+  '7:3': '21:9 Ultrawide',
   '1:1': '1:1 Square',
   '3:2': '3:2 Classic',
-  '16:10': '16:10 Widescreen',
+  '8:5': '16:10 Widescreen',
 };
 
-function gcd(a: number, b: number): number {
-  while (b !== 0) {
+function gcd(a: bigint, b: bigint): bigint {
+  while (b !== 0n) {
     const t = b;
     b = a % b;
     a = t;
   }
   return a;
+}
+
+function formatDecimal(numerator: bigint, denominator: bigint): string {
+  if (
+    numerator <= BigInt(Number.MAX_SAFE_INTEGER) &&
+    denominator <= BigInt(Number.MAX_SAFE_INTEGER)
+  ) {
+    const value = Number(numerator) / Number(denominator);
+    return Number(value.toPrecision(4)).toString();
+  }
+
+  const scale = 1_000_000n;
+  const scaled = (numerator * scale + denominator / 2n) / denominator;
+  const whole = scaled / scale;
+  const fraction = (scaled % scale)
+    .toString()
+    .padStart(6, '0')
+    .replace(/0+$/, '');
+  return fraction.length === 0 ? whole.toString() : `${whole}.${fraction}`;
+}
+
+function isNearUltrawide(width: bigint, height: bigint): boolean {
+  const targetNumerator = 21n;
+  const targetDenominator = 9n;
+  const difference =
+    (width * targetDenominator - height * targetNumerator < 0n
+      ? height * targetNumerator - width * targetDenominator
+      : width * targetDenominator - height * targetNumerator) * 100n;
+  return difference <= width * targetDenominator * 3n;
 }
 
 export const AspectRatioBoxSource = {
@@ -39,20 +71,42 @@ export const AspectRatioBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'ratio', 'aspect')) return [];
 
-    const match = trim(input).match(/^(\d+)\s*[x:×]\s*(\d+)$/i);
+    const raw = trim(input);
+    if (raw.length > MAX_INPUT_LENGTH) {
+      return [
+        errorBox(
+          'Aspect Ratio',
+          `Input is too large (dimensions are limited to ${MAX_DIMENSION_DIGITS} digits).`,
+          { priority: this.priority },
+        ),
+      ];
+    }
+
+    const match = raw.match(DIMENSION_RE);
     if (!match) return [];
+    if (
+      match[1].length > MAX_DIMENSION_DIGITS ||
+      match[2].length > MAX_DIMENSION_DIGITS
+    ) {
+      return [
+        errorBox(
+          'Aspect Ratio',
+          `Input is too large: dimensions are limited to ${MAX_DIMENSION_DIGITS} digits.`,
+          { priority: this.priority },
+        ),
+      ];
+    }
 
-    const w = Number.parseInt(match[1], 10);
-    const h = Number.parseInt(match[2], 10);
-    if (w <= 0 || h <= 0) return [];
+    const width = BigInt(match[1]);
+    const height = BigInt(match[2]);
+    if (width <= 0n || height <= 0n) return [];
 
-    const divisor = gcd(w, h);
-    const rw = w / divisor;
-    const rh = h / divisor;
+    const divisor = gcd(width, height);
+    const rw = width / divisor;
+    const rh = height / divisor;
     const ratioStr = `${rw}:${rh}`;
 
-    // round to 4 significant digits and strip trailing zeros
-    const decimal = Number((w / h).toPrecision(4)).toString();
+    const decimal = formatDecimal(width, height);
 
     const kvOptions: Record<string, string> = {
       Ratio: ratioStr,
@@ -62,6 +116,8 @@ export const AspectRatioBoxSource = {
     const commonName = CommonRatios[ratioStr];
     if (commonName) {
       kvOptions.Common = commonName;
+    } else if (ratioStr !== '7:3' && isNearUltrawide(width, height)) {
+      kvOptions.Common = '≈21:9 Ultrawide';
     }
 
     const plaintextOutput = Object.entries(kvOptions)

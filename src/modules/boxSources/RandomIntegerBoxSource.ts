@@ -1,14 +1,104 @@
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
+import { BoxBuilder, errorBox } from '@modules/Box';
 
 const PriorityRandomBox = 10;
 const DEFAULT_MIN = 0;
 const DEFAULT_MAX = 100;
+const MAX_SAFE_INTEGER_TEXT = String(Number.MAX_SAFE_INTEGER);
 
 interface Match {
   min: number;
   max: number;
+}
+
+interface ParsedMatch {
+  match: Match | null;
+  error: string | null;
+}
+
+const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
+
+function exceedsSafeInteger(value: string): boolean {
+  return (
+    value.length > MAX_SAFE_INTEGER_TEXT.length ||
+    (value.length === MAX_SAFE_INTEGER_TEXT.length &&
+      value > MAX_SAFE_INTEGER_TEXT)
+  );
+}
+
+function parseMatch(input: string): ParsedMatch {
+  if (!isString(input)) {
+    return { match: null, error: null };
+  }
+  if (input === '' || trim(input) === '') {
+    return { match: null, error: null };
+  }
+
+  const regularInput = trim(input);
+
+  // match pattern like "random 0-100", "random 0~100", "random 100", or just "random".
+  const match = /^random(?:\s+(\d+)(?:\s*[-~]?\s*(\d+))?)?$/i.exec(
+    regularInput,
+  );
+  if (!match) {
+    return { match: null, error: null };
+  }
+
+  if (!match[1] && !match[2]) {
+    return { match: { min: DEFAULT_MIN, max: DEFAULT_MAX }, error: null };
+  }
+
+  if (
+    exceedsSafeInteger(match[1]) ||
+    (match[2] !== undefined && exceedsSafeInteger(match[2]))
+  ) {
+    return {
+      match: null,
+      error: `Bounds must not exceed Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER}).`,
+    };
+  }
+
+  const first = BigInt(match[1]);
+  const second = match[2] === undefined ? null : BigInt(match[2]);
+  const largest = second === null ? first : second;
+  if (first > MAX_SAFE_INTEGER_BIGINT || largest > MAX_SAFE_INTEGER_BIGINT) {
+    return {
+      match: null,
+      error: `Bounds must not exceed Number.MAX_SAFE_INTEGER (${Number.MAX_SAFE_INTEGER}).`,
+    };
+  }
+
+  if (second === null) {
+    // Keep the historical rejection for "random 0" while allowing the useful 0–1 range.
+    if (first === 0n) return { match: null, error: null };
+    return { match: { min: DEFAULT_MIN, max: Number(first) }, error: null };
+  }
+
+  const min = Number(first < second ? first : second);
+  const max = Number(first < second ? second : first);
+  return { match: { min, max }, error: null };
+}
+
+function randomBelow(limit: bigint): bigint {
+  if (limit === 1n) return 0n;
+
+  const bits = (limit - 1n).toString(2).length;
+  const byteCount = Math.ceil(bits / 8);
+  const excessBits = byteCount * 8 - bits;
+  const firstByteMask = 0xff >> excessBits;
+  const bytes = new Uint8Array(byteCount);
+
+  while (true) {
+    crypto.getRandomValues(bytes);
+    bytes[0] &= firstByteMask;
+
+    let candidate = 0n;
+    for (const byte of bytes) {
+      candidate = (candidate << 8n) | BigInt(byte);
+    }
+    if (candidate < limit) return candidate;
+  }
 }
 
 export const RandomIntegerBoxSource = {
@@ -20,58 +110,25 @@ export const RandomIntegerBoxSource = {
   priority: PriorityRandomBox,
 
   checkMatch(input: string): Match | undefined {
-    if (!isString(input)) {
-      return undefined;
-    }
-    if (input === '' || trim(input) === '') {
-      return undefined;
-    }
-
-    const regularInput = trim(input);
-
-    // Match pattern like "random 0-100" or "random 0~100" or "random 100" or just "random"
-    const match = /^random(?:\s+(\d+)(?:\s*[-~]?\s*(\d+))?)?$/i.exec(
-      regularInput,
-    );
-    if (!match) {
-      return undefined;
-    }
-
-    if (!match[1] && !match[2]) {
-      return { min: DEFAULT_MIN, max: DEFAULT_MAX };
-    }
-
-    // If only one number is provided, use it as max and set min to 0
-    if (!match[2]) {
-      const max = parseInt(match[1], 10);
-      if (max <= 1) {
-        return undefined;
-      }
-      return { min: DEFAULT_MIN, max };
-    }
-
-    const min = parseInt(match[1], 10);
-    const max = parseInt(match[2], 10);
-
-    if (min >= max) {
-      return undefined;
-    }
-
-    return { min, max };
+    return parseMatch(input).match ?? undefined;
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const match = this.checkMatch(input);
+    const parsed = parseMatch(input);
+    if (parsed.error !== null) {
+      return [
+        errorBox('Random Integer', parsed.error, { priority: this.priority }),
+      ];
+    }
+
+    const match = parsed.match;
     if (!match) {
       return [];
     }
 
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-
-    const randomInRange = Math.floor(
-      (array[0] / (0xffffffff + 1)) * (match.max - match.min + 1) + match.min,
-    );
+    const min = BigInt(match.min);
+    const max = BigInt(match.max);
+    const randomInRange = min + randomBelow(max - min + 1n);
 
     return [
       new BoxBuilder('Random Number', randomInRange.toString())

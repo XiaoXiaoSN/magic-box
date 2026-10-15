@@ -35,6 +35,16 @@ describe('FractionBoxSource', () => {
         expect(boxes[0].props.options?.Fraction).toBe('1/2');
       });
 
+      it('accepts a leading-dot decimal', async () => {
+        const boxes = await FractionBoxSource.generateBoxes('.5', {
+          fraction: true,
+        });
+        expect(boxes[0].props.options).toMatchObject({
+          Decimal: '0.5',
+          Fraction: '1/2',
+        });
+      });
+
       it('converts 0.333 exactly to 333/1000 (not 1/3)', async () => {
         const boxes = await FractionBoxSource.generateBoxes('0.333', {
           fraction: true,
@@ -63,6 +73,13 @@ describe('FractionBoxSource', () => {
         });
         // 2/1 simplifies — denominator 1 means we just show the number
         expect(boxes[0].props.options?.Fraction).toBe('2');
+      });
+
+      it('does not include Mixed for an integer decimal', async () => {
+        const boxes = await FractionBoxSource.generateBoxes('4.0', {
+          fraction: true,
+        });
+        expect(boxes[0].props.options?.Mixed).toBeUndefined();
       });
 
       it('converts 0 to 0', async () => {
@@ -121,6 +138,24 @@ describe('FractionBoxSource', () => {
         expect(decimal).toBeDefined();
         // should start with 0.333
         expect(String(decimal)).toMatch(/^0\.333/);
+        expect(String(decimal)).toContain('…');
+      });
+
+      it('keeps tiny fractions visible without Number rounding to zero', async () => {
+        const boxes = await FractionBoxSource.generateBoxes('1/10000000', {
+          fraction: true,
+        });
+        expect(boxes[0].props.options?.Decimal).toBe('0.0000001');
+      });
+
+      it('keeps large fraction integer digits exact', async () => {
+        const boxes = await FractionBoxSource.generateBoxes(
+          '123456789012345678901/3',
+          { fraction: true },
+        );
+        expect(boxes[0].props.options?.Decimal).toBe(
+          '41152263004115226300.333333333333…',
+        );
       });
 
       it('returns error box for division by zero (5/0)', async () => {

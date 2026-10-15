@@ -18,8 +18,14 @@ describe('RandomIntegerBoxSource', () => {
 
     it('should not match when single number is invalid', () => {
       expect(RandomIntegerBoxSource.checkMatch('random 0')).toBeUndefined();
-      expect(RandomIntegerBoxSource.checkMatch('random 1')).toBeUndefined();
       expect(RandomIntegerBoxSource.checkMatch('random -1')).toBeUndefined();
+    });
+
+    it('should match a single upper bound of one', () => {
+      expect(RandomIntegerBoxSource.checkMatch('random 1')).toEqual({
+        min: 0,
+        max: 1,
+      });
     });
 
     it('should match "random" with custom range', () => {
@@ -40,9 +46,22 @@ describe('RandomIntegerBoxSource', () => {
       expect(match).toEqual({ min: 1, max: 10 });
     });
 
-    it('should not match when min >= max', () => {
-      const match = RandomIntegerBoxSource.checkMatch('random 10-1');
-      expect(match).toBeUndefined();
+    it('should swap reversed bounds', () => {
+      const match = RandomIntegerBoxSource.checkMatch('random 6-1');
+      expect(match).toEqual({ min: 1, max: 6 });
+    });
+
+    it('should accept an inclusive single-value range', () => {
+      expect(RandomIntegerBoxSource.checkMatch('random 6-6')).toEqual({
+        min: 6,
+        max: 6,
+      });
+    });
+
+    it('should reject bounds above Number.MAX_SAFE_INTEGER', () => {
+      expect(
+        RandomIntegerBoxSource.checkMatch('random 9007199254740992'),
+      ).toBeUndefined();
     });
 
     it('should not match invalid formats', () => {
@@ -97,6 +116,33 @@ describe('RandomIntegerBoxSource', () => {
         min: '0',
         max: '50',
       });
+    });
+
+    it('should generate a value for the single-bound range 0-1', async () => {
+      const boxes = await RandomIntegerBoxSource.generateBoxes('random 1');
+      expect(boxes).toHaveLength(1);
+      expect(['0', '1']).toContain(boxes[0].props.plaintextOutput);
+    });
+
+    it('should generate within a reversed large safe range', async () => {
+      const boxes = await RandomIntegerBoxSource.generateBoxes(
+        'random 9007199254740991-9007199254740990',
+      );
+      expect(boxes).toHaveLength(1);
+      expect(BigInt(boxes[0].props.plaintextOutput) >= 9007199254740990n).toBe(
+        true,
+      );
+      expect(BigInt(boxes[0].props.plaintextOutput) <= 9007199254740991n).toBe(
+        true,
+      );
+    });
+
+    it('returns an error box for an unsafe bound', async () => {
+      const boxes = await RandomIntegerBoxSource.generateBoxes(
+        'random 1-9007199254740992',
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/MAX_SAFE_INTEGER/);
     });
 
     it('should return empty array for non-matching input', async () => {
