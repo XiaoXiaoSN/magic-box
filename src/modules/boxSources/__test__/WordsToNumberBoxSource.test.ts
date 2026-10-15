@@ -162,6 +162,6 @@ describe('WordsToNumberBoxSource', () => {
     const boxes = await WordsToNumberBoxSource.generateBoxes(input, {
       wordstonum: true,
     });
-    expect(boxes[0].props.plaintextOutput).toMatch(/couldn.t parse/i);
+    expect(boxes[0].props.plaintextOutput).toMatch(/couldn't parse/i);
   });
 });
