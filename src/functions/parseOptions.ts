@@ -1,52 +1,106 @@
-import type { BoxOptions } from '@modules/Box';
+import type { BoxOptions, BoxOptionValues } from '@modules/Box';
 
-// Parses input text and inline `::option=value` directives, returning the
-// cleaned input and a map of options. Options may appear on the very first
-// line or after a newline — a leading `\n` is NOT required.
-//
-// Directive contract (box sources rely on it):
-// - a directive must start a line; `hello ::base32` is plain input text
-// - `::key` and `::key=` both yield `true` — an empty value means "no value",
-//   so a source sees only `true` or a non-empty string. sources that want a
-//   default treat `true` as "use the default"; none has to handle `''`
-//
-// Example:
-//   ::qrcode
-//   Hello World
-//   ::locale=tw
-// → input='Hello World', options={qrcode: true, locale: 'tw'}
-export const parseInput = (input: string): [string, BoxOptions] => {
-  // `(?:^|\n)` lets the directive appear at the very start of the string, not
-  // just after a newline. `(.*)` captures any value including spaces.
-  const regex = /(?:^|\n)::(\w+)=?(.*)/gm;
-  const matches = Array.from(input.matchAll(regex), (match) => [
-    match[1],
-    match[2],
-  ]);
+import { parseIPv6Address } from './parseIPv6';
 
-  const initOptions: BoxOptions = {};
-  const options = matches.reduce((opts, [key, value]) => {
-    const updatedOpts = opts;
-    updatedOpts[key.toLowerCase()] = value || true;
-    return updatedOpts;
-  }, initOptions);
+interface ParsedDirective {
+  key: string;
+  value: BoxOptionValues;
+}
 
-  const replacedInput = input.replaceAll(regex, '').trim();
-  return [replacedInput, options];
-};
+interface ParsedInput {
+  input: string;
+  options: BoxOptions;
+}
 
-// Parses inline `::option=value` directives for display as UI chips.
-// Uses `(\S*)` (no spaces in value) intentionally — chip display only needs
-// the first token. Options may appear on the first line or after a newline.
-export const parseOptionsForChips = (
-  input: string,
-): Record<string, string | true> => {
-  const regex = /(?:^|\n)::(\w+)=?(\S*)/gm;
-  const opts: Record<string, string | true> = {};
-  for (const match of input.matchAll(regex)) {
-    const key = match[1].toLowerCase();
-    const value = match[2];
-    opts[key] = value || true;
+const isKeyStart = (character: string): boolean => /[A-Za-z_]/.test(character);
+
+const isKeyCharacter = (character: string): boolean =>
+  /[A-Za-z0-9_-]/.test(character);
+
+/** bare option aliases that overlap valid IPv6 shorthand literals. */
+export const LEGACY_HEX_OPTION_KEYS = ['ca', 'dd'] as const;
+
+const LEGACY_HEX_OPTION_SET = new Set<string>(LEGACY_HEX_OPTION_KEYS);
+
+const newOptions = (): Record<string, BoxOptionValues> =>
+  Object.create(null) as Record<string, BoxOptionValues>;
+
+function trimHorizontalEnd(value: string): string {
+  let end = value.length;
+  while (end > 0) {
+    const character = value[end - 1];
+    if (character !== ' ' && character !== '\t') break;
+    end -= 1;
   }
-  return opts;
-};
+  return end === value.length ? value : value.slice(0, end);
+}
+
+function parseDirectiveLine(line: string): ParsedDirective | null {
+  if (!line.startsWith('::')) return null;
+
+  const body = line.slice(2);
+  if (!isKeyStart(body[0] ?? '')) return null;
+
+  let keyEnd = 1;
+  while (keyEnd < body.length && isKeyCharacter(body[keyEnd])) keyEnd += 1;
+
+  const key = body.slice(0, keyEnd).toLowerCase();
+  const suffix = body.slice(keyEnd);
+  const canBeDirective =
+    suffix === '' || suffix.startsWith('=') || /^\s/.test(suffix);
+
+  // Registered bare aliases predate IPv6 classification. Other valid literals,
+  // including their trailing spaces or tabs, stay input instead of partial keys.
+  if (
+    !(LEGACY_HEX_OPTION_SET.has(key) && canBeDirective) &&
+    parseIPv6Address(trimHorizontalEnd(line)).ok
+  )
+    return null;
+
+  if (suffix === '') return { key, value: true };
+  if (suffix.startsWith('=')) {
+    const value = suffix.slice(1).trim();
+    return { key, value: value === '' ? true : value };
+  }
+  if (/^\s/.test(suffix)) {
+    const value = suffix.trim();
+    return { key, value: value === '' ? true : value };
+  }
+
+  return null;
+}
+
+function parseLines(input: string): ParsedInput {
+  const normalized = input.replace(/\r\n?/g, '\n');
+  const retainedLines: string[] = [];
+  const options = newOptions();
+  let lineStart = 0;
+
+  for (let index = 0; index <= normalized.length; index += 1) {
+    if (index !== normalized.length && normalized[index] !== '\n') continue;
+
+    const line = normalized.slice(lineStart, index);
+    const directive = parseDirectiveLine(line);
+    if (directive === null) {
+      retainedLines.push(line);
+    } else {
+      options[directive.key] = directive.value;
+    }
+    lineStart = index + 1;
+  }
+
+  return { input: retainedLines.join('\n').trim(), options };
+}
+
+// parses line-anchored `::option=value` directives and returns clean input.
+export function parseInput(input: string): [string, BoxOptions] {
+  const parsed = parseLines(input);
+  return [parsed.input, parsed.options];
+}
+
+// uses the same tokenizer as parseInput so chips and sources see identical values.
+export function parseOptionsForChips(
+  input: string,
+): Record<string, BoxOptionValues> {
+  return parseLines(input).options as Record<string, BoxOptionValues>;
+}

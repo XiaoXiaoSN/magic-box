@@ -5,31 +5,30 @@
 export type BoxOptions = Record<string, BoxOptionValues> | null;
 export type BoxOptionValues = string | boolean;
 
-// Checks whether any of the given keys are exist in the BoxOptions
+// checks whether an option key is an own property, including prototype-like names.
+export const hasOwnOption = (options: BoxOptions, key: string): boolean =>
+  options !== null && Object.hasOwn(options, key.toLowerCase());
+
+// checks whether any of the given keys exist in the BoxOptions.
 export const hasOptionKeys = (
   options: BoxOptions,
   ...keys: string[]
 ): boolean => {
-  if (options === null) {
-    return false;
-  }
-
-  const regularKeys = keys.map((k) => k.toLowerCase());
-
-  return regularKeys.some((key) => options[key] !== undefined);
+  return keys.some((key) => hasOwnOption(options, key));
 };
 
-// Extracts the value of the first key that is exist in the BoxOptions
+// extracts the value of the first own key in the BoxOptions.
 export const extractOptionKeys = (
   options: BoxOptions,
   ...keys: string[]
 ): BoxOptionValues | null => {
-  if (options === null) {
-    return null;
+  for (const key of keys) {
+    const normalizedKey = key.toLowerCase();
+    if (hasOwnOption(options, normalizedKey)) {
+      return options?.[normalizedKey] ?? null;
+    }
   }
-
-  const foundKey = keys.find((key) => options[key.toLowerCase()] !== undefined);
-  return foundKey ? options[foundKey.toLowerCase()] : null;
+  return null;
 };
 
 export type BoxOnClickFn = (out: string) => void;

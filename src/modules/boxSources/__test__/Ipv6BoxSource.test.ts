@@ -143,14 +143,72 @@ describe('Ipv6BoxSource', () => {
       expect(opts.Error).toMatch(/not a valid ipv6 address/i);
     });
 
-    it('returns an error box for embedded IPv4', async () => {
+    it('accepts an embedded IPv4 address', async () => {
       const boxes = await Ipv6BoxSource.generateBoxes('::ffff:192.168.1.1', {
         ipv6: true,
       });
       expect(boxes).toHaveLength(1);
 
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Error).toMatch(/ipv4/i);
+      expect(opts.Expanded).toBe('0000:0000:0000:0000:0000:ffff:c0a8:0101');
+      expect(opts.Compressed).toBe('::ffff:c0a8:101');
+    });
+
+    it('accepts bracketed, zoned, and CIDR forms', async () => {
+      const boxes = await Ipv6BoxSource.generateBoxes('[fe80::1%eth0]/64', {
+        ipv6: true,
+      });
+      expect(boxes).toHaveLength(1);
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Zone).toBe('eth0');
+      expect(opts.Prefix).toBe('64');
+      expect(opts.Network).toBe('fe80::/64');
+      expect(opts.Last).toBe('fe80::ffff:ffff:ffff:ffff');
+      expect(opts.Count).toBe('18446744073709551616');
+    });
+
+    it('reads an IPv6 value from the directive when the body is empty', async () => {
+      const boxes = await Ipv6BoxSource.generateBoxes('', { ipv6: '::1' });
+      expect(boxes).toHaveLength(1);
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Compressed).toBe('::1');
+    });
+
+    it('returns an error for an explicitly invalid IPv6 option value', async () => {
+      const boxes = await Ipv6BoxSource.generateBoxes('', { ipv6: 'bad' });
+      expect(boxes).toHaveLength(1);
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toMatch(/not a valid ipv6 address/i);
+    });
+
+    it('bounds an explicitly overlong value in the error output', async () => {
+      const boxes = await Ipv6BoxSource.generateBoxes('', {
+        ipv6: 'x'.repeat(101),
+      });
+      expect(boxes).toHaveLength(1);
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Input.length).toBe(101);
+      expect(boxes[0].props.plaintextOutput.length).toBeLessThan(180);
+    });
+
+    it.each([
+      '2001:db8:::1',
+      '2001:db8::1::2',
+      '2001:db8::ffff:192.168.1.1:2',
+      '::ffff:999.1.1.1',
+      '2001:db8::1/129',
+      '[2001:db8::1',
+      'fe80::1%',
+    ])('rejects malformed IPv6 syntax: %s', async (raw) => {
+      const boxes = await Ipv6BoxSource.generateBoxes(raw, { ipv6: true });
+      expect(boxes).toHaveLength(1);
+
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toMatch(/not a valid ipv6 address/i);
     });
   });
 });

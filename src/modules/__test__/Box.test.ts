@@ -1,9 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import type { BoxTemplate } from '../Box';
-import { errorBox, keyValueBox } from '../Box';
+import {
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+  keyValueBox,
+} from '../Box';
 
 // a stand-in template; keyValueBox only stores it on the box, never invokes it
 const FakeTemplate = (() => null) as unknown as BoxTemplate;
+
+describe('option helpers', () => {
+  it('only matches own properties, including prototype-like names', () => {
+    const options = Object.create({ constructor: true }) as Record<
+      string,
+      string | boolean
+    >;
+    options.tostring = 'value';
+
+    expect(hasOptionKeys(options, 'constructor')).toBe(false);
+    expect(hasOptionKeys(options, 'toString')).toBe(true);
+    expect(extractOptionKeys(options, 'constructor', 'toString')).toBe('value');
+  });
+});
 
 describe('keyValueBox', () => {
   it('renders the pairs as k: v lines in plaintextOutput', () => {
