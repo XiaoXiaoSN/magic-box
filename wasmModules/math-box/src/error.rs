@@ -2,21 +2,55 @@ use core::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
-    InputTooLong { len: usize, limit: usize },
-    UnexpectedChar { ch: char, pos: usize },
-    InvalidNumber { text: alloc::string::String, pos: usize },
-    UnexpectedToken { what: &'static str, pos: usize },
+    InputTooLong {
+        len: usize,
+        limit: usize,
+    },
+    UnexpectedChar {
+        ch: char,
+        pos: usize,
+    },
+    InvalidNumber {
+        text: alloc::string::String,
+        pos: usize,
+    },
+    UnexpectedToken {
+        what: &'static str,
+        pos: usize,
+    },
     UnexpectedEof,
-    DepthExceeded { limit: usize },
-    TooManyTokens { limit: usize },
-    UnknownIdentifier { name: alloc::string::String },
-    UnknownFunction { name: alloc::string::String },
-    ArityMismatch { name: alloc::string::String, expected: usize, got: usize },
+    DepthExceeded {
+        limit: usize,
+    },
+    LimitExceeded {
+        what: &'static str,
+        limit: usize,
+    },
+    TooManyTokens {
+        limit: usize,
+    },
+    UnknownIdentifier {
+        name: alloc::string::String,
+    },
+    UnknownFunction {
+        name: alloc::string::String,
+    },
+    ArityMismatch {
+        name: alloc::string::String,
+        expected: usize,
+        got: usize,
+    },
     DivisionByZero,
     NotANumber,
-    Domain { what: &'static str },
+    Domain {
+        what: &'static str,
+    },
     Overflow,
-    TypeMismatch { op: &'static str, lhs: &'static str, rhs: &'static str },
+    TypeMismatch {
+        op: &'static str,
+        lhs: &'static str,
+        rhs: &'static str,
+    },
     DimensionMismatch,
 }
 
@@ -39,15 +73,19 @@ impl fmt::Display for Error {
             Self::DepthExceeded { limit } => {
                 write!(f, "expression nesting too deep (limit {limit})")
             }
+            Self::LimitExceeded { what, limit } => {
+                write!(f, "{what} limit exceeded (limit {limit})")
+            }
             Self::TooManyTokens { limit } => {
                 write!(f, "too many tokens (limit {limit})")
             }
             Self::UnknownIdentifier { name } => write!(f, "unknown identifier: {name}"),
             Self::UnknownFunction { name } => write!(f, "unknown function: {name}"),
-            Self::ArityMismatch { name, expected, got } => write!(
-                f,
-                "{name} expects {expected} argument(s), got {got}"
-            ),
+            Self::ArityMismatch {
+                name,
+                expected,
+                got,
+            } => write!(f, "{name} expects {expected} argument(s), got {got}"),
             Self::DivisionByZero => write!(f, "division by zero"),
             Self::NotANumber => write!(f, "result is not a number"),
             Self::Domain { what } => write!(f, "domain error: {what}"),

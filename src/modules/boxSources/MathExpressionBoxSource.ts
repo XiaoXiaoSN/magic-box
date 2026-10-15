@@ -1,6 +1,8 @@
 import { isJSON, isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
+import mathBoxGlueUrl from 'math-box/math_box.js?url';
+import mathBoxWasmUrl from 'math-box/math_box_bg.wasm?url';
 
 const PriorityMathExpression = 10;
 
@@ -44,6 +46,39 @@ function writeCache(key: string, value: Match | null): void {
 }
 
 let initPromise: Promise<typeof import('math-box')> | null = null;
+let wasmBytesPromise: Promise<Uint8Array> | null = null;
+let recoveryId = 0;
+
+function isNodeRuntime(): boolean {
+  return typeof process !== 'undefined' && process.versions?.node !== undefined;
+}
+
+async function loadWasmBytes(): Promise<Uint8Array> {
+  if (!wasmBytesPromise) {
+    wasmBytesPromise = (async () => {
+      if (isNodeRuntime()) {
+        const fsName = 'node:fs/promises';
+        const modName = 'node:module';
+        const [fs, nodeModule] = await Promise.all([
+          import(/* @vite-ignore */ fsName),
+          import(/* @vite-ignore */ modName),
+        ]);
+        const req = nodeModule.createRequire(import.meta.url);
+        return fs.readFile(req.resolve('math-box/math_box_bg.wasm'));
+      }
+
+      const response = await fetch(mathBoxWasmUrl);
+      if (!response.ok) {
+        throw new Error(`math-box WASM fetch failed: ${response.status}`);
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    })().catch((err) => {
+      wasmBytesPromise = null;
+      throw err;
+    });
+  }
+  return wasmBytesPromise;
+}
 
 async function loadMathBox() {
   if (!initPromise) {
@@ -52,33 +87,45 @@ async function loadMathBox() {
     // for the page session.
     initPromise = (async () => {
       const mod = await import('math-box');
-      const isNode =
-        typeof process !== 'undefined' && process.versions?.node !== undefined;
-      if (isNode) {
-        // jsdom/vitest path: bypass fetch by reading wasm bytes from disk.
-        // runtime-string indirection keeps Vite from bundling these into
-        // the browser chunk; createRequire resolves the wasm asset by
-        // package id so the path stays correct regardless of how the
-        // transformer rewrites `import.meta.url`.
-        const fsName = 'node:fs/promises';
-        const modName = 'node:module';
-        const [fs, nodeModule] = await Promise.all([
-          import(/* @vite-ignore */ fsName),
-          import(/* @vite-ignore */ modName),
-        ]);
-        const req = nodeModule.createRequire(import.meta.url);
-        const wasmPath = req.resolve('math-box/math_box_bg.wasm');
-        const bytes = await fs.readFile(wasmPath);
-        await mod.default({ module_or_path: bytes });
-      } else {
-        await mod.default();
-      }
+      await mod.default({ module_or_path: await loadWasmBytes() });
       return mod;
     })().catch((err) => {
       initPromise = null;
       throw err;
     });
   }
+  return initPromise;
+}
+
+async function recoverMathBox(): Promise<typeof import('math-box')> {
+  const recovery = (async () => {
+    let freshUrl: string;
+    if (isNodeRuntime()) {
+      const modName = 'node:module';
+      const urlName = 'node:url';
+      const [nodeModule, nodeUrl] = await Promise.all([
+        import(/* @vite-ignore */ modName),
+        import(/* @vite-ignore */ urlName),
+      ]);
+      const req = nodeModule.createRequire(import.meta.url);
+      freshUrl = `${nodeUrl.pathToFileURL(req.resolve('math-box/math_box.js')).href}?recovery=${++recoveryId}`;
+    } else {
+      const url = new URL(mathBoxGlueUrl, import.meta.url);
+      url.searchParams.set('recovery', String(++recoveryId));
+      freshUrl = url.href;
+    }
+
+    const freshMod = (await import(
+      /* @vite-ignore */ freshUrl
+    )) as typeof import('math-box');
+    freshMod.initSync({ module: await loadWasmBytes() });
+    return freshMod;
+  })();
+
+  initPromise = recovery.catch((err) => {
+    initPromise = null;
+    throw err;
+  });
   return initPromise;
 }
 
@@ -116,23 +163,42 @@ export const MathExpressionBoxSource = {
       return cached ?? undefined;
     }
 
-    let result: Match | null = null;
+    let mathBox: typeof import('math-box');
     try {
-      const { evaluate } = await loadMathBox();
-      const answer = evaluate(regularInput);
+      mathBox = await loadMathBox();
+    } catch (error) {
+      console.error('math-box failed to load', error);
+      return undefined;
+    }
+
+    try {
+      const answer = mathBox.evaluate(regularInput);
       if (
         typeof answer === 'string' &&
         answer !== '' &&
         answer.replace(/\s/g, '') !== regularInput.replace(/\s/g, '')
       ) {
-        result = { answer };
+        const result = { answer };
+        writeCache(regularInput, result);
+        return result;
       }
-    } catch {
-      /* expression rejected by parser/evaluator — not a math input */
+      writeCache(regularInput, null);
+      return undefined;
+    } catch (error) {
+      if (typeof error === 'string') {
+        writeCache(regularInput, null);
+      } else if (error instanceof WebAssembly.RuntimeError) {
+        console.error('math-box WASM runtime trap; reinitializing', error);
+        try {
+          await recoverMathBox();
+        } catch (recoveryError) {
+          console.error('math-box WASM recovery failed', recoveryError);
+        }
+      } else {
+        console.error('math-box evaluation failed', error);
+      }
+      return undefined;
     }
-
-    writeCache(regularInput, result);
-    return result ?? undefined;
   },
 
   async generateBoxes(input: string): Promise<Box[]> {

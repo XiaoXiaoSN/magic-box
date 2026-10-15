@@ -4,6 +4,7 @@ use alloc::vec::Vec;
 
 use crate::compiler::{Inst, Program, UserFn};
 use crate::error::{Error, Result};
+use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
 use crate::ops;
 use crate::value::Value;
@@ -23,7 +24,10 @@ impl Default for Scope {
 
 impl Scope {
     pub fn new() -> Self {
-        let mut s = Self { frames: Vec::with_capacity(4), user_fns: BTreeMap::new() };
+        let mut s = Self {
+            frames: Vec::with_capacity(4),
+            user_fns: BTreeMap::new(),
+        };
         s.frames.push(BTreeMap::new());
         s
     }
@@ -44,7 +48,9 @@ impl Scope {
 
     pub fn push_frame(&mut self) -> Result<()> {
         if self.frames.len() >= MAX_FRAME_DEPTH {
-            return Err(Error::DepthExceeded { limit: MAX_FRAME_DEPTH });
+            return Err(Error::DepthExceeded {
+                limit: MAX_FRAME_DEPTH,
+            });
         }
         self.frames.push(BTreeMap::new());
         Ok(())
@@ -61,9 +67,14 @@ impl Scope {
     }
 }
 
-pub fn run(program: &Program, ns: &Namespace, scope: &mut Scope) -> Result<Value> {
+pub fn run(
+    program: &Program,
+    ns: &Namespace,
+    scope: &mut Scope,
+    budget: &mut WorkBudget,
+) -> Result<Value> {
     let mut stack: Vec<Value> = Vec::with_capacity(16);
-    exec(program, ns, scope, &mut stack)?;
+    exec(program, ns, scope, &mut stack, budget)?;
 
     let top = stack.pop().ok_or(Error::UnexpectedEof)?;
     if !stack.is_empty() {
@@ -77,8 +88,10 @@ fn exec(
     ns: &Namespace,
     scope: &mut Scope,
     stack: &mut Vec<Value>,
+    budget: &mut WorkBudget,
 ) -> Result<()> {
     for inst in &program.code {
+        budget.consume(1)?;
         match inst {
             Inst::PushVal(v) => stack.push(v.clone()),
 
@@ -101,15 +114,17 @@ fn exec(
                             got: *arity,
                         });
                     }
-                    let split_at =
-                        stack.len().checked_sub(*arity).ok_or(Error::UnexpectedEof)?;
+                    let split_at = stack
+                        .len()
+                        .checked_sub(*arity)
+                        .ok_or(Error::UnexpectedEof)?;
                     let args = stack.split_off(split_at);
                     scope.push_frame()?;
                     for (p, a) in user.params.iter().zip(args) {
                         scope.set_var(p.clone(), a);
                     }
                     let mut sub_stack: Vec<Value> = Vec::with_capacity(8);
-                    let res = exec(&user.body, ns, scope, &mut sub_stack);
+                    let res = exec(&user.body, ns, scope, &mut sub_stack, budget);
                     scope.pop_frame();
                     res?;
                     let v = sub_stack.pop().ok_or(Error::UnexpectedEof)?;
@@ -125,8 +140,10 @@ fn exec(
                             got: *arity,
                         });
                     }
-                    let split_at =
-                        stack.len().checked_sub(*arity).ok_or(Error::UnexpectedEof)?;
+                    let split_at = stack
+                        .len()
+                        .checked_sub(*arity)
+                        .ok_or(Error::UnexpectedEof)?;
                     let args = stack.split_off(split_at);
                     let v = (entry.call)(&args)?;
                     stack.push(v);

@@ -11,7 +11,56 @@ use crate::value::Complex;
 use crate::value::Fraction;
 
 #[cfg(feature = "bigint")]
+use crate::limits::MAX_NUMERIC_BITS;
+#[cfg(feature = "bigint")]
 use num_bigint::BigInt;
+
+#[cfg(feature = "bigint")]
+fn check_big_growth(bits: u64) -> Result<()> {
+    if bits > MAX_NUMERIC_BITS as u64 {
+        return Err(Error::LimitExceeded {
+            what: "numeric bit length",
+            limit: MAX_NUMERIC_BITS,
+        });
+    }
+    Ok(())
+}
+
+#[cfg(feature = "bigint")]
+fn check_big_size(value: &BigInt) -> Result<()> {
+    check_big_growth(value.bits())
+}
+
+#[cfg(feature = "bigint")]
+fn big_power_of_two_exponent(value: &BigInt) -> Option<u64> {
+    let bits = value.bits();
+    value
+        .magnitude()
+        .trailing_zeros()
+        .filter(|zeros| zeros.saturating_add(1) == bits)
+}
+
+#[cfg(feature = "bigint")]
+fn big_multiply_growth_bits(lhs: &BigInt, rhs: &BigInt) -> u64 {
+    if lhs.bits() == 0 || rhs.bits() == 0 {
+        0
+    } else if let Some(shift) = big_power_of_two_exponent(lhs) {
+        rhs.bits().saturating_add(shift)
+    } else if let Some(shift) = big_power_of_two_exponent(rhs) {
+        lhs.bits().saturating_add(shift)
+    } else {
+        lhs.bits().saturating_add(rhs.bits())
+    }
+}
+
+#[cfg(feature = "bigint")]
+fn big_power_growth_bits(value: &BigInt, exponent: u32) -> u64 {
+    if let Some(shift) = big_power_of_two_exponent(value) {
+        shift.saturating_mul(u64::from(exponent)).saturating_add(1)
+    } else {
+        value.bits().saturating_mul(u64::from(exponent))
+    }
+}
 
 // promote a numeric f64 to BigInt only when the value is an exact
 // integer. fractional or non-finite inputs yield None so callers can
@@ -39,19 +88,27 @@ pub fn add(a: Value, b: Value) -> Result<Value> {
         (Num(x), Bool(y)) | (Bool(y), Num(x)) => Num(x + (y as i64) as f64),
 
         #[cfg(feature = "bigint")]
-        (Big(x), Big(y)) => Big(x + y),
+        (Big(x), Big(y)) => {
+            let result = x + y;
+            check_big_size(&result)?;
+            Big(result)
+        }
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) | (Num(y), Big(x)) => match num_to_bigint(y) {
-            Some(yi) => Big(x + yi),
+            Some(yi) => {
+                let result = x + yi;
+                check_big_size(&result)?;
+                Big(result)
+            }
             None => Num(big_to_f64(&x) + y),
         },
 
         #[cfg(feature = "fraction")]
-        (Frac(x), Frac(y)) => Frac(x.add(&y)),
+        (Frac(x), Frac(y)) => Frac(x.add(&y)?),
         #[cfg(feature = "fraction")]
         (Frac(x), Num(y)) | (Num(y), Frac(x)) => {
             if y.fract() == 0.0 && y.is_finite() {
-                Frac(x.add(&Fraction::from_int(y as i64)))
+                Frac(x.add(&Fraction::from_int(y as i64))?)
             } else {
                 Num(x.to_f64() + y)
             }
@@ -77,7 +134,13 @@ pub fn add(a: Value, b: Value) -> Result<Value> {
             })
         }
 
-        (l, r) => return Err(Error::TypeMismatch { op: "+", lhs: l.type_name(), rhs: r.type_name() }),
+        (l, r) => {
+            return Err(Error::TypeMismatch {
+                op: "+",
+                lhs: l.type_name(),
+                rhs: r.type_name(),
+            });
+        }
     })
 }
 
@@ -90,24 +153,36 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
         (Bool(x), Num(y)) => Num((x as i64) as f64 - y),
 
         #[cfg(feature = "bigint")]
-        (Big(x), Big(y)) => Big(x - y),
+        (Big(x), Big(y)) => {
+            let result = x - y;
+            check_big_size(&result)?;
+            Big(result)
+        }
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) => match num_to_bigint(y) {
-            Some(yi) => Big(x - yi),
+            Some(yi) => {
+                let result = x - yi;
+                check_big_size(&result)?;
+                Big(result)
+            }
             None => Num(big_to_f64(&x) - y),
         },
         #[cfg(feature = "bigint")]
         (Num(x), Big(y)) => match num_to_bigint(x) {
-            Some(xi) => Big(xi - y),
+            Some(xi) => {
+                let result = xi - y;
+                check_big_size(&result)?;
+                Big(result)
+            }
             None => Num(x - big_to_f64(&y)),
         },
 
         #[cfg(feature = "fraction")]
-        (Frac(x), Frac(y)) => Frac(x.sub(&y)),
+        (Frac(x), Frac(y)) => Frac(x.sub(&y)?),
         #[cfg(feature = "fraction")]
         (Frac(x), Num(y)) => {
             if y.fract() == 0.0 && y.is_finite() {
-                Frac(x.sub(&Fraction::from_int(y as i64)))
+                Frac(x.sub(&Fraction::from_int(y as i64))?)
             } else {
                 Num(x.to_f64() - y)
             }
@@ -115,7 +190,7 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
         #[cfg(feature = "fraction")]
         (Num(x), Frac(y)) => {
             if x.fract() == 0.0 && x.is_finite() {
-                Frac(Fraction::from_int(x as i64).sub(&y))
+                Frac(Fraction::from_int(x as i64).sub(&y)?)
             } else {
                 Num(x - y.to_f64())
             }
@@ -140,7 +215,13 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
             })
         }
 
-        (l, r) => return Err(Error::TypeMismatch { op: "-", lhs: l.type_name(), rhs: r.type_name() }),
+        (l, r) => {
+            return Err(Error::TypeMismatch {
+                op: "-",
+                lhs: l.type_name(),
+                rhs: r.type_name(),
+            });
+        }
     })
 }
 
@@ -152,19 +233,29 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
         (Num(x), Bool(y)) | (Bool(y), Num(x)) => Num(x * (y as i64) as f64),
 
         #[cfg(feature = "bigint")]
-        (Big(x), Big(y)) => Big(x * y),
+        (Big(x), Big(y)) => {
+            check_big_growth(big_multiply_growth_bits(&x, &y))?;
+            let result = x * y;
+            check_big_size(&result)?;
+            Big(result)
+        }
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) | (Num(y), Big(x)) => match num_to_bigint(y) {
-            Some(yi) => Big(x * yi),
+            Some(yi) => {
+                check_big_growth(big_multiply_growth_bits(&x, &yi))?;
+                let result = x * yi;
+                check_big_size(&result)?;
+                Big(result)
+            }
             None => Num(big_to_f64(&x) * y),
         },
 
         #[cfg(feature = "fraction")]
-        (Frac(x), Frac(y)) => Frac(x.mul(&y)),
+        (Frac(x), Frac(y)) => Frac(x.mul(&y)?),
         #[cfg(feature = "fraction")]
         (Frac(x), Num(y)) | (Num(y), Frac(x)) => {
             if y.fract() == 0.0 && y.is_finite() {
-                Frac(x.mul(&Fraction::from_int(y as i64)))
+                Frac(x.mul(&Fraction::from_int(y as i64))?)
             } else {
                 Num(x.to_f64() * y)
             }
@@ -184,13 +275,27 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
             dim: x.dim,
         }),
         #[cfg(feature = "unit")]
-        (Unit(x), Unit(y)) => Unit(crate::value::UnitValue {
-            base_value: x.base_value * y.base_value,
-            unit_label: alloc::format!("{} {}", x.unit_label, y.unit_label),
-            dim: x.dim.add(&y.dim),
-        }),
+        (Unit(x), Unit(y)) => {
+            let dim = x.dim.checked_add(&y.dim)?;
+            let base_value = x.base_value * y.base_value;
+            if dim == crate::value::Dimension::SCALAR {
+                Num(base_value)
+            } else {
+                Unit(crate::value::UnitValue {
+                    base_value,
+                    unit_label: dim.canonical_label(),
+                    dim,
+                })
+            }
+        }
 
-        (l, r) => return Err(Error::TypeMismatch { op: "*", lhs: l.type_name(), rhs: r.type_name() }),
+        (l, r) => {
+            return Err(Error::TypeMismatch {
+                op: "*",
+                lhs: l.type_name(),
+                rhs: r.type_name(),
+            });
+        }
     })
 }
 
@@ -281,25 +386,35 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
                 return Err(Error::DivisionByZero);
             }
             let base = x.base_value / y.base_value;
-            let dim = x.dim.sub(&y.dim);
+            let dim = x.dim.checked_sub(&y.dim)?;
             if dim == crate::value::Dimension::SCALAR {
                 Num(base)
             } else {
                 Unit(crate::value::UnitValue {
                     base_value: base,
-                    unit_label: alloc::format!("{}/{}", x.unit_label, y.unit_label),
+                    unit_label: dim.canonical_label(),
                     dim,
                 })
             }
         }
 
-        (l, r) => return Err(Error::TypeMismatch { op: "/", lhs: l.type_name(), rhs: r.type_name() }),
+        (l, r) => {
+            return Err(Error::TypeMismatch {
+                op: "/",
+                lhs: l.type_name(),
+                rhs: r.type_name(),
+            });
+        }
     })
 }
 
 pub fn rem(a: Value, b: Value) -> Result<Value> {
-    let x = a.as_f64().ok_or(Error::Domain { what: "modulo requires numeric operand" })?;
-    let y = b.as_f64().ok_or(Error::Domain { what: "modulo requires numeric operand" })?;
+    let x = a.as_f64().ok_or(Error::Domain {
+        what: "modulo requires numeric operand",
+    })?;
+    let y = b.as_f64().ok_or(Error::Domain {
+        what: "modulo requires numeric operand",
+    })?;
     Ok(Value::Num(x % y))
 }
 
@@ -307,6 +422,39 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
     use Value::*;
     Ok(match (&a, &b) {
         (Num(x), Num(y)) => Num(x.powf(*y)),
+
+        #[cfg(feature = "bigint")]
+        (Big(x), Num(y)) if y.fract() == 0.0 && *y >= 0.0 && *y <= u32::MAX as f64 => {
+            let exponent = *y as u32;
+            if x != &BigInt::from(0) && x != &BigInt::from(1) && x != &BigInt::from(-1) {
+                check_big_growth(big_power_growth_bits(x, exponent))?;
+            }
+            let result = x.pow(exponent);
+            check_big_size(&result)?;
+            Big(result)
+        }
+
+        #[cfg(feature = "bigint")]
+        (Big(x), Big(y)) => {
+            use num_traits::ToPrimitive;
+            if let Some(exponent) = y.to_u32() {
+                if x != &BigInt::from(0) && x != &BigInt::from(1) && x != &BigInt::from(-1) {
+                    check_big_growth(big_power_growth_bits(x, exponent))?;
+                }
+                let result = x.pow(exponent);
+                check_big_size(&result)?;
+                Big(result)
+            } else {
+                Num(a
+                    .as_f64()
+                    .ok_or(Error::Domain {
+                        what: "pow requires numeric operands",
+                    })?
+                    .powf(b.as_f64().ok_or(Error::Domain {
+                        what: "pow requires numeric operands",
+                    })?))
+            }
+        }
 
         #[cfg(feature = "complex")]
         (Complex(_), _) | (_, Complex(_)) => {
@@ -323,28 +471,23 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
             let m_im = bx.re * ln_im + bx.im * ln_re;
             // exp = e^re * (cos im + i sin im)
             let scale = m_re.exp();
-            Complex(crate::value::Complex::new(scale * m_im.cos(), scale * m_im.sin()))
+            Complex(crate::value::Complex::new(
+                scale * m_im.cos(),
+                scale * m_im.sin(),
+            ))
         }
 
         #[cfg(feature = "fraction")]
-        (Frac(x), Num(y)) if y.fract() == 0.0 && *y >= 0.0 && *y < 64.0 => {
-            // integer power on fraction
-            let n = *y as i64;
-            let mut acc = crate::value::Fraction::from_int(1);
-            for _ in 0..n {
-                acc = acc.mul(x);
-            }
-            Frac(acc)
-        }
+        (Frac(x), Num(y)) if y.fract() == 0.0 && *y >= 0.0 && *y < 64.0 => Frac(x.pow(*y as u32)?),
 
-        _ => Num(
-            a.as_f64()
-                .ok_or(Error::Domain { what: "pow requires numeric operands" })?
-                .powf(
-                    b.as_f64()
-                        .ok_or(Error::Domain { what: "pow requires numeric operands" })?,
-                ),
-        ),
+        _ => Num(a
+            .as_f64()
+            .ok_or(Error::Domain {
+                what: "pow requires numeric operands",
+            })?
+            .powf(b.as_f64().ok_or(Error::Domain {
+                what: "pow requires numeric operands",
+            })?)),
     })
 }
 
@@ -370,7 +513,11 @@ pub fn neg(a: Value) -> Result<Value> {
         Num(x) => Num(-x),
         Bool(x) => Num(-((x as i64) as f64)),
         Str(_) => {
-            return Err(Error::TypeMismatch { op: "unary -", lhs: "string", rhs: "(none)" });
+            return Err(Error::TypeMismatch {
+                op: "unary -",
+                lhs: "string",
+                rhs: "(none)",
+            });
         }
         #[cfg(feature = "bigint")]
         Big(x) => Big(-x),
@@ -388,12 +535,16 @@ pub fn neg(a: Value) -> Result<Value> {
 }
 
 pub fn logical_not(a: Value) -> Result<Value> {
-    Ok(Value::Num(if a.as_f64().unwrap_or(0.0) == 0.0 { 1.0 } else { 0.0 }))
+    Ok(Value::Num(if a.as_f64().unwrap_or(0.0) == 0.0 {
+        1.0
+    } else {
+        0.0
+    }))
 }
 
 pub fn factorial(a: Value) -> Result<Value> {
-    let n = a
-        .as_f64()
-        .ok_or(Error::Domain { what: "factorial requires a numeric operand" })?;
+    let n = a.as_f64().ok_or(Error::Domain {
+        what: "factorial requires a numeric operand",
+    })?;
     Ok(Value::Num(crate::builtins::factorial_f64(n)?))
 }
