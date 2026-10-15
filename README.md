@@ -31,7 +31,7 @@ https://youtu.be/dQw4w9WgXcQ
 ::shorten=document
 ```
 
-Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. Keys start with a letter or underscore and may contain letters, digits, underscores, and hyphens. Values are trimmed at the edges while preserving internal whitespace and `=` characters. `::option=` with nothing after `=` is the same as a bare `::option`; a valid IPv6 literal such as `::1` remains input.
+Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. Keys start with a letter or underscore and may contain letters, digits, underscores, and hyphens. Values are trimmed at the edges while preserving internal whitespace and `=` characters. `::option=` with nothing after `=` is the same as a bare `::option`; a valid IPv6 literal such as `::1` remains input, including when it has trailing spaces or tabs. The existing bare aliases `::dd` (coordinate decimal degrees) and `::ca` (certificate decode) take precedence over IPv6 shorthand; use `::ipv6=::dd` or `::ipv6=[::dd]` when that address is intended.
 
 Based on matching methods, we can roughly classify Boxes into two types:
 

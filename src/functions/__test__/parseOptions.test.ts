@@ -1,6 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import { describe, expect, it, vi } from 'vitest';
 
-import { parseInput, parseOptionsForChips } from '../parseOptions';
+import CertificateBoxSource from '../../modules/boxSources/CertificateBoxSource';
+import { CoordinateBoxSource } from '../../modules/boxSources/CoordinateBoxSource';
+import { Ipv6BoxSource } from '../../modules/boxSources/Ipv6BoxSource';
+import {
+  LEGACY_HEX_OPTION_KEYS,
+  parseInput,
+  parseOptionsForChips,
+} from '../parseOptions';
+import pem from './fixtures/certificate';
 
 describe('parseInput', () => {
   describe('option on the first line (no preceding text)', () => {
@@ -143,6 +152,67 @@ describe('parseInput', () => {
       const [input, options] = parseInput('::face');
       expect(input).toBe('::face');
       expect(options).toEqual({});
+    });
+
+    it.each([
+      '::abcd ',
+      '::face\t',
+    ])('keeps an IPv6 literal with trailing horizontal whitespace as input: %s', async (raw) => {
+      const canonical = raw.trim();
+      const [input, options] = parseInput(raw);
+      expect(input).toBe(canonical);
+      expect(options).toEqual({});
+      expect(parseOptionsForChips(raw)).toEqual({});
+
+      const boxes = await Ipv6BoxSource.generateBoxes(input, {
+        ipv6: true,
+      });
+      expect(
+        (boxes[0].props.options as Record<string, string>).Compressed,
+      ).toBe(canonical);
+    });
+
+    it.each([
+      '::dd',
+      '[::dd]',
+    ])('allows an ambiguous IPv6 value through an explicit option: %s', async (value) => {
+      const [input, options] = parseInput(`::ipv6=${value}`);
+      expect(input).toBe('');
+      expect(options).toEqual({ ipv6: value });
+
+      const boxes = await Ipv6BoxSource.generateBoxes(input, options);
+      expect(
+        (boxes[0].props.options as Record<string, string>).Compressed,
+      ).toBe('::dd');
+    });
+
+    it('keeps registered hexadecimal aliases as directives for their sources', async () => {
+      expect(LEGACY_HEX_OPTION_KEYS).toEqual(['ca', 'dd']);
+
+      const [coordinateInput, coordinateOptions] = parseInput(
+        '40.446195, -79.948862\n::DD',
+      );
+      expect(coordinateOptions).toEqual({ dd: true });
+      const coordinateBoxes = await CoordinateBoxSource.generateBoxes(
+        coordinateInput,
+        coordinateOptions,
+      );
+      expect(coordinateBoxes[0].props.name).toBe('Decimal');
+
+      vi.stubGlobal('crypto', webcrypto);
+      try {
+        const [certificateInput, certificateOptions] = parseInput(
+          `${pem}\n::ca`,
+        );
+        expect(certificateOptions).toEqual({ ca: true });
+        const certificateBoxes = await CertificateBoxSource.generateBoxes(
+          certificateInput,
+          certificateOptions,
+        );
+        expect(certificateBoxes[0].props.name).toBe('Certificate 1');
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
 
     it('creates own properties for prototype-like option keys', () => {

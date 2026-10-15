@@ -17,15 +17,26 @@ const isKeyStart = (character: string): boolean => /[A-Za-z_]/.test(character);
 const isKeyCharacter = (character: string): boolean =>
   /[A-Za-z0-9_-]/.test(character);
 
+/** bare option aliases that overlap valid IPv6 shorthand literals. */
+export const LEGACY_HEX_OPTION_KEYS = ['ca', 'dd'] as const;
+
+const LEGACY_HEX_OPTION_SET = new Set<string>(LEGACY_HEX_OPTION_KEYS);
+
 const newOptions = (): Record<string, BoxOptionValues> =>
   Object.create(null) as Record<string, BoxOptionValues>;
 
+function trimHorizontalEnd(value: string): string {
+  let end = value.length;
+  while (end > 0) {
+    const character = value[end - 1];
+    if (character !== ' ' && character !== '\t') break;
+    end -= 1;
+  }
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function parseDirectiveLine(line: string): ParsedDirective | null {
   if (!line.startsWith('::')) return null;
-
-  // a valid literal wins over ambiguous hex-only names such as `::face`.
-  // invalid colon tails stay input instead of being split as values.
-  if (parseIPv6Address(line).ok) return null;
 
   const body = line.slice(2);
   if (!isKeyStart(body[0] ?? '')) return null;
@@ -35,6 +46,17 @@ function parseDirectiveLine(line: string): ParsedDirective | null {
 
   const key = body.slice(0, keyEnd).toLowerCase();
   const suffix = body.slice(keyEnd);
+  const canBeDirective =
+    suffix === '' || suffix.startsWith('=') || /^\s/.test(suffix);
+
+  // Registered bare aliases predate IPv6 classification. Other valid literals,
+  // including their trailing spaces or tabs, stay input instead of partial keys.
+  if (
+    !(LEGACY_HEX_OPTION_SET.has(key) && canBeDirective) &&
+    parseIPv6Address(trimHorizontalEnd(line)).ok
+  )
+    return null;
+
   if (suffix === '') return { key, value: true };
   if (suffix.startsWith('=')) {
     const value = suffix.slice(1).trim();
