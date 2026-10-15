@@ -37,6 +37,25 @@ function formatDecimal(numerator: bigint, denominator: bigint): string {
 
   const scale = 1_000_000n;
   const scaled = (numerator * scale + denominator / 2n) / denominator;
+  if (scaled === 0n) {
+    let exponent = numerator.toString().length - denominator.toString().length;
+    if (exponent < 0 && numerator * 10n ** BigInt(-exponent) < denominator) {
+      exponent--;
+    }
+
+    const significantScale = 10n ** BigInt(3 - exponent);
+    let mantissa =
+      (numerator * significantScale + denominator / 2n) / denominator;
+    if (mantissa >= 10_000n) {
+      mantissa /= 10n;
+      exponent++;
+    }
+
+    const digits = mantissa.toString().padStart(4, '0');
+    const decimal = `${digits[0]}.${digits.slice(1)}`.replace(/\.0+$/, '');
+    return `${decimal.replace(/(\d)0+$/, '$1')}e${exponent}`;
+  }
+
   const whole = scaled / scale;
   const fraction = (scaled % scale)
     .toString()
@@ -71,8 +90,7 @@ export const AspectRatioBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'ratio', 'aspect')) return [];
 
-    const raw = trim(input);
-    if (raw.length > MAX_INPUT_LENGTH) {
+    if (input.length > MAX_INPUT_LENGTH) {
       return [
         errorBox(
           'Aspect Ratio',
@@ -82,6 +100,7 @@ export const AspectRatioBoxSource = {
       ];
     }
 
+    const raw = trim(input);
     const match = raw.match(DIMENSION_RE);
     if (!match) return [];
     if (
@@ -106,7 +125,7 @@ export const AspectRatioBoxSource = {
     const rh = height / divisor;
     const ratioStr = `${rw}:${rh}`;
 
-    const decimal = formatDecimal(width, height);
+    const decimal = formatDecimal(rw, rh);
 
     const kvOptions: Record<string, string> = {
       Ratio: ratioStr,

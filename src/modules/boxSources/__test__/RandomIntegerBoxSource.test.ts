@@ -64,6 +64,12 @@ describe('RandomIntegerBoxSource', () => {
       ).toBeUndefined();
     });
 
+    it('accepts leading zeros on the safe integer boundary', () => {
+      expect(
+        RandomIntegerBoxSource.checkMatch('random 09007199254740991'),
+      ).toEqual({ min: 0, max: Number.MAX_SAFE_INTEGER });
+    });
+
     it('should not match invalid formats', () => {
       expect(RandomIntegerBoxSource.checkMatch('random-1-10')).toBeUndefined();
       expect(RandomIntegerBoxSource.checkMatch('random1-10')).toBeUndefined();

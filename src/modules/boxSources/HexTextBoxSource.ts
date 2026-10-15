@@ -77,7 +77,7 @@ export const HexTextBoxSource = {
     if (!wantEncode && !wantDecode) {
       return [];
     }
-    if (!isString(input) || trim(input).length === 0) return [];
+    if (!isString(input)) return [];
     if (input.length > MAX_INPUT) {
       return [
         errorBox(
@@ -87,6 +87,7 @@ export const HexTextBoxSource = {
         ),
       ];
     }
+    if (trim(input).length === 0) return [];
 
     const boxes: Box[] = [];
 

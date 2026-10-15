@@ -148,6 +148,35 @@ describe('FractionBoxSource', () => {
         expect(boxes[0].props.options?.Decimal).toBe('0.0000001');
       });
 
+      it('preserves exact terminating fractions below twelve decimal places', async () => {
+        const denominator = `1${'0'.repeat(13)}`;
+        const boxes = await FractionBoxSource.generateBoxes(
+          `1/${denominator}`,
+          { fraction: true },
+        );
+        expect(boxes[0].props.options?.Decimal).toBe('0.0000000000001');
+      });
+
+      it('keeps the magnitude of a very tiny terminating fraction', async () => {
+        const denominator = `1${'0'.repeat(60)}`;
+        const boxes = await FractionBoxSource.generateBoxes(
+          `1/${denominator}`,
+          { fraction: true },
+        );
+        expect(boxes[0].props.options?.Decimal).toBe(`0.${'0'.repeat(59)}1`);
+      });
+
+      it('uses bounded scientific notation for tiny nonterminating fractions', async () => {
+        const denominator = `3${'0'.repeat(60)}`;
+        const boxes = await FractionBoxSource.generateBoxes(
+          `1/${denominator}`,
+          { fraction: true },
+        );
+        expect(boxes[0].props.options?.Decimal).toMatch(
+          /^3\.33333333333e-61…$/,
+        );
+      });
+
       it('keeps large fraction integer digits exact', async () => {
         const boxes = await FractionBoxSource.generateBoxes(
           '123456789012345678901/3',

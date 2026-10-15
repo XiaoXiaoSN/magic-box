@@ -59,6 +59,22 @@ describe('AspectRatioBoxSource', () => {
       });
     });
 
+    it('formats equivalent scaled dimensions identically without zeroing tiny ratios', async () => {
+      const small = await AspectRatioBoxSource.generateBoxes('1x2000001', {
+        ratio: true,
+      });
+      const scaled = await AspectRatioBoxSource.generateBoxes(
+        '10000000000000000x20000010000000000000000',
+        { ratio: true },
+      );
+      const smallDecimal = (small[0].props.options as Record<string, string>)
+        .Decimal;
+      const scaledDecimal = (scaled[0].props.options as Record<string, string>)
+        .Decimal;
+      expect(smallDecimal).toBe(scaledDecimal);
+      expect(smallDecimal).not.toBe('0');
+    });
+
     it('returns an error box before parsing dimensions above the digit limit', async () => {
       const boxes = await AspectRatioBoxSource.generateBoxes(
         `${'1'.repeat(129)}x5`,

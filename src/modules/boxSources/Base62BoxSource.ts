@@ -54,16 +54,17 @@ export const Base62BoxSource = {
     const wantDecode = hasOptionKeys(options, 'base62decode');
     if (!wantEncode && !wantDecode) return [];
 
-    const raw = trim(input);
-    if (raw.length > MAX_INPUT) {
+    if (input.length > MAX_INPUT) {
       return [
         errorBox(
           'Base62',
-          `Input is too large (${raw.length} characters, limit ${MAX_INPUT}).`,
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
           { priority: this.priority },
         ),
       ];
     }
+
+    const raw = trim(input);
 
     const boxes: Box[] = [];
 

@@ -20,10 +20,11 @@ interface ParsedMatch {
 const MAX_SAFE_INTEGER_BIGINT = BigInt(Number.MAX_SAFE_INTEGER);
 
 function exceedsSafeInteger(value: string): boolean {
+  const normalized = value.replace(/^0+(?=\d)/, '');
   return (
-    value.length > MAX_SAFE_INTEGER_TEXT.length ||
-    (value.length === MAX_SAFE_INTEGER_TEXT.length &&
-      value > MAX_SAFE_INTEGER_TEXT)
+    normalized.length > MAX_SAFE_INTEGER_TEXT.length ||
+    (normalized.length === MAX_SAFE_INTEGER_TEXT.length &&
+      normalized > MAX_SAFE_INTEGER_TEXT)
   );
 }
 

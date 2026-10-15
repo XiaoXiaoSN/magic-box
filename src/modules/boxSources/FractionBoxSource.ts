@@ -3,6 +3,7 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
+const MAX_INPUT_LENGTH = 64;
 
 // euclid gcd for non-negative bigints
 function gcd(a: bigint, b: bigint): bigint {
@@ -45,7 +46,9 @@ function mixedStr(num: bigint, den: bigint): string | null {
   return `${whole} ${rem < 0n ? -rem : rem}/${den}`;
 }
 
-const MAX_DECIMAL_DIGITS = 12;
+const MAX_SIGNIFICANT_DIGITS = 12;
+const MAX_FIXED_FRACTION_DIGITS = 64;
+const MAX_DIVISION_STEPS = MAX_INPUT_LENGTH * 8;
 
 function decimalFromFraction(num: bigint, den: bigint): string {
   const negative = num < 0n;
@@ -55,17 +58,54 @@ function decimalFromFraction(num: bigint, den: bigint): string {
   if (remainder === 0n) return `${negative ? '-' : ''}${whole}`;
 
   const digits: string[] = [];
-  for (let index = 0; index < MAX_DECIMAL_DIGITS && remainder !== 0n; index++) {
-    remainder *= 10n;
-    digits.push((remainder / den).toString());
-    remainder %= den;
+  if (whole > 0n) {
+    for (
+      let index = 0;
+      index < MAX_SIGNIFICANT_DIGITS && remainder !== 0n;
+      index++
+    ) {
+      remainder *= 10n;
+      digits.push((remainder / den).toString());
+      remainder %= den;
+    }
+
+    const fullDecimal = digits.join('');
+    const decimal = fullDecimal.replace(/0+$/, '') || fullDecimal;
+    const suffix = remainder === 0n ? '' : '…';
+    return `${negative ? '-' : ''}${whole}.${decimal}${suffix}`;
   }
 
-  const fullDecimal = digits.join('');
-  const trimmedDecimal = fullDecimal.replace(/0+$/, '');
-  const decimal = trimmedDecimal || fullDecimal;
+  let leadingZeros = 0;
+  let steps = 0;
+  while (
+    remainder !== 0n &&
+    digits.length < MAX_SIGNIFICANT_DIGITS &&
+    steps < MAX_DIVISION_STEPS
+  ) {
+    remainder *= 10n;
+    const digit = (remainder / den).toString();
+    remainder %= den;
+    steps++;
+    if (digits.length === 0 && digit === '0') {
+      leadingZeros++;
+    } else {
+      digits.push(digit);
+    }
+  }
+
   const suffix = remainder === 0n ? '' : '…';
-  return `${negative ? '-' : ''}${whole}.${decimal}${suffix}`;
+  const fractionalLength = leadingZeros + digits.length;
+  if (fractionalLength <= MAX_FIXED_FRACTION_DIGITS) {
+    return `${negative ? '-' : ''}0.${'0'.repeat(leadingZeros)}${digits.join('')}${suffix}`;
+  }
+
+  const exponent = -(leadingZeros + 1);
+  const significant = digits.join('');
+  const mantissa =
+    significant.length === 1
+      ? significant
+      : `${significant[0]}.${significant.slice(1)}`;
+  return `${negative ? '-' : ''}${mantissa}e${exponent}${suffix}`;
 }
 
 // builds the plaintext kv string for KeyValueBoxTemplate
@@ -74,9 +114,6 @@ function kvToPlaintext(kv: Record<string, string>): string {
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n');
 }
-
-// max input length to prevent abuse
-const MAX_INPUT_LENGTH = 64;
 
 const FRACTION_RE = /^(-?\d+)\s*\/\s*(\d+)$/;
 const DECIMAL_RE = /^-?(?:\d+(\.\d+)?|\.\d+)$/;
@@ -97,17 +134,18 @@ export const FractionBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'fraction', 'tofraction')) return [];
 
-    const raw = trim(input);
-    if (!raw) return [];
-    if (raw.length > MAX_INPUT_LENGTH) {
+    if (input.length > MAX_INPUT_LENGTH) {
       return [
         errorBox(
           'Fraction',
-          `Input is too large (${raw.length} characters, limit ${MAX_INPUT_LENGTH}).`,
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT_LENGTH}).`,
           { priority: this.priority },
         ),
       ];
     }
+
+    const raw = trim(input);
+    if (!raw) return [];
 
     // fraction a/b → decimal
     const fracMatch = FRACTION_RE.exec(raw);

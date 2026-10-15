@@ -145,6 +145,14 @@ describe('Base62BoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
     });
+
+    it('reports oversized whitespace input before trimming', async () => {
+      const boxes = await Base62BoxSource.generateBoxes(' '.repeat(5_001), {
+        base62: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
+    });
   });
 
   describe('both options → two boxes', () => {
