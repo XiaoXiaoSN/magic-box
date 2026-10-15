@@ -156,8 +156,14 @@ describe('helper functions', () => {
       expect(isBase64('')).toBe(false);
       expect(isBase64('   ')).toBe(false);
       expect(isBase64('hello world')).toBe(false);
-      expect(isBase64('SGVsbG8gV29ybGQ')).toBe(false); // Missing padding
+      expect(isBase64('SGVsbG8gV29ybGQ')).toBe(true); // Missing padding
       expect(isBase64('SGVsbG8gV29ybGQ===')).toBe(false); // Invalid padding
+    });
+
+    it('accepts URL-safe and MIME line-broken input', () => {
+      expect(isBase64('PDw_Pz4-')).toBe(true);
+      expect(isBase64('SGVs\r\n bG8=')).toBe(true);
+      expect(isBase64('SGVs\r\nbG8=')).toBe(true);
     });
 
     it('should return false for multi-line input where only one line is valid base64', () => {

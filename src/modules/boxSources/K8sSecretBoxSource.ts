@@ -65,7 +65,11 @@ function decodeDataValue(value: unknown): string {
   }
 
   try {
-    const { readableText } = decodeBase64(value.replace(/\s/g, ''));
+    const { readableText } = decodeBase64(value.replace(/\s/g, ''), {
+      allowMissingPadding: false,
+      allowUrlSafe: false,
+      allowWhitespace: false,
+    });
     return readableText ?? UnreadableString;
   } catch {
     return InvalidBase64;

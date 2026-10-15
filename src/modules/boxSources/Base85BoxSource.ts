@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -34,8 +35,8 @@ function encodeAscii85(input: string): string {
   return out;
 }
 
-// decodes Ascii85 back to a UTF-8 string; returns null on invalid input
-function decodeAscii85(input: string): string | null {
+// decodes Ascii85 back to bytes; returns null on invalid input
+function decodeAscii85(input: string): Uint8Array | null {
   const s = input.replace(/\s/g, '');
   const bytes: number[] = [];
 
@@ -83,7 +84,7 @@ function decodeAscii85(input: string): string | null {
     bytes.push(...emit);
   }
 
-  return new TextDecoder().decode(new Uint8Array(bytes));
+  return new Uint8Array(bytes);
 }
 
 export const Base85BoxSource = {
@@ -124,8 +125,8 @@ export const Base85BoxSource = {
     }
 
     if (wantDecode) {
-      const decoded = decodeAscii85(input);
-      if (decoded === null) {
+      const decodedBytes = decodeAscii85(input);
+      if (decodedBytes === null) {
         boxes.push(
           new BoxBuilder(
             'Base85 (Decode)',
@@ -137,6 +138,8 @@ export const Base85BoxSource = {
             .build(),
         );
       } else {
+        const decoded =
+          decodeUtf8Strict(decodedBytes) ?? formatBinaryFallback(decodedBytes);
         boxes.push(
           new BoxBuilder('Base85 (Decode)', decoded)
             .setView('default')

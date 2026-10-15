@@ -247,6 +247,19 @@ data:
       });
     });
 
+    it('keeps malformed base64 separate from unreadable UTF-8', async () => {
+      const boxes = await K8sSecretBoxSource.generateBoxes(`
+apiVersion: v1
+kind: Secret
+data:
+  malformed: abcde
+`);
+
+      expect(boxes[0].props.options).toEqual({
+        malformed: '<invalid-base64>',
+      });
+    });
+
     it('returns an informative box for an empty Secret', async () => {
       const boxes = await K8sSecretBoxSource.generateBoxes(`
 apiVersion: v1

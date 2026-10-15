@@ -122,6 +122,14 @@ describe('BinaryTextBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid binary/i);
     });
+
+    it('shows invalid UTF-8 bytes as a stable binary fallback', async () => {
+      const boxes = await BinaryTextBoxSource.generateBoxes('11111111', {
+        binarydecode: true,
+      });
+
+      expect(boxes[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: ff)');
+    });
   });
 
   describe('round-trip', () => {

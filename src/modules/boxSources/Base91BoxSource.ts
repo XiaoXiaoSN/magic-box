@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -125,7 +126,7 @@ export const Base91BoxSource = {
 
     if (wantDecode) {
       const bytes = decodeBase91(input);
-      const decoded = new TextDecoder().decode(bytes);
+      const decoded = decodeUtf8Strict(bytes) ?? formatBinaryFallback(bytes);
       boxes.push(
         new BoxBuilder('basE91 (Decode)', decoded)
           .setShowExpandButton(false)

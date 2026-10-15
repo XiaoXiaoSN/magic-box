@@ -1,3 +1,5 @@
+import { normalizeBase64 } from './base64';
+
 export function isNumeric(num: unknown): boolean {
   if (typeof num === 'number') return Number.isFinite(num);
   return (
@@ -42,20 +44,14 @@ export function isRFC3339(str: unknown): boolean {
 }
 
 export function isBase64(str: string): boolean {
-  // https://stackoverflow.com/a/7874175/6695274
-  /*
-   *   ^                          # Start of input
-   *   ([0-9a-zA-Z+/]{4})*        # Groups of 4 valid characters decode
-   *                              # to 24 bits of data for each group
-   *   (                          # Either ending with:
-   *       ([0-9a-zA-Z+/]{2}==)   # two valid characters followed by ==
-   *       |                      # , or
-   *       ([0-9a-zA-Z+/]{3}=)    # three valid characters followed by =
-   *   )?                         # , or nothing
-   *   $                          # End of input
-   */
-  const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
-  return str !== '' && str.trim() !== '' && !!re.exec(str);
+  // keep ordinary prose from matching when missing padding is allowed
+  if (str.includes(' ') && !str.includes('=')) return false;
+  try {
+    normalizeBase64(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function isJSON(str: string): boolean {

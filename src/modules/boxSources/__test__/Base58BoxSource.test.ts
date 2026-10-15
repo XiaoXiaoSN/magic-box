@@ -64,6 +64,16 @@ describe('Base58BoxSource', () => {
       expect(boxes[0].props.name).toBe('Base58 (Decode)');
       expect(boxes[0].props.plaintextOutput).toBe('invalid Base58 input');
     });
+
+    it('does not render a Bitcoin address as replacement-character text', async () => {
+      const boxes = await Base58BoxSource.generateBoxes(
+        '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
+        { base58decode: true },
+      );
+
+      expect(boxes[0].props.plaintextOutput).toMatch(/^<binary \d+ bytes>/);
+      expect(boxes[0].props.plaintextOutput).not.toContain('\ufffd');
+    });
   });
 
   describe('generateBoxes - round-trip', () => {
@@ -102,7 +112,7 @@ describe('Base58BoxSource', () => {
       const dec = await Base58BoxSource.generateBoxes('1', {
         base58decode: true,
       });
-      expect(dec[0].props.plaintextOutput).toBe(NUL);
+      expect(dec[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: 00)');
     });
 
     it('preserves a leading NUL before a printable byte', async () => {
@@ -114,7 +124,7 @@ describe('Base58BoxSource', () => {
       const dec = await Base58BoxSource.generateBoxes(encoded, {
         base58decode: true,
       });
-      expect(dec[0].props.plaintextOutput).toBe(`${NUL}A`);
+      expect(dec[0].props.plaintextOutput).toBe('<binary 2 bytes> (hex: 0041)');
     });
   });
 

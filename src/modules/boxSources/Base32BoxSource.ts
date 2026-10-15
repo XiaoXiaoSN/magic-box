@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -43,8 +44,8 @@ function base32Encode(input: string): string {
   return output;
 }
 
-/** Decode RFC 4648 Base32 back to UTF-8 text, or throw on invalid input. */
-function base32Decode(input: string): string {
+/** Decode RFC 4648 Base32 back to bytes, or throw on invalid input. */
+function base32Decode(input: string): Uint8Array {
   // strip whitespace, uppercase, and trailing padding
   const normalised = input.replace(/\s/g, '').toUpperCase().replace(/=+$/, '');
 
@@ -65,7 +66,7 @@ function base32Decode(input: string): string {
     }
   }
 
-  return new TextDecoder().decode(new Uint8Array(bytes));
+  return new Uint8Array(bytes);
 }
 
 export const Base32BoxSource = {
@@ -107,7 +108,9 @@ export const Base32BoxSource = {
 
     if (wantDecode) {
       try {
-        const decoded = base32Decode(input);
+        const decodedBytes = base32Decode(input);
+        const decoded =
+          decodeUtf8Strict(decodedBytes) ?? formatBinaryFallback(decodedBytes);
         boxes.push(
           new BoxBuilder('Base32 (Decode)', decoded)
             .setView('default')

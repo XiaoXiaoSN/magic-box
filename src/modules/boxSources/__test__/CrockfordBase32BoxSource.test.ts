@@ -121,6 +121,14 @@ describe('CrockfordBase32BoxSource', () => {
       );
     });
 
+    it('shows control bytes as a stable binary fallback', async () => {
+      const boxes = await CrockfordBase32BoxSource.generateBoxes('00', {
+        crockforddecode: true,
+      });
+
+      expect(boxes[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: 00)');
+    });
+
     it('both options produce 2 boxes (encode + decode)', async () => {
       const boxes = await CrockfordBase32BoxSource.generateBoxes('D1JPRV3F', {
         crockford: true,
