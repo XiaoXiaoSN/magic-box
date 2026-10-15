@@ -1,7 +1,53 @@
 import { MarkdownTocBoxSource } from '@modules/boxSources/MarkdownTocBoxSource';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const markdownItMock = vi.hoisted(() => ({
+  constructions: 0,
+  failNextConstruction: false,
+  imports: 0,
+}));
+
+vi.mock('markdown-it', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('markdown-it')>();
+  markdownItMock.imports++;
+
+  return {
+    ...actual,
+    default: class extends actual.default {
+      constructor(...args: ConstructorParameters<typeof actual.default>) {
+        markdownItMock.constructions++;
+        if (markdownItMock.failNextConstruction) {
+          markdownItMock.failNextConstruction = false;
+          throw new Error('markdown parser initialization failed');
+        }
+        super(...args);
+      }
+    },
+  };
+});
 
 describe('MarkdownTocBoxSource', () => {
+  it('loads the parser after input guards and retries failed initialization', async () => {
+    expect(markdownItMock.imports).toBe(0);
+    await MarkdownTocBoxSource.generateBoxes('# Ignored', null);
+    await MarkdownTocBoxSource.generateBoxes('x'.repeat(100_001), {
+      toc: true,
+    });
+    expect(markdownItMock.imports).toBe(0);
+
+    markdownItMock.failNextConstruction = true;
+    await expect(
+      MarkdownTocBoxSource.generateBoxes('# Retry', { toc: true }),
+    ).rejects.toThrow('markdown parser initialization failed');
+    const boxes = await MarkdownTocBoxSource.generateBoxes('# Retry', {
+      toc: true,
+    });
+
+    expect(markdownItMock.imports).toBe(1);
+    expect(markdownItMock.constructions).toBe(2);
+    expect(boxes[0].props.plaintextOutput).toBe('- [Retry](#retry)');
+  });
+
   describe('option gating', () => {
     it('returns [] when no option is provided', async () => {
       const boxes = await MarkdownTocBoxSource.generateBoxes(
@@ -221,6 +267,33 @@ describe('MarkdownTocBoxSource', () => {
     );
     expect(boxes[0].props.plaintextOutput).toBe(
       '- [foobar](#foobar)\n- [foo\\*\\*bar](#foobar-1)',
+    );
+  });
+
+  it('keeps delimiters literal when link precedence prevents emphasis', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes('## *[foo*](bar)', {
+      toc: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe('- [\\*foo\\*](#foo)');
+  });
+
+  it('extracts resolved references, image alt text, autolinks, and strikethrough', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [reference][target] ![alt *text*](image.png) <https://example.com> ~~gone~~\n\n[target]: /url',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [reference alt text https://example.com gone](#reference-alt-text-httpsexamplecom-gone)',
+    );
+  });
+
+  it('preserves unresolved reference syntax as visible text', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## [missing][reference]',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [\\[missing\\]\\[reference\\]](#missingreference)',
     );
   });
 

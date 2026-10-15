@@ -1,458 +1,81 @@
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import type { MarkdownIt, Token } from 'markdown-it';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
 
-// heading pattern: one to six # chars followed by at least one space and text
-const HEADING_RE = /^(#{1,6})\s+(.+)$/;
-
-// fence delimiter pattern: opening ``` or ~~~ (with optional language tag)
-const FENCE_OPEN_RE = /^(`{3,}|~{3,})/;
-
-const CODE_DELIMITER = '`';
-
-interface InlineLinks {
-  opening: Map<number, number>;
-  closing: Map<number, number>;
+interface Heading {
+  level: number;
+  text: string;
 }
 
-interface EmphasisDelimiter {
-  canClose: boolean;
-  canOpen: boolean;
-  delimiter: string;
-  index: number;
-  length: number;
-  next: number;
-  originalLength: number;
-  previous: number;
-}
+let parserPromise: Promise<MarkdownIt> | null = null;
 
-function isMarkdownEscape(text: string, index: number): boolean {
-  if (text[index] !== '\\' || index + 1 === text.length) return false;
-  const code = text.charCodeAt(index + 1);
-  return (
-    code >= 0x21 &&
-    code <= 0x7e &&
-    !(code >= 0x30 && code <= 0x39) &&
-    !(code >= 0x41 && code <= 0x5a) &&
-    !(code >= 0x61 && code <= 0x7a)
-  );
-}
-
-function delimiterRunLength(
-  text: string,
-  start: number,
-  delimiter: string,
-): number {
-  let end = start + 1;
-  while (text[end] === delimiter) end++;
-  return end - start;
-}
-
-function findCodeSpans(text: string): Map<number, number> {
-  const runsByLength = new Map<number, number[]>();
-
-  for (let index = 0; index < text.length; ) {
-    if (isMarkdownEscape(text, index)) {
-      index += 2;
-    } else if (text[index] === CODE_DELIMITER) {
-      const runLength = delimiterRunLength(text, index, CODE_DELIMITER);
-      const runs = runsByLength.get(runLength) ?? [];
-      runs.push(index);
-      runsByLength.set(runLength, runs);
-      index += runLength;
-    } else {
-      index++;
-    }
-  }
-
-  const cursorByLength = new Map<number, number>();
-  const spans = new Map<number, number>();
-  for (let index = 0; index < text.length; ) {
-    if (isMarkdownEscape(text, index)) {
-      index += 2;
-    } else if (text[index] === CODE_DELIMITER) {
-      const runLength = delimiterRunLength(text, index, CODE_DELIMITER);
-      const runs = runsByLength.get(runLength);
-      let cursor = cursorByLength.get(runLength) ?? 0;
-      while (runs && runs[cursor] < index) cursor++;
-
-      if (runs && runs[cursor] === index && cursor + 1 < runs.length) {
-        const closing = runs[cursor + 1];
-        spans.set(index, closing + runLength);
-        cursorByLength.set(runLength, cursor + 2);
-        index = closing + runLength;
-      } else {
-        cursorByLength.set(runLength, cursor + 1);
-        index += runLength;
-      }
-    } else {
-      index++;
-    }
-  }
-  return spans;
-}
-
-function findInlinePairs(
-  text: string,
-  codeSpans: Map<number, number>,
-): { brackets: Map<number, number>; parentheses: Map<number, number> } {
-  const brackets = new Map<number, number>();
-  const parentheses = new Map<number, number>();
-  const bracketStack: number[] = [];
-  const parenthesisStack: number[] = [];
-
-  for (let index = 0; index < text.length; ) {
-    const codeEnd = codeSpans.get(index);
-    if (codeEnd !== undefined) {
-      index = codeEnd;
-    } else if (isMarkdownEscape(text, index)) {
-      index += 2;
-    } else if (text[index] === '[') {
-      bracketStack.push(index++);
-    } else if (text[index] === ']') {
-      const opening = bracketStack.pop();
-      if (opening !== undefined) brackets.set(opening, index);
-      index++;
-    } else if (text[index] === '(') {
-      parenthesisStack.push(index++);
-    } else if (text[index] === ')') {
-      const opening = parenthesisStack.pop();
-      if (opening !== undefined) parentheses.set(opening, index);
-      index++;
-    } else {
-      index++;
-    }
-  }
-
-  return { brackets, parentheses };
-}
-
-function findInlineLinks(
-  text: string,
-  brackets: Map<number, number>,
-  parentheses: Map<number, number>,
-): InlineLinks {
-  const opening = new Map<number, number>();
-  const closing = new Map<number, number>();
-
-  for (const [start, end] of brackets) {
-    if (text[end + 1] === '(') {
-      const destinationEnd = parentheses.get(end + 1);
-      if (destinationEnd !== undefined) {
-        opening.set(start, destinationEnd);
-        closing.set(end, destinationEnd);
-      }
-    } else if (text[end + 1] === '[') {
-      const referenceEnd = brackets.get(end + 1);
-      if (referenceEnd !== undefined) {
-        opening.set(start, referenceEnd);
-        closing.set(end, referenceEnd);
-      }
-    }
-  }
-  return { opening, closing };
-}
-
-function previousCodePoint(text: string, index: number): string {
-  let start = index - 1;
-  const code = text.charCodeAt(start);
-  if (code >= 0xdc00 && code <= 0xdfff && start > 0) start--;
-  return text.slice(start, index);
-}
-
-function nextCodePoint(text: string, index: number): string {
-  const code = text.codePointAt(index);
-  return code === undefined ? '' : String.fromCodePoint(code);
-}
-
-function isWhitespace(char: string): boolean {
-  return char === '' || /^\s$/u.test(char);
-}
-
-function isPunctuation(char: string): boolean {
-  return char !== '' && /^[\p{P}\p{S}]$/u.test(char);
-}
-
-function unlinkEmphasisDelimiter(
-  delimiters: EmphasisDelimiter[],
-  index: number,
-): void {
-  const delimiter = delimiters[index];
-  if (delimiter.previous >= 0) {
-    delimiters[delimiter.previous].next = delimiter.next;
-  }
-  if (delimiter.next >= 0) {
-    delimiters[delimiter.next].previous = delimiter.previous;
-  }
-  delimiter.previous = -1;
-  delimiter.next = -1;
-}
-
-function findEmphasis(
-  text: string,
-  codeSpans: Map<number, number>,
-  links: InlineLinks,
-): Map<number, number> {
-  const delimiters: EmphasisDelimiter[] = [];
-  const markers = new Map<number, number>();
-  const tildeOpeners: number[] = [];
-
-  for (let index = 0; index < text.length; ) {
-    const codeEnd = codeSpans.get(index);
-    if (codeEnd !== undefined) {
-      index = codeEnd;
-    } else if (isMarkdownEscape(text, index)) {
-      index += 2;
-    } else if (links.closing.has(index)) {
-      index = (links.closing.get(index) ?? index) + 1;
-    } else if (
-      text[index] === '*' ||
-      text[index] === '_' ||
-      text[index] === '~'
-    ) {
-      const delimiter = text[index];
-      const length = delimiterRunLength(text, index, delimiter);
-      if (delimiter === '~' && length !== 2) {
-        index += length;
-        continue;
-      }
-
-      const before = previousCodePoint(text, index);
-      const after = nextCodePoint(text, index + length);
-      const beforeWhitespace = isWhitespace(before);
-      const afterWhitespace = isWhitespace(after);
-      const beforePunctuation = isPunctuation(before);
-      const afterPunctuation = isPunctuation(after);
-      const leftFlanking =
-        !afterWhitespace &&
-        (!afterPunctuation || beforeWhitespace || beforePunctuation);
-      const rightFlanking =
-        !beforeWhitespace &&
-        (!beforePunctuation || afterWhitespace || afterPunctuation);
-      const canOpen =
-        delimiter === '_'
-          ? leftFlanking && (!rightFlanking || beforePunctuation)
-          : leftFlanking;
-      const canClose =
-        delimiter === '_'
-          ? rightFlanking && (!leftFlanking || afterPunctuation)
-          : rightFlanking;
-
-      if (delimiter === '~') {
-        let matched = false;
-        if (canClose) {
-          const opening = tildeOpeners.pop();
-          if (opening !== undefined) {
-            markers.set(opening, 2);
-            markers.set(index, 2);
-            matched = true;
-          }
-        }
-        if (canOpen && !matched) tildeOpeners.push(index);
-      } else {
-        const previous = delimiters.length - 1;
-        const delimiterIndex = delimiters.length;
-        if (previous >= 0) delimiters[previous].next = delimiterIndex;
-        delimiters.push({
-          canClose,
-          canOpen,
-          delimiter,
-          index,
-          length,
-          next: -1,
-          originalLength: length,
-          previous,
-        });
-      }
-      index += length;
-    } else {
-      index++;
-    }
-  }
-
-  const openersBottom = [
-    new Int32Array(6).fill(-1),
-    new Int32Array(6).fill(-1),
-  ];
-  let closerIndex = delimiters.length === 0 ? -1 : 0;
-
-  while (closerIndex >= 0) {
-    const closer = delimiters[closerIndex];
-    if (!closer.canClose) {
-      closerIndex = closer.next;
-      continue;
-    }
-
-    const delimiterBucket = closer.delimiter === '*' ? 0 : 1;
-    const closerBucket =
-      (closer.originalLength % 3) * 2 + Number(closer.canOpen);
-    const bottom = openersBottom[delimiterBucket][closerBucket];
-    let openerIndex = closer.previous;
-
-    while (openerIndex > bottom) {
-      const opener = delimiters[openerIndex];
-      const ruleOfThreeBlocksMatch =
-        opener.delimiter === closer.delimiter &&
-        opener.canOpen &&
-        (opener.canClose || closer.canOpen) &&
-        (opener.originalLength + closer.originalLength) % 3 === 0 &&
-        (opener.originalLength % 3 !== 0 || closer.originalLength % 3 !== 0);
-      if (
-        opener.delimiter === closer.delimiter &&
-        opener.canOpen &&
-        !ruleOfThreeBlocksMatch
-      ) {
-        break;
-      }
-      openerIndex = opener.previous;
-    }
-
-    if (openerIndex <= bottom) {
-      openersBottom[delimiterBucket][closerBucket] = closer.previous;
-      const next = closer.next;
-      if (!closer.canOpen) unlinkEmphasisDelimiter(delimiters, closerIndex);
-      closerIndex = next;
-      continue;
-    }
-
-    const opener = delimiters[openerIndex];
-    const matchedLength = opener.length >= 2 && closer.length >= 2 ? 2 : 1;
-    markers.set(opener.index, (markers.get(opener.index) ?? 0) + matchedLength);
-    markers.set(closer.index, (markers.get(closer.index) ?? 0) + matchedLength);
-    opener.length -= matchedLength;
-    closer.length -= matchedLength;
-
-    let between = opener.next;
-    while (between !== closerIndex) {
-      const next = delimiters[between].next;
-      unlinkEmphasisDelimiter(delimiters, between);
-      between = next;
-    }
-
-    if (opener.length === 0) {
-      unlinkEmphasisDelimiter(delimiters, openerIndex);
-    }
-    if (closer.length === 0) {
-      const next = closer.next;
-      unlinkEmphasisDelimiter(delimiters, closerIndex);
-      closerIndex = next;
-    }
-  }
-
-  return markers;
-}
-
-function readHtmlTagEnd(text: string, start: number): number | null {
-  if (text.startsWith('<!--', start)) {
-    for (let index = start + 4; index + 2 < text.length; index++) {
-      if (
-        text[index] === '-' &&
-        text[index + 1] === '-' &&
-        text[index + 2] === '>'
-      ) {
-        return index + 3;
-      }
-    }
-    return -1;
-  }
-
-  let index = start + 1;
-  if (text[index] === '/' || text[index] === '!' || text[index] === '?') {
-    index++;
-  }
-  const first = text.charCodeAt(index);
-  if (!((first >= 0x41 && first <= 0x5a) || (first >= 0x61 && first <= 0x7a))) {
-    return null;
-  }
-
-  while (index < text.length) {
-    const char = text[index];
-    if (char === '"' || char === "'") {
-      const quote = char;
-      index++;
-      while (
-        index < text.length &&
-        text[index] !== quote &&
-        text[index] !== '<'
+async function loadMarkdownParser(): Promise<MarkdownIt> {
+  if (!parserPromise) {
+    parserPromise = import('markdown-it')
+      .then(
+        // tokenize raw HTML so tags can be omitted without rendering them
+        ({ default: MarkdownItParser }) => new MarkdownItParser({ html: true }),
       )
-        index++;
-      if (text[index] === '<') return null;
-      if (index === text.length) return null;
-      index++;
-    } else if (char === '<') {
-      return null;
-    } else if (char === '>') {
-      return index + 1;
-    } else {
-      index++;
-    }
+      .catch((error: unknown) => {
+        parserPromise = null;
+        throw error;
+      });
   }
-  return null;
+  return parserPromise;
 }
 
-function findHtmlTags(
-  text: string,
-  codeSpans: Map<number, number>,
-): Map<number, number> {
-  const tags = new Map<number, number>();
-  for (let index = 0; index < text.length; ) {
-    const codeEnd = codeSpans.get(index);
-    if (codeEnd !== undefined) {
-      index = codeEnd;
-    } else if (isMarkdownEscape(text, index)) {
-      index += 2;
-    } else if (text[index] === '<') {
-      const end = readHtmlTagEnd(text, index);
-      if (end === -1) break;
-      if (end === null) index++;
-      else {
-        tags.set(index, end);
-        index = end;
+function visibleText(tokens: readonly Token[]): string {
+  const pending = [...tokens].reverse();
+  const visible: string[] = [];
+
+  while (pending.length > 0) {
+    const token = pending.pop() as Token;
+
+    if (token.children) {
+      for (let index = token.children.length - 1; index >= 0; index--) {
+        pending.push(token.children[index]);
       }
-    } else {
-      index++;
+    } else if (token.type === 'text' || token.type === 'code_inline') {
+      visible.push(token.content);
+    } else if (token.type === 'image') {
+      visible.push(token.content);
+    } else if (token.type === 'softbreak' || token.type === 'hardbreak') {
+      visible.push(' ');
     }
   }
-  return tags;
+
+  return visible.join('');
 }
 
-/** converts inline markdown to the visible heading text without recursive parsing */
-function stripInlineMarkdown(text: string): string {
-  const codeSpans = findCodeSpans(text);
-  const { brackets, parentheses } = findInlinePairs(text, codeSpans);
-  const links = findInlineLinks(text, brackets, parentheses);
-  const emphasis = findEmphasis(text, codeSpans, links);
-  const htmlTags = findHtmlTags(text, codeSpans);
-  let plain = '';
+/** parses top-level ATX headings and resolves their inline markdown */
+async function parseHeadings(input: string): Promise<Heading[]> {
+  const parser = await loadMarkdownParser();
+  const tokens = parser.parse(input, {});
+  const headings: Heading[] = [];
 
-  for (let index = 0; index < text.length; ) {
-    const codeEnd = codeSpans.get(index);
-    if (codeEnd !== undefined) {
-      const runLength = delimiterRunLength(text, index, CODE_DELIMITER);
-      plain += text.slice(index + runLength, codeEnd - runLength);
-      index = codeEnd;
-    } else if (isMarkdownEscape(text, index)) {
-      plain += text[index + 1];
-      index += 2;
-    } else if (text[index] === '!' && links.opening.has(index + 1)) {
-      index++;
-    } else if (links.opening.has(index)) {
-      index++;
-    } else if (links.closing.has(index)) {
-      index = (links.closing.get(index) ?? index) + 1;
-    } else if (emphasis.has(index)) {
-      index += emphasis.get(index) ?? 1;
-    } else if (htmlTags.has(index)) {
-      index = htmlTags.get(index) ?? index + 1;
-    } else {
-      plain += text[index];
-      index++;
+  for (let index = 0; index + 1 < tokens.length; index++) {
+    const opening = tokens[index];
+    const inline = tokens[index + 1];
+    if (
+      opening.type !== 'heading_open' ||
+      opening.level !== 0 ||
+      !opening.markup.startsWith('#') ||
+      inline.type !== 'inline'
+    ) {
+      continue;
     }
+
+    headings.push({
+      level: Number(opening.tag.slice(1)),
+      text: visibleText(inline.children ?? []),
+    });
   }
-  return plain;
+
+  return headings;
 }
 
 function slugify(text: string): string {
@@ -460,47 +83,6 @@ function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
     .replace(/\s/g, '-');
-}
-
-interface Heading {
-  level: number;
-  text: string;
-}
-
-/** parses ATX headings from markdown, skipping lines inside fenced code blocks */
-function parseHeadings(input: string): Heading[] {
-  const headings: Heading[] = [];
-  let inFence = false;
-  let fenceChar = '';
-
-  for (const line of input.split(/\r?\n/)) {
-    if (inFence) {
-      // exit fence when we see the matching closing delimiter
-      if (line.trimStart().startsWith(fenceChar)) {
-        inFence = false;
-        fenceChar = '';
-      }
-      continue;
-    }
-
-    const fenceMatch = FENCE_OPEN_RE.exec(line.trimStart());
-    if (fenceMatch) {
-      inFence = true;
-      // keep the exact opening run; a closing fence must be at least as long
-      fenceChar = fenceMatch[1];
-      continue;
-    }
-
-    const headingMatch = HEADING_RE.exec(line);
-    if (headingMatch) {
-      const rawText = headingMatch[2];
-      // strip trailing # characters and whitespace (setext-style closers)
-      const text = stripInlineMarkdown(rawText.replace(/\s+#+\s*$/, '').trim());
-      headings.push({ level: headingMatch[1].length, text });
-    }
-  }
-
-  return headings;
 }
 
 /** builds the nested bullet list string with github-style duplicate slug disambiguation */
@@ -544,7 +126,7 @@ export const MarkdownTocBoxSource = {
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    const headings = parseHeadings(input);
+    const headings = await parseHeadings(input);
 
     if (headings.length === 0) {
       return [
