@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
+use crate::ops;
 use crate::parser::{BinOp, Expr};
 use crate::value::Value;
 
@@ -91,6 +92,15 @@ fn collect_shadowed_names(e: &Expr, set: &mut BTreeSet<String>) {
     }
 }
 
+fn literal_expr(value: Value) -> Option<Expr> {
+    match value {
+        Value::Num(value) => Some(Expr::Num(value)),
+        #[cfg(feature = "bigint")]
+        Value::Big(value) => Some(Expr::BigLit(value.to_string())),
+        _ => None,
+    }
+}
+
 fn fold(
     e: Expr,
     ns: &Namespace,
@@ -116,15 +126,17 @@ fn fold(
             let r = fold(*rhs, ns, shadowed, budget)?;
             if let (Expr::Num(a), Expr::Num(b)) = (&l, &r) {
                 let folded = match op {
-                    BinOp::Add => Some(a + b),
-                    BinOp::Sub => Some(a - b),
-                    BinOp::Mul => Some(a * b),
-                    BinOp::Div => Some(a / b),
-                    BinOp::Rem => Some(a % b),
-                    BinOp::Pow => Some(a.powf(*b)),
+                    BinOp::Add => ops::add(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Sub => ops::sub(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Mul => ops::mul(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Div => ops::div(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Rem => ops::rem(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Pow => ops::pow(Value::Num(*a), Value::Num(*b)),
                 };
-                if let Some(v) = folded {
-                    return Ok(Expr::Num(v));
+                if let Ok(value) = folded
+                    && let Some(expr) = literal_expr(value)
+                {
+                    return Ok(expr);
                 }
             }
             Expr::Bin {
@@ -151,8 +163,10 @@ fn fold(
         }
         Expr::Fact(x) => {
             let x = fold(*x, ns, shadowed, budget)?;
-            if let Expr::Num(n) = x {
-                return Ok(Expr::Num(crate::builtins::factorial_f64(n)?));
+            if let Expr::Num(n) = x
+                && let Some(expr) = literal_expr(ops::factorial(Value::Num(n))?)
+            {
+                return Ok(expr);
             }
             Expr::Fact(Box::new(x))
         }
@@ -183,8 +197,8 @@ fn fold(
                     && let Ok(value) = (entry.call)(&nums)
                 {
                     value.check_numeric_limits()?;
-                    if let Value::Num(v) = value {
-                        return Ok(Expr::Num(v));
+                    if let Some(expr) = literal_expr(value) {
+                        return Ok(expr);
                     }
                 }
             }

@@ -151,16 +151,37 @@ fn bigint_num_promotion_rules() {
     // division), matching JS BigInt semantics: `7n / 2.0` == 3n.
     assert_eval("7n / 2.0", "3");
 
-    // non-integer Num demotes the operation to f64 instead of silently
-    // truncating the fractional part. previously `100n + 1.5` returned 101.
-    assert_eval("100n + 1.5", "101.5");
-    assert_eval("100n - 0.5", "99.5");
-    assert_eval("100n * 0.5", "50");
-    assert_eval("7n / 2.5", "2.8");
+    // non-integer BigInt mixes are rejected instead of losing precision by
+    // converting the BigInt through f64.
+    assert!(math_box::evaluate("100n + 1.5").is_err());
+    assert!(math_box::evaluate("100n - 0.5").is_err());
+    assert!(math_box::evaluate("100n * 0.5").is_err());
+    assert!(math_box::evaluate("7n / 2.5").is_err());
 
-    // commuted operands hit the same path
-    assert_eval("1.5 + 100n", "101.5");
-    assert_eval("0.5 - 100n", "-99.5");
+    // commuted operands hit the same exactness boundary.
+    assert!(math_box::evaluate("1.5 + 100n").is_err());
+    assert!(math_box::evaluate("0.5 - 100n").is_err());
+}
+
+#[test]
+fn exact_integer_literals_and_operations() {
+    assert_eval("9007199254740993 + 1", "9007199254740994");
+    assert_eval("9007199254740991 + 2", "9007199254740993");
+    assert_eval("9007199254740991 * 3", "27021597764222973");
+    assert_eval("0x10000000000000000n", "18446744073709551616");
+    assert_eval("12345678901234567891n % 10n", "1");
+    assert_eval("2n^100", "1267650600228229401496703205376");
+    assert_eval("2n^64n", "18446744073709551616");
+    assert!(math_box::evaluate("1.5 ^ 2n").is_err());
+    assert_eval("frac(1, 2) ^ 2n", "1/4");
+    assert_eval("25n!", "15511210043330985984000000");
+    assert_eval("2^70", "1180591620717411303424");
+}
+
+#[test]
+fn exact_fraction_conversion_uses_full_integer_backend() {
+    assert_eval("frac(1e30, 1)", "1000000000000000019884624838656");
+    assert_eval("frac(1, 2) + 1e30", "2000000000000000039769249677313/2");
 }
 
 #[test]
@@ -199,6 +220,41 @@ fn complex_basic() {
 fn complex_constant_i() {
     assert_eval("i * i", "-1");
     assert_eval("2 + 3 * i", "2+3i");
+}
+
+#[test]
+fn modulo_uses_floored_division() {
+    assert_eval("-7 % 3", "2");
+    assert_eval("7 % -3", "-2");
+    assert_eval("7 % 0", "7");
+    assert_eval("x = -7; x % 3", "2");
+    assert_eval("-7n % 3n", "2");
+    assert_eval("7n % -3n", "-2");
+    assert_eval("frac(7, 2) % 1", "1/2");
+    assert_eval("frac(7, 2) % 0", "7/2");
+}
+
+#[test]
+fn negative_real_powers_use_principal_complex_values() {
+    assert_eval("sqrt(-4)", "2i");
+    assert_eval("(-8)^(1/3)", "1+1.732050807568877i");
+    assert_eval("i^2", "-1");
+}
+
+#[test]
+fn unicode_strings_and_numeric_suffix_boundaries() {
+    assert_eval(r#""héllo""#, "héllo");
+    assert_eval(r#""你好""#, "你好");
+    assert_eval("2ns", "2 ns");
+    assert_eval("2nm", "2 nm");
+    assert!(math_box::evaluate("x -> x").is_err());
+}
+
+#[test]
+fn scientific_numbers_keep_exponent_format() {
+    assert_eval("1e300", "1e+300");
+    assert_eval("1e-8", "1e-8");
+    assert_eval("0.1 + 0.2", "0.30000000000000004");
 }
 
 #[test]
@@ -258,6 +314,8 @@ fn gcd_lcm() {
     // lcm with a zero operand yields zero (the empty intersection of
     // multiples).
     assert_eval("lcm(0, 5)", "0");
+    assert_eval("lcm(10000000000, 10000000001)", "100000000010000000000");
+    assert!(math_box::evaluate("gcd(1.5, 3)").is_err());
 }
 
 #[test]

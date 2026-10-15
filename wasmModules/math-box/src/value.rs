@@ -144,7 +144,14 @@ pub fn format_num(n: f64) -> String {
         }
         .to_string();
     }
-    if n.fract() == 0.0 && n.abs() < 1e16 {
+    if n == 0.0 {
+        return "0".to_string();
+    }
+    let abs = n.abs();
+    if !(1e-7..1e21).contains(&abs) {
+        return format_scientific(&alloc::format!("{n}"));
+    }
+    if n.fract() == 0.0 && abs < 1e16 {
         return (n as i64).to_string();
     }
     let mut s = alloc::format!("{n}");
@@ -157,6 +164,42 @@ pub fn format_num(n: f64) -> String {
         }
     }
     s
+}
+
+fn format_scientific(decimal: &str) -> String {
+    let negative = decimal.starts_with('-');
+    let unsigned = decimal.strip_prefix('-').unwrap_or(decimal);
+    let (mantissa, explicit_exponent) = unsigned.find(['e', 'E']).map_or((unsigned, 0), |index| {
+        let exponent = unsigned[index + 1..].parse::<i32>().unwrap_or(0);
+        (&unsigned[..index], exponent)
+    });
+    let (integer, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let decimal_position = integer.len() as i32 + explicit_exponent;
+    let mut digits = alloc::format!("{integer}{fraction}");
+    let leading_zeroes = digits.bytes().take_while(|byte| *byte == b'0').count();
+    if leading_zeroes == digits.len() {
+        return "0".to_string();
+    }
+    digits.drain(..leading_zeroes);
+    while digits.len() > 1 && digits.ends_with('0') {
+        digits.pop();
+    }
+    let exponent = decimal_position - leading_zeroes as i32 - 1;
+    let mut result = String::new();
+    if negative {
+        result.push('-');
+    }
+    result.push(digits.as_bytes()[0] as char);
+    if digits.len() > 1 {
+        result.push('.');
+        result.push_str(&digits[1..]);
+    }
+    result.push('e');
+    if exponent >= 0 {
+        result.push('+');
+    }
+    result.push_str(&exponent.to_string());
+    result
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -191,6 +234,35 @@ impl Fraction {
 
     pub fn from_int(n: i64) -> Self {
         Self(RatioInner::from_integer(frac_from_i64(n)))
+    }
+
+    pub(crate) fn from_f64_integer(n: f64) -> Result<Self> {
+        if !n.is_finite() || n.fract() != 0.0 {
+            return Err(Error::Domain {
+                what: "fraction conversion requires an integer-valued number",
+            });
+        }
+        #[cfg(feature = "bigint")]
+        {
+            use num_traits::FromPrimitive;
+            num_bigint::BigInt::from_f64(n)
+                .map(Self::raw_from_int_backend)
+                .ok_or(Error::Overflow)
+        }
+        #[cfg(not(feature = "bigint"))]
+        {
+            use num_traits::ToPrimitive;
+            n.to_i64().map(Self::from_int).ok_or(Error::Overflow)
+        }
+    }
+
+    pub(crate) fn integer_backend(&self) -> Option<FracInt> {
+        use num_traits::One;
+        if self.0.denom().is_one() {
+            Some(self.0.numer().clone())
+        } else {
+            None
+        }
     }
 
     // wrap an integer that's already in the active backend (BigInt or i64)
@@ -302,6 +374,35 @@ impl Fraction {
         Ok(result)
     }
 
+    pub fn rem(&self, other: &Self) -> Result<Self> {
+        use num_traits::{One, Zero};
+        if other.0.numer().is_zero() {
+            return Ok(self.clone());
+        }
+        self.check_growth(
+            self.numerator_bits()
+                .saturating_add(other.denominator_bits()),
+            self.denominator_bits()
+                .saturating_add(other.numerator_bits()),
+        )?;
+        let quotient = &self.0 / &other.0;
+        let mut whole = quotient.to_integer();
+        let truncated = RatioInner::from_integer(whole.clone());
+        if quotient < truncated {
+            #[cfg(feature = "bigint")]
+            {
+                whole = whole.checked_sub(&FracInt::one()).ok_or(Error::Overflow)?;
+            }
+            #[cfg(not(feature = "bigint"))]
+            {
+                whole = whole.checked_sub(FracInt::one()).ok_or(Error::Overflow)?;
+            }
+        }
+        let result = Self(&self.0 - &other.0 * RatioInner::from_integer(whole));
+        result.check_size()?;
+        Ok(result)
+    }
+
     pub fn check_size(&self) -> Result<()> {
         self.check_growth(self.numerator_bits(), self.denominator_bits())
     }
@@ -338,7 +439,7 @@ impl Fraction {
     }
 }
 
-#[cfg(feature = "bigint")]
+#[cfg(all(feature = "fraction", feature = "bigint"))]
 fn integer_bits(value: &FracInt) -> u64 {
     value.bits()
 }

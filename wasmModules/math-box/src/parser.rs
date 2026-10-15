@@ -97,9 +97,9 @@ impl<'a> Parser<'a> {
         t
     }
 
-    // statement = `ident = expr`, `(p1, p2) -> expr`, or just expr.
-    // assignments and lambdas are detected via lookahead on tokens after
-    // the identifier/parenthesised list.
+    // statement = assignment, function definition, or expression.
+    // assignments and function definitions are detected via lookahead on
+    // tokens after the identifier/parenthesised list.
     fn parse_stmt(&mut self) -> Result<(Expr, usize)> {
         // ident = expr (assignment) — ident can be plain or function form
         // ident(p1, p2, ...) = expr (function definition sugar)
@@ -350,7 +350,22 @@ impl<'a> Parser<'a> {
                 }
                 Ok((Expr::Num(n), 1))
             }
-            Tok::BigLit(text) => Ok((Expr::BigLit(text), 1)),
+            Tok::BigLit(text) => {
+                if let Tok::Ident(label) = &self.peek().tok
+                    && crate::units::is_label(label)
+                {
+                    let label = label.clone();
+                    self.advance();
+                    return Ok((
+                        Expr::Call {
+                            name: alloc::string::String::from("unit"),
+                            args: alloc::vec![Expr::BigLit(text), Expr::Str(label)],
+                        },
+                        2,
+                    ));
+                }
+                Ok((Expr::BigLit(text), 1))
+            }
             Tok::Str(s) => Ok((Expr::Str(s), 1)),
 
             Tok::Minus => {
