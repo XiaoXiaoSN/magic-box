@@ -6,6 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InputDraftProvider } from '../../contexts/InputDraftContext';
 import { LocaleProvider, useLocale } from '../../contexts/LocaleContext';
@@ -62,11 +63,68 @@ import MagicBoxPage from './MagicBoxPage';
 
 const renderPage = () =>
   render(
-    <LocaleProvider>
-      <InputDraftProvider>
-        <MagicBoxPage />
-      </InputDraftProvider>
-    </LocaleProvider>,
+    <BrowserRouter>
+      <LocaleProvider>
+        <InputDraftProvider>
+          <MagicBoxPage />
+        </InputDraftProvider>
+      </LocaleProvider>
+    </BrowserRouter>,
+  );
+
+const RouterNavigation = () => {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button
+        data-testid="navigate-second"
+        onClick={() => navigate('/?input=second')}
+        type="button"
+      >
+        second
+      </button>
+      <button
+        data-testid="navigate-empty"
+        onClick={() => navigate('/?input=')}
+        type="button"
+      >
+        empty
+      </button>
+      <button
+        data-testid="navigate-unrelated"
+        onClick={() => navigate('/?mode=plain')}
+        type="button"
+      >
+        unrelated
+      </button>
+      <button
+        data-testid="navigate-back"
+        onClick={() => navigate(-1)}
+        type="button"
+      >
+        back
+      </button>
+      <button
+        data-testid="navigate-forward"
+        onClick={() => navigate(1)}
+        type="button"
+      >
+        forward
+      </button>
+    </>
+  );
+};
+
+const renderRoutedPage = () =>
+  render(
+    <BrowserRouter>
+      <LocaleProvider>
+        <InputDraftProvider>
+          <MagicBoxPage />
+          <RouterNavigation />
+        </InputDraftProvider>
+      </LocaleProvider>
+    </BrowserRouter>,
   );
 
 const LocaleSwitcher = () => {
@@ -132,6 +190,39 @@ describe('<MagicBoxPage />', () => {
     renderPage();
 
     expect(getInput().value).toBe('');
+  });
+
+  it('applies explicit query changes and browser history on the same route', async () => {
+    window.history.replaceState({}, '', '/?input=first');
+
+    renderRoutedPage();
+
+    expect(getInput().value).toBe('first');
+
+    fireEvent.click(screen.getByTestId('navigate-second'));
+    await waitFor(() => expect(getInput().value).toBe('second'));
+    expect(screen.getByTestId('magic-input-echo')).toHaveTextContent('second');
+
+    fireEvent.click(screen.getByTestId('navigate-empty'));
+    await waitFor(() => expect(getInput().value).toBe(''));
+    expect(screen.getByTestId('magic-input-echo')).toHaveTextContent('');
+
+    fireEvent.click(screen.getByTestId('navigate-back'));
+    await waitFor(() => expect(getInput().value).toBe('second'));
+    fireEvent.click(screen.getByTestId('navigate-forward'));
+    await waitFor(() => expect(getInput().value).toBe(''));
+  });
+
+  it('keeps active input when navigation has no explicit input query', async () => {
+    window.history.replaceState({}, '', '/?input=first');
+
+    renderRoutedPage();
+    typeInput('actively editing');
+
+    fireEvent.click(screen.getByTestId('navigate-unrelated'));
+    await waitFor(() => expect(window.location.search).toBe('?mode=plain'));
+
+    expect(getInput().value).toBe('actively editing');
   });
 
   it('keeps the textarea controlled when typing', () => {
@@ -430,10 +521,12 @@ describe('<MagicBoxPage />', () => {
       JSON.stringify([{ id: 'old', timestamp, input: 'old input' }]),
     );
     render(
-      <LocaleProvider>
-        <LocaleSwitcher />
-        <MagicBoxPage />
-      </LocaleProvider>,
+      <BrowserRouter>
+        <LocaleProvider>
+          <LocaleSwitcher />
+          <MagicBoxPage />
+        </LocaleProvider>
+      </BrowserRouter>,
     );
     fireEvent.click(screen.getByTestId('history-toggle'));
 

@@ -16,6 +16,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useInputDraft } from '../../contexts/InputDraftContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
@@ -32,9 +33,8 @@ interface SeededInput {
   value: string;
 }
 
-const readSeededInput = (): SeededInput => {
-  if (typeof window === 'undefined') return { present: false, value: '' };
-  const params = new URLSearchParams(window.location.search);
+const readSeededInput = (search: string): SeededInput => {
+  const params = new URLSearchParams(search);
   const key = params.has('input') ? 'input' : params.has('i') ? 'i' : null;
   if (!key) return { present: false, value: '' };
   const value = params.get(key) ?? '';
@@ -68,9 +68,13 @@ const formatRelativeTime = (
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
+  const location = useLocation();
   const { locale, t } = useLocale();
   const { clearVersion, draft, updateDraft } = useInputDraft();
-  const [seededInput] = useState(readSeededInput);
+  const seededInput = useMemo(
+    () => readSeededInput(location.search),
+    [location.search],
+  );
   const initialInput = seededInput.present ? seededInput.value : draft;
   const [userInput, setUserInput] = useState(initialInput);
   const [magicIn, setMagicIn] = useState(initialInput);
@@ -84,6 +88,7 @@ const MagicBoxPage = (): React.JSX.Element => {
   // History entries this edit session created (not ones it merely moved to the
   // top). A session ends when the input is emptied or replaced wholesale.
   const sessionAddedRef = useRef<string[]>([]);
+  const appliedSearchRef = useRef(location.search);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
@@ -126,6 +131,29 @@ const MagicBoxPage = (): React.JSX.Element => {
     sessionAddedRef.current = [];
     lastRecordedRef.current = '';
   }, []);
+
+  const applySeededInput = useCallback(
+    (value: string): void => {
+      if (isPrivateInput(value)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+      }
+      resetEditSession();
+      editedRef.current = false;
+      pendingCaretRef.current = value.length;
+      updateDraft(value, { persist: false });
+      setUserInput(value);
+      setMagicIn(value);
+    },
+    [removeInputs, resetEditSession, updateDraft],
+  );
+
+  useLayoutEffect(() => {
+    if (appliedSearchRef.current === location.search) return;
+    appliedSearchRef.current = location.search;
+    if (!seededInput.present) return;
+    applySeededInput(seededInput.value);
+  }, [applySeededInput, location.search, seededInput]);
 
   const applyInput = useCallback(
     (value: string, wholesale: boolean): void => {
