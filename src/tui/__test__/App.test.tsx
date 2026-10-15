@@ -85,4 +85,53 @@ describe('interactive search', () => {
     expect(screen.lastFrame()).not.toContain('Stale');
     screen.unmount();
   });
+
+  it('keeps multiple errors from one source distinct across query updates', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const generate = vi.fn(
+      async (input: string): Promise<TerminalRunResult> => {
+        const prefix = input === 'coordinates' ? 'old' : 'new';
+        return {
+          boxes: [],
+          errors: [
+            {
+              id: 'coordinates',
+              name: 'Coordinates',
+              message: `${prefix} UTM error`,
+            },
+            {
+              id: 'coordinates',
+              name: 'Coordinates',
+              message: `${prefix} MGRS error`,
+            },
+          ],
+        };
+      },
+    );
+    const screen = render(
+      createElement(App, { initialInput: 'coordinates', generate }),
+    );
+
+    try {
+      await vi.waitFor(() => {
+        expect(screen.lastFrame()).toContain('old UTM error');
+        expect(screen.lastFrame()).toContain('old MGRS error');
+      });
+      act(() => screen.stdin.write('x'));
+      await vi.waitFor(() => {
+        expect(screen.lastFrame()).toContain('new UTM error');
+        expect(screen.lastFrame()).toContain('new MGRS error');
+      });
+      expect(screen.lastFrame()).not.toContain('old UTM error');
+      expect(screen.lastFrame()).not.toContain('old MGRS error');
+      expect(consoleError.mock.calls.flat().join(' ')).not.toContain(
+        'same key',
+      );
+    } finally {
+      screen.unmount();
+      consoleError.mockRestore();
+    }
+  });
 });

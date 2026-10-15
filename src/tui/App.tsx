@@ -229,11 +229,14 @@ export function App({
           <ResultList boxes={boxes} selectedIndex={selected} />
         )}
       </Box>
-      {errors.map((error) => (
-        <Text color="yellow" key={error.id}>
-          {terminalText(`${error.name}: ${error.message}`)}
-        </Text>
-      ))}
+      {errors.map((error, index) => {
+        const key = `${error.id}-${index}`;
+        return (
+          <Text color="yellow" key={key}>
+            {terminalText(`${error.name}: ${error.message}`)}
+          </Text>
+        );
+      })}
     </Box>
   );
 }
