@@ -125,3 +125,80 @@ bun run wasmModules/math-box/bench/compare.mjs
 cd wasmModules/math-box
 cargo bench --no-default-features --features "std bigint fraction unit complex"
 ```
+
+## 7. Issue #565: compiled user-function reuse
+
+The VM now stores immutable `UserFn` bodies behind `Rc`. A function call and a
+definition clone only the pointer and increment its reference count; the
+compiled instruction body is no longer copied. The compiler also moves the
+lambda AST into lowering, so the body is not cloned merely to compile it.
+The runtime still creates a fresh scope for every evaluation, resolves free
+names through caller frames, and permits function redefinition. Compile-time
+slots were deferred because those three semantics require a fallback-aware
+frame model; this change makes no slot claim.
+
+### Native before/after measurement
+
+The baseline was an archive of exact source SHA
+`e9f54897188433517a58abfbc77432ff8d129a19` before the change. Both sides used
+the same Rust harness, `std bigint fraction unit complex`, release profile,
+Apple Silicon arm64 macOS, rustc `1.95.0 (59807616e 2026-04-14)`, and 100,000
+iterations after 10,000 warm-up calls. Each row is the median of nine timed
+runs; the complete samples are kept here so an outlier is visible.
+
+| case | baseline median | final median | observed change |
+|---|---:|---:|---:|
+| `Compiled::evaluate()` | 2,652.98250 ns/op | 1,265.58625 ns/op | 2.10x faster (52.3% lower) |
+| `evaluate()` parse + compile + eval | 11,310.17791 ns/op | 7,748.60416 ns/op | 1.46x faster (31.5% lower) |
+
+```text
+compiled baseline: [269820666, 266512125, 264555208, 265298250, 272051250, 264724250, 269924125, 264439042, 263991125] ns / 100000 calls
+compiled final:    [128660792, 185826500, 156597209, 124909959, 123349250, 126558625, 124070875, 238602375, 123893500] ns / 100000 calls
+full baseline:     [1131017791, 1238609250, 1127146083, 1160635292, 1296245375, 1121573666, 1461104333, 1127246125, 1130463834] ns / 100000 calls
+full final:        [767237708, 775911666, 776124958, 774860416, 771084958, 773898750, 769754750, 776605042, 780545416] ns / 100000 calls
+```
+
+The in-tree Criterion bench contains both the repeated compiled case and the
+full pipeline case. On this host, `cargo bench` could not resolve existing
+release proc-macro dependencies (`E0463`, first `rustversion` and then
+`zerocopy_derive`), so the numbers above come from the same public
+`Compiled`/`evaluate` APIs in the standalone release harness. No Criterion
+speedup is inferred from a failed run.
+
+### Shipping WASM measurement
+
+`bench/measure-shipping-profiles.sh` builds both `math-box` and `base64-box`
+for `opt-level=3`, `s`, and `z` in isolated output directories, then invokes
+`bench/measure-shipping.mjs`. The latter measures the generated shipping
+`*_bg.wasm` raw bytes, deterministic gzip level 9 bytes (equivalent to
+`gzip -n -9`), JS glue bytes, SHA-256, and actual
+runtime calls. It records the wasm-pack, wasm-bindgen, wasm-opt, and Node
+versions in every profile result. The same tool invocation must be used for
+both crates within a profile; no cargo-only artifact is accepted as a package
+measurement.
+
+```bash
+wasmModules/math-box/bench/measure-shipping-profiles.sh /tmp/magic-box-wasm-profiles
+```
+
+The baseline package generated from the exact source SHA above was measured
+from the preserved CI artifact with the same script:
+
+| package | wasm SHA-256 | raw wasm | gzip-9 wasm | JS glue |
+|---|---|---:|---:|---:|
+| math-box | `7b4381a279eef47400ce059181ad5069ba924a68723703bd26ebd67ee05cfab6` | 346,870 | 140,333 | 15,539 |
+| base64-box | `985d3388d09a711614279714fe70200b310c408042645add1ecec19d3103d423` | 31,366 | 13,334 | 8,352 |
+
+That artifact's actual Node runtime medians were 2,864.37 ns/op for the
+compiled math expression, 9,525.64 ns/op for full math evaluation, 899.00
+ns/op for base64 encode, and 740.55 ns/op for base64 decode-to-string.
+artifact was produced by the repository CI wasm-pack `0.15.0` action; its
+transitive wasm-bindgen and wasm-opt versions were not recorded in the
+artifact metadata. The local package measurement runner was Node `v26.7.0`.
+The profile script is the bounded CI follow-up for final 3/s/z package sizes and
+runtime; this arm64 host cannot run the repository's x86_64 wasm-bindgen CLI,
+and no wasm-opt binary is installed, so no final shipping profile is selected
+from an incomplete local build. The existing math profile remains opt-level
+3; base64 now uses the same release LTO, single codegen unit, aborting panic,
+and symbol stripping settings so its 3/s/z comparison changes only the
+candidate optimization level.
