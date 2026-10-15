@@ -18,7 +18,6 @@ pub enum Tok {
     Caret,
     Bang,
     Eq,
-    Arrow,
     LParen,
     RParen,
     Comma,
@@ -34,7 +33,10 @@ pub struct Spanned {
 
 pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
     if src.len() > MAX_INPUT_LEN {
-        return Err(Error::InputTooLong { len: src.len(), limit: MAX_INPUT_LEN });
+        return Err(Error::InputTooLong {
+            len: src.len(),
+            limit: MAX_INPUT_LEN,
+        });
     }
 
     let bytes = src.as_bytes();
@@ -85,13 +87,17 @@ pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
         if b.is_ascii_digit() || (b == b'.' && bytes.get(i + 1).is_some_and(|c| c.is_ascii_digit()))
         {
             let (n, consumed, integer_text) = parse_number(&bytes[i..], start)?;
-            // `n` suffix marks the literal as BigInt; integer_text holds the
-            // raw decimal/radix-decoded integer string when applicable.
+            // `n` is a suffix only at an identifier boundary. This keeps
+            // unit labels such as `ns` and `nm` attached to their number.
+            let has_big_suffix = bytes.get(i + consumed) == Some(&b'n')
+                && !bytes
+                    .get(i + consumed + 1)
+                    .is_some_and(|next| is_identifier_continuation(*next));
             if let Some(text) = integer_text
-                && bytes.get(i + consumed) == Some(&b'n')
+                && (has_big_suffix || (cfg!(feature = "bigint") && is_large_integer(&text)))
             {
                 push_tok(&mut out, Tok::BigLit(text), start)?;
-                i += consumed + 1;
+                i += consumed + usize::from(has_big_suffix);
                 continue;
             }
             push_tok(&mut out, Tok::Num(n), start)?;
@@ -121,35 +127,36 @@ pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
                 if j >= bytes.len() {
                     return Err(Error::UnexpectedEof);
                 }
-                let c = bytes[j];
-                if c == b'"' {
+                let rest = core::str::from_utf8(&bytes[j..]).expect("input is valid UTF-8");
+                let c = rest.chars().next().expect("non-empty input");
+                if c == '"' {
                     break;
                 }
-                if c == b'\\' && j + 1 < bytes.len() {
-                    let next = bytes[j + 1];
-                    let pushed = match next {
-                        b'"' => '"',
-                        b'\\' => '\\',
-                        b'n' => '\n',
-                        b't' => '\t',
-                        _ => return Err(Error::UnexpectedChar { ch: next as char, pos: j + 1 }),
+                if c == '\\' {
+                    j += c.len_utf8();
+                    let escape = core::str::from_utf8(&bytes[j..])
+                        .expect("input is valid UTF-8")
+                        .chars()
+                        .next()
+                        .ok_or(Error::UnexpectedEof)?;
+                    let pushed = match escape {
+                        '"' => '"',
+                        '\\' => '\\',
+                        'n' => '\n',
+                        't' => '\t',
+                        _ => {
+                            return Err(Error::UnexpectedChar { ch: escape, pos: j });
+                        }
                     };
                     s.push(pushed);
-                    j += 2;
+                    j += escape.len_utf8();
                     continue;
                 }
-                s.push(c as char);
-                j += 1;
+                s.push(c);
+                j += c.len_utf8();
             }
             push_tok(&mut out, Tok::Str(s), start)?;
             i = j + 1;
-            continue;
-        }
-
-        // multi-char first: -> (function arrow)
-        if b == b'-' && bytes.get(i + 1) == Some(&b'>') {
-            push_tok(&mut out, Tok::Arrow, start)?;
-            i += 2;
             continue;
         }
 
@@ -186,6 +193,15 @@ fn push_tok(out: &mut Vec<Spanned>, tok: Tok, pos: usize) -> Result<()> {
     }
     out.push(Spanned { tok, pos });
     Ok(())
+}
+
+fn is_identifier_continuation(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || byte == b'_'
+}
+
+fn is_large_integer(text: &str) -> bool {
+    let significant = text.trim_start_matches('0');
+    significant.len() > 16 || (significant.len() == 16 && significant > "9007199254740991")
 }
 
 // returns (value, bytes_consumed, integer_text_if_pure_integer).
@@ -227,11 +243,16 @@ fn parse_number(bytes: &[u8], pos: usize) -> Result<(f64, usize, Option<String>)
     }
 
     let text = core::str::from_utf8(&bytes[..j]).expect("ascii digits");
-    let n: f64 = text
-        .parse()
-        .map_err(|_| Error::InvalidNumber { text: text.into(), pos })?;
+    let n: f64 = text.parse().map_err(|_| Error::InvalidNumber {
+        text: text.into(),
+        pos,
+    })?;
     let integer_text = if !has_fraction && !has_exp {
-        Some(core::str::from_utf8(&bytes[..int_end]).expect("ascii digits").into())
+        Some(
+            core::str::from_utf8(&bytes[..int_end])
+                .expect("ascii digits")
+                .into(),
+        )
     } else {
         None
     };
@@ -249,15 +270,29 @@ fn parse_radix(
         j += 1;
     }
     if j == prefix {
-        let text = core::str::from_utf8(&bytes[..j])
-            .unwrap_or("?")
-            .into();
+        let text = core::str::from_utf8(&bytes[..j]).unwrap_or("?").into();
         return Err(Error::InvalidNumber { text, pos });
     }
     let text = core::str::from_utf8(&bytes[prefix..j]).expect("ascii digits");
-    let n = u64::from_str_radix(text, radix)
-        .map_err(|_| Error::InvalidNumber { text: text.into(), pos })?;
-    // for radix literals, hand back the decimal-equivalent text so that an
-    // `n` suffix can construct a BigInt with the same value
-    Ok((n as f64, j, Some(alloc::format!("{n}"))))
+    #[cfg(feature = "bigint")]
+    {
+        use num_bigint::BigInt;
+        use num_traits::ToPrimitive;
+
+        let value =
+            BigInt::parse_bytes(text.as_bytes(), radix).ok_or_else(|| Error::InvalidNumber {
+                text: text.into(),
+                pos,
+            })?;
+        let decimal = value.to_string();
+        Ok((value.to_f64().unwrap_or(f64::INFINITY), j, Some(decimal)))
+    }
+    #[cfg(not(feature = "bigint"))]
+    {
+        let n = u64::from_str_radix(text, radix).map_err(|_| Error::InvalidNumber {
+            text: text.into(),
+            pos,
+        })?;
+        Ok((n as f64, j, Some(alloc::format!("{n}"))))
+    }
 }

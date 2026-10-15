@@ -24,6 +24,29 @@ of the bundle size.
   with dimension checking
 - **Number bases**: decimal, hex (`0xFF`), binary (`0b1010`), octal (`0o17`)
 
+### Numeric exactness
+
+Plain decimal and radix integer literals above the safe `f64` integer range are
+parsed as `BigInt` automatically. An `n` suffix also requests `BigInt`, and is
+recognized only at an identifier boundary, so unit labels such as `2ns` and
+`2nm` remain valid. BigInt remainder, power, and factorial operations stay
+exact and use the crate's numeric bit and display limits. Mixing a BigInt with
+an inexact floating number returns a type error rather than converting the
+integer through `f64`.
+
+With the `bigint` feature enabled, integral `Num` and `Fraction` factorial
+operands use the same bounded BigInt backend as `n`-suffixed values.
+Fraction/BigInt arithmetic remains exact in either operand order, and
+nonnegative integral fraction exponents use bounded exact powers; unsupported
+inexact combinations return a type error.
+
+`%` uses floored modulo: the result has the divisor's sign, and a zero divisor
+returns the dividend. Fractions retain their BigInt numerator and denominator
+backend, including when an integral floating input is converted; the input's
+existing `f64` approximation is preserved. Scientific floating values keep
+scientific notation at JavaScript-style magnitude thresholds (`1e300` renders
+as `1e+300`).
+
 ---
 
 ## Pipeline
@@ -178,7 +201,7 @@ Build with `bun run build:wasm` from the repo root.
 2 * (3 + 4)                          → 14
 2 + 2^10 + log(10, 10000)            → 1026.25
 sin(PI/2)                            → 1
-9007199254740993n + 1n               → 9007199254740994n
+9007199254740993n + 1n               → 9007199254740994
 frac(1, 3) + frac(1, 4)              → 7/12
 complex(1, 2) * complex(3, 4)        → -5+10i
 1 km + 500 m to m                    → 1500 m
