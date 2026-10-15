@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 interface MathWasmGlue {
-  initSync(options: { module: ArrayBuffer }): unknown;
+  initSync(options: { module: WebAssembly.Module }): unknown;
   evaluate(input: string): string;
 }
 
@@ -78,7 +78,15 @@ describe('production math WASM recovery while offline', () => {
             const wasmBytes = await win
               .fetch(wasmUrl)
               .then((response) => response.arrayBuffer());
-            freshGlue.initSync({ module: wasmBytes });
+            const wasmModule = await win.WebAssembly.compile(
+              new win.Uint8Array(wasmBytes),
+            );
+            // wasm-bindgen validates the options and module against the application realm.
+            const initOptions = win.Object.create(win.Object.prototype) as {
+              module: WebAssembly.Module;
+            };
+            initOptions.module = wasmModule;
+            freshGlue.initSync(initOptions);
             expect(freshGlue.evaluate('40+2')).to.equal('42');
           });
         });

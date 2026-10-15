@@ -83,7 +83,7 @@ function findManifestArray(source, swName) {
   }
   const remainder = raw.replace(entryPattern, '').replace(/[\s,]/g, '');
   if (entries.length === 0 || remainder !== '[]') {
-    throw new Error(`unparseable precacheAndRoute manifest in ${swName}`);
+    throw new Error(`unparsable precacheAndRoute manifest in ${swName}`);
   }
   return entries;
 }
