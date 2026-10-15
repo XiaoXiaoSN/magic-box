@@ -145,4 +145,30 @@ describe('QueryStringBoxSource', () => {
       );
     });
   });
+
+  it('extracts only the query from a full URL before its fragment', async () => {
+    const boxes = await QueryStringBoxSource.generateBoxes(
+      'https://x.com/path?a=1&b=2#section',
+      { qs: true },
+    );
+    expect(JSON.parse(boxes[0].props.plaintextOutput as string)).toEqual({
+      a: '1',
+      b: '2',
+    });
+  });
+
+  it('rejects objects nested inside array values', async () => {
+    const boxes = await QueryStringBoxSource.generateBoxes('{"a":[{"b":1}]}', {
+      qs: true,
+    });
+    expect(boxes[0].props.name).toContain('error');
+    expect(boxes[0].props.plaintextOutput).toContain('flat JSON object');
+  });
+
+  it('serializes null as the literal query value null', async () => {
+    const boxes = await QueryStringBoxSource.generateBoxes('{"c":null}', {
+      qs: true,
+    });
+    expect(boxes[0].props.plaintextOutput).toBe('c=null');
+  });
 });

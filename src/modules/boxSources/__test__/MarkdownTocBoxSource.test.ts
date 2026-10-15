@@ -156,4 +156,24 @@ describe('MarkdownTocBoxSource', () => {
       expect(out).not.toContain('fake');
     });
   });
+
+  it('builds Unicode anchors and reads every CRLF heading', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '# 安裝\r\n## 使用方式\r\n## Last',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [安裝](#安裝)\n  - [使用方式](#使用方式)\n  - [Last](#last)',
+    );
+  });
+
+  it('matches GitHub whitespace anchors and strips inline markup from labels', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## A & B\n## Use `code` and [link](https://example.test)',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [A & B](#a--b)\n- [Use code and link](#use-code-and-link)',
+    );
+  });
 });

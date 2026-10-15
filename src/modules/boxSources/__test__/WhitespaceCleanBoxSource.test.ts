@@ -109,4 +109,12 @@ describe('WhitespaceCleanBoxSource', () => {
       expect(boxes[0].view).toBeDefined();
     });
   });
+
+  it('collapses NBSP and full-width spaces within lines', async () => {
+    const boxes = await WhitespaceCleanBoxSource.generateBoxes(
+      'a\u00a0\u00a0b\u3000\u3000c',
+      { clean: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('a b c');
+  });
 });

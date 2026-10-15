@@ -127,4 +127,12 @@ describe('TextDiffBoxSource', () => {
       'too many lines',
     );
   });
+
+  it('normalizes CRLF before comparing separated texts', async () => {
+    const boxes = await TextDiffBoxSource.generateBoxes(
+      'foo\r\nbar\r\n---\r\nfoo\r\nbar',
+      { textdiff: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe('@@ +0 -0 @@\n  foo\n  bar');
+  });
 });

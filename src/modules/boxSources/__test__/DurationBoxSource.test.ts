@@ -294,4 +294,15 @@ describe('DurationBoxSource', () => {
       expect(DurationBoxSource.priority).toBe(10);
     });
   });
+
+  it.each([
+    ['1 day', '86400'],
+    ['2hrs', '7200'],
+    ['5mins 30secs', '330'],
+  ])('parses duration alias input %s', async (input, seconds) => {
+    const boxes = await DurationBoxSource.generateBoxes(input, {
+      duration: true,
+    });
+    expect(boxes[0].props.options).toMatchObject({ Seconds: seconds });
+  });
 });

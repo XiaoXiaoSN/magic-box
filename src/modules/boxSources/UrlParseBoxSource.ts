@@ -58,10 +58,25 @@ export const UrlParseBoxSource = {
     if (!isString(input) || input.length > MAX_INPUT) return [];
 
     const raw = trim(input);
+    if (/[\r\n]/.test(raw)) {
+      return [
+        errorBox('URL Parse', `Invalid URL: ${raw}`, {
+          priority: this.priority,
+        }),
+      ];
+    }
+
+    const hasProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(raw);
+    const looksLikeHostPort = /^[^/:\s]+:\d+(?:[/?#]|$)/.test(raw);
+    const looksLikeDottedHost = /^[^/:\s]+\.[^/:\s]+(?:[/?#:]|$)/.test(raw);
+    const candidate =
+      !hasProtocol && (looksLikeHostPort || looksLikeDottedHost)
+        ? `https://${raw}`
+        : raw;
     let url: URL;
 
     try {
-      url = new URL(raw);
+      url = new URL(candidate);
     } catch {
       return [
         errorBox('URL Parse', `Invalid URL: ${raw}`, {

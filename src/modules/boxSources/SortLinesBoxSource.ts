@@ -1,14 +1,10 @@
 import { isString } from '@functions/helper';
+import { compareCodePoints } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
-
-// stable code-point comparison — avoids locale-dependent collation
-function cmpString(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
 
 // NaN-last numeric comparator with string fallback
 function cmpNumeric(a: string, b: string): number {
@@ -16,7 +12,7 @@ function cmpNumeric(a: string, b: string): number {
   const nb = parseFloat(b);
   const aIsNaN = Number.isNaN(na);
   const bIsNaN = Number.isNaN(nb);
-  if (aIsNaN && bIsNaN) return cmpString(a, b);
+  if (aIsNaN && bIsNaN) return compareCodePoints(a, b);
   if (aIsNaN) return 1;
   if (bIsNaN) return -1;
   return na < nb ? -1 : na > nb ? 1 : 0;
@@ -53,9 +49,9 @@ export const SortLinesBoxSource = {
       if (isNumeric) {
         cmp = cmpNumeric(a, b);
       } else if (isCi) {
-        cmp = cmpString(a.toLowerCase(), b.toLowerCase());
+        cmp = compareCodePoints(a.toLowerCase(), b.toLowerCase());
       } else {
-        cmp = cmpString(a, b);
+        cmp = compareCodePoints(a, b);
       }
       return isDesc ? -cmp : cmp;
     });

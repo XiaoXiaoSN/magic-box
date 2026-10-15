@@ -12,11 +12,20 @@ const HEADING_RE = /^(#{1,6})\s+(.+)$/;
 const FENCE_OPEN_RE = /^(`{3,}|~{3,})/;
 
 /** converts heading text to a github-compatible anchor slug */
+function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/(`+)(.*?)\1/g, '$2')
+    .replace(/!?\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/!?\[([^\]]+)\](?:\[[^\]]*\])?/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/(\*\*|__|~~|\*|_)(\S(?:.*?\S)?)\1/g, '$2');
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/\s+/g, '-');
+    .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
+    .replace(/\s/g, '-');
 }
 
 interface Heading {
@@ -30,7 +39,7 @@ function parseHeadings(input: string): Heading[] {
   let inFence = false;
   let fenceChar = '';
 
-  for (const line of input.split('\n')) {
+  for (const line of input.split(/\r?\n/)) {
     if (inFence) {
       // exit fence when we see the matching closing delimiter
       if (line.trimStart().startsWith(fenceChar)) {
@@ -52,7 +61,7 @@ function parseHeadings(input: string): Heading[] {
     if (headingMatch) {
       const rawText = headingMatch[2];
       // strip trailing # characters and whitespace (setext-style closers)
-      const text = rawText.replace(/\s+#+\s*$/, '').trim();
+      const text = stripInlineMarkdown(rawText.replace(/\s+#+\s*$/, '').trim());
       headings.push({ level: headingMatch[1].length, text });
     }
   }
@@ -74,7 +83,8 @@ function buildToc(headings: Heading[]): string {
     // first occurrence uses the base slug; subsequent ones append -1, -2, …
     const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
     const indent = ' '.repeat((level - minLevel) * 2);
-    lines.push(`${indent}- [${text}](#${slug})`);
+    const label = text.replace(/([\\[\]])/g, '\\$1');
+    lines.push(`${indent}- [${label}](#${slug})`);
   }
 
   return lines.join('\n');

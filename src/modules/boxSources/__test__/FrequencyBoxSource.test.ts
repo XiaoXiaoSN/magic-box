@@ -118,4 +118,15 @@ describe('FrequencyBoxSource', () => {
       expect(typeof FrequencyBoxSource.priority).toBe('number');
     });
   });
+
+  it('counts emoji families and combining accents as whole graphemes', async () => {
+    const boxes = await FrequencyBoxSource.generateBoxes('👨‍👩‍👧 é é', {
+      freq: true,
+    });
+    const rows = (boxes[0].props.plaintextOutput as string).split('\n');
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain('é  2');
+    expect(rows[1]).toContain('👨‍👩‍👧  1');
+    expect(rows.some((row) => row.startsWith('‍'))).toBe(false);
+  });
 });
