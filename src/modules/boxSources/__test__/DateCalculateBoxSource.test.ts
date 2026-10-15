@@ -7,6 +7,7 @@ import {
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {
+    setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed', locale: 'en' });
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
   });
@@ -20,42 +21,35 @@ describe('DateCalculateBoxSource', () => {
 
   describe('parseDate', () => {
     it.each([
-      ['2024-01-01'],
-      ['2024/01/01'],
-      ['2024-01-01T00:00:00Z'],
-      ['2024-01-01T00:00:00.00Z'],
-      ['2024-01-01 00:00:00'],
-      ['2024-01-01T00:00:00.123456Z'],
-      ['2024-01-01T00:00:00.123456+08:00'],
-      ['2024-01-01 00:00:00.123456'],
-      ['now'],
-      ['today'],
-    ])('should successfully parse difference formats', (dateString: string) => {
+      ['2024-01-01', '2024-01-01T00:00:00.000Z'],
+      ['2024/01/01', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01T00:00:00Z', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01T00:00:00.00Z', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01 00:00:00', '2023-12-31T16:00:00.000Z'],
+      ['2024-01-01T00:00:00.123456Z', '2024-01-01T00:00:00.123Z'],
+      ['2024-01-01T00:00:00.123456+08:00', '2023-12-31T16:00:00.123Z'],
+      ['2024-01-01 00:00:00.123456', '2023-12-31T16:00:00.123Z'],
+      ['now', '2024-01-01T00:00:00.000Z'],
+      ['today', '2024-01-01T00:00:00.000Z'],
+    ])('should parse %s to the expected instant', (dateString: string, expectedInstant: string) => {
       const DATE_PATTERN = new RegExp(exportedForTesting.DATE, 'i');
       const match = dateString.match(DATE_PATTERN);
       expect(match).toBeTruthy();
       const parsedDate = exportedForTesting.parseDate(dateString);
       expect(parsedDate).toBeInstanceOf(Date);
-      if (
-        !dateString.includes('+') &&
-        !dateString.includes('Z') &&
-        !dateString.includes('now') &&
-        !dateString.includes('today')
-      ) {
-        expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
-      }
+      expect(parsedDate.toISOString()).toBe(expectedInstant);
     });
 
     it('should parse `tomorrow`', () => {
       const parsedDate = exportedForTesting.parseDate('tomorrow');
       expect(parsedDate).toBeInstanceOf(Date);
-      expect(parsedDate.toDateString()).toMatch('Tue Jan 02 2024');
+      expect(parsedDate.toISOString()).toBe('2024-01-02T00:00:00.000Z');
     });
 
     it('should parse `yesterday`', () => {
       const parsedDate = exportedForTesting.parseDate('yesterday');
       expect(parsedDate).toBeInstanceOf(Date);
-      expect(parsedDate.toDateString()).toMatch('Sun Dec 31 2023');
+      expect(parsedDate.toISOString()).toBe('2023-12-31T00:00:00.000Z');
     });
   });
 
