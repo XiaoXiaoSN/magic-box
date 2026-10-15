@@ -10,6 +10,67 @@ const optionMatcher =
   (_input: string, options: BoxOptions): boolean =>
     options !== null && keys.some((key) => options[key] !== undefined);
 
+const DATA_CONVERTER_OPTION_KEYS = [
+  'json',
+  'tojson',
+  'yaml',
+  'yml',
+  'toyaml',
+  'toyml',
+  'toml',
+  'totoml',
+  'xml',
+  'toxml',
+] as const;
+
+const DATA_CONVERTER_TOML_SHAPE =
+  /^[ \t]*(?:\[\[?[^\]\n]+\]\]?[ \t]*(?:#.*)?$|[A-Za-z0-9_-]+(?:[ \t]*\.[ \t]*[A-Za-z0-9_-]+)*[ \t]*=)/m;
+
+const dataConverterOptionMatcher = optionMatcher(DATA_CONVERTER_OPTION_KEYS);
+const certificateOptionMatcher = optionMatcher(['cert', 'certificate', 'ca']);
+const base85OptionMatcher = optionMatcher([
+  'base85',
+  'base85encode',
+  'base85decode',
+  'ascii85',
+]);
+const durationOptionMatcher = optionMatcher([
+  'duration',
+  'humantime',
+  'parseduration',
+  'duration2s',
+  'humanize',
+]);
+const timestampOptionMatcher = optionMatcher(['timestamp', 'unix', 'ts']);
+
+const dataConverterCanHandle = (
+  input: string,
+  options: BoxOptions,
+): boolean => {
+  if (dataConverterOptionMatcher(input, options)) return true;
+
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+    (trimmed.startsWith('<') && trimmed.endsWith('>'))
+  ) {
+    return true;
+  }
+
+  return (
+    DATA_CONVERTER_TOML_SHAPE.test(trimmed) ||
+    /^(?:---[ \t]*(?:#.*)?$|[ \t]*(?:[-?][ \t]+\S|[^\s:#][^:\n]*:\s*(?:\S|$)))/m.test(
+      trimmed,
+    )
+  );
+};
+
+const certificateCanHandle = (input: string, options: BoxOptions): boolean =>
+  certificateOptionMatcher(input, options) ||
+  input.includes('-----BEGIN CERTIFICATE-----');
+
 const definitions: readonly LazyBoxSourceDefinition[] = [
   {
     id: 'color',
@@ -91,19 +152,9 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '{ }',
     kind: 'Format',
     priority: 10,
-    optionKeys: [
-      'json',
-      'tojson',
-      'yaml',
-      'yml',
-      'toyaml',
-      'toyml',
-      'toml',
-      'totoml',
-      'xml',
-      'toxml',
-    ],
+    optionKeys: [...DATA_CONVERTER_OPTION_KEYS],
     headless: true,
+    canHandle: dataConverterCanHandle,
     load: () =>
       import('./DataConverterBoxSource').then((module) => module.default),
   },
@@ -161,8 +212,15 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '#',
     kind: 'Convert',
     priority: 10,
-    optionKeys: ['duration', 'humantime'],
+    optionKeys: [
+      'duration',
+      'humantime',
+      'parseduration',
+      'duration2s',
+      'humanize',
+    ],
     headless: true,
+    canHandle: durationOptionMatcher,
     load: () => import('./DurationBoxSource').then((module) => module.default),
   },
   {
@@ -385,8 +443,10 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '⏱',
     kind: 'Time',
     priority: 9,
-    optionKeys: [],
+    optionKeys: ['timestamp', 'unix', 'ts'],
     headless: true,
+    canHandle: (input, options) =>
+      timestampOptionMatcher(input, options) || /^\d{9,22}$/.test(input.trim()),
     load: () => import('./TimestampBoxSource').then((module) => module.default),
   },
   {
@@ -521,9 +581,9 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     kind: 'Encode',
     priority: 10,
     defaultDisabled: true,
-    optionKeys: ['base85', 'base85encode', 'base85decode'],
+    optionKeys: ['base85', 'base85encode', 'base85decode', 'ascii85'],
     headless: true,
-    canHandle: optionMatcher(['base85', 'base85encode', 'base85decode']),
+    canHandle: base85OptionMatcher,
     load: () => import('./Base85BoxSource').then((module) => module.default),
   },
   {
@@ -1339,15 +1399,9 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '✦',
     kind: 'Generate',
     priority: 10,
-    optionKeys: ['ai', 'ask', 'translate', 'rewrite', 'summarize'],
+    optionKeys: ['ai', 'localai'],
     headless: false,
-    canHandle: optionMatcher([
-      'ai',
-      'ask',
-      'translate',
-      'rewrite',
-      'summarize',
-    ]),
+    canHandle: optionMatcher(['ai', 'localai']),
     load: () => import('./LocalAIBoxSource').then((module) => module.default),
   },
   {
@@ -1453,7 +1507,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     kind: 'Decode',
     optionKeys: ['cert', 'certificate', 'ca'],
     headless: true,
-    canHandle: optionMatcher(['cert', 'certificate', 'ca']),
+    canHandle: certificateCanHandle,
     load: () =>
       import('./CertificateBoxSource').then((module) => module.default),
   },

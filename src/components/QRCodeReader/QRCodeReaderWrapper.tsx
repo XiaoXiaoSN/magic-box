@@ -4,6 +4,8 @@ import type { IDetectedBarcode } from '@yudiel/react-qr-scanner';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import type React from 'react';
 
+import { reportSentryError } from '../../functions/sentry';
+
 interface CloseButtonProps {
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -66,9 +68,7 @@ const QRCodeReaderWrapper = ({
       <CloseButton setShowReader={setShowReader} />
       <Scanner
         onError={(error) => {
-          void import('@sentry/react')
-            .then(({ logger }) => logger.error(`failed to scan: ${error}`))
-            .catch(() => undefined);
+          reportSentryError(`failed to scan: ${error}`);
         }}
         onScan={handleScan}
         constraints={{

@@ -1,6 +1,7 @@
 import { parseInput } from '@functions/parseOptions';
 import type { BoxSource } from '@modules/BoxSource';
 import { describe, expect, it, vi } from 'vitest';
+import certificate from '../../../functions/__test__/fixtures/certificate';
 import { tuiBoxSources } from '../../../tui/sources';
 import {
   boxSources,
@@ -71,6 +72,58 @@ describe('source manifest', () => {
       const [input, options] = parseInput(manifest.defaultInput);
       expect(registered.canHandle?.(input, options)).toBe(true);
     }
+  });
+
+  it.each([
+    ['local-ai', '::localai'],
+    ['base85', 'hello\n::ascii85'],
+    ['duration', '10\n::parseduration'],
+    ['timestamp', '1735794245\n::unix'],
+    ['certificate-decode', certificate],
+  ])('keeps supported aliases lazy and functional: %s', async (id, raw) => {
+    const registered = getBoxSource(id);
+    expect(registered).not.toBeNull();
+    const [input, options] = parseInput(raw);
+    expect(registered?.canHandle?.(input, options)).toBe(true);
+    await expect(
+      registered?.generateBoxes(input, options),
+    ).resolves.not.toEqual([]);
+  });
+
+  it('does not load Data Converter for plain text or a bare date', async () => {
+    let imported = 0;
+    vi.resetModules();
+    vi.doMock('../DataConverterBoxSource', async () => {
+      imported += 1;
+      return vi.importActual('../DataConverterBoxSource');
+    });
+
+    const registry = await import('../index');
+    const converter = registry.getBoxSource('data-converter');
+    expect(converter).not.toBeNull();
+    const [plainInput, plainOptions] = parseInput('hello');
+    const [dateInput, dateOptions] = parseInput('2026-10-15');
+    expect(converter?.canHandle?.(plainInput, plainOptions)).toBe(false);
+    expect(converter?.canHandle?.(dateInput, dateOptions)).toBe(false);
+    await converter?.generateBoxes(plainInput, plainOptions);
+    await converter?.generateBoxes(dateInput, dateOptions);
+    expect(imported).toBe(0);
+
+    const validDocuments = [
+      '{"ok":true}',
+      'name: value',
+      '[section]\nname = "value"',
+      '<root><name>value</name></root>',
+    ];
+    for (const document of validDocuments) {
+      const [input, options] = parseInput(document);
+      expect(converter?.canHandle?.(input, options)).toBe(true);
+      await converter?.generateBoxes(input, options);
+    }
+    expect(imported).toBe(1);
+
+    vi.doUnmock('../DataConverterBoxSource');
+    vi.resetModules();
   });
 
   it('documents every intentional option collision', () => {
