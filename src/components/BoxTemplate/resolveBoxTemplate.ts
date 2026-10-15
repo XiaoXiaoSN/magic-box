@@ -7,6 +7,7 @@ import {
   KeyValueBoxTemplate,
   LocalAIBoxTemplate,
   QRCodeBoxTemplate,
+  ShortenURLBoxTemplate,
 } from './index';
 
 const webTemplates: Record<BoxView, BoxTemplate> = {
@@ -17,6 +18,7 @@ const webTemplates: Record<BoxView, BoxTemplate> = {
   qrCode: QRCodeBoxTemplate,
   diceRoll: DiceRollBoxTemplate,
   localAI: LocalAIBoxTemplate,
+  shortenURL: ShortenURLBoxTemplate,
 };
 
 export function resolveBoxTemplate(box: Box): BoxTemplate {

@@ -402,7 +402,7 @@ const PreviewPane = ({
             that would reach the network on mount does not do it for a user who
             is only browsing the list. */}
         <BoxPreviewProvider>
-          <MagicBox input={magicIn} sources={sources} />
+          <MagicBox input={magicIn} liveInput={input} sources={sources} />
         </BoxPreviewProvider>
       </div>
     </div>

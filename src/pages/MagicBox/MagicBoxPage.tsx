@@ -8,6 +8,7 @@ import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, {
   Suspense,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -131,23 +132,24 @@ const MagicBoxPage = (): React.JSX.Element => {
   // Replaces the whole input programmatically (QR scan, history pick, paste
   // back). Marks the caret to land at the end of the inserted text so the
   // next keystroke continues naturally.
-  const replaceInput = (value: string) => {
+  const replaceInput = useCallback((value: string): void => {
     // A wholesale replacement starts a new edit session: what was typed before
     // it is not part of whatever is built from the new value.
     sessionAddedRef.current = [];
     pendingCaretRef.current = value.length;
     setUserInput(value);
-  };
+  }, []);
 
-  const handleScannedInput = (value: string) => {
-    replaceInput(value);
-  };
+  const handleScannedInput = replaceInput;
 
-  const handleHistorySelect = (input: string) => {
-    replaceInput(input);
-    setHistoryOpen(false);
-    inputRef.current?.focus();
-  };
+  const handleHistorySelect = useCallback(
+    (input: string): void => {
+      replaceInput(input);
+      setHistoryOpen(false);
+      inputRef.current?.focus();
+    },
+    [replaceInput],
+  );
 
   return (
     <div className="home">
@@ -288,9 +290,8 @@ const MagicBoxPage = (): React.JSX.Element => {
           <div className="boxes" data-testid="magic-output">
             <MagicBox
               input={magicIn}
-              onPasteInput={(val: string) => {
-                replaceInput(val);
-              }}
+              liveInput={userInput}
+              onPasteInput={replaceInput}
               resetTrigger={resetCounter}
             />
           </div>

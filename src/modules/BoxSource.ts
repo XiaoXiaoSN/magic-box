@@ -2,6 +2,11 @@ import type { Box, BoxOptions } from '@modules/Box';
 
 export type CheckFunction = (input: string, options: BoxOptions) => Box[];
 
+export interface BoxSourceContext {
+  signal: AbortSignal;
+  preview: boolean;
+}
+
 export interface BoxSource {
   name: string;
   description: string;
@@ -10,5 +15,9 @@ export interface BoxSource {
   kind: string;
   priority?: number;
   defaultDisabled?: boolean;
-  generateBoxes: (input: string, options: BoxOptions) => Promise<Box[]>;
+  generateBoxes: (
+    input: string,
+    options: BoxOptions,
+    context?: BoxSourceContext,
+  ) => Promise<Box[]>;
 }

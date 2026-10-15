@@ -1,7 +1,9 @@
 import { isString, trim } from '@functions/helper';
-import { getShortenUrl, getToolboxUrl } from '@functions/runtimePrefs';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
+
+import { isHttpUrl, requestShortenURL } from './shortenURL';
 
 const PriorityShortenURL = 10;
 
@@ -22,27 +24,9 @@ export const ShortenURLBoxSource = {
   async getShortenURL(
     inputURL: string,
     shorten: string | null,
+    signal?: AbortSignal,
   ): Promise<string> {
-    const toolBoxHost = getToolboxUrl();
-    const shortenURLHost = getShortenUrl();
-
-    const resp = await fetch(`${toolBoxHost}/api/v1/surl`, {
-      method: 'POST',
-      body: JSON.stringify({
-        url: inputURL,
-        shorten,
-      }),
-    });
-    if (resp.status !== 200) {
-      throw Error('The "Shorten URL" request is not success');
-    }
-
-    const result = await resp.json();
-    if (result == null || !isString(result.shorten) || result.shorten === '') {
-      throw Error('The "Shorten URL" not response as expected');
-    }
-
-    return `${shortenURLHost}/${result.shorten}`;
+    return requestShortenURL(inputURL, shorten, signal);
   },
 
   async checkMatch(
@@ -71,17 +55,15 @@ export const ShortenURLBoxSource = {
 
     const regularInput = trim(input);
 
-    try {
-      const shortenURL = await this.getShortenURL(regularInput, shortenOption);
-      return { shortenURL };
-    } catch {
-      /* */
-    }
-
-    return undefined;
+    if (!isHttpUrl(regularInput)) return undefined;
+    return { shortenURL: regularInput };
   },
 
-  async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
+  async generateBoxes(
+    input: string,
+    options: BoxOptions,
+    context?: BoxSourceContext,
+  ): Promise<Box[]> {
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
@@ -90,7 +72,12 @@ export const ShortenURLBoxSource = {
     const { shortenURL } = match;
     return [
       new BoxBuilder('Shorten URL', shortenURL)
-        .setView('default')
+        .setSourceInput(shortenURL)
+        .setOptions({
+          ...(options ?? {}),
+          preview: context?.preview === true,
+        })
+        .setView('shortenURL')
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

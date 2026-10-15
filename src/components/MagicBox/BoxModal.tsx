@@ -4,6 +4,7 @@ import ErrorBoundary, {
 } from '@components/ErrorBoundary';
 import type { Box as BoxType } from '@modules/Box';
 import { Modal } from '@mui/material';
+import { memo, useCallback } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import ModalShell from './ModalShell';
 
@@ -14,9 +15,17 @@ interface BoxModalProps {
   onCopy: (text: string) => Promise<boolean>;
 }
 
-const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
+const BoxModal = memo(({ box, open, onClose, onCopy }: BoxModalProps) => {
   const { t } = useLocale();
   const Comp = box ? resolveBoxTemplate(box) : null;
+  const onClick = box?.props.onClick;
+  const handleClick = useCallback(
+    (text: string): void => {
+      void Promise.resolve(onCopy(text)).catch(() => undefined);
+      onClick?.(text);
+    },
+    [onClick, onCopy],
+  );
   if (!box || !Comp) {
     return (
       <Modal aria-labelledby="box-modal-title" onClose={onClose} open={open}>
@@ -25,21 +34,8 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
     );
   }
 
-  const {
-    name,
-    plaintextOutput,
-    options,
-    sourceInput,
-    priority,
-    tag,
-    kind,
-    onClick,
-  } = box.props;
-
-  const handleClick = (text: string) => {
-    void Promise.resolve(onCopy(text)).catch(() => undefined);
-    onClick(text);
-  };
+  const { name, plaintextOutput, options, sourceInput, priority, tag, kind } =
+    box.props;
 
   return (
     <ModalShell
@@ -71,6 +67,8 @@ const BoxModal = ({ box, open, onClose, onCopy }: BoxModalProps) => {
       </ErrorBoundary>
     </ModalShell>
   );
-};
+});
+
+BoxModal.displayName = 'BoxModal';
 
 export default BoxModal;

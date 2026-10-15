@@ -109,6 +109,7 @@ const zhTW: Translations = {
   'magicBox.emptyNoMatchesTitle': '沒有匹配結果',
   'magicBox.emptyNoMatchesSub':
     '試試其他格式 — JSON、JWT、時間戳記、cron、base64、數學式…',
+  'magicBox.loading': '正在檢查匹配結果…',
 
   'time.justNow': '剛剛',
   'time.minutesAgo': '{{n}} 分鐘前',
@@ -123,6 +124,12 @@ const zhTW: Translations = {
 
   'boxModal.close': '關閉',
   'boxModal.closeBackdrop': '關閉模態背景',
+
+  'shortenURL.action': '縮短網址',
+  'shortenURL.loading': '正在縮短…',
+  'shortenURL.invalidUrl': '請輸入有效的 HTTP(S) 網址。',
+  'shortenURL.requestFailed': '縮網址請求失敗。',
+  'shortenURL.preview': '僅供預覽，不會送出請求。',
 
   'errorBoundary.boxTitle': '此 Box 無法顯示',
   'errorBoundary.boxMessage': '請重試或更換輸入內容。',
