@@ -159,11 +159,20 @@ full final:        [767237708, 775911666, 776124958, 774860416, 771084958, 77389
 ```
 
 The in-tree Criterion bench contains both the repeated compiled case and the
-full pipeline case. On this host, `cargo bench` could not resolve existing
-release proc-macro dependencies (`E0463`, first `rustversion` and then
-`zerocopy_derive`), so the numbers above come from the same public
-`Compiled`/`evaluate` APIs in the standalone release harness. No Criterion
-speedup is inferred from a failed run.
+full pipeline case. The reproducible non-Criterion harness is
+`examples/measure_user_fn.rs` and can be run with:
+
+```bash
+env RUSTC_WRAPPER= CARGO_BUILD_JOBS=1 \
+  cargo run --manifest-path wasmModules/math-box/Cargo.toml \
+  --example measure_user_fn --release --no-default-features \
+  --features "std bigint fraction unit complex"
+```
+
+The baseline archive was run with the same example copied into that source
+tree. On this host, `cargo bench` could not resolve existing release
+proc-macro dependencies (`E0463`, first `rustversion` and then
+`zerocopy_derive`), so no Criterion speedup is inferred from that failed run.
 
 ### Shipping WASM measurement
 
@@ -172,8 +181,8 @@ for `opt-level=3`, `s`, and `z` in isolated output directories, then invokes
 `bench/measure-shipping.mjs`. The latter measures the generated shipping
 `*_bg.wasm` raw bytes, deterministic gzip level 9 bytes (equivalent to
 `gzip -n -9`), JS glue bytes, SHA-256, and actual
-runtime calls. It records the wasm-pack, wasm-bindgen, wasm-opt, and Node
-versions in every profile result. The same tool invocation must be used for
+runtime calls. It records each tool's resolved executable path, version output,
+and SHA-256 in every profile result. The same tool invocation must be used for
 both crates within a profile; no cargo-only artifact is accepted as a package
 measurement.
 
@@ -192,9 +201,12 @@ from the preserved CI artifact with the same script:
 That artifact's actual Node runtime medians were 2,864.37 ns/op for the
 compiled math expression, 9,525.64 ns/op for full math evaluation, 899.00
 ns/op for base64 encode, and 740.55 ns/op for base64 decode-to-string.
-artifact was produced by the repository CI wasm-pack `0.15.0` action; its
-transitive wasm-bindgen and wasm-opt versions were not recorded in the
-artifact metadata. The local package measurement runner was Node `v26.7.0`.
+The preserved artifact was produced by the repository CI wasm-pack `0.15.0`
+action; its transitive wasm-bindgen and wasm-opt versions were not recorded in
+the artifact metadata. The local package measurement runner was Node
+`v26.7.0`. The CI workflow builds the exact PR base and candidate sequentially
+on one Ubuntu host, then uploads the raw JSON and generated package directories
+for all three profiles. Its revision file records both source SHAs.
 The profile script is the bounded CI follow-up for final 3/s/z package sizes and
 runtime; this arm64 host cannot run the repository's x86_64 wasm-bindgen CLI,
 and no wasm-opt binary is installed, so no final shipping profile is selected

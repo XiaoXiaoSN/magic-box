@@ -14,6 +14,11 @@ codegen-units = 1
 panic = "abort"
 strip = "symbols"
 
+# rustc emits bulk-memory instructions for the optimized base64 implementation.
+# Keep wasm-opt enabled and pass the feature needed to validate those instructions.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory"]
+
 [dependencies]
 base64 = "0.23"
 wasm-bindgen = "0.2"

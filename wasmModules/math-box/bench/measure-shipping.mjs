@@ -2,7 +2,7 @@
 
 // Measure the generated package that would be shipped to the browser.
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -56,12 +56,27 @@ async function loadPackage(pkgDir, glueName, wasmName) {
   return module;
 }
 
+function resolveExecutable(command) {
+  if (!command) return null;
+  if (command.includes('/')) return command;
+  const result = spawnSync('sh', ['-c', 'command -v "$1"', 'sh', command], {
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) return null;
+  return result.stdout.trim() || null;
+}
+
 async function commandVersion(command) {
   try {
     const version = await new Promise((resolveVersion) => {
-      const child = spawn(command, ['--version']);
+      const child = spawn(command, ['--version'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
       let output = '';
       child.stdout.on('data', (chunk) => {
+        output += chunk;
+      });
+      child.stderr.on('data', (chunk) => {
         output += chunk;
       });
       child.on('error', () => resolveVersion(null));
@@ -71,6 +86,26 @@ async function commandVersion(command) {
   } catch {
     return null;
   }
+}
+
+async function commandInfo(command) {
+  const path = resolveExecutable(command);
+  if (!path) return { path: null, version: null, sha256: null };
+
+  let sha256 = null;
+  try {
+    sha256 = createHash('sha256')
+      .update(await readFile(path))
+      .digest('hex');
+  } catch {
+    // version output still identifies a tool whose executable is unreadable.
+  }
+
+  return {
+    path,
+    version: await commandVersion(path),
+    sha256,
+  };
 }
 
 function assertEqual(actual, expected, label) {
@@ -119,12 +154,18 @@ async function main() {
   const result = {
     profile: process.env.WASM_PROFILE ?? 'unknown',
     toolchain: {
-      node: process.version,
-      wasm_pack: await commandVersion(process.env.WASM_PACK ?? 'wasm-pack'),
-      wasm_bindgen: await commandVersion(
+      node: {
+        path: process.execPath,
+        version: process.version,
+        sha256: await commandInfo(process.execPath).then((info) => info.sha256),
+      },
+      rustc: await commandInfo(process.env.RUSTC ?? 'rustc'),
+      cargo: await commandInfo(process.env.CARGO ?? 'cargo'),
+      wasm_pack: await commandInfo(process.env.WASM_PACK ?? 'wasm-pack'),
+      wasm_bindgen: await commandInfo(
         process.env.WASM_BINDGEN ?? 'wasm-bindgen',
       ),
-      wasm_opt: await commandVersion(process.env.WASM_OPT ?? 'wasm-opt'),
+      wasm_opt: await commandInfo(process.env.WASM_OPT ?? 'wasm-opt'),
     },
     iterations: ITERATIONS,
     runs: RUNS,
