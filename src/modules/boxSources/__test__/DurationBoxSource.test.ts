@@ -23,12 +23,13 @@ describe('DurationBoxSource', () => {
       expect(boxes).toHaveLength(0);
     });
 
-    it('returns [] for input exceeding 100 characters', async () => {
+    it('returns an error box for input exceeding 100 characters', async () => {
       const long = '1'.repeat(101);
       const boxes = await DurationBoxSource.generateBoxes(long, {
         duration: true,
       });
-      expect(boxes).toHaveLength(0);
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
     });
   });
 
@@ -68,6 +69,14 @@ describe('DurationBoxSource', () => {
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Human).toBe('0s');
       expect(opts.Clock).toBe('00:00:00');
+    });
+
+    it('returns an error box for an unsafe numeric duration', async () => {
+      const boxes = await DurationBoxSource.generateBoxes('1'.repeat(25), {
+        duration: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/safe numeric range/i);
     });
 
     it('604800 (1 week) → Human contains "1w", Clock uses D:HH:MM:SS', async () => {
@@ -128,6 +137,17 @@ describe('DurationBoxSource', () => {
       });
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Seconds).toBe('90');
+    });
+
+    it('preserves the safe integer millisecond boundary exactly', async () => {
+      const boxes = await DurationBoxSource.generateBoxes('9007199254740991', {
+        duration: 'ms',
+      });
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Seconds).toBe('9007199254740.991');
+      expect(opts.Human).toMatch(/991ms$/);
+      expect(opts.Clock).toMatch(/\.991$/);
     });
   });
 
@@ -191,6 +211,15 @@ describe('DurationBoxSource', () => {
       }
     });
 
+    it('returns an error box when accumulated duration is unsafe', async () => {
+      const boxes = await DurationBoxSource.generateBoxes(
+        `${'9'.repeat(24)}s`,
+        { duration: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/safe numeric range/i);
+    });
+
     it('parses duration with milliseconds (500ms)', async () => {
       const boxes = await DurationBoxSource.generateBoxes('500ms', {
         parseduration: true,
@@ -200,6 +229,18 @@ describe('DurationBoxSource', () => {
       expect(opts.Seconds).toBe('0.5');
       expect(opts.Human).toBe('500ms');
       expect(opts.Clock).toBe('00:00:00.500');
+    });
+
+    it('keeps a large seconds term and millisecond term exact', async () => {
+      const boxes = await DurationBoxSource.generateBoxes(
+        '9007199254740s 1ms',
+        { duration: true },
+      );
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Seconds).toBe('9007199254740.001');
+      expect(opts.Human).toMatch(/1ms$/);
+      expect(opts.Clock).toMatch(/\.001$/);
     });
 
     it('triggers on ::parseduration, ::duration2s', async () => {

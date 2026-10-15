@@ -24,12 +24,13 @@ describe('LineToolsBoxSource', () => {
       expect(boxes).toHaveLength(0);
     });
 
-    it('returns empty array when input exceeds MAX_INPUT', async () => {
+    it('returns an error box when input exceeds MAX_INPUT', async () => {
       const big = 'a\n'.repeat(60_000);
       const boxes = await LineToolsBoxSource.generateBoxes(big, {
         sortlines: true,
       });
-      expect(boxes).toHaveLength(0);
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
     });
   });
 

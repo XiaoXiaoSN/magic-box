@@ -1,6 +1,6 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 10_000;
@@ -195,7 +195,15 @@ export const PunycodeBoxSource = {
     );
     const wantToUnicode = hasOptionKeys(options, 'punycodedecode', 'idndecode');
     if (!wantToAscii && !wantToUnicode) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (input.length > MAX_INPUT) {
+      return [
+        errorBox(
+          'Punycode',
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
+          { priority: this.priority },
+        ),
+      ];
+    }
 
     const domain = trim(input);
     const boxes: Box[] = [];

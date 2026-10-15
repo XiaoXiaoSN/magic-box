@@ -104,12 +104,13 @@ describe('TextDiffBoxSource', () => {
     expect(boxes).toEqual([]);
   });
 
-  it('returns [] for input exceeding MAX_INPUT', async () => {
+  it('returns an error box for input exceeding MAX_INPUT', async () => {
     const huge = 'a'.repeat(20_001);
     const boxes = await TextDiffBoxSource.generateBoxes(huge, {
       textdiff: true,
     });
-    expect(boxes).toEqual([]);
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
   });
 
   it('refuses to diff more lines than the per-side cap (no LCS freeze)', async () => {

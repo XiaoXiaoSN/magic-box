@@ -1,6 +1,6 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 10_000;
@@ -55,7 +55,17 @@ export const GcdLcmBoxSource = {
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'gcd', 'lcm')) return [];
 
-    const trimmed = trim(input).slice(0, MAX_INPUT);
+    if (input.length > MAX_INPUT) {
+      return [
+        errorBox(
+          'GCD / LCM',
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
+          { priority: this.priority },
+        ),
+      ];
+    }
+
+    const trimmed = trim(input);
     if (!trimmed) {
       const kv = { Note: 'provide at least two integers' };
       return [
@@ -68,10 +78,15 @@ export const GcdLcmBoxSource = {
     }
 
     // split on commas and/or whitespace
-    const tokens = trimmed
-      .split(/[\s,]+/)
-      .filter((t: string) => t.length > 0)
-      .slice(0, MAX_OPERANDS);
+    const tokens = trimmed.split(/[\s,]+/).filter((t: string) => t.length > 0);
+
+    if (tokens.length > MAX_OPERANDS) {
+      return [
+        errorBox('GCD / LCM', `Too many operands (limit ${MAX_OPERANDS}).`, {
+          priority: this.priority,
+        }),
+      ];
+    }
 
     // validate: every token must look like a bare integer
     const invalid = tokens.find((t: string) => !INTEGER_RE.test(t));

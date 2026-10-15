@@ -1,6 +1,6 @@
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 50_000;
@@ -61,8 +61,16 @@ export const HexDumpBoxSource = {
     options: BoxOptions = null,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'hexdump', 'xxd')) return [];
-    if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
-      return [];
+    if (!isString(input) || input.length === 0) return [];
+    if (input.length > MAX_INPUT) {
+      return [
+        errorBox(
+          'Hex Dump',
+          `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
+          { priority: this.priority },
+        ),
+      ];
+    }
 
     const output = hexDump(input);
 
