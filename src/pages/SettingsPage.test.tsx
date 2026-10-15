@@ -141,4 +141,40 @@ describe('Settings timezone and defaults', () => {
     );
     confirmSpy.mockRestore();
   });
+
+  it('applies source defaults in memory when clearing storage fails', () => {
+    localStorage.setItem(
+      'mb_settings',
+      JSON.stringify({
+        version: 1,
+        boxes: Object.fromEntries(
+          boxSources.map((source, index) => [
+            source.name,
+            {
+              id: source.name,
+              enabled: false,
+              priority: 10,
+              secondaryOrder: index,
+            },
+          ]),
+        ),
+      }),
+    );
+
+    mount();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const clearSpy = vi
+      .spyOn(window.localStorage, 'clear')
+      .mockImplementation(() => {
+        throw new DOMException('blocked', 'SecurityError');
+      });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
+
+    expect(screen.getAllByRole('button', { name: /^Disable / })).toHaveLength(
+      boxSources.filter((source) => !source.defaultDisabled).length,
+    );
+    clearSpy.mockRestore();
+    confirmSpy.mockRestore();
+  });
 });

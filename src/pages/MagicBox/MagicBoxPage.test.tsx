@@ -58,7 +58,7 @@ const getInput = () => screen.getByTestId('magic-input') as HTMLTextAreaElement;
 
 const HISTORY_KEY = 'mb_search_history';
 
-const readHistory = (): { input: string }[] =>
+const readHistory = (): { id: string; input: string; timestamp: number }[] =>
   JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
 
 // The page debounces input by 500 ms before it records anything.
@@ -77,7 +77,7 @@ describe('<MagicBoxPage />', () => {
 
   afterEach(() => {
     window.history.replaceState({}, '', '/');
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('prefills state from the ?input query param on mount', async () => {
@@ -200,6 +200,81 @@ describe('<MagicBoxPage />', () => {
         'base64 me',
         'hello',
       ]);
+    });
+
+    it('drops malformed entries before rendering the history panel', () => {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([
+          { id: 'valid', timestamp: 1, input: 'valid input' },
+          { id: 'missing-input', timestamp: 2 },
+          { id: 3, timestamp: 3, input: 'bad id' },
+          {
+            id: 'bad-time',
+            timestamp: Number.POSITIVE_INFINITY,
+            input: 'bad time',
+          },
+          { id: 'bad-input', timestamp: 5, input: 5 },
+        ]),
+      );
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('history-toggle'));
+
+      expect(screen.getByText('valid input')).toBeInTheDocument();
+      expect(screen.queryByText('bad id')).not.toBeInTheDocument();
+      expect(screen.queryByText('bad time')).not.toBeInTheDocument();
+      expect(screen.queryByText('missing-input')).not.toBeInTheDocument();
+    });
+
+    it('keeps the history panel usable when storage reads fail', () => {
+      const getItem = vi
+        .spyOn(localStorage, 'getItem')
+        .mockImplementation(() => {
+          throw new DOMException('blocked', 'SecurityError');
+        });
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('history-toggle'));
+
+      expect(screen.getByTestId('history-panel')).toBeInTheDocument();
+      getItem.mockRestore();
+    });
+
+    it('keeps new entries in memory when storage writes fail', async () => {
+      const setItem = vi
+        .spyOn(localStorage, 'setItem')
+        .mockImplementation(() => {
+          throw new DOMException('full', 'QuotaExceededError');
+        });
+
+      renderPage();
+      await settleInput('memory only');
+      fireEvent.click(screen.getByTestId('history-toggle'));
+
+      expect(screen.getByTitle('memory only')).toBeInTheDocument();
+      setItem.mockRestore();
+    });
+
+    it('uses a unique fallback id when randomUUID is unavailable', async () => {
+      const descriptor = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+      Object.defineProperty(crypto, 'randomUUID', {
+        configurable: true,
+        value: undefined,
+      });
+
+      try {
+        renderPage();
+        await settleInput('first');
+        await settleInput('second');
+
+        const ids = readHistory().map((entry) => entry.id);
+        expect(ids).toHaveLength(2);
+        expect(new Set(ids).size).toBe(2);
+        expect(ids.every((id) => id.length > 0)).toBe(true);
+      } finally {
+        if (descriptor) Object.defineProperty(crypto, 'randomUUID', descriptor);
+      }
     });
   });
 

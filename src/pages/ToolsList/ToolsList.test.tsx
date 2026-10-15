@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { MemoryRouter, useNavigate, useSearchParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,8 +36,9 @@ const RouterState = () => {
 const renderPage = (
   initialEntries: string[] = ['/list'],
   initialIndex = initialEntries.length - 1,
-) =>
-  render(
+  strictMode = false,
+) => {
+  const content = (
     <LocaleProvider>
       <PreferencesProvider>
         <SettingsProvider>
@@ -49,8 +51,11 @@ const renderPage = (
           </MemoryRouter>
         </SettingsProvider>
       </PreferencesProvider>
-    </LocaleProvider>,
+    </LocaleProvider>
   );
+
+  return render(strictMode ? <StrictMode>{content}</StrictMode> : content);
+};
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -183,5 +188,72 @@ describe('/list preview input state', () => {
 
     expect(generateBoxes).toHaveBeenCalledTimes(1);
     expect(generateBoxes).toHaveBeenCalledWith('ab', {});
+  });
+
+  it('renders and remains interactive when storage access is blocked', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    });
+
+    try {
+      renderPage(['/list?box=Word%20Count']);
+
+      expect(
+        screen.getByRole('heading', { name: 'Word Count' }),
+      ).toBeInTheDocument();
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'localStorage', descriptor);
+    }
+  });
+
+  it('preserves stored list state when StrictMode mount reads fail', () => {
+    localStorage.setItem('mb:list:collapsed', '1');
+    localStorage.setItem('mb:list:selected', 'Word Count');
+    const storage = window.localStorage;
+    const originalGetItem = storage.getItem.bind(storage);
+    const getItem = vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    try {
+      renderPage(['/list'], 0, true);
+
+      expect(document.querySelector('.list-page')).toHaveAttribute(
+        'data-sidebar-collapsed',
+        'false',
+      );
+      expect(originalGetItem('mb:list:collapsed')).toBe('1');
+      expect(originalGetItem('mb:list:selected')).toBe('Word Count');
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /collapse sidebar/i }),
+      );
+
+      expect(originalGetItem('mb:list:collapsed')).toBe('1');
+      fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
+
+      expect(originalGetItem('mb:list:selected')).toBe('UUID');
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it('keeps sidebar state interactive when storage writes fail', () => {
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+
+    renderPage(['/list?box=Word%20Count']);
+    fireEvent.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+
+    expect(document.querySelector('.list-page')).toHaveAttribute(
+      'data-sidebar-collapsed',
+      'true',
+    );
+    setItem.mockRestore();
   });
 });
