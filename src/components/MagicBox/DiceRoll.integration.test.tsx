@@ -19,7 +19,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: () => ({ filteredBoxSources: noSources }),
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
-  usePreferences: () => ({ prefs: { copyMode: 'copy' } }),
+  usePreferences: () => ({ prefs: { copyMode: 'enter' } }),
 }));
 
 beforeEach(() => {

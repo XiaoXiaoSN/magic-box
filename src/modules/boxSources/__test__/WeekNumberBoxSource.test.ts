@@ -180,19 +180,25 @@ describe('WeekNumberBoxSource', () => {
   });
 
   describe('empty input → today', () => {
-    it('returns a box without error', async () => {
+    it('uses the configured timezone date', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-07T16:00:00Z'));
       const boxes = await WeekNumberBoxSource.generateBoxes('', {
         weeknum: true,
       });
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Error).toBeUndefined();
-      expect(opts['ISO Week']).toMatch(/^\d{4}-W\d{2}$/);
+      expect(opts.Date).toBe('2024-01-08');
+      expect(opts['ISO Week']).toBe('2024-W02');
+      expect(opts.Weekday).toBe('Monday');
     });
   });
 
   describe('"today" keyword', () => {
     it('returns a box without error', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T12:00:00Z'));
       const boxes = await WeekNumberBoxSource.generateBoxes('today', {
         weeknum: true,
       });
