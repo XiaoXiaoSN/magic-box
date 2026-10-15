@@ -154,6 +154,7 @@ const zhTW: Translations = {
   'pwa.later': '稍後',
 
   'snackbar.copied': '已複製',
+  'snackbar.copyFailed': '複製失敗',
   'diff.original': '原始文字',
   'diff.target': '貼上第二段文字',
   'diff.compare': '比較',

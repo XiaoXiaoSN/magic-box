@@ -5,6 +5,7 @@ import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 import { Modal } from '@mui/material';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,7 +13,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { useEffect } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import MagicBox from './index';
@@ -46,6 +47,10 @@ vi.mock('../../features/local-ai/LocalAIPanel', () => ({
 afterEach(() => {
   cleanup();
   vi.mocked(copyTextToClipboard).mockClear();
+});
+
+beforeEach(() => {
+  vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
 });
 
 // An interactive template: its own controls, a dialog in a portal, and some
@@ -117,6 +122,51 @@ describe('BoxCard click handling', () => {
     );
     fireEvent.click(await screen.findByTestId('plain'));
     expect(copyTextToClipboard).toHaveBeenCalledWith('card output');
+  });
+
+  it('only shows Copied after the clipboard confirms success', async () => {
+    let resolveCopy!: (value: boolean) => void;
+    const copyPromise = new Promise<boolean>((resolve) => {
+      resolveCopy = resolve;
+    });
+    vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[interactive]} />
+      </LocaleProvider>,
+    );
+
+    const button = (
+      await screen.findByTestId('magic-box-result')
+    ).querySelector('button.box-copy') as HTMLButtonElement;
+    fireEvent.click(button);
+    expect(button).toHaveTextContent('Copy');
+
+    await act(async () => {
+      resolveCopy(false);
+      await copyPromise;
+    });
+
+    expect(button).toHaveTextContent('Copy');
+  });
+
+  it('keeps the copy label unchanged when the clipboard rejects', async () => {
+    vi.mocked(copyTextToClipboard).mockRejectedValue(new Error('denied'));
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[interactive]} />
+      </LocaleProvider>,
+    );
+
+    const button = (
+      await screen.findByTestId('magic-box-result')
+    ).querySelector('button.box-copy') as HTMLButtonElement;
+    fireEvent.click(button);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(button).toHaveTextContent('Copy');
   });
 });
 

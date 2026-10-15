@@ -1,4 +1,6 @@
-import CustomizedSnackbar from '@components/Snackbar';
+import CustomizedSnackbar, {
+  type SnackbarNotification,
+} from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
 import { parseInput } from '@functions/parseOptions';
@@ -50,17 +52,25 @@ const MagicBox = ({
   onPasteInput,
   resetTrigger,
 }: Props): React.JSX.Element => {
-  const [notify, setNotify] = useState([0]);
+  const [notify, setNotify] = useState<SnackbarNotification | null>(null);
   const [boxes, setBoxes] = useState([] as BoxType[]);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const copySequence = useRef(0);
+  const notificationId = useRef(0);
   const { filteredBoxSources } = useSettings();
   const {
     prefs: { copyMode },
   } = usePreferences();
+
+  useEffect(() => {
+    return () => {
+      copySequence.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     if (resetTrigger !== undefined) {
@@ -68,10 +78,25 @@ const MagicBox = ({
     }
   }, [resetTrigger]);
 
-  const copyText = useCallback((text: string) => {
-    if (text === undefined || text === null || text === '') return;
-    copyTextToClipboard(text);
-    setNotify([Date.now()]);
+  const copyText = useCallback(async (text: string): Promise<boolean> => {
+    const sequence = ++copySequence.current;
+    let copied = false;
+
+    if (text) {
+      try {
+        copied = (await copyTextToClipboard(text)) === true;
+      } catch {
+        copied = false;
+      }
+    }
+
+    if (sequence === copySequence.current) {
+      setNotify({
+        id: ++notificationId.current,
+        severity: copied ? 'success' : 'error',
+      });
+    }
+    return copied;
   }, []);
 
   const handleOpenModal = useCallback((box: BoxType) => {
@@ -191,7 +216,8 @@ const MagicBox = ({
 
         const stdout = selected.props.plaintextOutput ?? '';
         if (stdout) {
-          copyText(stdout);
+          // copy feedback is fire-and-forget; the selected action and paste-back stay immediate.
+          void copyText(stdout).catch(() => undefined);
           selected.props.onClick(stdout);
           pasteAsInput(stdout);
         }
@@ -232,7 +258,7 @@ const MagicBox = ({
 
         const stdout = selected.props.plaintextOutput ?? '';
         if (stdout) {
-          copyText(stdout);
+          void copyText(stdout).catch(() => undefined);
           selected.props.onClick(stdout);
           if (copyMode === 'paste') {
             pasteAsInput(stdout);
