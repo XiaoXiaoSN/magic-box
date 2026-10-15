@@ -6,98 +6,78 @@ on:
       - main
   pull_request:
 
-# Cancel any in-flight jobs for the same PR/branch so there's only one active
-# at a time
 concurrency:
-  group: deploy-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 22
   GCP_PROJECT_ID: magic-box-b8bdc
 
+permissions:
+  contents: read
+
 jobs:
-  codespell:
+  tests:
+    name: Test suite
+    uses: ./.github/workflows/test.yaml
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  deploy-preview:
+    name: deploy-preview
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: tests
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
         with:
-          fetch-depth: 0
+          name: shipping-build
+          path: build
 
-      - name: Get git commit message
-        if: github.event_name == 'pull_request'
-        run: |
-          git log --oneline origin/$GITHUB_BASE_REF..HEAD | tee commit-message
-
-      - uses: codespell-project/codespell-problem-matcher@v1
-
-      - name: Codespell
-        uses: codespell-project/actions-codespell@master
+      - name: Deploy Firebase preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          skip: "./public/images/*,./public/apple-touch-icon.png,./public/favicon.ico,./bun.lock"
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAGIC_BOX_B8BDC }}
+          projectId: ${{ env.GCP_PROJECT_ID }}
 
-  quality:
+  preview-skipped:
+    name: preview-skipped
+    if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+    needs: tests
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain fork preview skip
+        run: echo "Firebase preview skipped for fork PR; all tests ran without repository secrets (tests=${{ needs.tests.result }})."
+
+  deploy-live:
+    name: deploy-live
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: tests
     permissions:
       contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
         with:
-          persist-credentials: false
+          name: shipping-build
+          path: build
 
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-
-      - name: Setup Biome
-        uses: biomejs/setup-biome@v2
+      - name: Deploy Firebase live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          version: latest
-
-      - name: Run Biome Lint
-        run: |
-          # biome ci src/ *.config.ts
-          biome lint src/ *.config.ts
-
-      # Upload built wasm modules
-      - uses: actions/upload-artifact@v7
-        if: github.event_name != 'pull_request'
-        with:
-          name: wasm-modules
-          path: wasmModules/*/pkg
-
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    needs:
-      - codespell
-      - quality
-    env:
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-
-      # Download built wasm modules
-      - uses: actions/download-artifact@v8
-        if: github.event_name != 'pull_request'
-        with:
-          name: wasm-modules
-          path: wasmModules
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup-env
-        with:
-          buildWasm: false
-
-      - name: Build
-        run: bun run build
-        env:
-          # NOTE: allow warnings
-          # Treating warnings as errors because process.env.CI = true.
-          CI: false
-
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAGIC_BOX_B8BDC }}'
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAGIC_BOX_B8BDC }}
           channelId: live
           projectId: ${{ env.GCP_PROJECT_ID }}

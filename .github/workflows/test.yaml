@@ -1,54 +1,447 @@
 name: Test
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_call:
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: false
 
 env:
   NODE_VERSION: 22
+  BUN_VERSION: 1.3.4
 
 jobs:
-  unit-tests:
+  wasm-build:
+    name: wasm-build
     runs-on: ubuntu-latest
+    outputs:
+      artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Environment
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - name: Read Rust toolchain
+        id: toolchain
+        shell: bash
+        run: echo "version=$(rustc -Vv | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            wasmModules/base64-box/target
+            wasmModules/math-box/target
+          key: wasm-${{ runner.os }}-${{ steps.toolchain.outputs.version }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
+          restore-keys: |
+            wasm-${{ runner.os }}-${{ steps.toolchain.outputs.version }}-
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+
+      - name: Build WASM packages
+        run: bash scripts/build-wasm.sh
+
+      - name: Package WASM artifacts
+        run: tar -czf wasm-modules.tar.gz -C wasmModules base64-box/pkg math-box/pkg
+
+      - name: Upload WASM artifacts
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: wasm-modules
+          path: wasm-modules.tar.gz
+          if-no-files-found: error
+
+  build:
+    name: build
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - name: Run tests
-        run: bun run test
-
-      # Type-checks and bundles the module worker, which unit tests never load.
       - name: Build application
         run: bun run build
+        env:
+          # Keep local and PR builds free of production Sentry secrets.
+          CI: false
+          SENTRY_AUTH_TOKEN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.SENTRY_AUTH_TOKEN || '' }}
 
-  cypress:
+      - name: Upload shipping artifact
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: shipping-build
+          path: build
+          if-no-files-found: error
+
+  unit-tests:
+    name: unit-tests
+    needs: wasm-build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup Environment
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
         uses: ./.github/actions/setup-env
+
+      - name: Run unit tests
+        run: bun run test --run
+
+  typecheck:
+    name: typecheck
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - name: Type-check application
+        run: bun run typecheck
+
+      - name: Type-check Cypress
+        run: bun run typecheck:cypress
+
+  quality:
+    name: quality
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - name: Run Biome checks
+        run: bunx --no-install biome ci src cypress -- *.config.ts scripts/check-bundle-budget.mjs
+
+  codespell:
+    name: codespell
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: codespell-project/codespell-problem-matcher@v1
+
+      - name: Codespell
+        uses: codespell-project/actions-codespell@v2.1.0
+        with:
+          skip: "./public/images/*,./public/apple-touch-icon.png,./public/favicon.ico,./bun.lock,./wasmModules/math-box/src/*,./wasmModules/math-box/README.md,./wasmModules/math-box/pkg/*"
+
+  cypress-component:
+    name: cypress-component
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: cypress-${{ runner.os }}-
 
       - name: Install Cypress
         run: bunx cypress install
 
-      - name: Cypress run
+      - name: Run Cypress component tests
         uses: cypress-io/github-action@v7
         env:
           CYPRESS_DEBUG: 1
         with:
           component: true
-          start: bun run start
-          wait-on: http://localhost:3000
           install: false
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: cypress-screenshots
-          path: cypress/screenshots
-          if-no-files-found: warn
+          name: cypress-component-failures
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
+  cypress-e2e:
+    name: cypress-e2e
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: shipping-build
+          path: build
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: cypress-${{ runner.os }}-
+
+      - name: Install Cypress
+        run: bunx cypress install
+
+      - name: Run Cypress E2E tests against the shipping artifact
+        uses: cypress-io/github-action@v7
+        env:
+          CYPRESS_DEBUG: 1
+          CYPRESS_BASE_URL: http://localhost:4173
+        with:
+          install: false
+          browser: chrome
+          spec: cypress/e2e/magicbox.cy.ts
+          start: bun run preview -- --host 0.0.0.0
+          wait-on: http://localhost:4173
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-e2e-failures
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
+  offline-smoke:
+    name: offline-smoke
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: shipping-build
+          path: build
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: cypress-${{ runner.os }}-
+
+      - name: Install Cypress
+        run: bunx cypress install
+
+      - name: Run offline smoke test against the shipping artifact
+        uses: cypress-io/github-action@v7
+        env:
+          CYPRESS_DEBUG: 1
+          CYPRESS_BASE_URL: http://localhost:4173
+        with:
+          install: false
+          browser: chrome
+          spec: cypress/e2e/offline.cy.ts
+          start: bun run preview -- --host 0.0.0.0
+          wait-on: http://localhost:4173
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: cypress-offline-failures
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
+  bundle-budget:
+    name: bundle-budget
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download shipping artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: shipping-build
+          path: build
+
+      - name: Download latest successful main budget report when available
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p .budget-baseline
+          main_run="$(gh run list --workflow firebase-hosting.yaml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)"
+          if [ -n "$main_run" ]; then
+            gh run download "$main_run" --name bundle-budget-metrics --dir .budget-baseline || true
+          fi
+
+      - name: Check bundle budgets
+        shell: bash
+        run: |
+          baseline_arg=()
+          baseline_file="$(find .budget-baseline -type f -name bundle-budget-report.json -print -quit 2>/dev/null || true)"
+          if [ -n "$baseline_file" ]; then
+            baseline_arg=(--baseline "$baseline_file")
+          fi
+          node scripts/check-bundle-budget.mjs --build-dir build --output bundle-budget-report.json "${baseline_arg[@]}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bundle-budget-metrics
+          path: bundle-budget-report.json
+          if-no-files-found: error
+
+  rust-tests:
+    name: rust-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            wasmModules/base64-box/target
+            wasmModules/math-box/target
+          key: rust-tests-${{ runner.os }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**') }}
+          restore-keys: rust-tests-${{ runner.os }}-
+
+      - name: Run all native Rust tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for module_dir in wasmModules/*/; do
+            cargo test --all-targets --locked --manifest-path "${module_dir}Cargo.toml"
+          done
+
+  wasm-browser-tests:
+    name: wasm-browser-tests (${{ matrix.module }}, ${{ matrix.browser }})
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [base64-box, math-box]
+        browser: [chrome, firefox]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          toolchain: stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            wasmModules/${{ matrix.module }}/target
+          key: wasm-browser-${{ runner.os }}-${{ matrix.module }}-${{ matrix.browser }}-${{ hashFiles(format('wasmModules/{0}/Cargo.lock', matrix.module), format('wasmModules/{0}/src/**', matrix.module)) }}
+          restore-keys: wasm-browser-${{ runner.os }}-${{ matrix.module }}-${{ matrix.browser }}-
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+
+      - name: Setup Firefox
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+
+      - name: Run wasm-bindgen tests
+        working-directory: wasmModules/${{ matrix.module }}
+        run: wasm-pack test --${{ matrix.browser }} --headless

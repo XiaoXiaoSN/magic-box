@@ -1,31 +1,20 @@
 name: Setup Environment
 description: Setup Magic Box environment for GitHub Actions
 
-inputs:
-  buildWasm:
-    description: Whether to build WASM modules
-    required: false
-    default: 'true'
-
 runs:
   using: composite
   steps:
-    - name: Install wasm-pack
-      if: ${{ inputs.buildWasm == 'true' }}
-      uses: jetli/wasm-pack-action@v0.4.0
-      with:
-        version: v0.15.0
-
-    - name: Build WASM
-      if: ${{ inputs.buildWasm == 'true' }}
-      shell: bash
-      run: |
-        for module in wasmModules/*/; do
-          wasm-pack build --target web --release "$module"
-        done
-
     - name: Setup bun
       uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ env.BUN_VERSION }}
+
+    - name: Cache Bun packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+        restore-keys: bun-${{ runner.os }}-
 
     - name: Setup Node.js
       uses: actions/setup-node@v4

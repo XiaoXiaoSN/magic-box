@@ -25,5 +25,9 @@ declare namespace Cypress {
      * @example cy.verifyQRReaderClosed()
      */
     verifyQRReaderClosed(): Chainable<void>;
+
+    setNetworkOffline(): Chainable<void>;
+
+    setNetworkOnline(): Chainable<void>;
   }
 }
