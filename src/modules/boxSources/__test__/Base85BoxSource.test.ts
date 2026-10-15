@@ -184,10 +184,26 @@ describe('Base85BoxSource', () => {
     });
   });
 
-  it('allows an empty encode activator', async () => {
-    const boxes = await Base85BoxSource.generateBoxes('', { base85: true });
-    expect(boxes).toHaveLength(1);
-    expect(boxes[0].props.plaintextOutput).toBe('');
+  it('returns no box for empty or whitespace-only input', async () => {
+    for (const input of ['', '   ']) {
+      await expect(
+        Base85BoxSource.generateBoxes(input, { base85: true }),
+      ).resolves.toEqual([]);
+      await expect(
+        Base85BoxSource.generateBoxes(input, { base85decode: true }),
+      ).resolves.toEqual([]);
+    }
+  });
+
+  it('preserves meaningful spaces in encoded payloads', async () => {
+    const encoded = await Base85BoxSource.generateBoxes(' hello ', {
+      base85: true,
+    });
+    const decoded = await Base85BoxSource.generateBoxes(
+      encoded[0].props.plaintextOutput,
+      { base85decode: true },
+    );
+    expect(decoded[0].props.plaintextOutput).toBe(' hello ');
   });
 
   describe('metadata', () => {

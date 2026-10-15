@@ -1,6 +1,11 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+} from '@modules/Box';
 
 const Priority = 10;
 
@@ -36,13 +41,24 @@ export const SnowflakeBoxSource = {
 
     const epochOption = extractOptionKeys(options, 'epoch');
     const snowflakeOption = extractOptionKeys(options, 'snowflake');
-    const epochName =
-      typeof epochOption === 'string'
+    const epochValue =
+      epochOption !== null
         ? epochOption
         : typeof snowflakeOption === 'string'
           ? snowflakeOption
-          : '';
-    const useTwitter = epochName.trim().toLowerCase() === 'twitter';
+          : 'discord';
+    const epochName =
+      typeof epochValue === 'string' ? epochValue.trim().toLowerCase() : '';
+    if (epochName !== 'discord' && epochName !== 'twitter') {
+      return [
+        errorBox(
+          'Snowflake',
+          `Unknown epoch "${String(epochValue)}". Use Discord or Twitter.`,
+          { priority: this.priority },
+        ),
+      ];
+    }
+    const useTwitter = epochName === 'twitter';
     const epoch = useTwitter ? TWITTER_EPOCH : DISCORD_EPOCH;
     const epochLabel = useTwitter ? 'Twitter' : 'Discord';
 

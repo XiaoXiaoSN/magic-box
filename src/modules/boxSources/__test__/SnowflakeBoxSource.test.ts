@@ -81,6 +81,23 @@ describe('SnowflakeBoxSource', () => {
       );
       expect(boxes[0].props.options?.Epoch).toBe('Twitter');
     });
+
+    it('accepts an explicit Discord epoch over a Twitter activator value', async () => {
+      const boxes = await SnowflakeBoxSource.generateBoxes(
+        '1234567890123456789',
+        { snowflake: 'twitter', epoch: 'discord' },
+      );
+      expect(boxes[0].props.options?.Epoch).toBe('Discord');
+    });
+
+    it('rejects an unknown explicit epoch instead of defaulting to Discord', async () => {
+      const boxes = await SnowflakeBoxSource.generateBoxes(
+        '1234567890123456789',
+        { snowflake: true, epoch: 'twiter' },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/unknown epoch/i);
+    });
   });
 
   describe('invalid input', () => {

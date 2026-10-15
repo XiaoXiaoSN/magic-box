@@ -1,4 +1,5 @@
 import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -99,7 +100,12 @@ export const Base58BoxSource = {
     const wantEncode = hasOptionKeys(options, 'base58', 'base58encode');
     const wantDecode = hasOptionKeys(options, 'base58decode');
     if (!wantEncode && !wantDecode) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (
+      !isString(input) ||
+      trim(input).length === 0 ||
+      input.length > MAX_INPUT
+    )
+      return [];
 
     const boxes: Box[] = [];
 
