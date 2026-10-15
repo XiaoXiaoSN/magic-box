@@ -281,6 +281,164 @@ describe('<PwaUpdatePrompt />', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('ignores a registration that resolves after timeout and dismissal', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-05T09-00-00-000Z.js';
+    const waitingWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    let resolveRegistration: (
+      registration: ServiceWorkerRegistrationMock,
+    ) => void = () => {};
+    const pendingRegistration = new Promise<ServiceWorkerRegistrationMock>(
+      (resolve) => {
+        resolveRegistration = resolve;
+      },
+    );
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockReturnValueOnce(pendingRegistration);
+    const onReload = vi.fn();
+    installServiceWorkerMock(register, null);
+    const addEventListener = vi.spyOn(waitingWorker, 'addEventListener');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-05T09:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    fireEvent.click(updateButton);
+    expect(register).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(updateButton).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Later' }));
+
+    await act(async () => {
+      resolveRegistration({
+        active: null,
+        installing: null,
+        waiting: waitingWorker,
+      });
+      await pendingRegistration;
+    });
+
+    expect(addEventListener).not.toHaveBeenCalled();
+    expect(waitingWorker.postMessage).not.toHaveBeenCalled();
+    waitingWorker.state = 'activated';
+    waitingWorker.dispatchEvent(new Event('statechange'));
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
+  it('keeps a retry active when an earlier registration resolves late', async () => {
+    const latestWorkerPath = '/sw-0-2-0-2026-09-05T10-00-00-000Z.js';
+    const lateWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    const retryWorker = createWorker(
+      `http://localhost:3000${latestWorkerPath}`,
+      'installed',
+    );
+    let resolveRegistration: (
+      registration: ServiceWorkerRegistrationMock,
+    ) => void = () => {};
+    const pendingRegistration = new Promise<ServiceWorkerRegistrationMock>(
+      (resolve) => {
+        resolveRegistration = resolve;
+      },
+    );
+    const retryRegistration: ServiceWorkerRegistrationMock = {
+      active: null,
+      installing: null,
+      waiting: retryWorker,
+    };
+    const register = vi
+      .fn()
+      .mockResolvedValueOnce({ active: null, installing: null, waiting: null })
+      .mockReturnValueOnce(pendingRegistration)
+      .mockResolvedValueOnce(retryRegistration);
+    installServiceWorkerMock(register, null);
+    const lateAddEventListener = vi.spyOn(lateWorker, 'addEventListener');
+    const retryRemoveEventListener = vi.spyOn(
+      retryWorker,
+      'removeEventListener',
+    );
+    const onReload = vi.fn();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          serviceWorker: latestWorkerPath,
+          version: '0.2.0-2026-09-05T10:00:00.000Z',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt onReload={onReload} />
+      </LocaleProvider>,
+    );
+    const updateButton = await screen.findByRole('button', { name: 'Update' });
+    vi.useFakeTimers();
+    fireEvent.click(updateButton);
+    expect(register).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    await act(async () => {
+      fireEvent.click(updateButton);
+      await Promise.resolve();
+    });
+    expect(register).toHaveBeenCalledTimes(3);
+    expect(retryWorker.postMessage).toHaveBeenCalledWith({
+      type: 'SKIP_WAITING',
+    });
+    expect(vi.getTimerCount()).toBe(1);
+
+    await act(async () => {
+      resolveRegistration({
+        active: null,
+        installing: null,
+        waiting: lateWorker,
+      });
+      await pendingRegistration;
+    });
+
+    expect(lateAddEventListener).not.toHaveBeenCalled();
+    expect(lateWorker.postMessage).not.toHaveBeenCalled();
+    expect(onReload).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(1);
+
+    await act(async () => {
+      retryWorker.state = 'redundant';
+      retryWorker.dispatchEvent(new Event('statechange'));
+    });
+    expect(retryRemoveEventListener).toHaveBeenCalledWith(
+      'statechange',
+      expect.any(Function),
+    );
+    expect(vi.getTimerCount()).toBe(0);
+    expect(updateButton).toBeEnabled();
+    expect(onReload).not.toHaveBeenCalled();
+  });
+
   it('cleans up the activation listener and timeout when unmounted', async () => {
     const latestWorkerPath = '/sw-0-2-0-2026-09-06T08-00-00-000Z.js';
     const waitingWorker = createWorker(

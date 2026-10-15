@@ -53,15 +53,28 @@ const PwaUpdatePrompt = ({
   const upgradingRef = useRef(false);
   const mountedRef = useRef(false);
   const reloadStartedRef = useRef(false);
-  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateAttemptRef = useRef(0);
+  const updateTimeoutRef = useRef<{
+    attemptId: number;
+    timeoutId: ReturnType<typeof setTimeout>;
+  } | null>(null);
   const activationListenerRef = useRef<{
+    attemptId: number;
     worker: ServiceWorker;
     listener: () => void;
   } | null>(null);
 
-  const removeActivationListener = useCallback((): void => {
+  const isCurrentAttempt = useCallback(
+    (attemptId: number): boolean => updateAttemptRef.current === attemptId,
+    [],
+  );
+
+  const removeActivationListener = useCallback((attemptId?: number): void => {
     const activationListener = activationListenerRef.current;
-    if (activationListener) {
+    if (
+      activationListener &&
+      (attemptId === undefined || activationListener.attemptId === attemptId)
+    ) {
       activationListener.worker.removeEventListener(
         'statechange',
         activationListener.listener,
@@ -71,25 +84,36 @@ const PwaUpdatePrompt = ({
   }, []);
 
   const stopUpdateAttempt = useCallback(
-    (stalled: boolean): void => {
-      if (updateTimeoutRef.current !== null) {
-        clearTimeout(updateTimeoutRef.current);
+    (attemptId: number, stalled: boolean): void => {
+      if (!isCurrentAttempt(attemptId)) return;
+      updateAttemptRef.current += 1;
+      const timeout = updateTimeoutRef.current;
+      if (timeout?.attemptId === attemptId) {
+        clearTimeout(timeout.timeoutId);
         updateTimeoutRef.current = null;
       }
-      removeActivationListener();
+      removeActivationListener(attemptId);
       upgradingRef.current = false;
       setUpgrading(false);
       if (stalled) setUpdateStalled(true);
     },
-    [removeActivationListener],
+    [isCurrentAttempt, removeActivationListener],
   );
 
-  const reloadPage = useCallback((): void => {
-    if (reloadStartedRef.current) return;
-    reloadStartedRef.current = true;
-    stopUpdateAttempt(false);
-    onReload();
-  }, [onReload, stopUpdateAttempt]);
+  const reloadPage = useCallback(
+    (attemptId?: number): void => {
+      if (attemptId !== undefined && !isCurrentAttempt(attemptId)) return;
+      if (reloadStartedRef.current) return;
+      reloadStartedRef.current = true;
+      if (attemptId !== undefined) {
+        stopUpdateAttempt(attemptId, false);
+      } else if (upgradingRef.current) {
+        stopUpdateAttempt(updateAttemptRef.current, false);
+      }
+      onReload();
+    },
+    [isCurrentAttempt, onReload, stopUpdateAttempt],
+  );
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -164,9 +188,10 @@ const PwaUpdatePrompt = ({
     return () => {
       disposed = true;
       mountedRef.current = false;
+      updateAttemptRef.current += 1;
       clearInterval(updateIntervalId);
       if (updateTimeoutRef.current !== null) {
-        clearTimeout(updateTimeoutRef.current);
+        clearTimeout(updateTimeoutRef.current.timeoutId);
         updateTimeoutRef.current = null;
       }
       removeActivationListener();
@@ -188,12 +213,17 @@ const PwaUpdatePrompt = ({
     ) {
       return;
     }
+    const attemptId = updateAttemptRef.current + 1;
+    updateAttemptRef.current = attemptId;
     upgradingRef.current = true;
     setUpgrading(true);
     setUpdateStalled(false);
-    updateTimeoutRef.current = setTimeout(() => {
-      stopUpdateAttempt(true);
-    }, updateTimeoutMs);
+    updateTimeoutRef.current = {
+      attemptId,
+      timeoutId: setTimeout(() => {
+        stopUpdateAttempt(attemptId, true);
+      }, updateTimeoutMs),
+    };
 
     try {
       const targetUrl = new URL(
@@ -204,24 +234,28 @@ const PwaUpdatePrompt = ({
         scope: '/',
         updateViaCache: 'none',
       });
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || !isCurrentAttempt(attemptId)) return;
 
       if (hasScriptUrl(registration.waiting, targetUrl)) {
         const waitingWorker = registration.waiting;
         const handleStateChange = (): void => {
+          if (!isCurrentAttempt(attemptId)) return;
           if (waitingWorker.state === 'activated') {
-            if (navigator.serviceWorker.controller === null) reloadPage();
+            if (navigator.serviceWorker.controller === null) {
+              reloadPage(attemptId);
+            }
           } else if (waitingWorker.state === 'redundant') {
-            stopUpdateAttempt(true);
+            stopUpdateAttempt(attemptId, true);
           }
         };
         waitingWorker.addEventListener('statechange', handleStateChange);
         activationListenerRef.current = {
+          attemptId,
           worker: waitingWorker,
           listener: handleStateChange,
         };
         handleStateChange();
-        if (upgradingRef.current) {
+        if (isCurrentAttempt(attemptId) && upgradingRef.current) {
           waitingWorker.postMessage({ type: 'SKIP_WAITING' });
         }
         return;
@@ -230,33 +264,42 @@ const PwaUpdatePrompt = ({
       const installingWorker = registration.installing;
       if (!hasScriptUrl(installingWorker, targetUrl)) {
         if (hasScriptUrl(registration.active, targetUrl)) {
-          reloadPage();
+          reloadPage(attemptId);
           return;
         }
-        stopUpdateAttempt(true);
+        stopUpdateAttempt(attemptId, true);
         return;
       }
 
       const handleStateChange = (): void => {
+        if (!isCurrentAttempt(attemptId)) return;
         if (installingWorker.state === 'activated') {
-          if (navigator.serviceWorker.controller === null) reloadPage();
+          if (navigator.serviceWorker.controller === null) {
+            reloadPage(attemptId);
+          }
         } else if (installingWorker.state === 'installed') {
           const waitingWorker = registration.waiting;
-          if (hasScriptUrl(waitingWorker, targetUrl)) {
+          if (
+            isCurrentAttempt(attemptId) &&
+            hasScriptUrl(waitingWorker, targetUrl)
+          ) {
             waitingWorker.postMessage({ type: 'SKIP_WAITING' });
           }
         } else if (installingWorker.state === 'redundant') {
-          stopUpdateAttempt(true);
+          stopUpdateAttempt(attemptId, true);
         }
       };
       installingWorker.addEventListener('statechange', handleStateChange);
       activationListenerRef.current = {
+        attemptId,
         worker: installingWorker,
         listener: handleStateChange,
       };
       handleStateChange();
     } catch {
-      if (mountedRef.current) stopUpdateAttempt(true);
+      if (mountedRef.current && isCurrentAttempt(attemptId)) {
+        stopUpdateAttempt(attemptId, true);
+      }
     }
   };
 
