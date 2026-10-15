@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -125,7 +126,7 @@ export const Base58BoxSource = {
             .build(),
         );
       } else {
-        const decoded = new TextDecoder().decode(bytes);
+        const decoded = decodeUtf8Strict(bytes) ?? formatBinaryFallback(bytes);
         boxes.push(
           new BoxBuilder('Base58 (Decode)', decoded)
             .setView('default')

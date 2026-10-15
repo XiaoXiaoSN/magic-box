@@ -70,6 +70,14 @@ describe('Base91BoxSource', () => {
       expect(decBoxes[0].props.name).toBe('basE91 (Decode)');
       expect(decBoxes[0].props.plaintextOutput).toBe('hello');
     });
+
+    it('shows control bytes as a stable binary fallback', async () => {
+      const boxes = await Base91BoxSource.generateBoxes('AA', {
+        base91decode: true,
+      });
+
+      expect(boxes[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: 00)');
+    });
   });
 
   describe('round-trip — ASCII', () => {

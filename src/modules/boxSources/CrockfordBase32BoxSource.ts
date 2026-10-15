@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -32,8 +33,8 @@ function crockfordEncode(input: string): string {
   return result;
 }
 
-// returns decoded utf-8 string, or null if input contains invalid characters
-function crockfordDecode(input: string): string | null {
+// returns decoded bytes, or null if input contains invalid characters
+function crockfordDecode(input: string): Uint8Array | null {
   // uppercase and strip hyphens (allowed as visual separators per Crockford spec)
   const normalized = input.toUpperCase().replace(/-/g, '');
   let bits = '';
@@ -48,7 +49,7 @@ function crockfordDecode(input: string): string | null {
   for (let i = 0; i < byteCount; i++) {
     bytes[i] = Number.parseInt(bits.slice(i * 8, i * 8 + 8), 2);
   }
-  return new TextDecoder().decode(bytes);
+  return bytes;
 }
 
 export const CrockfordBase32BoxSource = {
@@ -86,8 +87,8 @@ export const CrockfordBase32BoxSource = {
     }
 
     if (wantDecode) {
-      const decoded = crockfordDecode(input);
-      if (decoded === null) {
+      const decodedBytes = crockfordDecode(input);
+      if (decodedBytes === null) {
         boxes.push(
           new BoxBuilder(
             'Crockford Base32 (Decode)',
@@ -99,6 +100,8 @@ export const CrockfordBase32BoxSource = {
             .build(),
         );
       } else {
+        const decoded =
+          decodeUtf8Strict(decodedBytes) ?? formatBinaryFallback(decodedBytes);
         boxes.push(
           new BoxBuilder('Crockford Base32 (Decode)', decoded)
             .setView('default')

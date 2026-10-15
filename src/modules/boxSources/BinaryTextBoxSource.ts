@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
@@ -13,8 +14,8 @@ function encodeTextToBinary(input: string): string {
     .join(' ');
 }
 
-// decodes a binary string (spaces optional) back to UTF-8 text, or returns null on invalid input
-function decodeBinaryToText(input: string): string | null {
+// decodes a binary string (spaces optional) back to bytes, or returns null on invalid input
+function decodeBinaryToBytes(input: string): Uint8Array | null {
   const stripped = input.replace(/\s/g, '');
   if (!/^[01]+$/.test(stripped) || stripped.length % 8 !== 0) {
     return null;
@@ -23,7 +24,7 @@ function decodeBinaryToText(input: string): string | null {
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = Number.parseInt(stripped.slice(i * 8, i * 8 + 8), 2);
   }
-  return new TextDecoder().decode(bytes);
+  return bytes;
 }
 
 export const BinaryTextBoxSource = {
@@ -65,8 +66,8 @@ export const BinaryTextBoxSource = {
     }
 
     if (wantDecode) {
-      const text = decodeBinaryToText(input);
-      if (text === null) {
+      const decodedBytes = decodeBinaryToBytes(input);
+      if (decodedBytes === null) {
         boxes.push(
           new BoxBuilder(
             'Binary to Text',
@@ -78,6 +79,8 @@ export const BinaryTextBoxSource = {
             .build(),
         );
       } else {
+        const text =
+          decodeUtf8Strict(decodedBytes) ?? formatBinaryFallback(decodedBytes);
         boxes.push(
           new BoxBuilder('Binary to Text', text)
             .setView('default')

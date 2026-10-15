@@ -101,6 +101,14 @@ describe('Base32BoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid Base32/i);
     });
+
+    it('shows undecodable bytes as a stable binary fallback', async () => {
+      const boxes = await Base32BoxSource.generateBoxes('74======', {
+        base32decode: true,
+      });
+
+      expect(boxes[0].props.plaintextOutput).toBe('<binary 1 bytes> (hex: ff)');
+    });
   });
 
   describe('round-trip', () => {

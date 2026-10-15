@@ -1,16 +1,24 @@
-import { isBase64, isObject, isString, trim } from '@functions/helper';
+import {
+  decodeUtf8Strict,
+  formatBinaryFallback,
+  normalizeBase64,
+} from '@functions/base64';
+import { isBase64, isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder } from '@modules/Box';
-import init, { decode_to_string, encode } from 'base64-box';
+import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
+const MAX_INPUT = 100_000;
 
-let initPromise: Promise<void> | null = null;
+type Base64BoxModule = typeof import('base64-box');
 
-async function initBas64Box() {
+let initPromise: Promise<Base64BoxModule> | null = null;
+
+async function initBase64Box(): Promise<Base64BoxModule> {
   if (!initPromise) {
     initPromise = (async () => {
+      const base64Box = await import('base64-box');
       const isNode =
         typeof process !== 'undefined' && process.versions?.node !== undefined;
       if (isNode) {
@@ -26,10 +34,11 @@ async function initBas64Box() {
         const bytes = await fs.readFile(
           req.resolve('base64-box/base64_box_bg.wasm'),
         );
-        await init({ module_or_path: bytes });
+        await base64Box.default({ module_or_path: bytes });
       } else {
-        await init();
+        await base64Box.default();
       }
+      return base64Box;
     })().catch((error) => {
       initPromise = null;
       throw error;
@@ -58,6 +67,9 @@ export const Base64DecodeBoxSource = {
     if (!isString(input)) {
       return undefined;
     }
+    if (input.length > MAX_INPUT) {
+      return undefined;
+    }
     const regularInput = trim(input);
 
     if (!isBase64(regularInput)) {
@@ -65,29 +77,16 @@ export const Base64DecodeBoxSource = {
     }
 
     try {
-      await initBas64Box();
-      const decodedText = decode_to_string(regularInput);
+      const normalizedInput = normalizeBase64(regularInput);
+      const base64Box = await initBase64Box();
+      const decoded = base64Box.decode(normalizedInput);
+      const decodedText =
+        decodeUtf8Strict(decoded) ?? formatBinaryFallback(decoded);
 
       const languageOpts: BoxOptions = {};
-      if (options && isObject(options)) {
-        try {
-          const langKeys = ['language', 'lang', 'l'];
-
-          Object.keys(options).some((option) =>
-            langKeys.some((langKey) => {
-              if (option.startsWith(`${langKey}=`)) {
-                languageOpts.language = option.substring(
-                  0,
-                  `${langKey}=`.length,
-                );
-                return true;
-              }
-              return false;
-            }),
-          );
-        } catch {
-          /* */
-        }
+      const language = extractOptionKeys(options, 'language', 'lang', 'l');
+      if (typeof language === 'string') {
+        languageOpts.language = language;
       }
 
       return { decodedText, languageOpts };
@@ -135,14 +134,19 @@ export const Base64EncodeBoxSource = {
     if (!isString(input)) {
       return undefined;
     }
+    if (input.length > MAX_INPUT) {
+      return undefined;
+    }
     if (input === '' || trim(input) === '') {
       return undefined;
     }
 
-    await initBas64Box();
-    const encodedText = encode(input);
-
-    return { encodedText };
+    try {
+      const base64Box = await initBase64Box();
+      return { encodedText: base64Box.encode(input) };
+    } catch {
+      return undefined;
+    }
   },
 
   async generateBoxes(input: string): Promise<Box[]> {

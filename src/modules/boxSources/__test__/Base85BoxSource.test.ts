@@ -111,7 +111,7 @@ describe('Base85BoxSource', () => {
         base85decode: true,
       });
       expect(boxes[0].props.plaintextOutput).toBe(
-        String.fromCharCode(0).repeat(4),
+        '<binary 4 bytes> (hex: 00000000)',
       );
     });
 
