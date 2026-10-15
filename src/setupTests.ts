@@ -7,6 +7,11 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup } from '@testing-library/react';
 import { afterEach, expect } from 'vitest';
 
+// keep local date assertions stable without overriding an explicit CI timezone
+if (typeof process !== 'undefined' && process.env.TZ === undefined) {
+  process.env.TZ = 'UTC';
+}
+
 class MemoryStorage implements Storage {
   readonly #store = new Map<string, string>();
 
