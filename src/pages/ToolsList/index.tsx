@@ -1,4 +1,7 @@
 import MagicBox from '@components/MagicBox';
+import DirectiveAutocomplete, {
+  DirectiveChips,
+} from '@components/MagicBox/DirectiveAutocomplete';
 import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
@@ -8,7 +11,14 @@ import {
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -338,6 +348,8 @@ const PreviewPane = ({
   const display = getBoxSourceDisplay(source, locale);
   const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCaretRef = useRef<number | null>(null);
   const privateInput = useMemo(() => isPrivateInput(input), [input]);
   const sensitiveInput = useMemo(() => isSensitiveInput(input), [input]);
   const sources = useMemo(() => [source], [source]);
@@ -355,6 +367,20 @@ const PreviewPane = ({
     setInput(initialInput ?? source.defaultInput ?? '');
   }, [initialInput, source.defaultInput]);
 
+  // restore the caret after a directive replacement; input is the deliberate trigger.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: input changes after programmatic replacement
+  useLayoutEffect(() => {
+    const caret = pendingCaretRef.current;
+    if (caret === null || !inputRef.current) return;
+    pendingCaretRef.current = null;
+    inputRef.current.setSelectionRange(caret, caret);
+  }, [input]);
+
+  const replaceDirective = useCallback((value: string, caret: number): void => {
+    pendingCaretRef.current = caret;
+    setInput(value);
+  }, []);
+
   return (
     <div className="preview-stack">
       <div className="preview-meta">
@@ -370,6 +396,7 @@ const PreviewPane = ({
       <div className="preview-col-head">
         <span aria-hidden="true" className="dot" />
         <span>{t('toolsList.previewInput')}</span>
+        <DirectiveChips input={input} onReplace={replaceDirective} />
         <span className="preview-hint">{t('toolsList.previewHint')}</span>
         <ShareLinkButton
           data-testid="copy-tool-share-link"
@@ -385,11 +412,15 @@ const PreviewPane = ({
         />
       </div>
       <div className="preview-input-card">
-        <textarea
+        <DirectiveAutocomplete
+          aria-label={t('toolsList.previewInput')}
           className="mono"
-          onChange={(e) => setInput(e.target.value)}
+          data-magic-input="true"
+          onChange={setInput}
+          onReplace={replaceDirective}
           rows={Math.min(8, Math.max(3, input.split('\n').length + 1))}
           spellCheck={false}
+          textareaRef={inputRef}
           value={input}
         />
       </div>

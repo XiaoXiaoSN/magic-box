@@ -7,13 +7,15 @@ import type React from 'react';
 import { reportSentryError } from '../../functions/sentry';
 
 interface CloseButtonProps {
+  closeLabel: string;
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CloseButton = ({ setShowReader }: CloseButtonProps) => (
+const CloseButton = ({ closeLabel, setShowReader }: CloseButtonProps) => (
   <Box
+    aria-label={closeLabel}
+    component="button"
     data-testid="qr-reader-close-button"
-    onClick={() => setShowReader(false)}
     sx={{
       position: 'absolute',
       top: '10px',
@@ -34,17 +36,21 @@ const CloseButton = ({ setShowReader }: CloseButtonProps) => (
         opacity: 1,
       },
     }}
+    onClick={() => setShowReader(false)}
+    type="button"
   >
-    <CloseIcon />
+    <CloseIcon aria-hidden="true" />
   </Box>
 );
 
 interface QRCodeReaderWrapperProps {
+  closeLabel: string;
   setResult: React.Dispatch<React.SetStateAction<string>>;
   setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const QRCodeReaderWrapper = ({
+  closeLabel,
   setResult,
   setShowReader,
 }: QRCodeReaderWrapperProps) => {
@@ -65,7 +71,7 @@ const QRCodeReaderWrapper = ({
         overflow: 'hidden',
       }}
     >
-      <CloseButton setShowReader={setShowReader} />
+      <CloseButton closeLabel={closeLabel} setShowReader={setShowReader} />
       <Scanner
         onError={(error) => {
           reportSentryError(`failed to scan: ${error}`);

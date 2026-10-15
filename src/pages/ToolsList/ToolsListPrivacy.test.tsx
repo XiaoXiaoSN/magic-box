@@ -52,7 +52,7 @@ describe('/list preview privacy', () => {
     renderPage();
     expect(runtimePrefs.isAnalyticsEnabled()).toBe(true);
 
-    const input = await screen.findByRole('textbox', { name: '' });
+    const input = await screen.findByRole('combobox', { name: 'Input' });
     fireEvent.change(input, {
       target: { value: 'header.payload.signature\n::secret=top-secret' },
     });
