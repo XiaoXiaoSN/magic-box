@@ -456,8 +456,5 @@ const DiceRollBoxTemplateComponent = ({
   );
 };
 
-export const DiceRollBoxTemplate = Object.assign(
-  memo(DiceRollBoxTemplateComponent),
-  { supportsLarge: false },
-);
+export const DiceRollBoxTemplate = memo(DiceRollBoxTemplateComponent);
 export default DiceRollBoxTemplate;

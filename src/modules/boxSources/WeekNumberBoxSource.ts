@@ -4,8 +4,6 @@ import { shiftDateToOffset } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // day names indexed by ISO weekday (1=Mon..7=Sun)
 const DAY_NAMES = [
   'Monday',
@@ -84,7 +82,6 @@ export const WeekNumberBoxSource = {
   defaultInput: '2024-01-01\n::weeknum',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -125,7 +122,7 @@ export const WeekNumberBoxSource = {
         new BoxBuilder('Week Number', errText)
           .setView('keyValue')
           .setOptions({ Error: errText })
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -154,7 +151,7 @@ export const WeekNumberBoxSource = {
       new BoxBuilder('Week Number', plaintext)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

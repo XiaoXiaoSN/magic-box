@@ -165,12 +165,11 @@ describe('SortLinesBoxSource', () => {
   });
 
   describe('box metadata', () => {
-    it('sets correct name and priority', async () => {
+    it('sets the correct name', async () => {
       const boxes = await SortLinesBoxSource.generateBoxes('b\na', {
         sortlines: true,
       });
       expect(boxes[0].props.name).toBe('Sort Lines');
-      expect(boxes[0].props.priority).toBe(10);
     });
 
     it('attaches CodeBoxTemplate', async () => {
@@ -185,7 +184,6 @@ describe('SortLinesBoxSource', () => {
     it('has expected static properties', () => {
       expect(SortLinesBoxSource.name).toBe('Sort Lines');
       expect(SortLinesBoxSource.kind).toBe('Transform');
-      expect(typeof SortLinesBoxSource.priority).toBe('number');
     });
   });
 

@@ -190,7 +190,6 @@ describe('HashBoxSource', () => {
       expect(HashBoxSource.name).toBe('Hash');
       expect(HashBoxSource.tag).toBe('#');
       expect(HashBoxSource.kind).toBe('Hash');
-      expect(typeof HashBoxSource.priority).toBe('number');
     });
   });
 });

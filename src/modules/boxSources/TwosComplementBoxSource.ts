@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // build a plaintext representation of key-value pairs for copy/TUI consumers
 function kvToPlaintext(pairs: Record<string, string>): string {
   return Object.entries(pairs)
@@ -30,7 +28,6 @@ export const TwosComplementBoxSource = {
   defaultInput: '-42\n::twos=8',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -49,7 +46,7 @@ export const TwosComplementBoxSource = {
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -71,7 +68,7 @@ export const TwosComplementBoxSource = {
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -96,7 +93,7 @@ export const TwosComplementBoxSource = {
       new BoxBuilder("Two's Complement", kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

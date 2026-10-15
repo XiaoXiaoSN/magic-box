@@ -9,7 +9,6 @@ import {
   hasOptionKeys,
 } from '@modules/Box';
 
-const PriorityJWT = 10;
 const MAX_JWT_LENGTH = 16_384;
 const MAX_DATE_SECONDS = 8_640_000_000_000;
 
@@ -244,7 +243,6 @@ export const JWTBoxSource = {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
   tag: '🔑',
   kind: 'Decode',
-  priority: PriorityJWT,
 
   checkMatch(input: string): Match | undefined {
     return parseJwt(input);
@@ -261,9 +259,7 @@ export const JWTBoxSource = {
     const secret = extractOptionKeys(options, 'secret');
     if (hasSecret && (typeof secret !== 'string' || secret.length === 0)) {
       return [
-        errorBox('JWT', 'Provide a secret value for signature verification.', {
-          priority: this.priority,
-        }),
+        errorBox('JWT', 'Provide a secret value for signature verification.'),
       ];
     }
 
@@ -274,7 +270,6 @@ export const JWTBoxSource = {
           errorBox(
             'JWT',
             'Signature verification supports HS256, HS384, and HS512 only.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -283,11 +278,7 @@ export const JWTBoxSource = {
           ? 'Valid'
           : 'Invalid';
       } catch {
-        return [
-          errorBox('JWT', 'Signature verification is unavailable.', {
-            priority: this.priority,
-          }),
-        ];
+        return [errorBox('JWT', 'Signature verification is unavailable.')];
       }
     }
 
@@ -301,7 +292,7 @@ export const JWTBoxSource = {
       new BoxBuilder('JWT Decode', jwtStr)
         .setOptions(displayOptions)
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

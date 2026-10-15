@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // encodes UTF-8 bytes to Ascii85 (no <~ ~> delimiters, z-shorthand for zero groups)
@@ -135,7 +134,6 @@ export const Base85BoxSource = {
   defaultInput: 'hello\n::base85',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -164,7 +162,7 @@ export const Base85BoxSource = {
         new BoxBuilder('Base85 (Encode)', encoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -176,7 +174,7 @@ export const Base85BoxSource = {
           new BoxBuilder('Base85 (Decode)', decodedResult.message)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } else {
@@ -187,7 +185,7 @@ export const Base85BoxSource = {
           new BoxBuilder('Base85 (Decode)', decoded)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

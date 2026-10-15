@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 10_000;
 
 const REGEX_SPECIAL = new Set([
@@ -140,7 +139,6 @@ export const GlobToRegexBoxSource = {
   defaultInput: 'src/**/*.ts\n::glob2regex',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -157,7 +155,7 @@ export const GlobToRegexBoxSource = {
       new BoxBuilder('Glob to Regex', regex)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

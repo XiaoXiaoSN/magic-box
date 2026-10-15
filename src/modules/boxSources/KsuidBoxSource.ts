@@ -9,7 +9,6 @@ import {
 
 import { formatIdSeconds } from './idTime';
 
-const Priority = 10;
 const KSUID_ALPHABET =
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const KSUID_PATTERN = /^[0-9A-Za-z]{27}$/;
@@ -26,11 +25,10 @@ function decodeBase62(value: string): bigint | null {
   return decoded <= KSUID_MAX ? decoded : null;
 }
 
-function invalidBox(priority: number): Box {
+function invalidBox(): Box {
   return errorBox(
     'KSUID',
     'Invalid KSUID: expected exactly 27 base62 characters in the 160-bit range.',
-    { priority },
   );
 }
 
@@ -41,7 +39,6 @@ export const KsuidBoxSource = {
   defaultInput: '0ujtsYcgvSTl8PAuAdqWYSMnLOv\n::ksuid',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -54,14 +51,14 @@ export const KsuidBoxSource = {
       typeof option === 'string' && option.trim() !== ''
         ? option.trim()
         : trim(input);
-    if (!KSUID_PATTERN.test(candidate)) return [invalidBox(this.priority)];
+    if (!KSUID_PATTERN.test(candidate)) return [invalidBox()];
 
     const decoded = decodeBase62(candidate);
-    if (decoded === null) return [invalidBox(this.priority)];
+    if (decoded === null) return [invalidBox()];
 
     const seconds = (decoded >> 128n) + KSUID_EPOCH;
     const timestamp = formatIdSeconds(seconds);
-    if (timestamp === null) return [invalidBox(this.priority)];
+    if (timestamp === null) return [invalidBox()];
 
     const payload = decoded & ((1n << 128n) - 1n);
     const values: Record<string, string> = {
@@ -78,7 +75,7 @@ export const KsuidBoxSource = {
       new BoxBuilder('KSUID', plaintext)
         .setView('keyValue')
         .setOptions(values)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

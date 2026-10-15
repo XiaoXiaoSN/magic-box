@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 function qsToJson(input: string): string {
@@ -72,7 +71,6 @@ export const QueryStringBoxSource = {
   defaultInput: 'a=1&b=2&b=3\n::qs',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -91,7 +89,7 @@ export const QueryStringBoxSource = {
           new BoxBuilder('JSON → Query String', output)
             .setView('code')
             .setShowExpandButton(true)
-            .setPriority(this.priority)
+
             .build(),
         ];
       } catch (err) {
@@ -100,7 +98,7 @@ export const QueryStringBoxSource = {
           new BoxBuilder('JSON → Query String (error)', message)
             .setView('code')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         ];
       }
@@ -113,7 +111,7 @@ export const QueryStringBoxSource = {
         new BoxBuilder('Query String → JSON', output)
           .setView('code')
           .setShowExpandButton(true)
-          .setPriority(this.priority)
+
           .build(),
       ];
     } catch (err) {
@@ -122,7 +120,7 @@ export const QueryStringBoxSource = {
         new BoxBuilder('Query String → JSON (error)', message)
           .setView('code')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }

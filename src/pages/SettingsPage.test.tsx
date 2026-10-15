@@ -91,7 +91,6 @@ describe('Settings timezone and defaults', () => {
             {
               id: source.name,
               enabled: true,
-              priority: 10,
               secondaryOrder: index,
             },
           ]),
@@ -131,7 +130,6 @@ describe('Settings timezone and defaults', () => {
             {
               id: source.name,
               enabled: true,
-              priority: 10,
               secondaryOrder: index,
             },
           ]),
@@ -164,7 +162,6 @@ describe('Settings timezone and defaults', () => {
             {
               id: source.name,
               enabled: false,
-              priority: 10,
               secondaryOrder: index,
             },
           ]),

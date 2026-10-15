@@ -2,7 +2,6 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, extractOptionKeys } from '@modules/Box';
 import { formatIdTimestamp } from './idTime';
 
-const PriorityUuidBox = 10;
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UUID_EPOCH_100NS = 122_192_928_000_000_000n;
@@ -144,7 +143,7 @@ function parseUuid(input: string): ParsedUuid | undefined {
   };
 }
 
-function buildParsedBox(match: ParsedUuid, priority: number): Box {
+function buildParsedBox(match: ParsedUuid): Box {
   const values: Record<string, string> = {
     UUID: match.uuid,
     Version: String(match.version),
@@ -166,25 +165,21 @@ function buildParsedBox(match: ParsedUuid, priority: number): Box {
     .setView('keyValue')
     .setOptions(values)
     .setShowExpandButton(false)
-    .setPriority(priority)
+
     .build();
 }
 
-function buildGeneratedBox(
-  uuid: string,
-  generation: Generation,
-  priority: number,
-): Box {
+function buildGeneratedBox(uuid: string, generation: Generation): Box {
   if (generation !== 'v7') {
     return new BoxBuilder('UUID', uuid)
       .setShowExpandButton(false)
-      .setPriority(priority)
+
       .build();
   }
 
   const parsed = parseUuid(uuid);
   if (parsed === undefined) {
-    return errorBox('UUID', 'Generated UUID v7 was invalid.', { priority });
+    return errorBox('UUID', 'Generated UUID v7 was invalid.');
   }
   const values: Record<string, string> = {
     Version: String(parsed.version),
@@ -201,7 +196,7 @@ function buildGeneratedBox(
   return new BoxBuilder('UUID', uuid)
     .setOptions(values)
     .setShowExpandButton(false)
-    .setPriority(priority)
+
     .build();
 }
 
@@ -212,7 +207,6 @@ export const UuidBoxSource = {
   defaultInput: 'uuid',
   tag: '⚂',
   kind: 'Generate',
-  priority: PriorityUuidBox,
 
   checkMatch(input: string): Match | undefined {
     const raw = input.trim();
@@ -235,7 +229,7 @@ export const UuidBoxSource = {
     if (match === undefined) return [];
 
     if (match.kind === 'parse') {
-      return [buildParsedBox(match, this.priority)];
+      return [buildParsedBox(match)];
     }
 
     let uuid: string;
@@ -253,7 +247,6 @@ export const UuidBoxSource = {
           errorBox(
             'UUID',
             'UUID v7 generation requires secure Web Crypto random values.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -268,7 +261,7 @@ export const UuidBoxSource = {
     if (extractOptionKeys(options, 'uppercase', 'upper')) {
       uuid = uuid.toUpperCase();
     }
-    return [buildGeneratedBox(uuid, match.generation, this.priority)];
+    return [buildGeneratedBox(uuid, match.generation)];
   },
 };
 

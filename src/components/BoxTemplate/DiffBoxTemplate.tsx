@@ -88,5 +88,4 @@ function DiffBoxTemplate({
   );
 }
 
-DiffBoxTemplate.supportsLarge = true;
 export default DiffBoxTemplate;

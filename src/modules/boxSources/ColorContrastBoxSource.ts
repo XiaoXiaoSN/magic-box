@@ -3,8 +3,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
-
 const passOrFail = (ratio: number, threshold: number): string =>
   ratio >= threshold ? 'pass' : 'fail';
 
@@ -16,7 +14,6 @@ export const ColorContrastBoxSource = {
   defaultInput: '#000000 #ffffff\n::contrast',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -32,7 +29,6 @@ export const ColorContrastBoxSource = {
         errorBox(
           'Color Contrast',
           'two hex colors required (e.g. #000000 #ffffff)',
-          { priority: Priority },
         ),
       ];
     }
@@ -45,7 +41,6 @@ export const ColorContrastBoxSource = {
         errorBox(
           'Color Contrast',
           'invalid hex color — use #RGB or #RRGGBB format',
-          { priority: Priority },
         ),
       ];
     }
@@ -60,11 +55,7 @@ export const ColorContrastBoxSource = {
       'AAA Large': passOrFail(ratio, 4.5),
     };
 
-    return [
-      keyValueBox('keyValue', 'Color Contrast', kvOptions, {
-        priority: Priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'Color Contrast', kvOptions)];
   },
 };
 

@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // hash functions supported by Web Crypto for HMAC
@@ -86,7 +85,6 @@ export const HmacBoxSource = {
   defaultInput: 'The quick brown fox jumps over the lazy dog\n::hmac=key',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -101,11 +99,7 @@ export const HmacBoxSource = {
 
     // note: `::hmac=` parses to `true`, so empty and bare both land here
     if (key === null) {
-      return [
-        errorBox('HMAC', 'provide a key, e.g. ::hmac=secret', {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('HMAC', 'provide a key, e.g. ::hmac=secret')];
     }
 
     if (!isString(input) || input.length > MAX_INPUT) {
@@ -118,7 +112,6 @@ export const HmacBoxSource = {
         errorBox(
           'HMAC',
           'HMAC requires a secure context (HTTPS). crypto.subtle is not available.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -135,11 +128,7 @@ export const HmacBoxSource = {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return [
-        errorBox('HMAC', `HMAC computation failed: ${message}`, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('HMAC', `HMAC computation failed: ${message}`)];
     }
 
     const kv: Record<string, string> = {};
@@ -151,7 +140,6 @@ export const HmacBoxSource = {
 
     return [
       keyValueBox('keyValue', 'HMAC', kv, {
-        priority: this.priority,
         showExpandButton: false,
       }),
     ];

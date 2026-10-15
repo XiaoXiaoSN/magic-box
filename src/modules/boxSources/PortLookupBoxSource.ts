@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // curated well-known ports (IANA / common). number -> {service, description}
 const PORTS: Record<number, { name: string; desc: string }> = {
   20: { name: 'FTP-DATA', desc: 'File Transfer (data)' },
@@ -71,7 +69,6 @@ export const PortLookupBoxSource = {
   defaultInput: '443\n::port',
   tag: '#',
   kind: 'Decode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -100,7 +97,7 @@ export const PortLookupBoxSource = {
           new BoxBuilder('Port Lookup', kvToPlaintext(kv))
             .setView('keyValue')
             .setOptions(kv)
-            .setPriority(this.priority)
+
             .build(),
         ];
       }
@@ -128,7 +125,7 @@ export const PortLookupBoxSource = {
         new BoxBuilder('Port Lookup', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -148,7 +145,7 @@ export const PortLookupBoxSource = {
         new BoxBuilder('Port Lookup', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -162,7 +159,7 @@ export const PortLookupBoxSource = {
       new BoxBuilder('Port Lookup', kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

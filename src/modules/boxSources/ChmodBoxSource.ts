@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const BoxName = 'chmod Calculator';
 const MAX_INPUT_LENGTH = 64;
 const SYMBOLIC_MODE =
@@ -144,7 +143,7 @@ function modeBox(parsed: ParsedMode): Box {
     Command: `chmod ${formatOctal(mode)} <file>`,
   };
   if (fileType) fields['File type'] = fileType;
-  return keyValueBox('keyValue', BoxName, fields, { priority: Priority });
+  return keyValueBox('keyValue', BoxName, fields);
 }
 
 function parseUmask(value: string): number | null {
@@ -156,16 +155,11 @@ function parseUmask(value: string): number | null {
 function umaskBox(mask: number): Box {
   const fileMode = 0o666 & ~mask;
   const directoryMode = 0o777 & ~mask;
-  return keyValueBox(
-    'keyValue',
-    'umask Calculator',
-    {
-      Umask: formatOctal(mask),
-      'New file (base 0666)': formatOctal(fileMode),
-      'New directory (base 0777)': formatOctal(directoryMode),
-    },
-    { priority: Priority },
-  );
+  return keyValueBox('keyValue', 'umask Calculator', {
+    Umask: formatOctal(mask),
+    'New file (base 0666)': formatOctal(fileMode),
+    'New directory (base 0777)': formatOctal(directoryMode),
+  });
 }
 
 export const ChmodBoxSource = {
@@ -176,7 +170,6 @@ export const ChmodBoxSource = {
   defaultInput: '4755\n::chmod',
   tag: 'rwx',
   kind: 'Convert',
-  priority: Priority,
 
   canHandle(_input: string, options: BoxOptions): boolean {
     return hasOptionKeys(options, 'chmod', 'umask');
@@ -201,7 +194,6 @@ export const ChmodBoxSource = {
         errorBox(
           BoxName,
           'chmod Calculator supports input up to 64 characters.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -217,7 +209,6 @@ export const ChmodBoxSource = {
           errorBox(
             BoxName,
             'Use a 3–4 digit octal mode, nine rwx permission characters, or absolute u=...,g=...,o=... assignments. Relative forms such as u+x need a known starting mode.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -232,9 +223,6 @@ export const ChmodBoxSource = {
           errorBox(
             BoxName,
             'Use ::umask with a 3–4 digit octal mask from 000 to 777.',
-            {
-              priority: this.priority,
-            },
           ),
         ];
       }

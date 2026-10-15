@@ -49,7 +49,6 @@ describe('source manifest', () => {
         defaultInput: manifest.defaultInput,
         tag: manifest.tag,
         kind: manifest.kind,
-        priority: manifest.priority,
         defaultDisabled: manifest.defaultDisabled ?? false,
       }).toEqual({
         name: loaded.name,
@@ -57,7 +56,6 @@ describe('source manifest', () => {
         defaultInput: loaded.defaultInput,
         tag: loaded.tag,
         kind: loaded.kind,
-        priority: loaded.priority,
         defaultDisabled: loaded.defaultDisabled ?? false,
       });
     }

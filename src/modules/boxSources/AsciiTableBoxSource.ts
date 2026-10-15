@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // c0 control character names (0-31 and 127)
 const C0_NAMES: Record<number, string> = {
   0: 'NUL',
@@ -67,7 +65,7 @@ function parseCodePoint(s: string): number {
 }
 
 // build the result box for a valid code point
-function buildCodePointBox(cp: number, priority: number): Box {
+function buildCodePointBox(cp: number): Box {
   const kv: Record<string, string> = {
     Character: glyphLabel(cp),
     Decimal: String(cp),
@@ -79,17 +77,17 @@ function buildCodePointBox(cp: number, priority: number): Box {
   return new BoxBuilder('ASCII Code', kvToPlaintext(kv))
     .setOptions(kv)
     .setView('keyValue')
-    .setPriority(priority)
+
     .build();
 }
 
 // build an informational box when the input is not a valid lookup
-function buildInfoBox(message: string, priority: number): Box {
+function buildInfoBox(message: string): Box {
   const kv: Record<string, string> = { Info: message };
   return new BoxBuilder('ASCII Code', kvToPlaintext(kv))
     .setOptions(kv)
     .setView('keyValue')
-    .setPriority(priority)
+
     .build();
 }
 
@@ -111,7 +109,6 @@ export const AsciiTableBoxSource = {
   defaultInput: 'A\n::ascii',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -126,7 +123,6 @@ export const AsciiTableBoxSource = {
       return [
         buildInfoBox(
           'Enter a single character OR a code point (decimal / 0x / 0b / 0o).',
-          Priority,
         ),
       ];
     }
@@ -136,9 +132,9 @@ export const AsciiTableBoxSource = {
       const cp = trimmed.codePointAt(0) as number;
       const invalidMessage = invalidCodePointMessage(cp);
       if (invalidMessage) {
-        return [buildInfoBox(invalidMessage, Priority)];
+        return [buildInfoBox(invalidMessage)];
       }
-      return [buildCodePointBox(cp, Priority)];
+      return [buildCodePointBox(cp)];
     }
 
     // numeric code point branch
@@ -146,16 +142,15 @@ export const AsciiTableBoxSource = {
     if (cp >= 0) {
       const invalidMessage = invalidCodePointMessage(cp);
       if (invalidMessage) {
-        return [buildInfoBox(invalidMessage, Priority)];
+        return [buildInfoBox(invalidMessage)];
       }
-      return [buildCodePointBox(cp, Priority)];
+      return [buildCodePointBox(cp)];
     }
 
     // neither a single char nor a recognisable number
     return [
       buildInfoBox(
         'Enter a single character OR a code point (decimal / 0x / 0b / 0o).',
-        Priority,
       ),
     ];
   },

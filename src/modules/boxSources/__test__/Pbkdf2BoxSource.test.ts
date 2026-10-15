@@ -27,7 +27,6 @@ describe('Pbkdf2BoxSource', () => {
       expect(Pbkdf2BoxSource.name).toBe('PBKDF2');
       expect(Pbkdf2BoxSource.tag).toBe('#');
       expect(Pbkdf2BoxSource.kind).toBe('Encode');
-      expect(Pbkdf2BoxSource.priority).toBe(10);
       expect(Pbkdf2BoxSource.defaultDisabled).toBe(true);
       // password is the primary input, salt rides on the option
       expect(Pbkdf2BoxSource.defaultInput).toBe('password\n::pbkdf2=salt');

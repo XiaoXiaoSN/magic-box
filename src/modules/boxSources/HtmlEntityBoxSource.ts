@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const BoxName = 'HTML Entities';
 const MAX_INPUT_LENGTH = 100 * 1024;
 const ENTITY_CANDIDATE = /&(?:#(?:[xX][\da-fA-F]+|\d+)|[a-zA-Z][a-zA-Z\d]*);/;
@@ -39,7 +38,7 @@ function resultBox(name: string, output: string): Box {
   return new BoxBuilder(name, output)
     .setView('code')
     .setShowExpandButton(false)
-    .setPriority(Priority)
+
     .build();
 }
 
@@ -51,7 +50,6 @@ export const HtmlEntityBoxSource = {
   defaultInput: '&amp;lt; &#x1F600;\n::htmldecode',
   tag: '&',
   kind: 'Encode',
-  priority: Priority,
 
   canHandle(input: string, options: BoxOptions): boolean {
     if (hasOptionKeys(options, 'htmlencode', 'htmldecode')) return true;
@@ -68,11 +66,7 @@ export const HtmlEntityBoxSource = {
       !encodeRequested && !decodeRequested && ENTITY_CANDIDATE.test(input);
     if (!encodeRequested && !decodeRequested && !autoDecode) return [];
     if (input.length > MAX_INPUT_LENGTH) {
-      return [
-        errorBox(BoxName, 'HTML Entities supports input up to 100 KiB.', {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox(BoxName, 'HTML Entities supports input up to 100 KiB.')];
     }
 
     const mode = options?.htmlencode;
@@ -85,7 +79,6 @@ export const HtmlEntityBoxSource = {
         errorBox(
           BoxName,
           `Unknown htmlencode mode. Use ::htmlencode or ::htmlencode=all.`,
-          { priority: this.priority },
         ),
       ];
     }

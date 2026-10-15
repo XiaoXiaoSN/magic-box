@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 const DEFAULT_PORTS: Readonly<Record<string, string>> = {
@@ -48,7 +47,6 @@ export const UrlParseBoxSource = {
     'https://user:pass@example.com:8080/a/b?x=1&y=2#frag\n::urlparse',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -59,11 +57,7 @@ export const UrlParseBoxSource = {
 
     const raw = trim(input);
     if (/[\r\n]/.test(raw)) {
-      return [
-        errorBox('URL Parse', `Invalid URL: ${raw}`, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('URL Parse', `Invalid URL: ${raw}`)];
     }
 
     const hasProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(raw);
@@ -78,11 +72,7 @@ export const UrlParseBoxSource = {
     try {
       url = new URL(candidate);
     } catch {
-      return [
-        errorBox('URL Parse', `Invalid URL: ${raw}`, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('URL Parse', `Invalid URL: ${raw}`)];
     }
 
     const output: Record<string, string> = {
@@ -104,11 +94,7 @@ export const UrlParseBoxSource = {
     const hash = url.hash.replace(/^#/, '');
     if (hash) output.Hash = hash;
 
-    return [
-      keyValueBox('keyValue', 'URL Parse', output, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'URL Parse', output)];
   },
 };
 

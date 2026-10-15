@@ -30,7 +30,6 @@ describe('TextReverseBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Text Reverse');
       expect(boxes[0].props.plaintextOutput).toBe('olleh');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].view).toBe('default');
     });
 

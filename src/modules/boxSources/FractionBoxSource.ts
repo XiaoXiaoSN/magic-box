@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT_LENGTH = 64;
 
 // euclid gcd for non-negative bigints
@@ -126,7 +125,6 @@ export const FractionBoxSource = {
   defaultInput: '0.75\n::fraction',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -139,7 +137,6 @@ export const FractionBoxSource = {
         errorBox(
           'Fraction',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT_LENGTH}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -159,7 +156,7 @@ export const FractionBoxSource = {
           new BoxBuilder('Fraction', kvToPlaintext(kv))
             .setView('keyValue')
             .setOptions(kv)
-            .setPriority(this.priority)
+
             .build(),
         ];
       }
@@ -177,7 +174,7 @@ export const FractionBoxSource = {
         new BoxBuilder('Fraction', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -220,7 +217,7 @@ export const FractionBoxSource = {
         new BoxBuilder('Fraction', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -233,7 +230,7 @@ export const FractionBoxSource = {
       new BoxBuilder('Fraction', kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

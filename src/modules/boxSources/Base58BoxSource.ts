@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 // base58 long-division is O(n²); base58 is meant for small blobs (keys, hashes,
 // addresses), so a low cap keeps worst-case work sub-millisecond
 const MAX_INPUT = 1_024;
@@ -91,7 +90,6 @@ export const Base58BoxSource = {
   defaultInput: 'Hello World!\n::base58',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -116,7 +114,7 @@ export const Base58BoxSource = {
         new BoxBuilder('Base58 (Encode)', encoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -128,7 +126,7 @@ export const Base58BoxSource = {
           new BoxBuilder('Base58 (Decode)', 'invalid Base58 input')
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } else {
@@ -137,7 +135,7 @@ export const Base58BoxSource = {
           new BoxBuilder('Base58 (Decode)', decoded)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

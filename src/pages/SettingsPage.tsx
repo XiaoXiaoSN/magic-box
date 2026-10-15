@@ -290,7 +290,6 @@ const SettingsPage = (): React.JSX.Element => {
       newSettings.boxes[b.id] = {
         ...newSettings.boxes[b.id],
         secondaryOrder: idx,
-        priority: 10,
         enabled: b.enabled,
       };
     });

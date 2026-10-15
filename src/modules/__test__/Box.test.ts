@@ -41,18 +41,16 @@ describe('keyValueBox', () => {
     expect(box.props.plaintextOutput).toBe('Only: x');
   });
 
-  it('attaches the given template and applies priority/showExpandButton', () => {
+  it('attaches the given template and applies showExpandButton', () => {
     const box = keyValueBox(
       FakeTemplate,
       'Demo',
       { A: '1' },
       {
-        priority: 7,
         showExpandButton: false,
       },
     );
     expect(box.boxTemplate).toBe(FakeTemplate);
-    expect(box.props.priority).toBe(7);
     expect(box.props.showExpandButton).toBe(false);
   });
 
@@ -81,9 +79,8 @@ describe('errorBox', () => {
     expect(box.boxTemplate).toBeUndefined();
   });
 
-  it('hides the expand button and applies priority', () => {
-    const box = errorBox('Demo', 'oops', { priority: 3 });
+  it('hides the expand button', () => {
+    const box = errorBox('Demo', 'oops');
     expect(box.props.showExpandButton).toBe(false);
-    expect(box.props.priority).toBe(3);
   });
 });

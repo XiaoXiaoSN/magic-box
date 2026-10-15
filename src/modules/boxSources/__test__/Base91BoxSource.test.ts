@@ -34,7 +34,6 @@ describe('Base91BoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('basE91 (Encode)');
-      expect(boxes[0].props.priority).toBe(10);
 
       const out = boxes[0].props.plaintextOutput;
       expect(out.length).toBeGreaterThan(0);

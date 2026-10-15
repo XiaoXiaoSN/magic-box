@@ -10,8 +10,6 @@ import {
   normalizeCronExpression,
 } from './cronSchedule';
 
-const PriorityCronExpression = 10;
-
 interface Match {
   answer: string;
 }
@@ -70,7 +68,6 @@ export const CronExpressionBoxSource = {
   defaultInput: '*/5 0 12 * * ?',
   tag: '⏱',
   kind: 'Time',
-  priority: PriorityCronExpression,
 
   async checkMatch(
     input: string,
@@ -149,7 +146,7 @@ export const CronExpressionBoxSource = {
                 toOffsetISOString(date, getTimezoneOffset(date)),
               ]),
             ),
-            { priority: this.priority, showExpandButton: false },
+            { showExpandButton: false },
           )
         : new BoxBuilder(
             'Next executions',
@@ -162,12 +159,12 @@ export const CronExpressionBoxSource = {
                   : 'Next execution times unavailable: the bounded search budget was exceeded.',
           )
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build();
     return [
       new BoxBuilder('Cron Expression', answer)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
       nextBox,
     ];

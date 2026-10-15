@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import DefaultBoxTemplate from './DefaultBoxTemplate';
 import KeyValueBoxTemplate from './KeyValueBoxTemplate';
-import NotingMatchBoxTemplate from './NotingMatchBoxTemplate';
 import ShortenURLBoxTemplate from './ShortenURLBoxTemplate';
 
 const CodeBoxTemplate = lazy(async () => import('./CodeBoxTemplate'));
@@ -17,7 +16,6 @@ export {
   DiffBoxTemplate,
   KeyValueBoxTemplate,
   LocalAIBoxTemplate,
-  NotingMatchBoxTemplate,
   QRCodeBoxTemplate,
   ShortenURLBoxTemplate,
 };

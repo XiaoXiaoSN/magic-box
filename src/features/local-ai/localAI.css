@@ -1,7 +1,7 @@
 /* Local AI panel.
    Sized to the app's compact box idiom rather than to a standalone form: the
    same 11-13px type, 5px radii and small controls that `.box-head`,
-   `.box-copy`, `.box-out` and `.box-meta` use in global/styles.css. Touch
+   `.box-copy` and `.box-out` use in global/styles.css. Touch
    targets grow back on coarse pointers, which is what the 44px minimum was
    ever for. */
 
@@ -261,7 +261,7 @@
   line-height: 1.55;
 }
 
-/* Trailing disclosure, held to the weight of `.box-meta`. */
+/* trailing disclosure, held to the weight of the box body. */
 .local-ai-foot {
   margin: 0;
   padding-top: 8px;

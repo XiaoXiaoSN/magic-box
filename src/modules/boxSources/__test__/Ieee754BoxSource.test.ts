@@ -6,7 +6,6 @@ describe('Ieee754BoxSource', () => {
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(Ieee754BoxSource.name).toBe('IEEE 754');
-      expect(Ieee754BoxSource.priority).toBe(10);
     });
   });
 

@@ -130,7 +130,6 @@ describe('EscapeStringBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe(
         '{"message":"something here"}',
       );
-      expect(boxes[0].props.priority).toBe(15);
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 

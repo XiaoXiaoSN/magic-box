@@ -3,8 +3,6 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 
-const Priority = 10;
-
 // Option-gated like `::roll`: typing ordinary text must never surface a box that
 // can download half a gigabyte. `generateBoxes` stays synchronous and pure — no
 // capability probe, no fetch, no worker — so it costs one `hasOptionKeys` check
@@ -33,7 +31,6 @@ export const LocalAIBoxSource: BoxSource = {
   defaultInput: '::ai',
   tag: '✦',
   kind: 'Generate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -52,7 +49,7 @@ export const LocalAIBoxSource: BoxSource = {
         .setOptions(options)
         .setSourceInput(prompt)
         .setView('localAI')
-        .setPriority(Priority)
+
         // The panel is tall and stateful; re-mounting it in a modal would drop
         // the loaded model and the in-flight draft.
         .setShowExpandButton(false)

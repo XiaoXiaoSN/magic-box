@@ -11,8 +11,6 @@ import mathBoxGlueUrl from 'math-box/math_box.js?url';
 import mathBoxWasmUrl from 'math-box/math_box_bg.wasm?url';
 import { createFreshMathBox, loadRuntimeWasm } from './runtimeAssets';
 
-const PriorityMathExpression = 10;
-
 interface Match {
   answer: string;
 }
@@ -297,7 +295,6 @@ export const MathExpressionBoxSource = {
   defaultInput: '1 + 2 * (3 + 4) / 5',
   tag: '=',
   kind: 'Compute',
-  priority: PriorityMathExpression,
 
   async checkMatch(
     input: string,
@@ -373,9 +370,7 @@ export const MathExpressionBoxSource = {
     if (!match) {
       if (explicit && !context?.signal.aborted) {
         return [
-          errorBox('Math Expression', 'Invalid mathematical expression.', {
-            priority: this.priority,
-          }),
+          errorBox('Math Expression', 'Invalid mathematical expression.'),
         ];
       }
       return [];
@@ -385,7 +380,7 @@ export const MathExpressionBoxSource = {
       new BoxBuilder('Math Expression', match.answer)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

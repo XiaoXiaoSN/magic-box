@@ -211,7 +211,6 @@ describe('Base85BoxSource', () => {
       expect(Base85BoxSource.name).toBe('Base85');
       expect(Base85BoxSource.tag).toBe('#');
       expect(Base85BoxSource.kind).toBe('Encode');
-      expect(typeof Base85BoxSource.priority).toBe('number');
     });
   });
 });

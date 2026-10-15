@@ -92,19 +92,11 @@ describe('SoundexBoxSource', () => {
       });
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
-
-    it('priority is set', async () => {
-      const boxes = await SoundexBoxSource.generateBoxes('Robert', {
-        soundex: true,
-      });
-      expect(typeof boxes[0].props.priority).toBe('number');
-    });
   });
 
   describe('metadata', () => {
     it('has expected static properties', () => {
       expect(SoundexBoxSource.name).toBe('Soundex');
-      expect(typeof SoundexBoxSource.priority).toBe('number');
     });
   });
 });

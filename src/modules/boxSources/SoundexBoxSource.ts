@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // digit table for consonant groups per American Soundex standard
@@ -77,7 +76,6 @@ export const SoundexBoxSource = {
   defaultInput: 'Robert\n::soundex',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -119,7 +117,7 @@ export const SoundexBoxSource = {
       new BoxBuilder('Soundex', output)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(Priority)
+
         .build(),
     ];
   },

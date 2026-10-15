@@ -20,7 +20,6 @@ export interface BoxSource {
   defaultInput: string;
   tag: string;
   kind: string;
-  priority?: number;
   defaultDisabled?: boolean;
   optionKeys?: readonly string[];
   headless?: boolean;

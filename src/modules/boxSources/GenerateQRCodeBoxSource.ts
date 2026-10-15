@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const PriorityGenerateQRCode = 10;
 const MaxQRCodeBytes = 2953;
 const utf8Encoder = new TextEncoder();
 
@@ -14,7 +13,6 @@ export const GenerateQRCodeBoxSource = {
 `,
   tag: '▦',
   kind: 'Transform',
-  priority: PriorityGenerateQRCode,
 
   checkMatch(input: string, options: BoxOptions): boolean {
     if (options === null) {
@@ -45,7 +43,6 @@ export const GenerateQRCodeBoxSource = {
         errorBox(
           'QRCode',
           `Input too long for a QR code (max ${MaxQRCodeBytes} bytes)`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -53,7 +50,7 @@ export const GenerateQRCodeBoxSource = {
     return [
       new BoxBuilder('QRCode', input)
         .setView('qrCode')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

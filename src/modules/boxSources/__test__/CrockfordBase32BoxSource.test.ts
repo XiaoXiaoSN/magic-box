@@ -21,7 +21,6 @@ describe('CrockfordBase32BoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Crockford Base32 (Encode)');
       expect(boxes[0].props.plaintextOutput).toBe('D1JPRV3F');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.showExpandButton).toBe(false);
     });
 

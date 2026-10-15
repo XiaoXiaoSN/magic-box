@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const PriorityHashBox = 20;
 const MAX_INPUT = 100_000;
 
 // algorithms supported via Web Crypto
@@ -146,7 +145,6 @@ export const HashBoxSource = {
   defaultInput: 'hello world\n::sha256',
   tag: '#',
   kind: 'Hash',
-  priority: PriorityHashBox,
 
   async generateBoxes(
     input: string,
@@ -182,7 +180,7 @@ export const HashBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -193,7 +191,7 @@ export const HashBoxSource = {
         return new BoxBuilder(`${alg.label}`, hex)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build();
       }),
     );
@@ -203,7 +201,7 @@ export const HashBoxSource = {
         new BoxBuilder('MD5', computeMd5(input))
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

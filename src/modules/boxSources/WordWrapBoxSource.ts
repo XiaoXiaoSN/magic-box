@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 const DEFAULT_WIDTH = 80;
 const MAX_WIDTH = 1000;
@@ -68,7 +67,6 @@ export const WordWrapBoxSource = {
   defaultInput: 'The quick brown fox jumps over the lazy dog\n::wrap=20',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -89,7 +87,7 @@ export const WordWrapBoxSource = {
     return [
       new BoxBuilder('Word Wrap', output)
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

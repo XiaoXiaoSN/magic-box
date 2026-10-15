@@ -212,7 +212,6 @@ describe('SubnetBoxSource', () => {
       expect(SubnetBoxSource.name).toBe('Subnet');
       expect(SubnetBoxSource.tag).toBe('#');
       expect(SubnetBoxSource.kind).toBe('Analyze');
-      expect(typeof SubnetBoxSource.priority).toBe('number');
     });
 
     it('error box carries an Error option so it renders (not blank)', async () => {

@@ -2,7 +2,6 @@
   "compilerOptions": {
     "target": "esnext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -18,7 +17,7 @@
     "paths": {
       "@components/*": ["./src/components/*"],
       "@functions/*": ["./src/functions/*"],
-      "@global*": ["./src/global/*"],
+      "@global/*": ["./src/global/*"],
       "@modules/*": ["./src/modules/*"],
       "@pages/*": ["./src/pages/*"]
     }
@@ -27,10 +26,8 @@
     "vite.config.ts",
     "cypress.config.ts",
     "cypress.offline.config.ts",
-    "webpack.config.ts",
     "**/*.test.ts",
-    "src",
-    "wasmModules"
+    "src"
   ],
-  "exclude": ["cypress", "**/*.cy.ts", "node_modules"]
+  "exclude": ["cypress", "**/*.cy.ts", "**/*.cy.tsx", "node_modules"]
 }

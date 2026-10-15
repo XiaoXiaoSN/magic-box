@@ -3,7 +3,6 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 import type { MarkdownIt, Token } from 'markdown-it';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 interface Heading {
@@ -124,7 +123,6 @@ export const MarkdownTocBoxSource = {
   defaultInput: '# Title\n## Section A\n### Sub\n## Section B\n::toc',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -141,7 +139,7 @@ export const MarkdownTocBoxSource = {
         new BoxBuilder('Markdown TOC', 'No headings found.')
           .setView('code')
           .setOptions({ language: 'markdown' })
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -151,7 +149,7 @@ export const MarkdownTocBoxSource = {
       new BoxBuilder('Markdown TOC', toc)
         .setView('code')
         .setOptions({ language: 'markdown' })
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

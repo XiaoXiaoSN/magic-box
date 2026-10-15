@@ -47,8 +47,4 @@ const CustomizedSnackbar = ({ notify, text }: Props): React.JSX.Element => {
   );
 };
 
-CustomizedSnackbar.defaultProps = {
-  text: undefined,
-};
-
 export default CustomizedSnackbar;

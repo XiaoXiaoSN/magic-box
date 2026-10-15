@@ -5,7 +5,6 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 import { toIntlLocale } from '../../i18n';
 
-const PriorityDateCalculate = 10;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -392,7 +391,6 @@ export const DateCalculateBoxSource = {
   defaultInput: 'now + 7d',
   tag: '⏱',
   kind: 'Time',
-  priority: PriorityDateCalculate,
 
   checkAddSubtractPattern(input: string): Match | undefined {
     const addMatch = ADD_PATTERN.exec(input);
@@ -493,7 +491,7 @@ export const DateCalculateBoxSource = {
         return [
           new BoxBuilder('Relative Time', `Invalid date: "${raw}"`)
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         ];
       }
@@ -524,7 +522,7 @@ export const DateCalculateBoxSource = {
             Direction: diffMs < -500 ? 'past' : diffMs > 500 ? 'future' : 'now',
           })
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -540,7 +538,7 @@ export const DateCalculateBoxSource = {
           operation: match.operation,
         })
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

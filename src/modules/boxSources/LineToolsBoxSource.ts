@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // split into lines, stripping trailing \r (CRLF) and dropping the single empty
@@ -20,7 +19,6 @@ export const LineToolsBoxSource = {
   defaultInput: 'banana\napple\ncherry\napple\n::uniquelines',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -36,7 +34,6 @@ export const LineToolsBoxSource = {
         errorBox(
           'Line Tools',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -55,7 +52,7 @@ export const LineToolsBoxSource = {
       boxes.push(
         new BoxBuilder('Unique Lines', unique.join('\n'))
           .setView('code')
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -65,7 +62,7 @@ export const LineToolsBoxSource = {
       boxes.push(
         new BoxBuilder('Reversed Lines', reversed.join('\n'))
           .setView('code')
-          .setPriority(this.priority)
+
           .build(),
       );
     }

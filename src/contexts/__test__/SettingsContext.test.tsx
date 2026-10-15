@@ -26,7 +26,6 @@ describe('SettingsStorage', () => {
           'Word Count': {
             id: 'Word Count',
             enabled: true,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -46,7 +45,6 @@ describe('SettingsStorage', () => {
           Duration: {
             id: 'Duration',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -68,7 +66,6 @@ describe('SettingsStorage', () => {
           Duration: {
             id: 'Duration',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -89,19 +86,16 @@ describe('SettingsStorage', () => {
           'DMS Coordinates': {
             id: 'DMS Coordinates',
             enabled: true,
-            priority: 42,
             secondaryOrder: 7,
           },
           'Text Diff': {
             id: 'Text Diff',
             enabled: false,
-            priority: 3,
             secondaryOrder: 1,
           },
           RemovedSource: {
             id: 'RemovedSource',
             enabled: true,
-            priority: 1,
             secondaryOrder: 0,
           },
         },
@@ -114,12 +108,10 @@ describe('SettingsStorage', () => {
     expect(settings.boxes.coordinates).toMatchObject({
       id: 'coordinates',
       enabled: true,
-      priority: 42,
       secondaryOrder: 7,
     });
     expect(settings.boxes['text-diff']).toMatchObject({
       enabled: false,
-      priority: 3,
       secondaryOrder: 1,
     });
     expect(Object.keys(settings.boxes)).toHaveLength(boxSources.length);
@@ -135,13 +127,11 @@ describe('SettingsStorage', () => {
           coordinates: {
             id: 'coordinates',
             enabled: false,
-            priority: 4,
             secondaryOrder: 2,
           },
           'DMS Coordinates': {
             id: 'DMS Coordinates',
             enabled: true,
-            priority: 91,
             secondaryOrder: 8,
           },
         },
@@ -152,7 +142,6 @@ describe('SettingsStorage', () => {
 
     expect(settings.boxes.coordinates).toMatchObject({
       enabled: false,
-      priority: 4,
       secondaryOrder: 2,
     });
     expect(settings.boxes['DMS Coordinates']).toBeUndefined();
@@ -234,7 +223,6 @@ describe('SettingsStorage', () => {
           Color: {
             id: 'Color',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },

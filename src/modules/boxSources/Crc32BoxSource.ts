@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // precompute the IEEE 802.3 (reflected) CRC-32 lookup table once at module load
@@ -35,7 +34,6 @@ export const Crc32BoxSource = {
   defaultInput: 'hello\n::crc32',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -58,11 +56,7 @@ export const Crc32BoxSource = {
       Uppercase: hex.toUpperCase(),
     };
 
-    return [
-      keyValueBox('keyValue', 'CRC-32', output, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'CRC-32', output)];
   },
 };
 

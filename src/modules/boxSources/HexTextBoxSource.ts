@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // converts text to a compact lowercase hex string (no separators)
@@ -74,7 +73,6 @@ export const HexTextBoxSource = {
   defaultInput: 'Hi\n::hex',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -91,7 +89,6 @@ export const HexTextBoxSource = {
         errorBox(
           'Text to Hex',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -104,7 +101,7 @@ export const HexTextBoxSource = {
       boxes.push(
         new BoxBuilder('Text to Hex', hexOutput)
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -115,14 +112,14 @@ export const HexTextBoxSource = {
         boxes.push(
           new BoxBuilder('Hex to Text', result.text)
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } else {
         boxes.push(
           new BoxBuilder('Hex to Text', result.message)
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

@@ -125,7 +125,6 @@ describe('A1Z26BoxSource', () => {
       expect(A1Z26BoxSource.name).toBe('A1Z26');
       expect(A1Z26BoxSource.tag).toBe('#');
       expect(A1Z26BoxSource.kind).toBe('Encode');
-      expect(typeof A1Z26BoxSource.priority).toBe('number');
     });
   });
 });

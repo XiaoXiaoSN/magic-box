@@ -110,7 +110,6 @@ describe('LineToolsBoxSource', () => {
       expect(LineToolsBoxSource.name).toBe('Line Tools');
       expect(LineToolsBoxSource.tag).toBe('#');
       expect(LineToolsBoxSource.kind).toBe('Transform');
-      expect(typeof LineToolsBoxSource.priority).toBe('number');
     });
   });
 });

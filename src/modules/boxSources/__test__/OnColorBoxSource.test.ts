@@ -201,13 +201,6 @@ describe('OnColorBoxSource', () => {
       expect(text).toContain('Foreground: #000000');
       expect(text).toContain('Contrast: 21:1');
     });
-
-    it('priority matches source priority', async () => {
-      const boxes = await OnColorBoxSource.generateBoxes('#ffffff', {
-        oncolor: true,
-      });
-      expect(boxes[0].props.priority).toBe(OnColorBoxSource.priority);
-    });
   });
 
   describe('metadata', () => {
@@ -215,7 +208,6 @@ describe('OnColorBoxSource', () => {
       expect(OnColorBoxSource.name).toBe('Readable Text Color');
       expect(OnColorBoxSource.tag).toBe('#');
       expect(OnColorBoxSource.kind).toBe('Analyze');
-      expect(typeof OnColorBoxSource.priority).toBe('number');
     });
   });
 });
