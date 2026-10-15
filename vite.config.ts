@@ -251,7 +251,7 @@ export default defineConfig(({ command }) => {
             {
               // Hashed feature chunks are cached on first use so loaded tools
               // remain available offline without install-time downloads.
-              urlPattern: /\/assets\/[^/]+\.[A-Za-z0-9_-]{8}\.(?:css|js|wasm)$/,
+              urlPattern: /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:css|js|wasm)$/,
               handler: 'CacheFirst',
               options: {
                 cacheName: 'magic-box-feature-assets-v1',
