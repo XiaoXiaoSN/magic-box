@@ -1,3 +1,4 @@
+import { parseDateString } from '@functions/helper';
 import type { BoxOptions } from '@modules/Box';
 import {
   hasTomlDocumentShape,
@@ -75,6 +76,20 @@ const dataConverterCanHandle = (
 const certificateCanHandle = (input: string, options: BoxOptions): boolean =>
   certificateOptionMatcher(input, options) ||
   input.includes('-----BEGIN CERTIFICATE-----');
+
+const mathCanHandle = (input: string, options: BoxOptions): boolean => {
+  if (optionMatcher(['math'])(input, options)) return true;
+
+  const trimmed = input.trim();
+  if (parseDateString(trimmed) !== null) return false;
+  if (/^\d+(?:-\d+){2,}$/.test(trimmed)) return false;
+  if (/^\d+(?:\/\d+){2,}$/.test(trimmed)) return false;
+
+  const shape = /[+\-*/^%!<>=&|]|[a-zA-Z]+\s*\(|\d+n\b|\d+\s*[a-zA-Z°]|\bto\b/;
+  return (
+    shape.test(trimmed) && (/\d/.test(trimmed) || /[<>=!&|]/.test(trimmed))
+  );
+};
 
 const definitions: readonly LazyBoxSourceDefinition[] = [
   {
@@ -333,9 +348,10 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '=',
     kind: 'Compute',
     priority: 10,
-    optionKeys: [],
+    optionKeys: ['math'],
     headless: true,
     workerSafe: true,
+    canHandle: mathCanHandle,
     load: () =>
       import('./MathExpressionBoxSource').then((module) => module.default),
   },

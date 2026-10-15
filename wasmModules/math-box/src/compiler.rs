@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::limits::WorkBudget;
 use crate::namespace::Namespace;
 use crate::ops;
-use crate::parser::{BinOp, Expr};
+use crate::parser::{BinOp, CmpOp, Expr};
 use crate::value::Value;
 
 #[derive(Clone, Debug)]
@@ -24,8 +24,13 @@ pub enum Inst {
     Div,
     Rem,
     Pow,
+    Compare(CmpOp),
+    JumpIfFalse(usize),
+    JumpIfTrue(usize),
+    RequireBool(&'static str),
     Neg,
     Not,
+    Percent,
     Fact,
 }
 
@@ -79,7 +84,7 @@ fn collect_shadowed_names(e: &Expr, set: &mut BTreeSet<String>) {
             collect_shadowed_names(lhs, set);
             collect_shadowed_names(rhs, set);
         }
-        Expr::Neg(x) | Expr::Pos(x) | Expr::Not(x) | Expr::Fact(x) => {
+        Expr::Neg(x) | Expr::Pos(x) | Expr::Not(x) | Expr::Percent(x) | Expr::Fact(x) => {
             collect_shadowed_names(x, set);
         }
         Expr::Call { args, .. } => {
@@ -88,15 +93,29 @@ fn collect_shadowed_names(e: &Expr, set: &mut BTreeSet<String>) {
             }
         }
         Expr::Lambda { body, .. } => collect_shadowed_names(body, set),
-        Expr::Num(_) | Expr::BigLit(_) | Expr::Str(_) | Expr::Var(_) => {}
+        Expr::Num(_) | Expr::BigLit(_) | Expr::Bool(_) | Expr::Str(_) | Expr::Var(_) => {}
     }
 }
 
 fn literal_expr(value: Value) -> Option<Expr> {
     match value {
         Value::Num(value) => Some(Expr::Num(value)),
+        Value::Bool(value) => Some(Expr::Bool(value)),
         #[cfg(feature = "bigint")]
         Value::Big(value) => Some(Expr::BigLit(value.to_string())),
+        _ => None,
+    }
+}
+
+fn literal_value(expr: &Expr) -> Option<Value> {
+    match expr {
+        Expr::Num(value) => Some(Value::Num(*value)),
+        Expr::Bool(value) => Some(Value::Bool(*value)),
+        #[cfg(feature = "bigint")]
+        Expr::BigLit(text) => {
+            use core::str::FromStr;
+            num_bigint::BigInt::from_str(text).ok().map(Value::Big)
+        }
         _ => None,
     }
 }
@@ -111,6 +130,7 @@ fn fold(
     Ok(match e {
         Expr::Num(_) => e,
         Expr::BigLit(_) => e,
+        Expr::Bool(_) => e,
         Expr::Str(_) => e,
 
         Expr::Var(name) if !shadowed.contains(&name) => match ns.lookup_const(&name) {
@@ -121,6 +141,35 @@ fn fold(
         },
         Expr::Var(name) => Expr::Var(name),
 
+        Expr::Bin { op, lhs, rhs } if matches!(op, BinOp::And | BinOp::Or) => {
+            let l = fold(*lhs, ns, shadowed, budget)?;
+            let Some(left) = (match l {
+                Expr::Bool(value) => Some(value),
+                _ => None,
+            }) else {
+                return Ok(Expr::Bin {
+                    op,
+                    lhs: Box::new(l),
+                    rhs,
+                });
+            };
+            if (matches!(op, BinOp::And) && !left) || (matches!(op, BinOp::Or) && left) {
+                return Ok(Expr::Bool(left));
+            }
+            let r = fold(*rhs, ns, shadowed, budget)?;
+            if let Expr::Bool(right) = r {
+                return Ok(Expr::Bool(match op {
+                    BinOp::And => left && right,
+                    BinOp::Or => left || right,
+                    _ => unreachable!(),
+                }));
+            }
+            Expr::Bin {
+                op,
+                lhs: Box::new(Expr::Bool(left)),
+                rhs: Box::new(r),
+            }
+        }
         Expr::Bin { op, lhs, rhs } => {
             let l = fold(*lhs, ns, shadowed, budget)?;
             let r = fold(*rhs, ns, shadowed, budget)?;
@@ -132,6 +181,13 @@ fn fold(
                     BinOp::Div => ops::div(Value::Num(*a), Value::Num(*b)),
                     BinOp::Rem => ops::rem(Value::Num(*a), Value::Num(*b)),
                     BinOp::Pow => ops::pow(Value::Num(*a), Value::Num(*b)),
+                    BinOp::Compare(_) | BinOp::And | BinOp::Or => {
+                        return Ok(Expr::Bin {
+                            op,
+                            lhs: Box::new(l),
+                            rhs: Box::new(r),
+                        });
+                    }
                 };
                 if let Ok(value) = folded
                     && let Some(expr) = literal_expr(value)
@@ -156,10 +212,20 @@ fn fold(
         Expr::Pos(x) => fold(*x, ns, shadowed, budget)?,
         Expr::Not(x) => {
             let x = fold(*x, ns, shadowed, budget)?;
-            if let Expr::Num(n) = x {
-                return Ok(Expr::Num(if n == 0.0 { 1.0 } else { 0.0 }));
+            if let Expr::Bool(value) = x {
+                return Ok(Expr::Bool(!value));
             }
             Expr::Not(Box::new(x))
+        }
+        Expr::Percent(x) => {
+            let x = fold(*x, ns, shadowed, budget)?;
+            if let Some(value) = literal_value(&x)
+                && let Ok(value) = ops::percent(value)
+                && let Some(expr) = literal_expr(value)
+            {
+                return Ok(expr);
+            }
+            Expr::Percent(Box::new(x))
         }
         Expr::Fact(x) => {
             let x = fold(*x, ns, shadowed, budget)?;
@@ -230,6 +296,7 @@ fn lower(
     budget.consume(1)?;
     match e {
         Expr::Num(n) => prog.code.push(Inst::PushVal(Value::Num(*n))),
+        Expr::Bool(value) => prog.code.push(Inst::PushVal(Value::Bool(*value))),
         Expr::BigLit(text) => {
             #[cfg(feature = "bigint")]
             {
@@ -251,18 +318,42 @@ fn lower(
         }
         Expr::Str(s) => prog.code.push(Inst::PushVal(Value::Str(s.clone()))),
         Expr::Var(name) => prog.code.push(Inst::LoadVar(name.clone())),
-        Expr::Bin { op, lhs, rhs } => {
-            lower(lhs, prog, ns, shadowed, budget)?;
-            lower(rhs, prog, ns, shadowed, budget)?;
-            prog.code.push(match op {
-                BinOp::Add => Inst::Add,
-                BinOp::Sub => Inst::Sub,
-                BinOp::Mul => Inst::Mul,
-                BinOp::Div => Inst::Div,
-                BinOp::Rem => Inst::Rem,
-                BinOp::Pow => Inst::Pow,
-            });
-        }
+        Expr::Bin { op, lhs, rhs } => match op {
+            BinOp::And => {
+                lower(lhs, prog, ns, shadowed, budget)?;
+                let jump = prog.code.len();
+                prog.code.push(Inst::JumpIfFalse(usize::MAX));
+                prog.code.push(Inst::Drop);
+                lower(rhs, prog, ns, shadowed, budget)?;
+                prog.code.push(Inst::RequireBool("&&"));
+                let target = prog.code.len();
+                prog.code[jump] = Inst::JumpIfFalse(target);
+            }
+            BinOp::Or => {
+                lower(lhs, prog, ns, shadowed, budget)?;
+                let jump = prog.code.len();
+                prog.code.push(Inst::JumpIfTrue(usize::MAX));
+                prog.code.push(Inst::Drop);
+                lower(rhs, prog, ns, shadowed, budget)?;
+                prog.code.push(Inst::RequireBool("||"));
+                let target = prog.code.len();
+                prog.code[jump] = Inst::JumpIfTrue(target);
+            }
+            _ => {
+                lower(lhs, prog, ns, shadowed, budget)?;
+                lower(rhs, prog, ns, shadowed, budget)?;
+                prog.code.push(match op {
+                    BinOp::Add => Inst::Add,
+                    BinOp::Sub => Inst::Sub,
+                    BinOp::Mul => Inst::Mul,
+                    BinOp::Div => Inst::Div,
+                    BinOp::Rem => Inst::Rem,
+                    BinOp::Pow => Inst::Pow,
+                    BinOp::Compare(op) => Inst::Compare(*op),
+                    BinOp::And | BinOp::Or => unreachable!(),
+                });
+            }
+        },
         Expr::Neg(x) => {
             lower(x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Neg);
@@ -271,6 +362,10 @@ fn lower(
         Expr::Not(x) => {
             lower(x, prog, ns, shadowed, budget)?;
             prog.code.push(Inst::Not);
+        }
+        Expr::Percent(x) => {
+            lower(x, prog, ns, shadowed, budget)?;
+            prog.code.push(Inst::Percent);
         }
         Expr::Fact(x) => {
             lower(x, prog, ns, shadowed, budget)?;
@@ -304,11 +399,10 @@ fn lower(
                     name: name.clone(),
                     fn_idx,
                 });
-                // function definitions are statements; push a string sentinel so
-                // the result of `f(x) = …` displays as `<fn name/arity>` rather
-                // than the previous surprising `params.len()` numeric value.
+                // function definitions are statements; retain a distinct value
+                // kind so a user string cannot be mistaken for a function.
                 let sentinel = alloc::format!("<fn {}/{}>", name, params.len());
-                prog.code.push(Inst::PushVal(Value::Str(sentinel)));
+                prog.code.push(Inst::PushVal(Value::Function(sentinel)));
             } else {
                 lower(value, prog, ns, shadowed, budget)?;
                 prog.code.push(Inst::StoreKeep(name.clone()));

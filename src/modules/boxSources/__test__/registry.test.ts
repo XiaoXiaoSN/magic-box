@@ -90,6 +90,37 @@ describe('source manifest', () => {
     ).resolves.not.toEqual([]);
   });
 
+  it('keeps Math lazy for date and phone noise but honors explicit math', async () => {
+    let imported = 0;
+    vi.resetModules();
+    vi.doMock('../MathExpressionBoxSource', async () => {
+      imported += 1;
+      return vi.importActual('../MathExpressionBoxSource');
+    });
+
+    const registry = await import('../index');
+    const math = registry.getBoxSource('math-expression');
+    if (!math) throw new Error('math source missing');
+
+    const [dateInput, dateOptions] = parseInput('2024-01-01');
+    const [phoneInput, phoneOptions] = parseInput('0912-345-678');
+    expect(math.canHandle?.(dateInput, dateOptions)).toBe(false);
+    expect(math.canHandle?.(phoneInput, phoneOptions)).toBe(false);
+    await math.generateBoxes(dateInput, dateOptions);
+    await math.generateBoxes(phoneInput, phoneOptions);
+    expect(imported).toBe(0);
+
+    const [explicitInput, explicitOptions] = parseInput('2024-01-01\n::math');
+    expect(math.canHandle?.(explicitInput, explicitOptions)).toBe(true);
+    const boxes = await math.generateBoxes(explicitInput, explicitOptions);
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toBe('2022');
+    expect(imported).toBe(1);
+
+    vi.doUnmock('../MathExpressionBoxSource');
+    vi.resetModules();
+  });
+
   it('does not load Data Converter for plain text or a bare date', async () => {
     let imported = 0;
     vi.resetModules();

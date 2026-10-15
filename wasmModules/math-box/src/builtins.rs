@@ -89,8 +89,29 @@ pub fn default_namespace() -> Namespace {
     });
 
     ns.set_fn("abs", exact(1), true, |a| match &a[0] {
+        #[cfg(feature = "bigint")]
+        Value::Big(value) => Ok(Value::Big(abs_big(value.clone()))),
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => Ok(Value::Frac(value.abs())),
         #[cfg(feature = "complex")]
         Value::Complex(c) => Ok(Value::Num(c.abs())),
+        #[cfg(feature = "unit")]
+        Value::Unit(value) => {
+            let display_value = value.display_value().abs();
+            Ok(Value::Unit(crate::value::UnitValue {
+                base_value: if value.affine {
+                    display_value * value.display_factor + value.display_offset
+                } else {
+                    value.base_value.abs()
+                },
+                unit_label: value.unit_label.clone(),
+                display_factor: value.display_factor,
+                display_offset: value.display_offset,
+                display_value_override: Some(display_value),
+                dim: value.dim,
+                affine: value.affine,
+            }))
+        }
         _ => Ok(Value::Num(values_to_f64(a)?[0].abs())),
     });
 
@@ -104,16 +125,8 @@ pub fn default_namespace() -> Namespace {
         Ok(Value::Num(v.iter().map(|x| x * x).sum::<f64>().sqrt()))
     });
 
-    ns.set_fn("min", range(1, 32), true, |a| {
-        let v = values_to_f64(a)?;
-        Ok(Value::Num(v.iter().copied().fold(f64::INFINITY, f64::min)))
-    });
-    ns.set_fn("max", range(1, 32), true, |a| {
-        let v = values_to_f64(a)?;
-        Ok(Value::Num(
-            v.iter().copied().fold(f64::NEG_INFINITY, f64::max),
-        ))
-    });
+    ns.set_fn("min", range(1, 32), true, |a| select_extreme(a, false));
+    ns.set_fn("max", range(1, 32), true, |a| select_extreme(a, true));
 
     ns.set_fn("fact", exact(1), true, |a| ops::factorial(a[0].clone()));
 
@@ -168,11 +181,18 @@ pub fn default_namespace() -> Namespace {
         });
         ns.set_fn("re", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.re)),
-            other => Ok(Value::Num(other.as_f64().unwrap_or(0.0))),
+            other => Ok(Value::Num(other.as_f64().ok_or(Error::Domain {
+                what: "re requires a numeric operand",
+            })?)),
         });
         ns.set_fn("im", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.im)),
-            _ => Ok(Value::Num(0.0)),
+            other => {
+                other.as_f64().ok_or(Error::Domain {
+                    what: "im requires a numeric operand",
+                })?;
+                Ok(Value::Num(0.0))
+            }
         });
         ns.set_fn("conj", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Complex(c.conj())),
@@ -181,7 +201,9 @@ pub fn default_namespace() -> Namespace {
         ns.set_fn("arg", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.arg())),
             other => {
-                let n = other.as_f64().unwrap_or(0.0);
+                let n = other.as_f64().ok_or(Error::Domain {
+                    what: "arg requires a numeric operand",
+                })?;
                 Ok(Value::Num(if n >= 0.0 {
                     0.0
                 } else {
@@ -206,13 +228,28 @@ pub fn default_namespace() -> Namespace {
             let label = a[1].as_str().ok_or(Error::Domain {
                 what: "unit() requires a string label as the second argument",
             })?;
-            let (scale, dim) = crate::units::lookup(label).ok_or(Error::Domain {
-                what: "unknown unit label",
-            })?;
+            let spec = crate::units::parse_expression(label)?;
+            let scaled_value = value * spec.factor;
+            if value != 0.0 && (!scaled_value.is_finite() || scaled_value == 0.0) {
+                return Err(Error::Overflow);
+            }
+            let base_value = scaled_value + spec.offset;
+            if spec.dim == crate::value::Dimension::TEMPERATURE && base_value < 0.0 {
+                return Err(Error::Domain {
+                    what: "temperature below absolute zero",
+                });
+            }
+            if spec.dim == crate::value::Dimension::SCALAR {
+                return Ok(Value::Num(base_value));
+            }
             Ok(Value::Unit(crate::value::UnitValue {
-                base_value: value * scale,
+                base_value,
                 unit_label: label.into(),
-                dim,
+                display_factor: spec.factor,
+                display_offset: spec.offset,
+                display_value_override: Some(value),
+                dim: spec.dim,
+                affine: spec.affine,
             }))
         });
 
@@ -236,22 +273,56 @@ pub fn default_namespace() -> Namespace {
             let to_label = a[1].as_str().ok_or(Error::Domain {
                 what: "convert() expects a string target label",
             })?;
-            let (_, dim) = crate::units::lookup(to_label).ok_or(Error::Domain {
-                what: "unknown unit label",
-            })?;
-            if unit_v.dim != dim {
+            let spec = crate::units::parse_expression(to_label)?;
+            if unit_v.dim != spec.dim {
                 return Err(Error::DimensionMismatch);
             }
-            // base_value is dimension-invariant; the new label drives display scale.
+            if spec.dim == crate::value::Dimension::TEMPERATURE && unit_v.base_value < 0.0 {
+                return Err(Error::Domain {
+                    what: "temperature below absolute zero",
+                });
+            }
             Ok(Value::Unit(crate::value::UnitValue {
                 base_value: unit_v.base_value,
                 unit_label: to_label.into(),
-                dim,
+                display_factor: spec.factor,
+                display_offset: spec.offset,
+                display_value_override: if spec.dim == crate::value::Dimension::TEMPERATURE {
+                    match to_label {
+                        "K" | "k" => Some(unit_v.base_value),
+                        "degC" | "°C" => Some(unit_v.base_value - 273.15),
+                        "degF" | "°F" => Some((unit_v.base_value - 273.15) * (9.0 / 5.0) + 32.0),
+                        _ => None,
+                    }
+                } else {
+                    None
+                },
+                dim: spec.dim,
+                affine: spec.affine,
             }))
         });
     }
 
     ns
+}
+
+fn select_extreme(args: &[Value], maximum: bool) -> Result<Value> {
+    let mut selected = args.first().cloned().ok_or(Error::UnexpectedEof)?;
+    for candidate in &args[1..] {
+        let op = if maximum {
+            crate::parser::CmpOp::Gt
+        } else {
+            crate::parser::CmpOp::Lt
+        };
+        let is_better = match ops::compare(candidate.clone(), selected.clone(), op)? {
+            Value::Bool(value) => value,
+            _ => false,
+        };
+        if is_better {
+            selected = candidate.clone();
+        }
+    }
+    Ok(selected)
 }
 
 pub fn factorial_f64(n: f64) -> Result<f64> {
@@ -292,6 +363,53 @@ fn to_frac(v: &Value) -> Result<crate::value::Fraction> {
 }
 
 fn sqrt_value(args: &[Value]) -> Result<Value> {
+    #[cfg(feature = "unit")]
+    if let Value::Unit(value) = &args[0] {
+        if value.affine
+            || value.dim.length % 2 != 0
+            || value.dim.mass % 2 != 0
+            || value.dim.time % 2 != 0
+            || value.dim.temperature % 2 != 0
+            || value.dim.data % 2 != 0
+        {
+            return Err(Error::TypeMismatch {
+                op: "sqrt",
+                lhs: "unit",
+                rhs: "even-dimensional unit",
+            });
+        }
+        if value.base_value < 0.0 {
+            return Err(Error::Domain {
+                what: "sqrt requires a non-negative unit value",
+            });
+        }
+        let dim = crate::value::Dimension {
+            length: value.dim.length / 2,
+            mass: value.dim.mass / 2,
+            time: value.dim.time / 2,
+            temperature: value.dim.temperature / 2,
+            data: value.dim.data / 2,
+        };
+        let base_value = value.base_value.sqrt();
+        if dim == crate::value::Dimension::SCALAR {
+            return Ok(Value::Num(base_value));
+        }
+        let (unit_label, display_factor) = crate::units::format_sqrt(&value.unit_label)
+            .map_or_else(
+                || (dim.canonical_label(), 1.0),
+                |label| (label, value.display_factor.sqrt()),
+            );
+        return Ok(Value::Unit(crate::value::UnitValue {
+            base_value,
+            unit_label,
+            display_factor,
+            display_offset: 0.0,
+            display_value_override: None,
+            dim,
+            affine: false,
+        }));
+    }
+
     #[cfg(feature = "complex")]
     if let Value::Complex(value) = &args[0] {
         let radius = value.abs();

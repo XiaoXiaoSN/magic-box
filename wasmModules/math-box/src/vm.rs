@@ -90,7 +90,9 @@ fn exec(
     stack: &mut Vec<Value>,
     budget: &mut WorkBudget,
 ) -> Result<()> {
-    for inst in &program.code {
+    let mut pc = 0usize;
+    while pc < program.code.len() {
+        let inst = &program.code[pc];
         budget.consume(1)?;
         match inst {
             Inst::PushVal(v) => stack.push(v.clone()),
@@ -174,11 +176,57 @@ fn exec(
             Inst::Div => binop(stack, ops::div)?,
             Inst::Rem => binop(stack, ops::rem)?,
             Inst::Pow => binop(stack, ops::pow)?,
+            Inst::Compare(op) => {
+                let b = stack.pop().ok_or(Error::UnexpectedEof)?;
+                let a = stack.pop().ok_or(Error::UnexpectedEof)?;
+                stack.push(ops::compare(a, b, *op)?);
+            }
+
+            Inst::JumpIfFalse(target) => {
+                let value = stack.last().ok_or(Error::UnexpectedEof)?;
+                if !matches!(value, Value::Bool(_)) {
+                    return Err(Error::TypeMismatch {
+                        op: "&&",
+                        lhs: value.type_name(),
+                        rhs: "boolean",
+                    });
+                }
+                if matches!(value, Value::Bool(false)) {
+                    pc = *target;
+                    continue;
+                }
+            }
+            Inst::JumpIfTrue(target) => {
+                let value = stack.last().ok_or(Error::UnexpectedEof)?;
+                if !matches!(value, Value::Bool(_)) {
+                    return Err(Error::TypeMismatch {
+                        op: "||",
+                        lhs: value.type_name(),
+                        rhs: "boolean",
+                    });
+                }
+                if matches!(value, Value::Bool(true)) {
+                    pc = *target;
+                    continue;
+                }
+            }
+            Inst::RequireBool(op) => {
+                let value = stack.last().ok_or(Error::UnexpectedEof)?;
+                if !matches!(value, Value::Bool(_)) {
+                    return Err(Error::TypeMismatch {
+                        op,
+                        lhs: value.type_name(),
+                        rhs: "boolean",
+                    });
+                }
+            }
 
             Inst::Neg => unop(stack, ops::neg)?,
             Inst::Not => unop(stack, ops::logical_not)?,
+            Inst::Percent => unop(stack, ops::percent)?,
             Inst::Fact => unop(stack, ops::factorial)?,
         }
+        pc += 1;
     }
     Ok(())
 }

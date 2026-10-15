@@ -3,6 +3,7 @@
 // combinations, promoting where reasonable (e.g. Num + Big → Big).
 
 use crate::error::{Error, Result};
+use crate::parser::CmpOp;
 use crate::value::Value;
 
 #[cfg(feature = "complex")]
@@ -100,6 +101,108 @@ fn num_to_bigint(n: f64) -> Option<BigInt> {
         return None;
     }
     BigInt::from_f64(n)
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+fn fraction_from_finite_num(value: f64) -> Fraction {
+    if value == 0.0 {
+        return Fraction::from_int(0);
+    }
+    let bits = value.to_bits();
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i16;
+    let fraction_bits = bits & ((1_u64 << 52) - 1);
+    let (mantissa, exponent) = if exponent_bits == 0 {
+        (fraction_bits, -1074)
+    } else {
+        (fraction_bits | (1_u64 << 52), exponent_bits - 1023 - 52)
+    };
+    let mut numerator = BigInt::from(mantissa);
+    if bits >> 63 != 0 {
+        numerator = -numerator;
+    }
+    if exponent >= 0 {
+        numerator <<= exponent as usize;
+        Fraction::raw_from_int_backend(numerator)
+    } else {
+        let denominator = BigInt::from(1_u8) << (-exponent) as usize;
+        Fraction(num_rational::Ratio::new(numerator, denominator))
+    }
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+fn compare_fraction_finite_num(left: &Fraction, right: f64) -> core::cmp::Ordering {
+    left.0.cmp(&fraction_from_finite_num(right).0)
+}
+
+#[cfg(all(feature = "fraction", not(feature = "bigint")))]
+fn compare_fraction_finite_num(left: &Fraction, right: f64) -> core::cmp::Ordering {
+    use core::cmp::Ordering;
+
+    let numerator = *left.0.numer();
+    if right == 0.0 {
+        return numerator.cmp(&0);
+    }
+    if numerator == 0 {
+        return if right.is_sign_negative() {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        };
+    }
+    let negative = numerator.is_negative();
+    if negative != right.is_sign_negative() {
+        return if negative {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        };
+    }
+
+    let bits = right.to_bits() & !(1_u64 << 63);
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i16;
+    let fraction_bits = bits & ((1_u64 << 52) - 1);
+    let (mantissa, exponent) = if exponent_bits == 0 {
+        (fraction_bits, -1074)
+    } else {
+        (fraction_bits | (1_u64 << 52), exponent_bits - 1023 - 52)
+    };
+    let numerator = u128::from(numerator.unsigned_abs());
+    let denominator = u128::from(*left.0.denom() as u64);
+    let magnitude = if exponent >= 0 {
+        denominator
+            .checked_mul(u128::from(mantissa))
+            .and_then(|value| {
+                1_u128
+                    .checked_shl(exponent as u32)
+                    .and_then(|scale| value.checked_mul(scale))
+            })
+            .map_or(Ordering::Less, |right| numerator.cmp(&right))
+    } else {
+        1_u128
+            .checked_shl((-exponent) as u32)
+            .and_then(|scale| numerator.checked_mul(scale))
+            .map_or(Ordering::Greater, |left| {
+                left.cmp(&(denominator * u128::from(mantissa)))
+            })
+    };
+    if negative {
+        magnitude.reverse()
+    } else {
+        magnitude
+    }
+}
+
+#[cfg(feature = "fraction")]
+fn fraction_num_ordering(left: &Fraction, right: f64) -> Option<core::cmp::Ordering> {
+    if right.is_nan() {
+        None
+    } else if right == f64::INFINITY {
+        Some(core::cmp::Ordering::Less)
+    } else if right == f64::NEG_INFINITY {
+        Some(core::cmp::Ordering::Greater)
+    } else {
+        Some(compare_fraction_finite_num(left, right))
+    }
 }
 
 #[cfg(feature = "bigint")]
@@ -252,11 +355,23 @@ pub fn add(a: Value, b: Value) -> Result<Value> {
             if x.dim != y.dim {
                 return Err(Error::DimensionMismatch);
             }
-            // result keeps lhs's display unit; display value derives from base_value via the label's scale.
+            if x.affine || y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "+",
+                    lhs: "affine unit",
+                    rhs: "affine unit",
+                });
+            }
+            let base_value = x.base_value + y.base_value;
+            check_temperature(base_value, x.dim)?;
             Unit(crate::value::UnitValue {
-                base_value: x.base_value + y.base_value,
+                base_value,
                 unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: x.display_offset,
+                display_value_override: None,
                 dim: x.dim,
+                affine: false,
             })
         }
 
@@ -356,10 +471,23 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
             if x.dim != y.dim {
                 return Err(Error::DimensionMismatch);
             }
+            if x.affine || y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "-",
+                    lhs: "affine unit",
+                    rhs: "affine unit",
+                });
+            }
+            let base_value = x.base_value - y.base_value;
+            check_temperature(base_value, x.dim)?;
             Unit(crate::value::UnitValue {
-                base_value: x.base_value - y.base_value,
+                base_value,
                 unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: x.display_offset,
+                display_value_override: None,
                 dim: x.dim,
+                affine: false,
             })
         }
 
@@ -433,22 +561,58 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
         }
 
         #[cfg(feature = "unit")]
-        (Unit(x), Num(y)) | (Num(y), Unit(x)) => Unit(crate::value::UnitValue {
-            base_value: x.base_value * y,
-            unit_label: x.unit_label,
-            dim: x.dim,
-        }),
+        (Unit(x), Num(y)) | (Num(y), Unit(x)) => {
+            if x.affine {
+                return Err(Error::TypeMismatch {
+                    op: "*",
+                    lhs: "affine unit",
+                    rhs: "number",
+                });
+            }
+            let base_value = x.base_value * y;
+            check_temperature(base_value, x.dim)?;
+            Unit(crate::value::UnitValue {
+                base_value,
+                unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: 0.0,
+                display_value_override: None,
+                dim: x.dim,
+                affine: false,
+            })
+        }
         #[cfg(feature = "unit")]
         (Unit(x), Unit(y)) => {
+            if x.affine || y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "*",
+                    lhs: "affine unit",
+                    rhs: "unit",
+                });
+            }
             let dim = x.dim.checked_add(&y.dim)?;
             let base_value = x.base_value * y.base_value;
             if dim == crate::value::Dimension::SCALAR {
                 Num(base_value)
             } else {
+                check_temperature(base_value, dim)?;
+                let same_dimension = x.dim == y.dim;
                 Unit(crate::value::UnitValue {
                     base_value,
-                    unit_label: dim.canonical_label(),
+                    unit_label: if same_dimension {
+                        dim.canonical_label()
+                    } else {
+                        crate::units::format_product(&x.unit_label, &y.unit_label)
+                    },
+                    display_factor: if same_dimension {
+                        1.0
+                    } else {
+                        x.display_factor * y.display_factor
+                    },
+                    display_offset: 0.0,
+                    display_value_override: None,
                     dim,
+                    affine: false,
                 })
             }
         }
@@ -549,14 +713,63 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
             if y == 0.0 {
                 return Err(Error::DivisionByZero);
             }
+            if x.affine {
+                return Err(Error::TypeMismatch {
+                    op: "/",
+                    lhs: "affine unit",
+                    rhs: "number",
+                });
+            }
+            let base_value = x.base_value / y;
+            check_temperature(base_value, x.dim)?;
             Unit(crate::value::UnitValue {
-                base_value: x.base_value / y,
+                base_value,
                 unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: 0.0,
+                display_value_override: None,
                 dim: x.dim,
+                affine: false,
             })
         }
         #[cfg(feature = "unit")]
+        (Num(x), Unit(y)) => {
+            if y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "/",
+                    lhs: "number",
+                    rhs: "affine unit",
+                });
+            }
+            if y.base_value == 0.0 {
+                return Err(Error::DivisionByZero);
+            }
+            let dim = crate::value::Dimension::SCALAR.checked_sub(&y.dim)?;
+            if dim == crate::value::Dimension::SCALAR {
+                Num(x / y.base_value)
+            } else {
+                let base_value = x / y.base_value;
+                check_temperature(base_value, dim)?;
+                Unit(crate::value::UnitValue {
+                    base_value,
+                    unit_label: crate::units::format_quotient("", &y.unit_label),
+                    display_factor: 1.0 / y.display_factor,
+                    display_offset: 0.0,
+                    display_value_override: None,
+                    dim,
+                    affine: false,
+                })
+            }
+        }
+        #[cfg(feature = "unit")]
         (Unit(x), Unit(y)) => {
+            if x.affine || y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "/",
+                    lhs: "affine unit",
+                    rhs: "unit",
+                });
+            }
             if y.base_value == 0.0 {
                 return Err(Error::DivisionByZero);
             }
@@ -565,10 +778,15 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
             if dim == crate::value::Dimension::SCALAR {
                 Num(base)
             } else {
+                check_temperature(base, dim)?;
                 Unit(crate::value::UnitValue {
                     base_value: base,
-                    unit_label: dim.canonical_label(),
+                    unit_label: crate::units::format_quotient(&x.unit_label, &y.unit_label),
+                    display_factor: x.display_factor / y.display_factor,
+                    display_offset: 0.0,
+                    display_value_override: None,
                     dim,
+                    affine: false,
                 })
             }
         }
@@ -635,6 +853,31 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
         }
         #[cfg(all(feature = "bigint", feature = "fraction"))]
         (Frac(x), Big(y)) => Ok(Frac(x.rem(&Fraction::raw_from_int_backend(y))?)),
+
+        #[cfg(feature = "unit")]
+        (Unit(x), Unit(y)) => {
+            if x.dim != y.dim {
+                return Err(Error::DimensionMismatch);
+            }
+            if x.affine || y.affine {
+                return Err(Error::TypeMismatch {
+                    op: "%",
+                    lhs: "affine unit",
+                    rhs: "affine unit",
+                });
+            }
+            let value = floored_num_mod(x.base_value, y.base_value);
+            check_temperature(value, x.dim)?;
+            Ok(Unit(crate::value::UnitValue {
+                base_value: value,
+                unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: 0.0,
+                display_value_override: None,
+                dim: x.dim,
+                affine: false,
+            }))
+        }
 
         #[cfg(feature = "bigint")]
         (Big(_), rhs) => Err(Error::TypeMismatch {
@@ -842,6 +1085,42 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
             })
         }
 
+        #[cfg(feature = "unit")]
+        (Unit(value), exponent) => {
+            let exponent_name = exponent.type_name();
+            if value.affine {
+                return Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: "affine unit",
+                    rhs: exponent_name,
+                });
+            }
+            let exponent = integer_exponent(&exponent).ok_or(Error::TypeMismatch {
+                op: "^",
+                lhs: "unit",
+                rhs: exponent_name,
+            })?;
+            let dim = value.dim.checked_mul(exponent)?;
+            if dim == crate::value::Dimension::SCALAR {
+                return Ok(Num(value.base_value.powi(i32::from(exponent))));
+            }
+            let base_value = value.base_value.powi(i32::from(exponent));
+            let display_factor = value.display_factor.powi(i32::from(exponent));
+            if !display_factor.is_finite() || display_factor == 0.0 {
+                return Err(Error::Overflow);
+            }
+            check_temperature(base_value, dim)?;
+            Ok(Unit(crate::value::UnitValue {
+                base_value,
+                unit_label: crate::units::format_power(&value.unit_label, exponent),
+                display_factor,
+                display_offset: 0.0,
+                display_value_override: None,
+                dim,
+                affine: false,
+            }))
+        }
+
         #[cfg(all(feature = "bigint", feature = "complex"))]
         (Big(_), Complex(_)) => Err(Error::TypeMismatch {
             op: "^",
@@ -919,6 +1198,278 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
                 what: "pow requires numeric operands",
             })?;
             Ok(Num(x.powf(y)))
+        }
+    }
+}
+
+#[cfg(feature = "unit")]
+fn integer_exponent(value: &Value) -> Option<i8> {
+    match value {
+        Value::Num(value) if value.is_finite() && value.fract() == 0.0 => {
+            i8::try_from(*value as i16).ok()
+        }
+        #[cfg(feature = "bigint")]
+        Value::Big(value) => {
+            use num_traits::ToPrimitive;
+            value.to_i8()
+        }
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => {
+            use num_traits::ToPrimitive;
+            value.integer_backend()?.to_i8()
+        }
+        _ => None,
+    }
+}
+
+pub fn compare(a: Value, b: Value, op: CmpOp) -> Result<Value> {
+    use core::cmp::Ordering;
+
+    if let (Value::Bool(left), Value::Bool(right)) = (&a, &b) {
+        let equal = left == right;
+        return Ok(Value::Bool(match op {
+            CmpOp::Eq => equal,
+            CmpOp::NotEq => !equal,
+            _ => (*left as u8).cmp(&(*right as u8)).matches(op),
+        }));
+    }
+
+    #[cfg(feature = "unit")]
+    if let (Value::Unit(left), Value::Unit(right)) = (&a, &b) {
+        if left.dim != right.dim {
+            return Err(Error::DimensionMismatch);
+        }
+        return Ok(Value::Bool(compare_f64(
+            left.base_value,
+            right.base_value,
+            op,
+        )));
+    }
+
+    if matches!(&a, Value::Str(_)) || matches!(&b, Value::Str(_)) {
+        return Err(Error::TypeMismatch {
+            op: comparison_symbol(op),
+            lhs: a.type_name(),
+            rhs: b.type_name(),
+        });
+    }
+
+    #[cfg(feature = "complex")]
+    if let (Value::Complex(left), Value::Complex(right)) = (&a, &b) {
+        if !matches!(op, CmpOp::Eq | CmpOp::NotEq) {
+            return Err(Error::TypeMismatch {
+                op: comparison_symbol(op),
+                lhs: "complex",
+                rhs: "complex",
+            });
+        }
+        let equal = left.re == right.re && left.im == right.im;
+        return Ok(Value::Bool(if op == CmpOp::Eq { equal } else { !equal }));
+    }
+
+    #[cfg(feature = "complex")]
+    if let Value::Complex(left) = &a {
+        if !matches!(op, CmpOp::Eq | CmpOp::NotEq) {
+            return Err(Error::TypeMismatch {
+                op: comparison_symbol(op),
+                lhs: "complex",
+                rhs: b.type_name(),
+            });
+        }
+        if left.im != 0.0 {
+            return Ok(Value::Bool(op == CmpOp::NotEq));
+        }
+        return compare(Value::Num(left.re), b, op);
+    }
+
+    #[cfg(feature = "complex")]
+    if let Value::Complex(right) = &b {
+        if !matches!(op, CmpOp::Eq | CmpOp::NotEq) {
+            return Err(Error::TypeMismatch {
+                op: comparison_symbol(op),
+                lhs: a.type_name(),
+                rhs: "complex",
+            });
+        }
+        if right.im != 0.0 {
+            return Ok(Value::Bool(op == CmpOp::NotEq));
+        }
+        return compare(a, Value::Num(right.re), op);
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Big(left), Value::Big(right)) = (&a, &b) {
+        return Ok(Value::Bool(left.cmp(right).matches(op)));
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Big(left), Value::Num(right)) = (&a, &b)
+        && let Some(right) = num_to_bigint(*right)
+    {
+        return Ok(Value::Bool(left.cmp(&right).matches(op)));
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Big(left), Value::Num(right)) = (&a, &b)
+        && !right.is_finite()
+    {
+        return Ok(Value::Bool(compare_big_nonfinite(left, *right, op)));
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Num(left), Value::Big(right)) = (&a, &b)
+        && let Some(left) = num_to_bigint(*left)
+    {
+        return Ok(Value::Bool(left.cmp(right).matches(op)));
+    }
+
+    #[cfg(feature = "bigint")]
+    if let (Value::Num(left), Value::Big(right)) = (&a, &b)
+        && !left.is_finite()
+    {
+        return Ok(Value::Bool(compare_num_nonfinite(*left, right, op)));
+    }
+
+    #[cfg(feature = "fraction")]
+    if let (Value::Frac(left), Value::Frac(right)) = (&a, &b) {
+        return Ok(Value::Bool(left.0.cmp(&right.0).matches(op)));
+    }
+
+    #[cfg(feature = "fraction")]
+    if let (Value::Frac(left), Value::Num(right)) = (&a, &b) {
+        return Ok(Value::Bool(fraction_num_ordering(left, *right).matches(op)));
+    }
+
+    #[cfg(feature = "fraction")]
+    if let (Value::Num(left), Value::Frac(right)) = (&a, &b) {
+        return Ok(Value::Bool(
+            fraction_num_ordering(right, *left)
+                .map(core::cmp::Ordering::reverse)
+                .matches(op),
+        ));
+    }
+
+    #[cfg(all(feature = "bigint", feature = "fraction"))]
+    if let (Value::Big(left), Value::Frac(right)) = (&a, &b) {
+        let left = crate::value::Fraction::raw_from_int_backend(left.clone());
+        return Ok(Value::Bool(left.0.cmp(&right.0).matches(op)));
+    }
+
+    #[cfg(all(feature = "bigint", feature = "fraction"))]
+    if let (Value::Frac(left), Value::Big(right)) = (&a, &b) {
+        let right = crate::value::Fraction::raw_from_int_backend(right.clone());
+        return Ok(Value::Bool(left.0.cmp(&right.0).matches(op)));
+    }
+
+    let left = a.as_f64().ok_or(Error::TypeMismatch {
+        op: comparison_symbol(op),
+        lhs: a.type_name(),
+        rhs: b.type_name(),
+    })?;
+    let right = b.as_f64().ok_or(Error::TypeMismatch {
+        op: comparison_symbol(op),
+        lhs: a.type_name(),
+        rhs: b.type_name(),
+    })?;
+    let ordering = left.partial_cmp(&right);
+    let result = match op {
+        CmpOp::Eq => ordering == Some(Ordering::Equal),
+        CmpOp::NotEq => ordering != Some(Ordering::Equal),
+        CmpOp::Lt => ordering == Some(Ordering::Less),
+        CmpOp::LtEq => matches!(ordering, Some(Ordering::Less | Ordering::Equal)),
+        CmpOp::Gt => ordering == Some(Ordering::Greater),
+        CmpOp::GtEq => matches!(ordering, Some(Ordering::Greater | Ordering::Equal)),
+    };
+    Ok(Value::Bool(result))
+}
+
+fn comparison_symbol(op: CmpOp) -> &'static str {
+    match op {
+        CmpOp::Lt => "<",
+        CmpOp::LtEq => "<=",
+        CmpOp::Gt => ">",
+        CmpOp::GtEq => ">=",
+        CmpOp::Eq => "==",
+        CmpOp::NotEq => "!=",
+    }
+}
+
+fn compare_f64(left: f64, right: f64, op: CmpOp) -> bool {
+    use core::cmp::Ordering;
+    let ordering = left.partial_cmp(&right);
+    match op {
+        CmpOp::Eq => ordering == Some(Ordering::Equal),
+        CmpOp::NotEq => ordering != Some(Ordering::Equal),
+        CmpOp::Lt => ordering == Some(Ordering::Less),
+        CmpOp::LtEq => matches!(ordering, Some(Ordering::Less | Ordering::Equal)),
+        CmpOp::Gt => ordering == Some(Ordering::Greater),
+        CmpOp::GtEq => matches!(ordering, Some(Ordering::Greater | Ordering::Equal)),
+    }
+}
+
+#[cfg(feature = "bigint")]
+fn compare_big_nonfinite(_left: &BigInt, right: f64, op: CmpOp) -> bool {
+    if right.is_nan() {
+        return matches!(op, CmpOp::NotEq);
+    }
+    let ordering = if right.is_sign_positive() {
+        core::cmp::Ordering::Less
+    } else {
+        core::cmp::Ordering::Greater
+    };
+    ordering.matches(op)
+}
+
+#[cfg(feature = "bigint")]
+fn compare_num_nonfinite(left: f64, _right: &BigInt, op: CmpOp) -> bool {
+    if left.is_nan() {
+        return matches!(op, CmpOp::NotEq);
+    }
+    let ordering = if left.is_sign_positive() {
+        core::cmp::Ordering::Greater
+    } else {
+        core::cmp::Ordering::Less
+    };
+    ordering.matches(op)
+}
+
+trait OrderingMatches {
+    fn matches(self, op: CmpOp) -> bool;
+}
+
+impl OrderingMatches for Option<core::cmp::Ordering> {
+    fn matches(self, op: CmpOp) -> bool {
+        match op {
+            CmpOp::Eq => self == Some(core::cmp::Ordering::Equal),
+            CmpOp::NotEq => self != Some(core::cmp::Ordering::Equal),
+            CmpOp::Lt => self == Some(core::cmp::Ordering::Less),
+            CmpOp::LtEq => matches!(
+                self,
+                Some(core::cmp::Ordering::Less | core::cmp::Ordering::Equal)
+            ),
+            CmpOp::Gt => self == Some(core::cmp::Ordering::Greater),
+            CmpOp::GtEq => matches!(
+                self,
+                Some(core::cmp::Ordering::Greater | core::cmp::Ordering::Equal)
+            ),
+        }
+    }
+}
+
+impl OrderingMatches for core::cmp::Ordering {
+    fn matches(self, op: CmpOp) -> bool {
+        match op {
+            CmpOp::Eq => self == core::cmp::Ordering::Equal,
+            CmpOp::NotEq => self != core::cmp::Ordering::Equal,
+            CmpOp::Lt => self == core::cmp::Ordering::Less,
+            CmpOp::LtEq => matches!(self, core::cmp::Ordering::Less | core::cmp::Ordering::Equal),
+            CmpOp::Gt => self == core::cmp::Ordering::Greater,
+            CmpOp::GtEq => {
+                matches!(
+                    self,
+                    core::cmp::Ordering::Greater | core::cmp::Ordering::Equal
+                )
+            }
         }
     }
 }
@@ -1036,6 +1587,13 @@ pub fn neg(a: Value) -> Result<Value> {
                 rhs: "(none)",
             });
         }
+        Function(_) => {
+            return Err(Error::TypeMismatch {
+                op: "unary -",
+                lhs: "function",
+                rhs: "(none)",
+            });
+        }
         #[cfg(feature = "bigint")]
         Big(x) => Big(-x),
         #[cfg(feature = "fraction")]
@@ -1043,20 +1601,61 @@ pub fn neg(a: Value) -> Result<Value> {
         #[cfg(feature = "complex")]
         Complex(x) => Complex(x.neg()),
         #[cfg(feature = "unit")]
-        Unit(x) => Unit(crate::value::UnitValue {
-            base_value: -x.base_value,
-            unit_label: x.unit_label,
-            dim: x.dim,
-        }),
+        Unit(x) => {
+            let display_value = -x.display_value();
+            let base_value = if x.affine {
+                display_value * x.display_factor + x.display_offset
+            } else {
+                -x.base_value
+            };
+            check_temperature(base_value, x.dim)?;
+            Unit(crate::value::UnitValue {
+                base_value,
+                unit_label: x.unit_label,
+                display_factor: x.display_factor,
+                display_offset: x.display_offset,
+                display_value_override: Some(display_value),
+                dim: x.dim,
+                affine: x.affine,
+            })
+        }
     })
 }
 
+#[cfg(feature = "unit")]
+fn check_temperature(base_value: f64, dim: crate::value::Dimension) -> Result<()> {
+    if dim == crate::value::Dimension::TEMPERATURE && base_value < 0.0 {
+        return Err(Error::Domain {
+            what: "temperature below absolute zero",
+        });
+    }
+    Ok(())
+}
+
 pub fn logical_not(a: Value) -> Result<Value> {
-    Ok(Value::Num(if a.as_f64().unwrap_or(0.0) == 0.0 {
-        1.0
-    } else {
-        0.0
-    }))
+    match a {
+        Value::Bool(value) => Ok(Value::Bool(!value)),
+        value => Err(Error::TypeMismatch {
+            op: "!",
+            lhs: value.type_name(),
+            rhs: "boolean",
+        }),
+    }
+}
+
+pub fn percent(a: Value) -> Result<Value> {
+    #[cfg(all(feature = "bigint", feature = "fraction"))]
+    if let Value::Big(value) = a {
+        return Ok(Value::Frac(
+            Fraction::raw_from_int_backend(value).div(&fraction_from_num(100.0)?)?,
+        ));
+    }
+    #[cfg(all(feature = "bigint", not(feature = "fraction")))]
+    if let Value::Big(value) = a {
+        use num_traits::ToPrimitive;
+        return Ok(Value::Num(value.to_f64().ok_or(Error::Overflow)? / 100.0));
+    }
+    div(a, Value::Num(100.0))
 }
 
 pub fn factorial(a: Value) -> Result<Value> {
