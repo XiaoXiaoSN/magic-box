@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { setRuntimePrefs } from '@functions/runtimePrefs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WeekNumberBoxSource } from '../WeekNumberBoxSource';
 
 describe('WeekNumberBoxSource', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed' });
+  });
+
   it('returns [] when no matching option is present', async () => {
     const boxes = await WeekNumberBoxSource.generateBoxes('2024-01-01', null);
     expect(boxes).toEqual([]);
@@ -93,6 +99,16 @@ describe('WeekNumberBoxSource', () => {
     });
   });
 
+  it('preserves four-digit calendar and ISO week years', async () => {
+    const boxes = await WeekNumberBoxSource.generateBoxes('0001-01-01', {
+      weeknum: true,
+    });
+    const opts = boxes[0].props.options as Record<string, string>;
+    expect(opts.Date).toBe('0001-01-01');
+    expect(opts['ISO Week']).toBe('0001-W01');
+    expect(opts['ISO Year']).toBe('0001');
+  });
+
   describe('invalid date input', () => {
     it('returns a box explaining the date is invalid', async () => {
       const boxes = await WeekNumberBoxSource.generateBoxes('notadate', {
@@ -101,6 +117,15 @@ describe('WeekNumberBoxSource', () => {
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Error).toMatch(/invalid date/i);
+    });
+
+    it('rejects calendar rollover dates', async () => {
+      const boxes = await WeekNumberBoxSource.generateBoxes('2024-02-30', {
+        weeknum: true,
+      });
+      expect((boxes[0].props.options as Record<string, string>).Error).toMatch(
+        /invalid date/i,
+      );
     });
   });
 
@@ -174,6 +199,16 @@ describe('WeekNumberBoxSource', () => {
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
       expect(opts.Error).toBeUndefined();
+    });
+
+    it('is case-insensitive and uses the configured timezone date', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T20:00:00Z'));
+      const boxes = await WeekNumberBoxSource.generateBoxes('TODAY', {
+        weeknum: true,
+      });
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Date).toBe('2024-01-02');
     });
   });
 });

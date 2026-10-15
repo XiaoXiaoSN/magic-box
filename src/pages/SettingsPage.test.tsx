@@ -31,6 +31,7 @@ describe('Settings timezone and defaults', () => {
     expect(
       screen.getByRole('option', { name: 'UTC+8 (default)' }),
     ).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'UTC+5:45' })).toBeTruthy();
     fireEvent.change(select, { target: { value: '5.75' } });
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneOffset,

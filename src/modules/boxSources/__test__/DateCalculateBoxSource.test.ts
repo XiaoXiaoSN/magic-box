@@ -1,5 +1,5 @@
+import { setRuntimePrefs } from '@functions/runtimePrefs';
 import { expect, it, vi } from 'vitest';
-
 import {
   DateCalculateBoxSource,
   exportedForTesting,
@@ -7,52 +7,49 @@ import {
 
 describe('DateCalculateBoxSource', () => {
   beforeEach(() => {
+    setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed', locale: 'en' });
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
+    vi.unstubAllEnvs();
+    setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed', locale: 'en' });
   });
 
   describe('parseDate', () => {
     it.each([
-      ['2024-01-01'],
-      ['2024/01/01'],
-      ['2024-01-01T00:00:00Z'],
-      ['2024-01-01T00:00:00.00Z'],
-      ['2024-01-01 00:00:00'],
-      ['2024-01-01T00:00:00.123456Z'],
-      ['2024-01-01T00:00:00.123456+08:00'],
-      ['2024-01-01 00:00:00.123456'],
-      ['now'],
-      ['today'],
-    ])('should successfully parse difference formats', (dateString: string) => {
+      ['2024-01-01', '2024-01-01T00:00:00.000Z'],
+      ['2024/01/01', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01T00:00:00Z', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01T00:00:00.00Z', '2024-01-01T00:00:00.000Z'],
+      ['2024-01-01 00:00:00', '2023-12-31T16:00:00.000Z'],
+      ['2024-01-01T00:00:00.123456Z', '2024-01-01T00:00:00.123Z'],
+      ['2024-01-01T00:00:00.123456+08:00', '2023-12-31T16:00:00.123Z'],
+      ['2024-01-01 00:00:00.123456', '2023-12-31T16:00:00.123Z'],
+      ['now', '2024-01-01T00:00:00.000Z'],
+      ['today', '2024-01-01T00:00:00.000Z'],
+    ])('should parse %s to the expected instant', (dateString: string, expectedInstant: string) => {
       const DATE_PATTERN = new RegExp(exportedForTesting.DATE, 'i');
       const match = dateString.match(DATE_PATTERN);
       expect(match).toBeTruthy();
       const parsedDate = exportedForTesting.parseDate(dateString);
       expect(parsedDate).toBeInstanceOf(Date);
-      if (
-        !dateString.includes('+') &&
-        !dateString.includes('Z') &&
-        !dateString.includes('now') &&
-        !dateString.includes('today')
-      ) {
-        expect(parsedDate.toDateString()).toMatch('Mon Jan 01 2024');
-      }
+      expect(parsedDate.toISOString()).toBe(expectedInstant);
     });
 
     it('should parse `tomorrow`', () => {
       const parsedDate = exportedForTesting.parseDate('tomorrow');
       expect(parsedDate).toBeInstanceOf(Date);
-      expect(parsedDate.toDateString()).toMatch('Tue Jan 02 2024');
+      expect(parsedDate.toISOString()).toBe('2024-01-02T00:00:00.000Z');
     });
 
     it('should parse `yesterday`', () => {
       const parsedDate = exportedForTesting.parseDate('yesterday');
       expect(parsedDate).toBeInstanceOf(Date);
-      expect(parsedDate.toDateString()).toMatch('Sun Dec 31 2023');
+      expect(parsedDate.toISOString()).toBe('2023-12-31T00:00:00.000Z');
     });
   });
 
@@ -131,6 +128,111 @@ describe('DateCalculateBoxSource', () => {
       );
       expect(result?.result).toBe('2023-12-31T17:00:00.000Z');
     });
+
+    it('uses the configured timezone for supplied datetimes without offsets', () => {
+      setRuntimePrefs({ timezoneOffset: 5.75, timezoneMode: 'fixed' });
+      const result = DateCalculateBoxSource.checkAddSubtractPattern(
+        '2024-10-27 12:30:00 + 1h',
+      );
+      expect(result?.fromDate).toBe('2024-10-27T12:30:00.000+05:45');
+      expect(result?.toDate).toBe('2024-10-27T13:30:00.000+05:45');
+    });
+
+    it('resolves system offsets at the supplied wall time across DST', () => {
+      const transition = new Date('2025-03-09T10:00:00Z').getTime();
+      vi.spyOn(Date.prototype, 'getTimezoneOffset').mockImplementation(
+        function (this: Date) {
+          return this.getTime() < transition ? 480 : 420;
+        },
+      );
+      setRuntimePrefs({ timezoneMode: 'system' });
+      const result = DateCalculateBoxSource.checkAddSubtractPattern(
+        '2025-03-09 03:30:00 + 1h',
+      );
+      expect(result?.fromDate).toBe('2025-03-09T03:30:00.000-07:00');
+      expect(result?.toDate).toBe('2025-03-09T04:30:00.000-07:00');
+    });
+
+    it('rejects invalid calendar dates and mixed date separators', () => {
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-02-30 + 1d'),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024/02-29 + 1d'),
+      ).toBeUndefined();
+    });
+
+    it('adds weeks and clamps month and year additions to month end', () => {
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-01-01 + 2 weeks')
+          ?.result,
+      ).toBe('2024-01-15');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-01-31 + 1 month')
+          ?.result,
+      ).toBe('2024-02-29');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2024-02-29 + 1 year')
+          ?.result,
+      ).toBe('2025-02-28');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('2026-Jun-25 + 1d')
+          ?.result,
+      ).toBe('2026-06-26');
+    });
+
+    it('matches supported date, timestamp, and relative-day alternatives', () => {
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('04/25/2025 + 1d')
+          ?.result,
+      ).toBe('2025-04-26');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('1682419200 + 1d')
+          ?.result,
+      ).toBe('2023-04-26T10:40:00.000Z');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('tomorrow + 1d')?.result,
+      ).toBe('2024-01-03');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('now + 2w')?.result,
+      ).toBe('2024-01-15');
+    });
+
+    it('rejects timestamp and datetime hybrid inputs', () => {
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(
+          '1735794245T12:00:00 + 1h',
+        ),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(
+          '1735794245000 12:00:00 + 1h',
+        ),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('20240101T12:00:00 + 1h')
+          ?.result,
+      ).toBe('2024-01-01T13:00:00.000+08:00');
+    });
+
+    it('preserves four-digit years in date-only results and reparsing', () => {
+      const first =
+        DateCalculateBoxSource.checkAddSubtractPattern('0001-01-01 + 1d');
+      expect(first?.result).toBe('0001-01-02');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(`${first?.result} + 1d`)
+          ?.result,
+      ).toBe('0001-01-03');
+    });
+
+    it('keeps date-only calculations on calendar days across DST boundaries', () => {
+      vi.stubEnv('TZ', 'America/Los_Angeles');
+      const result = DateCalculateBoxSource.checkDateDiffPattern(
+        '2025-03-08 to 2025-03-10',
+      );
+      expect(result?.result).toBe('2 days');
+      expect(result?.days).toBe(2);
+    });
   });
 
   describe('checkDateDiffPattern', () => {
@@ -163,6 +265,17 @@ describe('DateCalculateBoxSource', () => {
       expect(result?.toDate).toBe('2024-12-31');
       expect(result?.days).toBe(365);
       expect(result?.operation).toBe('diff');
+    });
+
+    it('treats date-only punctuation variants as the same calendar date', () => {
+      expect(
+        DateCalculateBoxSource.checkDateDiffPattern('2025-04-25 to 2025/04/25')
+          ?.result,
+      ).toBe('0 seconds');
+      expect(
+        DateCalculateBoxSource.checkDateDiffPattern('2025-4-25 to 2025-04-25')
+          ?.result,
+      ).toBe('0 seconds');
     });
 
     it('should handle "specific date to now" format', () => {
@@ -336,6 +449,15 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes.length).toBe(1);
       expect(boxes[0].props.name).toBe('Relative Time');
       expect(boxes[0].props.plaintextOutput).toBe('1 minute ago');
+    });
+
+    it('formats relative text using the selected locale', async () => {
+      setRuntimePrefs({ locale: 'zh-TW' });
+      const boxes = await DateCalculateBoxSource.generateBoxes(
+        '2024-01-04T00:00:00Z',
+        { relative: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('3 天後');
     });
   });
 });

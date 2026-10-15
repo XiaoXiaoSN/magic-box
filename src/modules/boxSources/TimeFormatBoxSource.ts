@@ -27,16 +27,8 @@ export const TimeFormatBoxSource = {
       return undefined;
     }
 
-    try {
-      const timestamp = Date.parse(regularInput);
-      if (timestamp > 0) {
-        return { timestamp };
-      }
-    } catch {
-      /* */
-    }
-
-    return undefined;
+    const timestamp = Date.parse(regularInput);
+    return Number.isFinite(timestamp) ? { timestamp } : undefined;
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
