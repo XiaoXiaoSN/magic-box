@@ -42,6 +42,16 @@ function sourceErrorBox(source: BoxSource, message: string): BoxType {
   return errorBox(source.name, message, { priority: source.priority });
 }
 
+function hasExplicitSourceOption(
+  source: BoxSource,
+  options: Record<string, string | boolean> | null,
+): boolean {
+  return (
+    options !== null &&
+    source.optionKeys?.some((key) => Object.hasOwn(options, key)) === true
+  );
+}
+
 interface Props {
   input: string;
   liveInput?: string;
@@ -298,18 +308,27 @@ const MagicBox = ({
 
     for (const [sourceIndex, boxSource] of boxSources.entries()) {
       const sourceId = boxSource.id;
+      const matches = boxSource.canHandle?.(input, options) ?? true;
+      const explicitlyRequested = hasExplicitSourceOption(boxSource, options);
       const supportsInputSize =
         !largeInput ||
-        (boxSource.supportsLargeInput === true &&
+        (explicitlyRequested &&
+          boxSource.supportsLargeInput === true &&
           input.length <= MAX_WORKER_INPUT_LENGTH);
       const canUseWorker =
         supportsInputSize &&
         input.length <= MAX_WORKER_INPUT_LENGTH &&
         sourceId !== undefined &&
-        boxSource.workerSafe === true;
+        boxSource.workerSafe === true &&
+        matches;
 
       if (canUseWorker && sourceId !== undefined) {
         workerEntries.push({ source: boxSource, sourceId, sourceIndex });
+        continue;
+      }
+
+      if (boxSource.workerSafe === true && boxSource.canHandle && !matches) {
+        commitSlot(sourceIndex, []);
         continue;
       }
 
@@ -318,10 +337,7 @@ const MagicBox = ({
         continue;
       }
 
-      const requested =
-        boxSource.workerSafe === true ||
-        boxSource.canHandle?.(input, options) === true;
-      if (requested) {
+      if (explicitlyRequested) {
         const limit =
           input.length > MAX_WORKER_INPUT_LENGTH
             ? MAX_WORKER_INPUT_LENGTH
@@ -338,6 +354,8 @@ const MagicBox = ({
             boxSource,
           ),
         );
+      } else {
+        commitSlot(sourceIndex, []);
       }
     }
 

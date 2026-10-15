@@ -2,6 +2,7 @@ import copyTextToClipboard from '@functions/clipboard';
 import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
+import { createLazyBoxSource } from '@modules/boxSources/lazySource';
 import {
   cleanup,
   fireEvent,
@@ -159,6 +160,90 @@ describe('MagicBox source pipeline', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('does not import an irrelevant lazy worker source', async () => {
+    vi.stubGlobal('Worker', FakeComputeWorker);
+    const load = vi.fn(async () =>
+      sourceWithResult('irrelevant', Promise.resolve([])),
+    );
+    const source = createLazyBoxSource({
+      id: 'irrelevant-worker',
+      name: 'Irrelevant Worker',
+      description: '',
+      defaultInput: '',
+      tag: '#',
+      kind: 'Compute',
+      workerSafe: true,
+      canHandle: () => false,
+      load,
+    });
+
+    try {
+      render(tree('ordinary text', [source]));
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('magic-box-pending'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(load).not.toHaveBeenCalled();
+      expect(FakeComputeWorker.requests).toHaveLength(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('does not import automatic large-input converters', async () => {
+    vi.stubGlobal('Worker', FakeComputeWorker);
+    const load = vi.fn(async () =>
+      sourceWithResult('large', Promise.resolve([])),
+    );
+    const source = createLazyBoxSource({
+      id: 'large-converter',
+      name: 'Large Converter',
+      description: '',
+      defaultInput: '',
+      tag: '{ }',
+      kind: 'Format',
+      workerSafe: true,
+      supportsLargeInput: true,
+      canHandle: () => true,
+      load,
+    });
+
+    try {
+      render(tree('x'.repeat(256 * 1024 + 1), [source]));
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('magic-box-pending'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(load).not.toHaveBeenCalled();
+      expect(FakeComputeWorker.requests).toHaveLength(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('clears a skipped source slot when a large run replaces a short result', async () => {
+    const source: BoxSource = {
+      id: 'color',
+      name: 'Color',
+      description: '',
+      defaultInput: '',
+      tag: '·',
+      kind: 'Test',
+      async generateBoxes(input): Promise<Box[]> {
+        return input.length <= 256 * 1024 ? [box('Color')] : [box('never')];
+      },
+    };
+    const { rerender } = render(tree('short', [source]));
+    expect(await screen.findByText('Color output')).toBeInTheDocument();
+
+    rerender(tree('x'.repeat(256 * 1024 + 1), [source]));
+    await waitFor(() =>
+      expect(screen.queryByText('Color output')).not.toBeInTheDocument(),
+    );
   });
 
   it('renders each source as it settles while preserving source order', async () => {

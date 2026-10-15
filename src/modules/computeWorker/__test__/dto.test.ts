@@ -5,6 +5,7 @@ import {
   isComputeWorkerRunRequest,
   isWorkerBoxDTO,
   rehydrateWorkerBox,
+  serializeWorkerBoxes,
   toWorkerBox,
 } from '../dto';
 
@@ -79,5 +80,30 @@ describe('compute worker DTOs', () => {
     expect(
       isComputeWorkerRunRequest({ ...request, options: { bad: { value: 1 } } }),
     ).toBe(false);
+  });
+
+  it('rejects output that exceeds the transferable string budget', () => {
+    const oversized = toWorkerBox({
+      props: {
+        name: 'JSON Output',
+        plaintextOutput: 'x'.repeat(1_048_577),
+        options: null,
+        onClick: () => {},
+      },
+    });
+
+    expect(oversized).toBeNull();
+    expect(() =>
+      serializeWorkerBoxes([
+        {
+          props: {
+            name: 'JSON Output',
+            plaintextOutput: 'x'.repeat(1_048_577),
+            options: null,
+            onClick: () => {},
+          },
+        },
+      ]),
+    ).toThrow('exceeds the transferable output limits');
   });
 });

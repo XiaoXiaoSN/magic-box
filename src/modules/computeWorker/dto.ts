@@ -4,6 +4,7 @@ export const MAX_WORKER_INPUT_LENGTH = 1024 * 1024;
 export const MAX_WORKER_SOURCE_COUNT = 256;
 export const MAX_WORKER_BOX_COUNT = 64;
 export const MAX_WORKER_STRING_LENGTH = 1024 * 1024;
+export const MAX_WORKER_OUTPUT_LENGTH = 4 * MAX_WORKER_STRING_LENGTH;
 export const MAX_WORKER_OPTION_COUNT = 128;
 
 export interface WorkerBoxDTO {
@@ -152,6 +153,28 @@ function isBoxView(value: unknown): value is BoxView {
   return typeof value === 'string' && VIEWS.includes(value as BoxView);
 }
 
+function workerBoxSize(box: WorkerBoxDTO): number {
+  let size = box.name.length + box.plaintextOutput.length;
+  if (box.sourceInput !== undefined) size += box.sourceInput.length;
+  if (box.tag !== undefined) size += box.tag.length;
+  if (box.kind !== undefined) size += box.kind.length;
+  if (box.options !== null) {
+    for (const [key, value] of Object.entries(box.options)) {
+      size += key.length + String(value).length;
+    }
+  }
+  return size;
+}
+
+function fitsWorkerOutputBudget(boxes: readonly WorkerBoxDTO[]): boolean {
+  let size = 0;
+  for (const box of boxes) {
+    size += workerBoxSize(box);
+    if (size > MAX_WORKER_OUTPUT_LENGTH) return false;
+  }
+  return true;
+}
+
 export function isWorkerBoxDTO(value: unknown): value is WorkerBoxDTO {
   if (!isRecord(value)) return false;
   if (!isBoundedString(value.name, 512)) return false;
@@ -247,7 +270,8 @@ export function isComputeWorkerEvent(
       isNonEmptyBoundedString(value.sourceId, 256) &&
       Array.isArray(value.boxes) &&
       value.boxes.length <= MAX_WORKER_BOX_COUNT &&
-      value.boxes.every(isWorkerBoxDTO)
+      value.boxes.every(isWorkerBoxDTO) &&
+      fitsWorkerOutputBudget(value.boxes)
     );
   }
   if (value.type === 'failure') return isBoundedString(value.message, 4096);
@@ -289,6 +313,29 @@ export function toWorkerBox(box: Box): WorkerBoxDTO | null {
   if (props.tag !== undefined) dto.tag = props.tag;
   if (props.kind !== undefined) dto.kind = props.kind;
   return isWorkerBoxDTO(dto) ? dto : null;
+}
+
+/** serializes worker output and turns an unsafe DTO into a source error. */
+export function serializeWorkerBoxes(boxes: readonly Box[]): WorkerBoxDTO[] {
+  const serialized: WorkerBoxDTO[] = [];
+  let outputLength = 0;
+  for (const box of boxes) {
+    if (box.boxTemplate !== undefined) continue;
+    const dto = toWorkerBox(box);
+    if (dto === null) {
+      throw new Error(
+        'Worker source returned a box that exceeds the transferable output limits.',
+      );
+    }
+    outputLength += workerBoxSize(dto);
+    if (outputLength > MAX_WORKER_OUTPUT_LENGTH) {
+      throw new Error(
+        `Worker source output exceeds the ${MAX_WORKER_OUTPUT_LENGTH}-character limit.`,
+      );
+    }
+    serialized.push(dto);
+  }
+  return serialized;
 }
 
 export function rehydrateWorkerBox(dto: WorkerBoxDTO): Box {

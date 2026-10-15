@@ -1,11 +1,22 @@
+import { sourceManifest } from '@modules/boxSources';
 import { describe, expect, it } from 'vitest';
 
 import {
   registerComputeWorkerSource,
   resolveComputeWorkerSource,
+  workerSourceIds,
 } from '../registry';
 
 describe('compute worker source registry', () => {
+  it('keeps the narrow worker loader map aligned with the manifest', () => {
+    expect([...workerSourceIds].sort()).toEqual(
+      sourceManifest
+        .filter((definition) => definition.workerSafe === true)
+        .map((definition) => definition.id)
+        .sort(),
+    );
+  });
+
   it('lazily resolves only explicitly worker-safe sources', async () => {
     const dataConverter = await resolveComputeWorkerSource('data-converter');
     expect(dataConverter).not.toBeNull();

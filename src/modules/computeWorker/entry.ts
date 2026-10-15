@@ -9,7 +9,7 @@ import {
   isComputeWorkerRequest,
   isComputeWorkerRunRequest,
   MAX_WORKER_BOX_COUNT,
-  toWorkerBox,
+  serializeWorkerBoxes,
 } from './dto';
 
 export interface ComputeWorkerSource {
@@ -107,7 +107,7 @@ export async function executeComputeWorkerRun(
           `Worker source "${sourceId}" returned too many boxes (limit ${MAX_WORKER_BOX_COUNT}).`,
         );
       }
-      const serialized = boxes.map(toWorkerBox).filter((box) => box !== null);
+      const serialized = serializeWorkerBoxes(boxes);
       post(port, {
         type: 'source-result',
         runId: request.runId,

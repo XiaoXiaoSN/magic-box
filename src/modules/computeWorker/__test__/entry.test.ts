@@ -3,6 +3,7 @@ import {
   getTimezoneOffset,
   setRuntimePrefs,
 } from '@functions/runtimePrefs';
+import { BoxBuilder } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
 import type { ComputeWorkerEvent, ComputeWorkerRunRequest } from '../dto';
 import { type ComputeWorkerSource, executeComputeWorkerRun } from '../entry';
@@ -149,5 +150,28 @@ describe('compute worker entry', () => {
         runtimeOffset: -5,
       },
     ]);
+  });
+
+  it('reports oversized valid output instead of silently dropping the box', async () => {
+    const events: ComputeWorkerEvent[] = [];
+    await executeComputeWorkerRun(
+      { ...request, sourceIds: ['oversized'] },
+      () => ({
+        async generateBoxes() {
+          return [new BoxBuilder('JSON Output', 'x'.repeat(1_048_577)).build()];
+        },
+      }),
+      { postMessage: (event) => events.push(event) },
+    );
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: 'source-error',
+        sourceId: 'oversized',
+        message:
+          'Worker source returned a box that exceeds the transferable output limits.',
+      }),
+    );
+    expect(events.some((event) => event.type === 'source-result')).toBe(false);
   });
 });
