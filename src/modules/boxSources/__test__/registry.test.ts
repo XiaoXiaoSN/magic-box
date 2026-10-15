@@ -1,0 +1,235 @@
+import { parseInput } from '@functions/parseOptions';
+import type { BoxSource } from '@modules/BoxSource';
+import { describe, expect, it, vi } from 'vitest';
+import { tuiBoxSources } from '../../../tui/sources';
+import {
+  boxSources,
+  getBoxSource,
+  sharedOptionOwners,
+  sourceManifest,
+} from '../index';
+import { createLazyBoxSource } from '../lazySource';
+
+const manifestIds = sourceManifest.map((source) => source.id);
+
+describe('source manifest', () => {
+  it('keeps the complete ordered registry in stable-id form', () => {
+    expect(sourceManifest).toHaveLength(88);
+    expect(new Set(manifestIds).size).toBe(sourceManifest.length);
+    expect(
+      manifestIds.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),
+    ).toBe(true);
+    expect(manifestIds.slice(0, 4)).toEqual([
+      'color',
+      'color-contrast',
+      'escape-string',
+      'base64-decode',
+    ]);
+    expect(manifestIds.slice(-4)).toEqual([
+      'case-converter',
+      'certificate-decode',
+      'cheat-sheet',
+      'coordinates',
+    ]);
+    expect(getBoxSource('DMS Coordinates')?.id).toBe('coordinates');
+    expect(getBoxSource('coordinates')?.name).toBe('Coordinates');
+    expect(getBoxSource('missing-source')).toBeNull();
+  });
+
+  it('keeps manifest metadata and default inputs aligned with loaded sources', async () => {
+    for (const manifest of sourceManifest) {
+      const registered = getBoxSource(manifest.id);
+      if (!registered?.load) throw new Error(`${manifest.id} has no loader`);
+
+      const loaded = await registered.load();
+      expect({
+        name: manifest.name,
+        description: manifest.description,
+        defaultInput: manifest.defaultInput,
+        tag: manifest.tag,
+        kind: manifest.kind,
+        priority: manifest.priority,
+        defaultDisabled: manifest.defaultDisabled ?? false,
+      }).toEqual({
+        name: loaded.name,
+        description: loaded.description,
+        defaultInput: loaded.defaultInput,
+        tag: loaded.tag,
+        kind: loaded.kind,
+        priority: loaded.priority,
+        defaultDisabled: loaded.defaultDisabled ?? false,
+      });
+    }
+  });
+
+  it('keeps conservative matchers compatible with their default inputs', () => {
+    for (const manifest of sourceManifest) {
+      if (!manifest.canHandle) continue;
+
+      const registered = getBoxSource(manifest.id);
+      if (!registered) throw new Error(`${manifest.id} missing from registry`);
+      const [input, options] = parseInput(manifest.defaultInput);
+      expect(registered.canHandle?.(input, options)).toBe(true);
+    }
+  });
+
+  it('documents every intentional option collision', () => {
+    const owners = new Map<string, string[]>();
+    for (const source of sourceManifest) {
+      for (const key of source.optionKeys ?? []) {
+        const ids = owners.get(key) ?? [];
+        ids.push(source.id);
+        owners.set(key, ids);
+      }
+    }
+
+    const collisions = Object.fromEntries(
+      [...owners.entries()].filter(([, ids]) => ids.length > 1),
+    );
+    expect(collisions).toEqual(sharedOptionOwners);
+  });
+
+  it('keeps the headless registry aligned with the TUI metadata', () => {
+    expect(tuiBoxSources.map((source) => source.id)).toEqual(
+      boxSources.filter((source) => source.headless).map((source) => source.id),
+    );
+    expect(
+      boxSources
+        .filter((source) => !source.headless)
+        .map((source) => source.id),
+    ).toEqual(['generate-qr-code', 'my-ip', 'shorten-url', 'local-ai']);
+  });
+});
+
+describe('lazy source wrapper', () => {
+  const definition = (load: () => Promise<BoxSource>) => ({
+    id: 'test-source',
+    name: 'Test Source',
+    description: 'test source',
+    defaultInput: 'test',
+    tag: '#',
+    kind: 'Test',
+    optionKeys: ['test'],
+    canHandle: (
+      _input: string,
+      options: Record<string, string | boolean> | null,
+    ) => options?.test !== undefined,
+    load,
+  });
+
+  it('does not load when the cheap matcher rejects an input', async () => {
+    const load = vi.fn<() => Promise<BoxSource>>();
+    const source = createLazyBoxSource(definition(load));
+
+    await expect(source.generateBoxes('plain input', null)).resolves.toEqual(
+      [],
+    );
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('caches concurrent loads and preserves the loaded source this binding', async () => {
+    let calledWithSource = false;
+    const loaded: BoxSource = {
+      name: 'Test Source',
+      description: 'test source',
+      defaultInput: 'test',
+      tag: '#',
+      kind: 'Test',
+      generateBoxes: async function () {
+        calledWithSource = this === loaded;
+        return [];
+      },
+    };
+    const load = vi.fn().mockResolvedValue(loaded);
+    const source = createLazyBoxSource(definition(load));
+    const first = source.load();
+    const second = source.load();
+
+    expect(first).toBe(second);
+    await Promise.all([first, second]);
+    await source.generateBoxes('input', { test: true });
+
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(calledWithSource).toBe(true);
+  });
+
+  it('evicts a rejected load so a later attempt can retry', async () => {
+    const loaded: BoxSource = {
+      name: 'Test Source',
+      description: 'test source',
+      defaultInput: 'test',
+      tag: '#',
+      kind: 'Test',
+      generateBoxes: async () => [],
+    };
+    const load = vi
+      .fn<() => Promise<BoxSource>>()
+      .mockRejectedValueOnce(new Error('transient'))
+      .mockResolvedValueOnce(loaded);
+    const source = createLazyBoxSource(definition(load));
+
+    await expect(source.load()).rejects.toThrow('transient');
+    await expect(source.load()).resolves.toBe(loaded);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('honors cancellation before loading and after a pending load', async () => {
+    const loaded: BoxSource = {
+      name: 'Test Source',
+      description: 'test source',
+      defaultInput: 'test',
+      tag: '#',
+      kind: 'Test',
+      generateBoxes: async () => [],
+    };
+    let resolveLoad: ((source: BoxSource) => void) | undefined;
+    const load = vi.fn(
+      () =>
+        new Promise<BoxSource>((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    const source = createLazyBoxSource(definition(load));
+    const before = new AbortController();
+    before.abort();
+
+    await expect(
+      source.generateBoxes(
+        'input',
+        { test: true },
+        { signal: before.signal, preview: false },
+      ),
+    ).resolves.toEqual([]);
+    expect(load).not.toHaveBeenCalled();
+
+    const after = new AbortController();
+    const pending = source.generateBoxes(
+      'input',
+      { test: true },
+      { signal: after.signal, preview: false },
+    );
+    after.abort();
+    resolveLoad?.(loaded);
+
+    await expect(pending).resolves.toEqual([]);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('lazy source parity', () => {
+  it('matches direct source output for a deterministic headless source', async () => {
+    const input = 'b\na\nb\n::uniquelines';
+    const [parsedInput, options] = parseInput(input);
+    const registered = getBoxSource('line-tools');
+    if (!registered) throw new Error('line-tools missing from registry');
+    const { default: direct } = await import('../LineToolsBoxSource');
+
+    const [lazyBoxes, directBoxes] = await Promise.all([
+      registered.generateBoxes(parsedInput, options),
+      direct.generateBoxes(parsedInput, options),
+    ]);
+    expect(lazyBoxes.map((box) => box.props.plaintextOutput)).toEqual(
+      directBoxes.map((box) => box.props.plaintextOutput),
+    );
+  });
+});

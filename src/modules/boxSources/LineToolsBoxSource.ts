@@ -16,8 +16,8 @@ function splitLines(input: string): string[] {
 export const LineToolsBoxSource = {
   defaultDisabled: true,
   name: 'Line Tools',
-  description: 'Sort, de-duplicate, or reverse the lines of a text block.',
-  defaultInput: 'banana\napple\ncherry\napple\n::sortlines',
+  description: 'De-duplicate or reverse the lines of a text block.',
+  defaultInput: 'banana\napple\ncherry\napple\n::uniquelines',
   tag: '#',
   kind: 'Transform',
   priority: Priority,
@@ -26,11 +26,10 @@ export const LineToolsBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    const wantSort = hasOptionKeys(options, 'sortlines');
     const wantUnique = hasOptionKeys(options, 'uniquelines');
     const wantReverse = hasOptionKeys(options, 'reverselines');
 
-    if (!wantSort && !wantUnique && !wantReverse) return [];
+    if (!wantUnique && !wantReverse) return [];
     if (!isString(input) || input.length === 0) return [];
     if (input.length > MAX_INPUT) {
       return [
@@ -44,16 +43,6 @@ export const LineToolsBoxSource = {
 
     const lines = splitLines(input);
     const boxes: Box[] = [];
-
-    if (wantSort) {
-      const sorted = [...lines].sort((a, b) => a.localeCompare(b));
-      boxes.push(
-        new BoxBuilder('Sorted Lines', sorted.join('\n'))
-          .setView('code')
-          .setPriority(this.priority)
-          .build(),
-      );
-    }
 
     if (wantUnique) {
       // keep first occurrence order

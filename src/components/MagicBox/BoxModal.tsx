@@ -4,7 +4,7 @@ import ErrorBoundary, {
 } from '@components/ErrorBoundary';
 import type { Box as BoxType } from '@modules/Box';
 import { Modal } from '@mui/material';
-import { memo, useCallback } from 'react';
+import { memo, Suspense, useCallback } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import ModalShell from './ModalShell';
 
@@ -52,18 +52,20 @@ const BoxModal = memo(({ box, open, onClose, onCopy }: BoxModalProps) => {
         fallback={(retry) => <TemplateErrorFallback retry={retry} />}
         resetKey={box}
       >
-        <Comp
-          kind={kind}
-          largeModal
-          name={name}
-          onClick={handleClick}
-          onClose={onClose}
-          options={options}
-          plaintextOutput={plaintextOutput}
-          priority={priority}
-          sourceInput={sourceInput}
-          tag={tag}
-        />
+        <Suspense fallback={null}>
+          <Comp
+            kind={kind}
+            largeModal
+            name={name}
+            onClick={handleClick}
+            onClose={onClose}
+            options={options}
+            plaintextOutput={plaintextOutput}
+            priority={priority}
+            sourceInput={sourceInput}
+            tag={tag}
+          />
+        </Suspense>
       </ErrorBoundary>
     </ModalShell>
   );

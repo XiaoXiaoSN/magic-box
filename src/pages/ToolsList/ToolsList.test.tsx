@@ -243,7 +243,7 @@ describe('/list preview input state', () => {
       expect(originalGetItem('mb:list:collapsed')).toBe('1');
       fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
 
-      expect(originalGetItem('mb:list:selected')).toBe('UUID');
+      expect(originalGetItem('mb:list:selected')).toBe('uuid');
     } finally {
       getItem.mockRestore();
     }

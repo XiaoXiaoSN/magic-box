@@ -3,3 +3,5 @@
 /// <reference types="vite-plugin-pwa/client" />
 declare const __BUILD_VERSION__: string;
 declare const __SERVICE_WORKER_URL__: string;
+
+declare module 'cronstrue/locales/*.js';

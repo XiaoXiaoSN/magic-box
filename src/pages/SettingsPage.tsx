@@ -84,6 +84,7 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
   ]
     .filter(Boolean)
     .join(' ');
+  const displayName = source?.name ?? box.id;
 
   return (
     <div
@@ -95,7 +96,7 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       }}
     >
       <button
-        aria-label={t('settings.dragReorderLabel', { name: box.id })}
+        aria-label={t('settings.dragReorderLabel', { name: displayName })}
         className="dnd-grip"
         ref={setActivatorNodeRef}
         type="button"
@@ -110,13 +111,13 @@ const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
       <span aria-hidden="true" className="dnd-tag">
         {source?.tag ?? '·'}
       </span>
-      <span className="dnd-title">{box.id}</span>
+      <span className="dnd-title">{displayName}</span>
       <span className="dnd-kind">{source?.kind ?? ''}</span>
       <button
         aria-label={
           box.enabled
-            ? t('settings.disableBoxLabel', { name: box.id })
-            : t('settings.enableBoxLabel', { name: box.id })
+            ? t('settings.disableBoxLabel', { name: displayName })
+            : t('settings.enableBoxLabel', { name: displayName })
         }
         className={`toggle${box.enabled ? ' on' : ''}`}
         onClick={() => onToggle(box.id)}
@@ -270,7 +271,7 @@ const SettingsPage = (): React.JSX.Element => {
   };
 
   const sourceLookup = useMemo(
-    () => new Map(boxSources.map((s) => [s.name, s])),
+    () => new Map(boxSources.map((s) => [s.id ?? s.name, s])),
     [],
   );
 

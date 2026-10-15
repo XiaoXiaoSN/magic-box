@@ -65,8 +65,8 @@ describe('Settings timezone and defaults', () => {
       locale: 'en',
     });
     const settings = JSON.parse(localStorage.getItem('mb_settings') ?? '{}');
-    expect(settings.boxes['Text Diff'].enabled).toBe(true);
-    expect(settings.boxes.Now.enabled).toBe(true);
+    expect(settings.boxes['text-diff'].enabled).toBe(true);
+    expect(settings.boxes.now.enabled).toBe(true);
     expect(localStorage.getItem('history-marker')).toBe('keep');
   });
 
@@ -103,7 +103,7 @@ describe('Settings timezone and defaults', () => {
       boxSources.filter((source) => !source.defaultDisabled).length,
     );
     for (const [index, source] of boxSources.entries()) {
-      expect(settings.boxes[source.name]).toMatchObject({
+      expect(settings.boxes[source.id ?? source.name]).toMatchObject({
         enabled: !source.defaultDisabled,
         secondaryOrder: index,
       });

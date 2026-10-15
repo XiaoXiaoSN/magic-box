@@ -140,6 +140,24 @@ describe('HashBoxSource', () => {
     });
   });
 
+  describe('directive ownership', () => {
+    it('does not claim a valued sha option used as an HMAC key', async () => {
+      const boxes = await HashBoxSource.generateBoxes('abc', {
+        sha256: 'secret',
+      });
+      expect(boxes).toHaveLength(0);
+    });
+
+    it('does not claim a hash modifier paired with HMAC or PBKDF2', async () => {
+      await expect(
+        HashBoxSource.generateBoxes('abc', { hmac: 'secret', sha256: true }),
+      ).resolves.toHaveLength(0);
+      await expect(
+        HashBoxSource.generateBoxes('abc', { pbkdf2: 'salt', sha256: true }),
+      ).resolves.toHaveLength(0);
+    });
+  });
+
   describe('generateBoxes - non-secure context fallback', () => {
     const originalCrypto = globalThis.crypto;
 

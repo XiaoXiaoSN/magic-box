@@ -1,9 +1,9 @@
 import { BoxBuilder } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
-import DiffBoxTemplate from '../DiffBoxTemplate';
 import {
   CodeBoxTemplate,
   DefaultBoxTemplate,
+  DiffBoxTemplate,
   KeyValueBoxTemplate,
   ShortenURLBoxTemplate,
 } from '../index';
