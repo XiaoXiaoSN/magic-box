@@ -112,6 +112,9 @@ The next-time search checks calendar fields directly within a bounded 20-year
 horizon, so impossible dates such as February 31 produce no occurrences. The
 description remains available for `L`, `W`, and `#` expressions, but their next
 times are labelled unavailable because those advanced forms are not calculated.
+Descending ranges are rejected for seconds, minutes, hours, day-of-month,
+months, and years; day-of-week ranges wrap across Sunday (for example,
+`FRI-MON`).
 
 </details>
 

@@ -151,7 +151,7 @@ function parseField(input: string, kind: FieldKind): CronField | null {
   if (input === '?' && kind !== 'dayOfMonth' && kind !== 'dayOfWeek')
     return null;
   if (input.includes('?') && input !== '?') return null;
-  if (/[LW#]/i.test(input)) return null;
+  if (hasAdvancedMarkers(input, kind)) return null;
 
   const values = new Set<number>();
   const pieces = input.split(',');
@@ -180,6 +180,7 @@ function parseField(input: string, kind: FieldKind): CronField | null {
       const start = valueForToken(base.slice(0, hyphen), kind);
       const end = valueForToken(base.slice(hyphen + 1), kind);
       if (start === null || end === null) return null;
+      if (kind !== 'dayOfWeek' && start > end) return null;
       if (
         kind === 'dayOfWeek' &&
         base.slice(0, hyphen) === '0' &&
@@ -210,13 +211,48 @@ function parseField(input: string, kind: FieldKind): CronField | null {
   };
 }
 
-const allowedNamedValue = (value: string, kind: FieldKind): boolean => {
+const isOrdinaryDescriptionToken = (
+  value: string,
+  kind: FieldKind,
+): boolean => {
+  if (value === '*' || value === '?') return true;
+  return valueForToken(value, kind) !== null;
+};
+
+const isAdvancedDescriptionToken = (
+  value: string,
+  kind: FieldKind,
+): boolean => {
   const upper = value.toUpperCase();
-  if (upper === '*' || upper === '?' || upper === 'L' || upper === 'W')
+  if (upper === 'L' && (kind === 'dayOfMonth' || kind === 'dayOfWeek'))
     return true;
-  if (isInteger(value)) return true;
-  if (kind === 'month') return Object.hasOwn(MONTH_NAMES, upper);
-  if (kind === 'dayOfWeek') return Object.hasOwn(DAY_NAMES, upper);
+  if (kind === 'dayOfMonth') {
+    if (upper === 'W' || upper === 'LW') return true;
+    if (upper.endsWith('W') && valueForToken(upper.slice(0, -1), kind) !== null)
+      return true;
+  }
+  if (
+    (kind === 'dayOfMonth' || kind === 'dayOfWeek') &&
+    upper.endsWith('L') &&
+    valueForToken(upper.slice(0, -1), kind) !== null
+  )
+    return true;
+  return false;
+};
+
+const hasAdvancedMarkers = (input: string, kind: FieldKind): boolean => {
+  for (const commaPiece of input.split(',')) {
+    const slash = commaPiece.indexOf('/');
+    const base = slash === -1 ? commaPiece : commaPiece.slice(0, slash);
+    const hash = base.indexOf('#');
+    if (hash !== -1) {
+      if (kind === 'dayOfWeek') return true;
+      continue;
+    }
+    const rangeParts = base.split('-');
+    if (rangeParts.some((part) => isAdvancedDescriptionToken(part, kind)))
+      return true;
+  }
   return false;
 };
 
@@ -240,6 +276,11 @@ function validateDescriptionField(input: string, kind: FieldKind): boolean {
         Number(hashParts[1]) > 5)
     )
       return false;
+    if (
+      hashParts.length === 2 &&
+      !isOrdinaryDescriptionToken(hashParts[0], kind)
+    )
+      return false;
 
     const stepped = hashParts[0];
     const slashParts = stepped.split('/');
@@ -252,16 +293,18 @@ function validateDescriptionField(input: string, kind: FieldKind): boolean {
     const base = slashParts[0];
     const rangeParts = base.split('-');
     if (rangeParts.length > 2) return false;
+    if (rangeParts.length === 2 && kind !== 'dayOfWeek') {
+      const start = valueForToken(rangeParts[0], kind);
+      const end = valueForToken(rangeParts[1], kind);
+      if (start !== null && end !== null && start > end) return false;
+    }
 
     for (const rangePart of rangeParts) {
-      const marker = rangePart.replace(/[LW]+$/i, '');
       if (
-        /[LW]/i.test(rangePart) &&
-        kind !== 'dayOfMonth' &&
-        kind !== 'dayOfWeek'
+        !isOrdinaryDescriptionToken(rangePart, kind) &&
+        !isAdvancedDescriptionToken(rangePart, kind)
       )
         return false;
-      if (marker !== '' && !allowedNamedValue(marker, kind)) return false;
     }
   }
   return true;
@@ -304,7 +347,23 @@ export const parseCronSchedule = (input: string): ParsedCronSchedule | null => {
   if (normalized === null || !isCronExpressionSyntax(input)) return null;
   const fields = normalized.split(/\s+/);
   const fieldCount = fields.length as 5 | 6 | 7;
-  const advanced = /[LW#]/i.test(normalized);
+  const kinds: readonly FieldKind[] =
+    fieldCount === 5
+      ? ['minute', 'hour', 'dayOfMonth', 'month', 'dayOfWeek']
+      : fieldCount === 6
+        ? ['second', 'minute', 'hour', 'dayOfMonth', 'month', 'dayOfWeek']
+        : [
+            'second',
+            'minute',
+            'hour',
+            'dayOfMonth',
+            'month',
+            'dayOfWeek',
+            'year',
+          ];
+  const advanced = fields.some((field, index) =>
+    hasAdvancedMarkers(field, kinds[index]),
+  );
   if (advanced) {
     return {
       expression: normalized,
@@ -526,33 +585,11 @@ export function nextCronOccurrences(
           !matchesCalendarDay(schedule, year, month, day)
         )
           continue;
+        // finish a fall-back date before selecting its absolute next times.
+        let dayHasRepeatedInstants = false;
         for (const hour of hours.values) {
-          if (
-            year === start.year &&
-            month === start.month &&
-            day === start.day &&
-            hour < start.hour
-          )
-            continue;
           for (const minute of minutes.values) {
-            if (
-              year === start.year &&
-              month === start.month &&
-              day === start.day &&
-              hour === start.hour &&
-              minute < start.minute
-            )
-              continue;
             for (const second of seconds.values) {
-              if (
-                year === start.year &&
-                month === start.month &&
-                day === start.day &&
-                hour === start.hour &&
-                minute === start.minute &&
-                second < start.second
-              )
-                continue;
               checkedCandidates += 1;
               if (checkedCandidates > MAX_WALL_CANDIDATES) {
                 return {
@@ -563,10 +600,12 @@ export function nextCronOccurrences(
                 };
               }
               const candidateParts = { year, month, day, hour, minute, second };
-              for (const candidate of wallDateCandidates(
+              const candidates = wallDateCandidates(
                 candidateParts,
                 getTimezoneOffset,
-              )) {
+              );
+              if (candidates.length > 1) dayHasRepeatedInstants = true;
+              for (const candidate of candidates) {
                 if (
                   candidate.getTime() <= capturedNow.getTime() ||
                   seen.has(candidate.getTime())
@@ -575,7 +614,7 @@ export function nextCronOccurrences(
                 seen.add(candidate.getTime());
                 occurrences.push(candidate);
               }
-              if (occurrences.length >= 5) {
+              if (occurrences.length >= 5 && !dayHasRepeatedInstants) {
                 occurrences.sort(
                   (left, right) => left.getTime() - right.getTime(),
                 );
@@ -587,6 +626,14 @@ export function nextCronOccurrences(
               }
             }
           }
+        }
+        if (occurrences.length >= 5) {
+          occurrences.sort((left, right) => left.getTime() - right.getTime());
+          return {
+            status: 'ok',
+            occurrences: occurrences.slice(0, 5),
+            checkedCandidates,
+          };
         }
       }
     }

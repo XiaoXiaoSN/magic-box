@@ -27,6 +27,51 @@ describe('cron schedule calculation', () => {
     ]);
   });
 
+  it.each([
+    ['JAN', 1],
+    ['FEB', 2],
+    ['MAR', 3],
+    ['APR', 4],
+    ['MAY', 5],
+    ['JUN', 6],
+    ['JUL', 7],
+    ['AUG', 8],
+    ['SEP', 9],
+    ['OCT', 10],
+    ['NOV', 11],
+    ['DEC', 12],
+  ])('keeps the month alias %s ordinary', (alias, value) => {
+    const schedule = parseCronSchedule(`0 0 1 ${alias} *`);
+
+    expect(schedule?.advanced).toBe(false);
+    expect(schedule?.months?.values).toEqual([value]);
+  });
+
+  it.each([
+    ['SUN', 0],
+    ['MON', 1],
+    ['TUE', 2],
+    ['WED', 3],
+    ['THU', 4],
+    ['FRI', 5],
+    ['SAT', 6],
+  ])('keeps the weekday alias %s ordinary', (alias, value) => {
+    const schedule = parseCronSchedule(`0 0 * * ${alias}`);
+
+    expect(schedule?.advanced).toBe(false);
+    expect(schedule?.daysOfWeek?.values).toEqual([value]);
+  });
+
+  it('rejects descending ranges except for the wrapping weekday field', () => {
+    expect(isCronExpressionSyntax('0 0 1 DEC-FEB,MAR *')).toBe(false);
+    expect(parseCronSchedule('0 0 1 DEC-FEB,MAR *')).toBeNull();
+    expect(isCronExpressionSyntax('0 22-2 * * *')).toBe(false);
+    expect(parseCronSchedule('0 22-2 * * *')).toBeNull();
+
+    const weekdays = parseCronSchedule('0 0 * * FRI-MON');
+    expect(weekdays?.daysOfWeek?.values).toEqual([0, 1, 5, 6]);
+  });
+
   it('uses the configured UTC offset without applying it twice', () => {
     const result = nextCronOccurrences(
       '0 9 * * *',
@@ -170,6 +215,61 @@ describe('cron schedule calculation', () => {
       expect(
         fall.occurrences.slice(0, 2).map((date) => date.toISOString()),
       ).toEqual(['2024-11-03T05:30:00.000Z', '2024-11-03T06:30:00.000Z']);
+    }
+  });
+
+  it('keeps the next five occurrences in absolute order through fall-back', () => {
+    vi.stubEnv('TZ', 'America/New_York');
+    const systemOffset = (date: Date): number => -date.getTimezoneOffset() / 60;
+    const beforeFallback = nextCronOccurrences(
+      '* 1 * * *',
+      new Date('2024-11-03T04:59:59Z'),
+      systemOffset,
+    );
+    const withinFirstHour = nextCronOccurrences(
+      '* 1 * * *',
+      new Date('2024-11-03T05:59:59Z'),
+      systemOffset,
+    );
+    const daily = nextCronOccurrences(
+      '0 1 * * *',
+      new Date('2024-11-03T05:59:59Z'),
+      systemOffset,
+    );
+
+    expect(beforeFallback.status).toBe('ok');
+    if (beforeFallback.status === 'ok') {
+      expect(
+        beforeFallback.occurrences.map((date) => date.toISOString()),
+      ).toEqual([
+        '2024-11-03T05:00:00.000Z',
+        '2024-11-03T05:01:00.000Z',
+        '2024-11-03T05:02:00.000Z',
+        '2024-11-03T05:03:00.000Z',
+        '2024-11-03T05:04:00.000Z',
+      ]);
+    }
+    expect(withinFirstHour.status).toBe('ok');
+    if (withinFirstHour.status === 'ok') {
+      expect(
+        withinFirstHour.occurrences.map((date) => date.toISOString()),
+      ).toEqual([
+        '2024-11-03T06:00:00.000Z',
+        '2024-11-03T06:01:00.000Z',
+        '2024-11-03T06:02:00.000Z',
+        '2024-11-03T06:03:00.000Z',
+        '2024-11-03T06:04:00.000Z',
+      ]);
+    }
+    expect(daily.status).toBe('ok');
+    if (daily.status === 'ok') {
+      expect(daily.occurrences.map((date) => date.toISOString())).toEqual([
+        '2024-11-03T06:00:00.000Z',
+        '2024-11-04T06:00:00.000Z',
+        '2024-11-05T06:00:00.000Z',
+        '2024-11-06T06:00:00.000Z',
+        '2024-11-07T06:00:00.000Z',
+      ]);
     }
   });
 
