@@ -15,6 +15,41 @@ describe('MathExpressionBoxSource', () => {
       expect(await MathExpressionBoxSource.checkMatch('abc')).toBeUndefined();
     });
 
+    it('should ignore dates, grouped identifiers, strings, and invalid results', async () => {
+      for (const input of [
+        '2024-01-01',
+        '2024/01/01',
+        '0912-345-678',
+        '"2024-01-15"',
+        'e-1',
+        '1/0',
+        '0/0',
+        'f(x) = x^2',
+        '3 in',
+      ]) {
+        expect(await MathExpressionBoxSource.checkMatch(input)).toBeUndefined();
+      }
+    });
+
+    it('should let explicit math options override the input gate', async () => {
+      expect(
+        await MathExpressionBoxSource.checkMatch('2024-01-01', { math: true }),
+      ).toEqual({ answer: '2022' });
+      expect(
+        await MathExpressionBoxSource.checkMatch('ignored', { math: '2 + 2' }),
+      ).toEqual({ answer: '4' });
+    });
+
+    it('should return a bounded error box for explicit invalid input', async () => {
+      const boxes = await MathExpressionBoxSource.generateBoxes('not math', {
+        math: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toBe(
+        'Invalid mathematical expression.',
+      );
+    });
+
     it('should return correct result for basic arithmetic', async () => {
       const result = await MathExpressionBoxSource.checkMatch('1000 + 2000');
       expect(result).toBeDefined();

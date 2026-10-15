@@ -20,8 +20,9 @@ of the bundle size.
 - **BigInt**: arbitrary-precision integers via `123n` literals or `big(...)`
 - **Fractions**: exact rationals via `frac(num, den)`; auto-simplified
 - **Complex numbers**: `complex(re, im)`, `i`, full arithmetic + `re/im/conj/arg/abs`
-- **Units**: `1 km + 500 m to m` → `1500 m`; SI length / mass / time tables
-  with dimension checking
+- **Units**: `1 km + 500 m to m` → `1500 m`; dimension checked length, mass,
+  time, temperature, and data units, including derived and composite units
+  such as `km/h`, `m^2`, `MB`, and `GiB`
 - **Number bases**: decimal, hex (`0xFF`), binary (`0b1010`), octal (`0o17`)
 
 ### Numeric exactness
@@ -66,37 +67,44 @@ source → lex → parse (Pratt) → compile (constant folding) → vm → value
 
 | precedence | category |
 |---|---|
-| 200 | literals, variables |
-| 190 | function calls |
-| 120 | exponent `^` |
-| 110 | unary `-`, `!` |
-| 100 | `*`, `/`, `%` |
+| 10  | `\|\|` |
+| 20  | `&&` |
+| 30  | `==`, `!=` |
+| 40  | `<`, `>`, `<=`, `>=` |
+| 60  | unit conversion `to` |
 | 95  | `+`, `-` |
-| 80  | `<`, `>`, `<=`, `>=`, `==`, `!=` |
-| 75  | `&&` |
-| 70  | `\|\|` |
-| 50  | `=`, compound assignment |
-| 40  | tuple `,` |
-| 0   | statement `;` |
+| 100 | `*`, `/`, infix `%` |
+| 110 | unary `-`, `!` |
+| 121 | exponent `^` |
+| 130 | postfix `%`, `!` |
+
+`&&` and `||` require boolean operands and short-circuit the right-hand side.
+The percent token is postfix at the end of an expression, before a closing
+delimiter, or before `of` (`10% of 200`); otherwise it remains modulo.
 
 ### Value types
 
 ```rust
 pub enum Value {
-    Int(i64),
-    Float(f64),
+    Num(f64),
     Bool(bool),
     Str(String),
     Big(BigInt),        // feature = "bigint"
-    Frac(num, den),     // feature = "fraction"
+    Frac(Fraction),     // feature = "fraction"
     Complex(re, im),
-    Unit(value, label),
-    Empty,
+    Unit(UnitValue),
 }
 ```
 
-`Int op Int` promotes to `Float` (or `Big` with the `bigint` feature) on
-overflow, so users do not lose precision silently.
+Integral numeric literals beyond the safe `f64` range are represented as
+`BigInt` when the `bigint` feature is enabled, so users do not lose precision
+silently.
+
+Unit values retain their base value, dimension exponents, display scale, and
+display label. Arithmetic combines those fields instead of converting a
+composite value back through an atomic-unit lookup. Affine temperatures use
+`K`, `degC`/`°C`, and `degF`/`°F`; invalid absolute temperatures and affine
+multiplication, division, and powers return errors.
 
 ---
 
@@ -138,8 +146,25 @@ pub fn evaluate(input: &str) -> Result<String, String>;
 
 One-shot parse + compile + eval. Errors are stringified for the JS side.
 
-A `Compiled` handle for incremental re-evaluation against changing
-namespaces is planned but not yet exposed.
+```rust
+pub struct TypedResult {
+    // `num`, `big`, `fraction`, `complex`, `unit`, `bool`, `string`, or `function`.
+    kind: String,
+    text: String,
+    exact: bool,
+    finite: bool,
+}
+
+pub fn evaluate_typed(input: &str) -> Result<TypedResult, String>;
+
+pub struct Compiled { /* bounded compiled program */ }
+```
+
+`evaluate` remains the compatibility string API. `evaluate_typed` exposes the
+runtime kind, formatted text, exactness for BigInt/fraction results, and a
+finite flag. `Compiled::new`, `evaluate`, `evaluate_typed`, and `free` provide
+reusable compiled programs; every evaluation starts with a fresh scope and
+work budget.
 
 ---
 
@@ -179,7 +204,10 @@ opt-in numeric backends, the crate has none. Dev-dependencies (`criterion`,
 
 `MathExpressionBoxSource.ts` lazy-imports `math-box` in place of `mathjs`.
 The `MATH_SHAPE` regex pre-filter accepts the new syntax (`1 km`, `to`,
-`123n`).
+`123n`, comparisons, and logical operators). The source uses typed results to
+ignore strings, function definitions, non-finite numbers, dates, phone-like
+numeric groups, and bare unit literals during automatic matching. `::math` and
+`::math=<expr>` explicitly enable or replace the expression.
 
 ```jsonc
 // package.json
@@ -206,6 +234,9 @@ frac(1, 3) + frac(1, 4)              → 7/12
 complex(1, 2) * complex(3, 4)        → -5+10i
 1 km + 500 m to m                    → 1500 m
 3 kg to g                            → 3000 g
+10 km / 2 h                         → 5 km/h
+0 degC to degF                       → 32 degF
+10% of 200                           → 20
 f(x) = x^2; f(5)                     → 25
 ```
 
@@ -214,11 +245,11 @@ f(x) = x^2; f(5)                     → 25
 ## Testing
 
 - `cargo test` — unit + integration tests
-- `wasm-bindgen-test` — headless browser smoke tests
+- `wasm-bindgen-test` — headless browser smoke tests for the generated package
 - `proptest` — random expression generation, must not panic
 - `cargo fuzz` — lexer / parser robustness
-- TS side: `MathExpressionBoxSource.test.ts` runs unchanged against the
-  new backend
+- TS side: `MathExpressionBoxSource.test.ts` and the recovery tests cover
+  automatic matching, explicit math options, negative gates, and retry paths
 
 ---
 

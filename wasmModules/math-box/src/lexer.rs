@@ -18,6 +18,14 @@ pub enum Tok {
     Caret,
     Bang,
     Eq,
+    EqEq,
+    NotEq,
+    Lt,
+    LtEq,
+    Gt,
+    GtEq,
+    AndAnd,
+    OrOr,
     LParen,
     RParen,
     Comma,
@@ -105,6 +113,21 @@ pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
             continue;
         }
 
+        // degree temperature labels are the only supported non-ASCII unit
+        // identifiers; keep the token intact so `0 °C` remains a literal.
+        if b == 0xc2
+            && bytes.get(i + 1) == Some(&0xb0)
+            && matches!(bytes.get(i + 2), Some(b'C' | b'F'))
+        {
+            let j = i + 3;
+            let ident = core::str::from_utf8(&bytes[i..j])
+                .expect("degree label is valid UTF-8")
+                .into();
+            push_tok(&mut out, Tok::Ident(ident), start)?;
+            i = j;
+            continue;
+        }
+
         // identifier
         if b.is_ascii_alphabetic() || b == b'_' {
             let mut j = i + 1;
@@ -160,6 +183,23 @@ pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
             continue;
         }
 
+        // two-character punctuation/operators
+        let two = bytes.get(i..i.saturating_add(2));
+        let two_tok = match two {
+            Some(b"==") => Some(Tok::EqEq),
+            Some(b"!=") => Some(Tok::NotEq),
+            Some(b"<=") => Some(Tok::LtEq),
+            Some(b">=") => Some(Tok::GtEq),
+            Some(b"&&") => Some(Tok::AndAnd),
+            Some(b"||") => Some(Tok::OrOr),
+            _ => None,
+        };
+        if let Some(tok) = two_tok {
+            push_tok(&mut out, tok, start)?;
+            i += 2;
+            continue;
+        }
+
         // single-char punctuation/operators
         let tok = match b {
             b'+' => Tok::Plus,
@@ -170,6 +210,8 @@ pub fn tokenize(src: &str) -> Result<Vec<Spanned>> {
             b'^' => Tok::Caret,
             b'!' => Tok::Bang,
             b'=' => Tok::Eq,
+            b'<' => Tok::Lt,
+            b'>' => Tok::Gt,
             b'(' => Tok::LParen,
             b')' => Tok::RParen,
             b',' => Tok::Comma,

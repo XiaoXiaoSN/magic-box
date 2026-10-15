@@ -1,4 +1,4 @@
-use math_box::evaluate;
+use math_box::{Compiled, evaluate, evaluate_typed};
 
 fn assert_eval(input: &str, expected: &str) {
     let got = evaluate(input).unwrap_or_else(|e| panic!("eval {input:?} failed: {e}"));
@@ -516,4 +516,100 @@ fn unit_dimensions_are_checked_and_labels_are_canonical() {
             .contains("numeric overflow")
     );
     assert_eval(r#"unit(2, "km") * unit(3, "m")"#, "6000 m^2");
+}
+
+#[test]
+fn typed_math_b_operations() {
+    assert_eval("10 km / 2 h", "5 km/h");
+    assert_eval("1 km / 1 s", "1 km/s");
+    assert_eval("2 km * 3 m", "6000 m^2");
+    assert_eval("max(1 km, 500 m)", "1 km");
+    assert_eval("min(1 km, 500 m)", "500 m");
+    assert_eval("1 km % 300 m", "0.1 km");
+    assert_eval("(2 m)^2", "4 m^2");
+    assert_eval("sqrt(4 m^2)", "2 sqrt(m^2)");
+    assert_eval("abs(-5 km)", "5 km");
+    assert_eval("abs(-9007199254740993n)", "9007199254740993");
+    assert_eval("abs(-frac(1, 3))", "1/3");
+    assert_eval("5 / 2 s", "2.5 s^-1");
+}
+
+#[test]
+fn comparisons_logical_implicit_multiplication_and_percent() {
+    assert_eval("1 < 2", "true");
+    assert_eval("1 <= 1", "true");
+    assert_eval("3 > 2", "true");
+    assert_eval("3 != 2", "true");
+    assert_eval("2 == 2", "true");
+    assert_eval("2 >= 2 && true", "true");
+    assert_eval("true && false", "false");
+    assert_eval("false && (1 / 0)", "false");
+    assert_eval("true || (1 / 0)", "true");
+    assert_eval("!false", "true");
+    assert!(math_box::evaluate("!1").is_err());
+    assert!(math_box::evaluate("1 && true").is_err());
+    assert_eval("2 pi", "6.283185307179586");
+    assert_eval("2(3 + 4)", "14");
+    assert_eval("(2 + 1)(4 + 1)", "15");
+    assert_eval("50%", "0.5");
+    assert_eval("50n%", "1/2");
+    assert_eval("10% of 200", "20");
+    assert_eval("50 % -3", "-1");
+}
+
+#[test]
+fn affine_and_composite_conversions() {
+    assert_eval("0 degC to degF", "32 degF");
+    assert_eval("32 degF to degC", "0 degC");
+    assert_eval("-40 degC to degF", "-40 degF");
+    assert_eval("-5 degC", "-5 degC");
+    assert_eval("abs(-5 degC)", "5 degC");
+    assert_eval("1 MB to B", "1000000 B");
+    assert_eval("1 MiB to B", "1048576 B");
+    assert_eval("8 bit to B", "1 B");
+    assert_eval("0 K to degC", "-273.15 degC");
+    assert_eval("10 m/s^2", "10 m/s^2");
+    assert_eval("1 m/s^-2", "1 m/s^-2");
+    assert_eval("10 m/s to km/h", "36 km/h");
+    assert_eval("10000 cm^2 to m^2", "1 m^2");
+    assert!(math_box::evaluate("unit(-1, \"K\")").is_err());
+    assert!(math_box::evaluate("-1 K").is_err());
+    assert!(math_box::evaluate("1 degC + 1 degC").is_err());
+    assert!(math_box::evaluate("sqrt(4 m)").is_err());
+    assert!(math_box::evaluate("sqrt(-4 m^2)").is_err());
+}
+
+#[test]
+fn typed_results_and_compiled_budget_reset() {
+    let result = evaluate_typed("9007199254740993n").expect("typed bigint");
+    assert_eq!(result.kind(), "big");
+    assert_eq!(result.text(), "9007199254740993");
+    assert!(result.exact());
+    assert!(result.finite());
+
+    let fraction = evaluate_typed("frac(1, 3)").expect("typed fraction");
+    assert_eq!(fraction.kind(), "fraction");
+    assert!(fraction.exact());
+
+    let boolean = evaluate_typed("1 < 2").expect("typed boolean");
+    assert_eq!(boolean.kind(), "bool");
+    assert_eq!(boolean.text(), "true");
+
+    let string = evaluate_typed("\"hello\"").expect("typed string");
+    assert_eq!(string.kind(), "string");
+    let function = evaluate_typed("f(x) = x").expect("typed function");
+    assert_eq!(function.kind(), "function");
+    let nonfinite = evaluate_typed("0 / 0").expect("typed nonfinite");
+    assert_eq!(nonfinite.kind(), "num");
+    assert!(!nonfinite.finite());
+    let unit = evaluate_typed("1 km").expect("typed unit");
+    assert_eq!(unit.kind(), "unit");
+
+    let compiled = Compiled::new("x = 1; x + 1").expect("compile");
+    assert_eq!(compiled.evaluate().expect("first run"), "2");
+    assert_eq!(compiled.evaluate().expect("second run"), "2");
+
+    let bounded = Compiled::new("3n^11000").expect("bounded compile");
+    assert!(bounded.evaluate().is_err());
+    assert!(bounded.evaluate().is_err());
 }

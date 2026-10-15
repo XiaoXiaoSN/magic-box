@@ -48,6 +48,121 @@ pub fn evaluate(input: &str) -> core::result::Result<String, String> {
     eval_to_string(input).map_err(|e| e.to_string())
 }
 
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub struct TypedResult {
+    kind: String,
+    text: String,
+    exact: bool,
+    finite: bool,
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+impl TypedResult {
+    #[cfg_attr(feature = "wasm", wasm_bindgen(getter))]
+    pub fn kind(&self) -> String {
+        self.kind.clone()
+    }
+
+    #[cfg_attr(feature = "wasm", wasm_bindgen(getter))]
+    pub fn text(&self) -> String {
+        self.text.clone()
+    }
+
+    #[cfg_attr(feature = "wasm", wasm_bindgen(getter))]
+    pub fn exact(&self) -> bool {
+        self.exact
+    }
+
+    #[cfg_attr(feature = "wasm", wasm_bindgen(getter))]
+    pub fn finite(&self) -> bool {
+        self.finite
+    }
+}
+
+impl TypedResult {
+    fn from_value(value: &Value) -> Self {
+        let (kind, exact, finite) = match value {
+            Value::Num(value) => ("num", false, value.is_finite()),
+            Value::Bool(_) => ("bool", false, true),
+            Value::Str(value) => (
+                if value.starts_with("<fn ") {
+                    "function"
+                } else {
+                    "string"
+                },
+                false,
+                true,
+            ),
+            #[cfg(feature = "bigint")]
+            Value::Big(_) => ("big", true, true),
+            #[cfg(feature = "fraction")]
+            Value::Frac(_) => ("fraction", true, true),
+            #[cfg(feature = "complex")]
+            Value::Complex(value) => (
+                "complex",
+                false,
+                value.re.is_finite() && value.im.is_finite(),
+            ),
+            #[cfg(feature = "unit")]
+            Value::Unit(value) => ("unit", false, value.base_value.is_finite()),
+        };
+        Self {
+            kind: kind.into(),
+            text: value.to_display_string(),
+            exact,
+            finite,
+        }
+    }
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub struct Compiled {
+    program: compiler::Program,
+}
+
+impl Compiled {
+    fn evaluate_value(&self) -> Result<Value> {
+        #[cfg(feature = "std")]
+        {
+            run_compiled(&self.program, shared_namespace())
+        }
+        #[cfg(not(feature = "std"))]
+        {
+            let namespace = default_namespace();
+            run_compiled(&self.program, &namespace)
+        }
+    }
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+impl Compiled {
+    #[cfg_attr(feature = "wasm", wasm_bindgen(constructor))]
+    pub fn new(input: &str) -> core::result::Result<Self, String> {
+        compile_input(input)
+            .map(|program| Self { program })
+            .map_err(|e| e.to_string())
+    }
+
+    pub fn evaluate(&self) -> core::result::Result<String, String> {
+        let value = self.evaluate_value().map_err(|e| e.to_string())?;
+        check_display_limit(&value).map_err(|e| e.to_string())?;
+        Ok(value.to_display_string())
+    }
+
+    pub fn evaluate_typed(&self) -> core::result::Result<TypedResult, String> {
+        let value = self.evaluate_value().map_err(|e| e.to_string())?;
+        check_display_limit(&value).map_err(|e| e.to_string())?;
+        Ok(TypedResult::from_value(&value))
+    }
+
+    pub fn free(self) {}
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+pub fn evaluate_typed(input: &str) -> core::result::Result<TypedResult, String> {
+    evaluate_typed_native(input).map_err(|e| e.to_string())
+}
+
 // shared default namespace cached behind OnceLock — every call to
 // `evaluate()` would otherwise reinsert ~50 BTreeMap entries plus
 // allocate a String per name on the magic-box per-keystroke hot path.
@@ -58,21 +173,58 @@ fn shared_namespace() -> &'static Namespace {
 }
 
 fn eval_to_string(input: &str) -> Result<String> {
+    let value = eval_value(input)?;
+    check_display_limit(&value)?;
+    Ok(value.to_display_string())
+}
+
+fn evaluate_typed_native(input: &str) -> Result<TypedResult> {
+    let value = eval_value(input)?;
+    check_display_limit(&value)?;
+    Ok(TypedResult::from_value(&value))
+}
+
+fn eval_value(input: &str) -> Result<Value> {
     #[cfg(feature = "std")]
-    let value = eval_with(input, shared_namespace())?;
+    {
+        eval_with(input, shared_namespace())
+    }
     #[cfg(not(feature = "std"))]
-    let value = {
-        let ns = default_namespace();
-        eval_with(input, &ns)?
-    };
-    let display_len = value.display_len_upper_bound();
-    if display_len > MAX_DISPLAY_LEN {
+    {
+        let namespace = default_namespace();
+        eval_with(input, &namespace)
+    }
+}
+
+fn check_display_limit(value: &Value) -> Result<()> {
+    if value.display_len_upper_bound() > MAX_DISPLAY_LEN {
         return Err(Error::LimitExceeded {
             what: "display length",
             limit: MAX_DISPLAY_LEN,
         });
     }
-    Ok(value.to_display_string())
+    Ok(())
+}
+
+fn compile_input(input: &str) -> Result<compiler::Program> {
+    let tokens = lexer::tokenize(input)?;
+    let ast = parser::parse(&tokens)?;
+    let mut budget = WorkBudget::new();
+    #[cfg(feature = "std")]
+    {
+        compiler::compile(ast, shared_namespace(), &mut budget)
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        let namespace = default_namespace();
+        compiler::compile(ast, &namespace, &mut budget)
+    }
+}
+
+fn run_compiled(program: &compiler::Program, ns: &Namespace) -> Result<Value> {
+    let mut budget = WorkBudget::new();
+    let mut scope = vm::Scope::new();
+    vm::run(program, ns, &mut scope, &mut budget)
 }
 
 pub fn eval_with(input: &str, ns: &Namespace) -> Result<Value> {

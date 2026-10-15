@@ -40,7 +40,7 @@ impl Value {
                 }
             }
             #[cfg(feature = "unit")]
-            Self::Unit(u) => Some(u.display_value()),
+            Self::Unit(_) => None,
         }
     }
 
@@ -354,6 +354,11 @@ impl Fraction {
         Self(-&self.0)
     }
 
+    pub fn abs(&self) -> Self {
+        use num_traits::Signed;
+        Self(self.0.clone().abs())
+    }
+
     pub fn pow(&self, exponent: u32) -> Result<Self> {
         self.check_growth(
             self.numerator_bits().saturating_mul(exponent as u64),
@@ -569,9 +574,12 @@ impl Complex {
 #[cfg(feature = "unit")]
 #[derive(Clone, Debug, PartialEq)]
 pub struct UnitValue {
-    pub base_value: f64,    // value normalised to base SI of the dimension
-    pub unit_label: String, // e.g. "km" — single labels look up scale; composite forms ("km m", "m/s") imply scale 1
-    pub dim: Dimension,     // exponents over (length, mass, time)
+    pub base_value: f64,     // value normalised to base SI of the dimension
+    pub unit_label: String,  // structured display label, for example `km/h`
+    pub display_factor: f64, // scale from the display unit to the base unit
+    pub display_offset: f64, // affine offset in base units, zero for multiplicative units
+    pub dim: Dimension,      // exponents over (length, mass, time)
+    pub affine: bool,
 }
 
 #[cfg(feature = "unit")]
@@ -580,6 +588,8 @@ pub struct Dimension {
     pub length: i8,
     pub mass: i8,
     pub time: i8,
+    pub temperature: i8,
+    pub data: i8,
 }
 
 #[cfg(feature = "unit")]
@@ -588,21 +598,43 @@ impl Dimension {
         length: 0,
         mass: 0,
         time: 0,
+        temperature: 0,
+        data: 0,
     };
     pub const LENGTH: Self = Self {
         length: 1,
         mass: 0,
         time: 0,
+        temperature: 0,
+        data: 0,
     };
     pub const MASS: Self = Self {
         length: 0,
         mass: 1,
         time: 0,
+        temperature: 0,
+        data: 0,
     };
     pub const TIME: Self = Self {
         length: 0,
         mass: 0,
         time: 1,
+        temperature: 0,
+        data: 0,
+    };
+    pub const TEMPERATURE: Self = Self {
+        length: 0,
+        mass: 0,
+        time: 0,
+        temperature: 1,
+        data: 0,
+    };
+    pub const DATA: Self = Self {
+        length: 0,
+        mass: 0,
+        time: 0,
+        temperature: 0,
+        data: 1,
     };
 
     pub fn checked_add(&self, other: &Self) -> Result<Self> {
@@ -613,6 +645,11 @@ impl Dimension {
                 .ok_or(Error::Overflow)?,
             mass: self.mass.checked_add(other.mass).ok_or(Error::Overflow)?,
             time: self.time.checked_add(other.time).ok_or(Error::Overflow)?,
+            temperature: self
+                .temperature
+                .checked_add(other.temperature)
+                .ok_or(Error::Overflow)?,
+            data: self.data.checked_add(other.data).ok_or(Error::Overflow)?,
         })
     }
     pub fn checked_sub(&self, other: &Self) -> Result<Self> {
@@ -623,13 +660,58 @@ impl Dimension {
                 .ok_or(Error::Overflow)?,
             mass: self.mass.checked_sub(other.mass).ok_or(Error::Overflow)?,
             time: self.time.checked_sub(other.time).ok_or(Error::Overflow)?,
+            temperature: self
+                .temperature
+                .checked_sub(other.temperature)
+                .ok_or(Error::Overflow)?,
+            data: self.data.checked_sub(other.data).ok_or(Error::Overflow)?,
         })
+    }
+
+    pub fn checked_mul(&self, exponent: i8) -> Result<Self> {
+        Ok(Self {
+            length: self.length.checked_mul(exponent).ok_or(Error::Overflow)?,
+            mass: self.mass.checked_mul(exponent).ok_or(Error::Overflow)?,
+            time: self.time.checked_mul(exponent).ok_or(Error::Overflow)?,
+            temperature: self
+                .temperature
+                .checked_mul(exponent)
+                .ok_or(Error::Overflow)?,
+            data: self.data.checked_mul(exponent).ok_or(Error::Overflow)?,
+        })
+    }
+
+    pub const fn with_length(self, value: i8) -> Self {
+        Self {
+            length: value,
+            ..self
+        }
+    }
+
+    pub const fn with_mass(self, value: i8) -> Self {
+        Self {
+            mass: value,
+            ..self
+        }
+    }
+
+    pub const fn with_time(self, value: i8) -> Self {
+        Self {
+            time: value,
+            ..self
+        }
     }
 
     pub fn canonical_label(&self) -> String {
         let mut numerator = Vec::new();
         let mut denominator = Vec::new();
-        for (unit, exponent) in [("m", self.length), ("kg", self.mass), ("s", self.time)] {
+        for (unit, exponent) in [
+            ("m", self.length),
+            ("kg", self.mass),
+            ("s", self.time),
+            ("K", self.temperature),
+            ("B", self.data),
+        ] {
             if exponent > 0 {
                 numerator.push(dimension_factor(unit, i16::from(exponent)));
             } else if exponent < 0 {
@@ -659,13 +741,13 @@ fn dimension_factor(unit: &str, exponent: i16) -> String {
 
 #[cfg(feature = "unit")]
 impl UnitValue {
-    // value scaled back into the display unit. for composite labels not
-    // present in the lookup table, the label carries no implicit scale,
-    // so display value equals base_value directly.
     pub fn display_value(&self) -> f64 {
-        match crate::units::lookup(&self.unit_label) {
-            Some((scale, _)) if scale != 0.0 => self.base_value / scale,
-            _ => self.base_value,
+        let value = (self.base_value - self.display_offset) / self.display_factor;
+        let rounded = value.round();
+        if (value - rounded).abs() < 1e-12 {
+            rounded
+        } else {
+            value
         }
     }
 
