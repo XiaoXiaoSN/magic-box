@@ -1,4 +1,5 @@
 import type { BoxOptions } from '@modules/Box';
+import { hasTomlDocumentShape } from './dataConverterShape';
 import {
   createLazyBoxSource,
   type LazyBoxSource,
@@ -23,9 +24,6 @@ const DATA_CONVERTER_OPTION_KEYS = [
   'toxml',
 ] as const;
 
-const DATA_CONVERTER_TOML_SHAPE =
-  /^[ \t]*(?:\[\[?[^\]\n]+\]\]?[ \t]*(?:#.*)?$|[A-Za-z0-9_-]+(?:[ \t]*\.[ \t]*[A-Za-z0-9_-]+)*[ \t]*=)/m;
-
 const dataConverterOptionMatcher = optionMatcher(DATA_CONVERTER_OPTION_KEYS);
 const certificateOptionMatcher = optionMatcher(['cert', 'certificate', 'ca']);
 const base85OptionMatcher = optionMatcher([
@@ -42,6 +40,14 @@ const durationOptionMatcher = optionMatcher([
   'humanize',
 ]);
 const timestampOptionMatcher = optionMatcher(['timestamp', 'unix', 'ts']);
+const timestampCanHandle = (input: string, options: BoxOptions): boolean => {
+  if (timestampOptionMatcher(input, options)) return true;
+
+  const match = /^[+-]?(\d+)$/.exec(input.trim());
+  if (!match) return false;
+  const digits = match[1].replace(/^0+(?=\d)/, '');
+  return digits.length >= 9 && digits.length <= 22;
+};
 
 const dataConverterCanHandle = (
   input: string,
@@ -60,7 +66,7 @@ const dataConverterCanHandle = (
   }
 
   return (
-    DATA_CONVERTER_TOML_SHAPE.test(trimmed) ||
+    hasTomlDocumentShape(trimmed) ||
     /^(?:---[ \t]*(?:#.*)?$|[ \t]*(?:[-?][ \t]+\S|[^\s:#][^:\n]*:\s*(?:\S|$)))/m.test(
       trimmed,
     )
@@ -445,8 +451,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 9,
     optionKeys: ['timestamp', 'unix', 'ts'],
     headless: true,
-    canHandle: (input, options) =>
-      timestampOptionMatcher(input, options) || /^\d{9,22}$/.test(input.trim()),
+    canHandle: timestampCanHandle,
     load: () => import('./TimestampBoxSource').then((module) => module.default),
   },
   {

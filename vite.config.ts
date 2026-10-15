@@ -251,11 +251,47 @@ export default defineConfig(({ command }) => {
             {
               // Hashed feature chunks are cached on first use so loaded tools
               // remain available offline without install-time downloads.
-              urlPattern: /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:css|js|wasm)$/,
+              urlPattern: ({ sameOrigin, url }) =>
+                sameOrigin &&
+                /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:css|js|wasm)$/.test(
+                  url.pathname,
+                ),
               handler: 'CacheFirst',
               options: {
                 cacheName: 'magic-box-feature-assets-v1',
                 cacheableResponse: { statuses: [200] },
+                matchOptions: { ignoreSearch: true, ignoreVary: true },
+                plugins: [
+                  {
+                    cachedResponseWillBeUsed: async ({
+                      cachedResponse,
+                      request,
+                    }) => {
+                      const url = new URL(request.url);
+                      const recovery = url.searchParams.get('recovery');
+                      if (
+                        !cachedResponse ||
+                        url.origin !== self.location.origin ||
+                        url.searchParams.size !== 1 ||
+                        recovery === null ||
+                        !/^\d+$/.test(recovery) ||
+                        !/\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.js$/.test(
+                          url.pathname,
+                        )
+                      ) {
+                        return cachedResponse;
+                      }
+
+                      // module loading rejects a cached response whose stored
+                      // URL differs from the fresh recovery module URL.
+                      return new Response(cachedResponse.body, {
+                        headers: cachedResponse.headers,
+                        status: cachedResponse.status,
+                        statusText: cachedResponse.statusText,
+                      });
+                    },
+                  },
+                ],
                 expiration: {
                   maxEntries: 128,
                   maxAgeSeconds: 30 * 24 * 60 * 60,

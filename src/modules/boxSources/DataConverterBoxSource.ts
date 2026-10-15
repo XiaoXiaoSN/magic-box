@@ -12,6 +12,8 @@ import {
   type ToJSOptions,
 } from 'yaml';
 
+import { hasTomlDocumentShape } from './dataConverterShape';
+
 const PriorityDataConverter = 10;
 
 enum DataFormat {
@@ -34,17 +36,6 @@ const yamlParseOptions: ParseOptions & SchemaOptions & ToJSOptions = {
   merge: true,
   maxAliasCount: 2500,
 };
-
-// TOML is line-oriented: a document needs either a table header (`[table]` /
-// `[[array]]`) or a key assignment anchored at the start of a line. Matching
-// that shape instead of searching for a bare `=` keeps large YAML and XML
-// documents from paying for a TOML parse that is certain to fail, and stops
-// detection from leaning on `smol-toml` throwing to correct a wrong guess.
-const TOML_KEY = String.raw`(?:[A-Za-z0-9_-]+|"[^"\n]*"|'[^'\n]*')`;
-const TOML_SHAPE = new RegExp(
-  String.raw`^[ \t]*(?:\[\[?[^\]\n]+\]\]?[ \t]*(?:#.*)?$|${TOML_KEY}(?:[ \t]*\.[ \t]*${TOML_KEY})*[ \t]*=)`,
-  'm',
-);
 
 interface DetectedData {
   format: DataFormat;
@@ -118,7 +109,7 @@ function detectFormat(input: string): DetectResult {
   }
 
   // Try TOML
-  if (TOML_SHAPE.test(trimmed)) {
+  if (hasTomlDocumentShape(trimmed)) {
     try {
       const data = parseToml(trimmed);
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {

@@ -113,6 +113,9 @@ describe('source manifest', () => {
       '{"ok":true}',
       'name: value',
       '[section]\nname = "value"',
+      '"max-body"=100',
+      "'literal key'=100",
+      'server . "max-body" . \'limit\'=100',
       '<root><name>value</name></root>',
     ];
     for (const document of validDocuments) {
@@ -283,6 +286,55 @@ describe('lazy source parity', () => {
     ]);
     expect(lazyBoxes.map((box) => box.props.plaintextOutput)).toEqual(
       directBoxes.map((box) => box.props.plaintextOutput),
+    );
+  });
+
+  it.each([
+    '"max-body"=100',
+    "'literal key'=100",
+    'server . "max-body" . \'limit\'=100',
+  ])('matches direct Data Converter output for TOML key syntax: %s', async (raw) => {
+    const registered = getBoxSource('data-converter');
+    if (!registered) throw new Error('data-converter missing from registry');
+    const { default: direct } = await import('../DataConverterBoxSource');
+    const [input, options] = parseInput(raw);
+
+    expect(registered.canHandle?.(input, options)).toBe(true);
+    const [lazyBoxes, directBoxes] = await Promise.all([
+      registered.generateBoxes(input, options),
+      direct.generateBoxes(input, options),
+    ]);
+    expect(lazyBoxes.map((box) => box.props.plaintextOutput)).toEqual(
+      directBoxes.map((box) => box.props.plaintextOutput),
+    );
+    expect(lazyBoxes).not.toEqual([]);
+  });
+
+  it.each([
+    ['-1000000000', true],
+    ['+1735794245', true],
+    ['-1000000000000', true],
+    ['+1735794245000000', true],
+    ['-1000000000000000000', true],
+    ['+0000000000000000000000001735794245', true],
+    ['123', false],
+    ['+not-a-time', false],
+    ['0\n::timestamp', true],
+  ])('matches direct Timestamp output for %s', async (raw, expectedCanHandle) => {
+    const registered = getBoxSource('timestamp');
+    if (!registered) throw new Error('timestamp missing from registry');
+    const { default: direct } = await import('../TimestampBoxSource');
+    const [input, options] = parseInput(raw);
+
+    expect(registered.canHandle?.(input, options)).toBe(expectedCanHandle);
+    const [lazyBoxes, directBoxes] = await Promise.all([
+      registered.generateBoxes(input, options),
+      direct.generateBoxes(input, options),
+    ]);
+    expect(
+      lazyBoxes.map((box) => [box.props.name, box.props.plaintextOutput]),
+    ).toEqual(
+      directBoxes.map((box) => [box.props.name, box.props.plaintextOutput]),
     );
   });
 });
