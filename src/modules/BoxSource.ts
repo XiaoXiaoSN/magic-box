@@ -8,6 +8,8 @@ export interface BoxSourceContext {
 }
 
 export interface BoxSource {
+  /** stable settings and URL identifier; legacy source objects may omit it. */
+  id?: string;
   name: string;
   description: string;
   defaultInput: string;
@@ -15,6 +17,11 @@ export interface BoxSource {
   kind: string;
   priority?: number;
   defaultDisabled?: boolean;
+  optionKeys?: readonly string[];
+  headless?: boolean;
+  sideEffects?: 'network';
+  canHandle?: (input: string, options: BoxOptions) => boolean;
+  load?: () => Promise<BoxSource>;
   generateBoxes: (
     input: string,
     options: BoxOptions,

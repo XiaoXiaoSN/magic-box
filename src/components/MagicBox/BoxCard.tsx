@@ -6,6 +6,7 @@ import type { BoxProps, Box as BoxType } from '@modules/Box';
 import {
   forwardRef,
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -278,19 +279,21 @@ const BoxCard = memo(
               fallback={(retry) => <TemplateErrorFallback retry={retry} />}
               resetKey={box}
             >
-              <Comp
-                disabled={stale}
-                kind={kind}
-                name={name}
-                onClick={handleTemplateClick}
-                onResultChange={handleTemplateResultChange}
-                options={options}
-                plaintextOutput={plaintextOutput}
-                priority={priority}
-                selected={selected}
-                sourceInput={sourceInput}
-                tag={tag}
-              />
+              <Suspense fallback={null}>
+                <Comp
+                  disabled={stale}
+                  kind={kind}
+                  name={name}
+                  onClick={handleTemplateClick}
+                  onResultChange={handleTemplateResultChange}
+                  options={options}
+                  plaintextOutput={plaintextOutput}
+                  priority={priority}
+                  selected={selected}
+                  sourceInput={sourceInput}
+                  tag={tag}
+                />
+              </Suspense>
             </ErrorBoundary>
           </div>
         </div>

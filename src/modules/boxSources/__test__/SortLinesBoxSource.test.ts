@@ -113,6 +113,23 @@ describe('SortLinesBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toBe('a\nz');
     });
+
+    it('uses the case-insensitive comparator for adjacent dedupe', async () => {
+      const boxes = await SortLinesBoxSource.generateBoxes(
+        'Apple\napple\nApple',
+        { sortlines: true, ci: true, unique: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('Apple');
+    });
+
+    it('keeps distinct numeric spellings while sorting numerically', async () => {
+      const boxes = await SortLinesBoxSource.generateBoxes('1\n1.0\n01', {
+        sortlines: true,
+        numeric: true,
+        unique: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('01\n1\n1.0');
+    });
   });
 
   describe('generateBoxes - case-insensitive', () => {

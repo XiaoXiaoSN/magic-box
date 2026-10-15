@@ -27,22 +27,20 @@ describe('LineToolsBoxSource', () => {
     it('returns an error box when input exceeds MAX_INPUT', async () => {
       const big = 'a\n'.repeat(60_000);
       const boxes = await LineToolsBoxSource.generateBoxes(big, {
-        sortlines: true,
+        uniquelines: true,
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/too large/i);
     });
   });
 
-  describe('::sortlines', () => {
-    it('sorts lines ascending by localeCompare', async () => {
+  describe('::sortlines ownership', () => {
+    it('leaves sorting to Sort Lines', async () => {
       const boxes = await LineToolsBoxSource.generateBoxes(
         'banana\napple\ncherry',
         { sortlines: true },
       );
-      expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.name).toBe('Sorted Lines');
-      expect(boxes[0].props.plaintextOutput).toBe('apple\nbanana\ncherry');
+      expect(boxes).toHaveLength(0);
     });
   });
 
@@ -69,25 +67,22 @@ describe('LineToolsBoxSource', () => {
   });
 
   describe('combined options', () => {
-    it('returns two boxes for ::sortlines + ::uniquelines', async () => {
+    it('returns one box for ::uniquelines', async () => {
       const boxes = await LineToolsBoxSource.generateBoxes('banana\napple', {
-        sortlines: true,
         uniquelines: true,
       });
-      expect(boxes).toHaveLength(2);
+      expect(boxes).toHaveLength(1);
       const names = boxes.map((b) => b.props.name);
-      expect(names).toContain('Sorted Lines');
       expect(names).toContain('Unique Lines');
     });
 
-    it('returns three boxes when all three options are set', async () => {
+    it('returns two boxes when both line operations are set', async () => {
       const boxes = await LineToolsBoxSource.generateBoxes(
         'banana\napple\ncherry',
-        { sortlines: true, uniquelines: true, reverselines: true },
+        { uniquelines: true, reverselines: true },
       );
-      expect(boxes).toHaveLength(3);
+      expect(boxes).toHaveLength(2);
       const names = boxes.map((b) => b.props.name);
-      expect(names).toContain('Sorted Lines');
       expect(names).toContain('Unique Lines');
       expect(names).toContain('Reversed Lines');
     });
@@ -97,10 +92,10 @@ describe('LineToolsBoxSource', () => {
     it('strips trailing \\r from each line before processing', async () => {
       const boxes = await LineToolsBoxSource.generateBoxes(
         'banana\r\napple\r\ncherry\r\n',
-        { sortlines: true },
+        { uniquelines: true },
       );
       expect(boxes).toHaveLength(1);
-      // trailing empty string after final \n is sorted first, then words
+      // CRLF line endings are normalized before duplicate filtering.
       const output = boxes[0].props.plaintextOutput as string;
       expect(output).toContain('apple');
       expect(output).toContain('banana');

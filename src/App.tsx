@@ -2,7 +2,6 @@ import AppThemeProvider from '@components/AppThemeProvider';
 import BaseLayout from '@components/BaseLayout';
 import ErrorBoundary, { RootErrorFallback } from '@components/ErrorBoundary';
 import PwaUpdatePrompt from '@components/PwaUpdatePrompt';
-import SettingsPage from '@pages/SettingsPage';
 import { lazy, Suspense } from 'react';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
@@ -11,6 +10,7 @@ import { PreferencesProvider } from './contexts/PreferencesContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 const MagicBoxPage = lazy(async () => import('@pages/MagicBox'));
+const SettingsPage = lazy(async () => import('@pages/SettingsPage'));
 const ToolsListPage = lazy(async () => import('@pages/ToolsList'));
 
 const renderLoader = () => <div className="loader" />;

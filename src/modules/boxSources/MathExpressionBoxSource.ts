@@ -80,13 +80,22 @@ async function loadWasmBytes(): Promise<Uint8Array> {
   return wasmBytesPromise;
 }
 
+async function warmRecoveryGlue(): Promise<void> {
+  if (isNodeRuntime()) return;
+
+  const response = await fetch(mathBoxGlueUrl);
+  if (!response.ok) {
+    throw new Error(`math-box recovery glue fetch failed: ${response.status}`);
+  }
+}
+
 async function loadMathBox() {
   if (!initPromise) {
     // a rejected initPromise is cached forever otherwise; reset on failure
     // so a transient wasm fetch error doesn't permanently disable the tool
     // for the page session.
     initPromise = (async () => {
-      const mod = await import('math-box');
+      const [mod] = await Promise.all([import('math-box'), warmRecoveryGlue()]);
       await mod.default({ module_or_path: await loadWasmBytes() });
       return mod;
     })().catch((err) => {

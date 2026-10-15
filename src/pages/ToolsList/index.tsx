@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { getBoxSource } from '../../modules/boxSources';
 
 const SELECTION_KEY = 'mb:list:selected';
 const COLLAPSED_KEY = 'mb:list:collapsed';
@@ -112,19 +113,21 @@ const ToolsListPage = (): React.JSX.Element => {
   );
   const { filteredBoxSources } = useSettings();
 
-  const [selectedName, setSelectedName] = useState<string | null>(() => {
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
     const fromUrl = searchParams.get('box');
-    return fromUrl ?? readStorageItem(SELECTION_KEY);
+    const stored = fromUrl ?? readStorageItem(SELECTION_KEY);
+    return getBoxSource(stored ?? '')?.id ?? null;
   });
 
   // Sync URL ?box= param ↔ state when URL changes externally.
   useEffect(() => {
     const fromUrl = searchParams.get('box');
-    if (fromUrl && fromUrl !== selectedName) {
-      setSelectedName(fromUrl);
-      writeStorageItem(SELECTION_KEY, fromUrl);
+    const source = fromUrl ? getBoxSource(fromUrl) : null;
+    if (source && source.id !== selectedId) {
+      setSelectedId(source.id);
+      writeStorageItem(SELECTION_KEY, source.id);
     }
-  }, [searchParams, selectedName]);
+  }, [searchParams, selectedId]);
 
   // Drawer Esc-to-close.
   useEffect(() => {
@@ -167,16 +170,17 @@ const ToolsListPage = (): React.JSX.Element => {
   }, [filteredSources]);
 
   const selected = useMemo(() => {
-    if (!selectedName) return filteredBoxSources[0];
+    if (!selectedId) return filteredBoxSources[0];
     return (
-      filteredBoxSources.find((b) => b.name === selectedName) ??
+      filteredBoxSources.find((b) => b.id === selectedId) ??
       filteredBoxSources[0]
     );
-  }, [filteredBoxSources, selectedName]);
+  }, [filteredBoxSources, selectedId]);
 
   const handleSelect = (source: BoxSource) => {
-    setSelectedName(source.name);
-    writeStorageItem(SELECTION_KEY, source.name);
+    const id = source.id ?? source.name;
+    setSelectedId(id);
+    writeStorageItem(SELECTION_KEY, id);
     setDrawerOpen(false);
     const next = new URLSearchParams(searchParams);
     next.set('box', source.name);
@@ -200,7 +204,9 @@ const ToolsListPage = (): React.JSX.Element => {
   const urlBox = searchParams.get('box');
   const urlInput = searchParams.get('input');
   const initialInput =
-    urlBox === selected.name ? (urlInput ?? undefined) : undefined;
+    urlBox && getBoxSource(urlBox)?.id === selected.id
+      ? (urlInput ?? undefined)
+      : undefined;
 
   return (
     <div
@@ -294,8 +300,8 @@ const ToolsListPage = (): React.JSX.Element => {
                   const display = getSourceDisplay(b, t);
                   return (
                     <button
-                      className={`browser-row${b.name === selected.name ? ' active' : ''}`}
-                      key={b.name}
+                      className={`browser-row${b.id === selected.id ? ' active' : ''}`}
+                      key={b.id}
                       onClick={() => handleSelect(b)}
                       type="button"
                     >
@@ -375,7 +381,7 @@ const PreviewPane = ({
           data-testid="copy-tool-share-link"
           getShareLink={() =>
             buildShareLink({
-              box: source.name,
+              box: source.id ?? source.name,
               input,
               pathname: '/list',
             })

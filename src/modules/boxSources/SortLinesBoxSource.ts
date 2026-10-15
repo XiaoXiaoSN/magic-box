@@ -15,7 +15,9 @@ function cmpNumeric(a: string, b: string): number {
   if (aIsNaN && bIsNaN) return compareCodePoints(a, b);
   if (aIsNaN) return 1;
   if (bIsNaN) return -1;
-  return na < nb ? -1 : na > nb ? 1 : 0;
+  if (na < nb) return -1;
+  if (na > nb) return 1;
+  return a === b ? 0 : compareCodePoints(a, b);
 }
 
 export const SortLinesBoxSource = {
@@ -44,7 +46,7 @@ export const SortLinesBoxSource = {
     // normalize CRLF before splitting
     const lines = input.replace(/\r\n/g, '\n').split('\n');
 
-    const sorted = lines.slice().sort((a, b) => {
+    const compareLines = (a: string, b: string): number => {
       let cmp: number;
       if (isNumeric) {
         cmp = cmpNumeric(a, b);
@@ -54,10 +56,15 @@ export const SortLinesBoxSource = {
         cmp = compareCodePoints(a, b);
       }
       return isDesc ? -cmp : cmp;
-    });
+    };
+
+    const sorted = lines.slice().sort(compareLines);
 
     const deduped = isUnique
-      ? sorted.filter((line, idx, arr) => arr.indexOf(line) === idx)
+      ? sorted.filter(
+          (line, index) =>
+            index === 0 || compareLines(sorted[index - 1], line) !== 0,
+        )
       : sorted;
 
     const output = deduped.join('\n');
