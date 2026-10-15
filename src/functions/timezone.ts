@@ -18,15 +18,20 @@ export const isValidTimezoneOffset = (value: number): boolean =>
 // format a `+HH:MM` / `-HH:MM` suffix for an offset given in hours.
 export const formatOffsetSuffix = (offsetHours: number): string => {
   const sign = offsetHours < 0 ? '-' : '+';
-  const abs = Math.abs(offsetHours);
-  const hh = String(Math.trunc(abs)).padStart(2, '0');
-  const mm = String(Math.round((abs - Math.trunc(abs)) * 60)).padStart(2, '0');
+  const totalMinutes = Math.round(Math.abs(offsetHours) * 60);
+  const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const mm = String(totalMinutes % 60).padStart(2, '0');
   return `${sign}${hh}:${mm}`;
 };
 
-// short human label, e.g. `UTC+8` or `UTC-3`.
-export const formatOffsetLabel = (offsetHours: number): string =>
-  `UTC${offsetHours >= 0 ? '+' : '-'}${Math.abs(offsetHours)}`;
+// short human label, keeping whole-hour labels compact while showing minutes.
+export const formatOffsetLabel = (offsetHours: number): string => {
+  const totalMinutes = Math.round(Math.abs(offsetHours) * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const sign = offsetHours >= 0 ? '+' : '-';
+  return `UTC${sign}${hours}${minutes ? `:${String(minutes).padStart(2, '0')}` : ''}`;
+};
 
 // shift a UTC date by the offset so the wall-clock reads as the target zone.
 export const shiftDateToOffset = (date: Date, offsetHours: number): Date =>

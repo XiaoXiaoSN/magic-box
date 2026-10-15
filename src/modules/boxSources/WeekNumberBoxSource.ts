@@ -1,4 +1,6 @@
 import { parseDateString, trim } from '@functions/helper';
+import { getTimezoneOffset } from '@functions/runtimePrefs';
+import { shiftDateToOffset } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -15,6 +17,13 @@ const DAY_NAMES = [
   'Sunday',
 ];
 
+function utcDate(year: number, month: number, day: number): Date {
+  const date = new Date(0);
+  date.setUTCFullYear(year, month, day);
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}
+
 // compute ISO 8601 week number, ISO year, and ISO weekday for a given UTC date
 function isoWeekData(d: Date): {
   isoYear: number;
@@ -22,9 +31,7 @@ function isoWeekData(d: Date): {
   isoWeekday: number;
 } {
   // work on a copy at UTC midnight to avoid DST shifts
-  const date = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-  );
+  const date = utcDate(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 
   // ISO weekday: Mon=0..Sun=6 (shifted from JS Sun=0..Sat=6)
   const dayNum = (date.getUTCDay() + 6) % 7;
@@ -34,7 +41,7 @@ function isoWeekData(d: Date): {
   const isoYear = date.getUTCFullYear();
 
   // Jan 4 is always in ISO week 1; find the Thursday of that week 1
-  const week1 = new Date(Date.UTC(isoYear, 0, 4));
+  const week1 = utcDate(isoYear, 0, 4);
   const week1DayNum = (week1.getUTCDay() + 6) % 7;
   week1.setUTCDate(week1.getUTCDate() + 3 - week1DayNum);
 
@@ -44,9 +51,7 @@ function isoWeekData(d: Date): {
 
   // ISO weekday 1=Mon..7=Sun
   const isoWeekday =
-    ((new Date(
-      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-    ).getUTCDay() +
+    ((utcDate(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()).getUTCDay() +
       6) %
       7) +
     1;
@@ -56,10 +61,8 @@ function isoWeekData(d: Date): {
 
 // compute day-of-year (1-366) using UTC fields
 function dayOfYear(d: Date): number {
-  const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
-  const current = new Date(
-    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
-  );
+  const start = utcDate(d.getUTCFullYear(), 0, 0);
+  const current = utcDate(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
   return Math.round(
     (current.getTime() - start.getTime()) / (24 * 60 * 60 * 1000),
   );
@@ -93,15 +96,26 @@ export const WeekNumberBoxSource = {
 
     // resolve the target date
     let date: Date;
-    if (raw === '' || raw === 'today' || raw === 'now') {
-      date = new Date();
+    if (raw === '' || /^(today|now)$/i.test(raw)) {
+      const now = new Date();
+      const localDate = shiftDateToOffset(now, getTimezoneOffset(now));
+      date = utcDate(
+        localDate.getUTCFullYear(),
+        localDate.getUTCMonth(),
+        localDate.getUTCDate(),
+      );
     } else {
       const parsed = parseDateString(raw);
       if (parsed) {
-        const year = parsed.year ?? new Date().getFullYear();
-        date = new Date(Date.UTC(year, parsed.month - 1, parsed.day));
+        let year = parsed.year;
+        if (year === undefined) {
+          const now = new Date();
+          const localDate = shiftDateToOffset(now, getTimezoneOffset(now));
+          year = localDate.getUTCFullYear();
+        }
+        date = utcDate(year, parsed.month - 1, parsed.day);
       } else {
-        date = new Date(raw);
+        date = new Date(Number.NaN);
       }
     }
 

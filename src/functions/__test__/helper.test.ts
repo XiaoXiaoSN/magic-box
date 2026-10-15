@@ -28,6 +28,9 @@ describe('helper functions', () => {
       expect(isNumeric('')).toBe(false);
       expect(isNumeric('abc')).toBe(false);
       expect(isNumeric('12.34.56')).toBe(false);
+      expect(isNumeric(Number.NaN)).toBe(false);
+      expect(isNumeric(Number.POSITIVE_INFINITY)).toBe(false);
+      expect(isNumeric('Infinity')).toBe(false);
       expect(isNumeric('123abc')).toBe(false);
       expect(isNumeric(null)).toBe(false);
       expect(isNumeric(undefined)).toBe(false);
@@ -117,11 +120,16 @@ describe('helper functions', () => {
       expect(isRFC3339('2024-01-01T00:00:00Z')).toBe(true);
       expect(isRFC3339('2024-12-15T19:34:57.530+08:00')).toBe(true);
       expect(isRFC3339('2024-06-30T23:59:59-07:00')).toBe(true);
+      expect(isRFC3339('2000-02-29T23:59:59Z')).toBe(true);
     });
 
     it('should return false for invalid RFC3339 dates', () => {
       expect(isRFC3339('2024-13-01T00:00:00Z')).toBe(false); // Invalid month
       expect(isRFC3339('2024-12-32T00:00:00Z')).toBe(false); // Invalid day
+      expect(isRFC3339('2025-02-30T00:00:00Z')).toBe(false);
+      expect(isRFC3339('2100-02-29T00:00:00Z')).toBe(false);
+      expect(isRFC3339('2016-12-31T23:59:60Z')).toBe(false);
+      expect(isRFC3339('2020-01-01T00:00:00|08:00')).toBe(false);
       expect(isRFC3339('2024-12-15 19:34:57')).toBe(false); // Missing T and timezone
       expect(isRFC3339('invalid-date')).toBe(false);
       expect(isRFC3339('')).toBe(false);
@@ -173,6 +181,18 @@ describe('helper functions', () => {
       expect(isJSON('{invalid:json}')).toBe(false);
       expect(isJSON('{"unclosed:"object"')).toBe(false);
     });
+
+    it.each([
+      '',
+      ']',
+      '{]',
+      ':',
+      '1 2',
+      '{,}',
+      'truefalse',
+    ])('rejects malformed JSON input %j', (input) => {
+      expect(isJSON(input)).toBe(false);
+    });
   });
 
   describe('isValidDay', () => {
@@ -203,6 +223,11 @@ describe('helper functions', () => {
         day: 25,
       });
       expect(parseDateString('2026.06.25')).toEqual({
+        year: 2026,
+        month: 6,
+        day: 25,
+      });
+      expect(parseDateString('2026-Jun-25')).toEqual({
         year: 2026,
         month: 6,
         day: 25,
@@ -265,12 +290,31 @@ describe('helper functions', () => {
       expect(resMs?.day).toBe(2);
     });
 
-    it('should fallback to standard JS Date parsing', () => {
+    it('should parse the supported weekday format without engine fallback', () => {
       expect(parseDateString('Thu Jun 25 2026')).toEqual({
         year: 2026,
         month: 6,
         day: 25,
       });
+      expect(parseDateString('Thu Jun 31 2026')).toBeNull();
+      expect(parseDateString('June 25, 2026 extra')).toBeNull();
+      expect(parseDateString('maybe 5')).toBeNull();
+      expect(parseDateString('marching 3')).toBeNull();
+    });
+
+    it('prioritizes compact calendar dates and rejects rollover dates', () => {
+      expect(parseDateString('20240101')).toEqual({
+        year: 2024,
+        month: 1,
+        day: 1,
+      });
+      expect(parseDateString('2000-02-29')).toEqual({
+        year: 2000,
+        month: 2,
+        day: 29,
+      });
+      expect(parseDateString('2100-02-29')).toBeNull();
+      expect(parseDateString('2024/02-29')).toBeNull();
     });
 
     it('should return null for invalid inputs', () => {

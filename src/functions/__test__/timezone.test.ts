@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import TimestampBoxSource from '../../modules/boxSources/TimestampBoxSource';
 import { getTimezoneOffset, setRuntimePrefs } from '../runtimePrefs';
 import {
+  formatOffsetLabel,
   formatOffsetSuffix,
   isValidTimezoneOffset,
   toOffsetISOString,
@@ -28,6 +29,9 @@ describe('timezone preferences', () => {
     expect(isValidTimezoneOffset(offset)).toBe(false);
   });
   it('formats fractional offsets accurately', () => {
+    expect(formatOffsetLabel(5.75)).toBe('UTC+5:45');
+    expect(formatOffsetLabel(-3.5)).toBe('UTC-3:30');
+    expect(formatOffsetLabel(8)).toBe('UTC+8');
     expect(formatOffsetSuffix(5.75)).toBe('+05:45');
     expect(toOffsetISOString(new Date('2026-01-01T00:00:00Z'), -3.5)).toBe(
       '2025-12-31T20:30:00.000-03:30',

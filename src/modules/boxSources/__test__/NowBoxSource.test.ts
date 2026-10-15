@@ -22,7 +22,6 @@ describe('NowBoxSource', () => {
       const expectResult = {
         date: new Date('2024-01-01T00:00:00Z'),
         timestamp: 1704067200000,
-        twDate: new Date('2024-01-01T08:00:00Z'),
       };
 
       expect(NowBoxSource.checkMatch('now')).toStrictEqual(expectResult);
@@ -35,7 +34,6 @@ describe('NowBoxSource', () => {
       expect(result).toBeDefined();
       expect(result?.timestamp).toBe(1704067200000); // 2024-01-01T00:00:00Z in milliseconds
       expect(result?.date.toISOString()).toBe('2024-01-01T00:00:00.000Z');
-      expect(result?.twDate.toISOString()).toBe('2024-01-01T08:00:00.000Z');
     });
   });
 
@@ -74,6 +72,12 @@ describe('NowBoxSource', () => {
       expect(boxes[2].props.name).toBe('Timestamp (s)');
       expect(boxes[2].props.plaintextOutput).toBe('1704067200');
       expect(boxes[2].boxTemplate).toBeUndefined();
+    });
+
+    it('outputs integer Unix seconds when the current millisecond is nonzero', async () => {
+      vi.setSystemTime(new Date('2024-01-01T00:00:00.999Z'));
+      const boxes = await NowBoxSource.generateBoxes('now');
+      expect(boxes[2].props.plaintextOutput).toBe('1704067200');
     });
   });
 });

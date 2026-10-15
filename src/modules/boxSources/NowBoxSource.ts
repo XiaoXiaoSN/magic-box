@@ -1,10 +1,6 @@
 import { isString, trim } from '@functions/helper';
 import { getTimezoneOffset } from '@functions/runtimePrefs';
-import {
-  formatOffsetLabel,
-  shiftDateToOffset,
-  toOffsetISOString,
-} from '@functions/timezone';
+import { formatOffsetLabel, toOffsetISOString } from '@functions/timezone';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
@@ -13,13 +9,12 @@ const PriorityRFC3339 = 10;
 interface Match {
   timestamp: number;
   date: Date;
-  twDate: Date;
 }
 
 export const NowBoxSource = {
   name: 'Now',
   description:
-    'Display the current time in UTC, the preferred timezone (default UTC+8), and Unix timestamp.',
+    'Display the current time in UTC, the preferred timezone, and Unix timestamp.',
   defaultInput: 'now',
   tag: '⏱',
   kind: 'Time',
@@ -34,11 +29,7 @@ export const NowBoxSource = {
     if (regularInput === 'now') {
       const timestamp = Date.now();
       const date = new Date(timestamp);
-      // `twDate` keeps its name for back-compat but now follows the configured
-      // default timezone offset rather than a hardcoded +8.
-      const twDate = shiftDateToOffset(date, getTimezoneOffset(date));
-
-      return { timestamp, date, twDate };
+      return { timestamp, date };
     }
 
     return undefined;
@@ -64,7 +55,7 @@ export const NowBoxSource = {
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
-      new BoxBuilder('Timestamp (s)', (timestamp / 1000).toString())
+      new BoxBuilder('Timestamp (s)', Math.floor(timestamp / 1000).toString())
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),

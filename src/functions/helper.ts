@@ -1,23 +1,15 @@
 export function isNumeric(num: unknown): boolean {
-  if (typeof num === 'number') {
-    return true;
-  }
-  if (
+  if (typeof num === 'number') return Number.isFinite(num);
+  return (
     typeof num === 'string' &&
     num.trim() !== '' &&
-    /^[+-]?\d+(\.\d*)?$/.test(num)
-  ) {
-    return !Number.isNaN(num) && !Number.isNaN(parseFloat(num));
-  }
-
-  return false;
+    /^[+-]?\d+(\.\d*)?$/.test(num) &&
+    Number.isFinite(Number(num))
+  );
 }
 
 export function toNumeric(num: unknown): number | null {
-  if (isNumeric(num)) {
-    return parseFloat(num as string);
-  }
-  return null;
+  return isNumeric(num) ? Number(num) : null;
 }
 
 export function isString(variable: unknown): boolean {
@@ -37,13 +29,16 @@ export function trim(str: string): string {
 }
 
 export function isRFC3339(str: unknown): boolean {
-  if (!isString(str)) {
-    return false;
-  }
+  if (!isString(str)) return false;
 
-  const re =
-    /^(\d+)-(0[1-9]|1[012])-(0[1-9]|[12]\d|3[01])[\sT]([01]\d|2[0-3]):([0-5]\d):([0-5]\d|60)(\.\d+)?(([Zz])|([+|-]([01]\d|2[0-3])):[0-5]\d)$/i;
-  return !!(str as string).match(re);
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(\.\d+)?([Zz]|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/i.exec(
+      str as string,
+    );
+  return (
+    match !== null &&
+    isValidCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]))
+  );
 }
 
 export function isBase64(str: string): boolean {
@@ -60,36 +55,127 @@ export function isBase64(str: string): boolean {
    *   $                          # End of input
    */
   const re = /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/;
-  if (str === '' || str.trim() === '') {
-    return false;
-  }
-  return !!re.exec(str);
+  return str !== '' && str.trim() !== '' && !!re.exec(str);
 }
 
 export function isJSON(str: string): boolean {
-  // https://stackoverflow.com/a/3710506/6695274
-  if (
-    /^[\],:{}\s]*$/.test(
-      str
-        .replace(/\\["\\/bfnrtu]/g, '@')
-        .replace(
-          /"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?/g,
-          ']',
-        )
-        .replace(/(?:^|:|,)(?:\s*\[)+/g, ''),
-    )
-  ) {
+  try {
+    JSON.parse(str);
     return true;
+  } catch {
+    return false;
   }
-  return false;
 }
 
 const DAYS_IN_MONTH = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
+const MONTH_MAP: Record<string, number> = {
+  jan: 1,
+  january: 1,
+  feb: 2,
+  february: 2,
+  mar: 3,
+  march: 3,
+  apr: 4,
+  april: 4,
+  may: 5,
+  jun: 6,
+  june: 6,
+  jul: 7,
+  july: 7,
+  aug: 8,
+  august: 8,
+  sep: 9,
+  september: 9,
+  oct: 10,
+  october: 10,
+  nov: 11,
+  november: 11,
+  dec: 12,
+  december: 12,
+};
+
+const MONTH_NAMES_PATTERN =
+  '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const NAMED_YMD_REGEX = new RegExp(
+  `^(\\d{4})([-/])${MONTH_NAMES_PATTERN}\\2(\\d{1,2})(.*)$`,
+  'i',
+);
+const MONTH_DAY_YEAR_REGEX = new RegExp(
+  `^${MONTH_NAMES_PATTERN}[-/.,\\s]+(\\d{1,2})(?:st|nd|rd|th)?(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  'i',
+);
+const DAY_MONTH_YEAR_REGEX = new RegExp(
+  `^(\\d{1,2})(?:st|nd|rd|th)?[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES_PATTERN}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  'i',
+);
+
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+export function isValidCalendarDate(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
+  return (
+    Number.isInteger(year) &&
+    year >= 1 &&
+    year <= 9999 &&
+    Number.isInteger(month) &&
+    month >= 1 &&
+    month <= 12 &&
+    Number.isInteger(day) &&
+    day >= 1 &&
+    day <= (month === 2 ? (isLeapYear(year) ? 29 : 28) : DAYS_IN_MONTH[month])
+  );
+}
+
 export function isValidDay(month: number, day: number): boolean {
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > DAYS_IN_MONTH[month]) return false;
-  return true;
+  return (
+    Number.isInteger(month) &&
+    month >= 1 &&
+    month <= 12 &&
+    Number.isInteger(day) &&
+    day >= 1 &&
+    day <= DAYS_IN_MONTH[month]
+  );
+}
+
+function isValidDateSuffix(suffix: string): boolean {
+  if (suffix.trim() === '') return true;
+  return /^(?:T|\s)([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(?:\.\d+)?([Zz]|[+-](?:[01]\d|2[0-3])(?::?[0-5]\d)?)?$/i.test(
+    suffix,
+  );
+}
+
+function yearFromTwoOrFourDigits(year: number): number {
+  if (year >= 100) return year;
+  return year > 50 ? 1900 + year : 2000 + year;
+}
+
+function validParsedDate(
+  year: number | undefined,
+  month: number,
+  day: number,
+): { year?: number; month: number; day: number } | null {
+  if (year === undefined) return isValidDay(month, day) ? { month, day } : null;
+  return isValidCalendarDate(year, month, day) ? { year, month, day } : null;
+}
+
+function parseTimestampDate(
+  value: string,
+): { year?: number; month: number; day: number } | null {
+  const timestamp = Number(value);
+  const date = new Date(value.length <= 11 ? timestamp * 1000 : timestamp);
+  if (!Number.isFinite(date.getTime())) return null;
+
+  return validParsedDate(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate(),
+  );
 }
 
 export function parseDateString(
@@ -98,163 +184,120 @@ export function parseDateString(
   const cleaned = trim(input);
   if (!cleaned) return null;
 
-  // 1. Check numeric timestamp
-  // A UNIX timestamp in seconds/ms is an integer and usually has 8 to 13 digits
-  if (/^\d{8,13}$/.test(cleaned)) {
-    const num = parseInt(cleaned, 10);
-    const date = new Date(num >= 1e11 ? num : num * 1000);
-    if (!Number.isNaN(date.getTime())) {
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      if (isValidDay(month, day)) {
-        return { year, month, day };
-      }
-    }
+  const compactDate = /^(\d{4})(\d{2})(\d{2})$/.exec(cleaned);
+  if (compactDate) {
+    return validParsedDate(
+      Number(compactDate[1]),
+      Number(compactDate[2]),
+      Number(compactDate[3]),
+    );
   }
 
-  // 2. YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD or YYYY年MM月DD日
-  const ymdRegex =
-    /^\s*(\d{4})[-/.\s年]+(\d{1,2})[-/.\s月]+(\d{1,2})(?:日|號)?(?:\s|$|T)/i;
-  const ymdMatch = ymdRegex.exec(cleaned);
+  if (/^\d{9,13}$/.test(cleaned)) return parseTimestampDate(cleaned);
+
+  // YYYY-MM-DD, YYYY/MM/DD, and YYYY.MM.DD with an optional validated time.
+  const ymdMatch = /^(\d{4})([-/.])(\d{1,2})\2(\d{1,2})(.*)$/.exec(cleaned);
   if (ymdMatch) {
-    const year = parseInt(ymdMatch[1], 10);
-    const month = parseInt(ymdMatch[2], 10);
-    const day = parseInt(ymdMatch[3], 10);
-    if (isValidDay(month, day)) {
-      return { year, month, day };
-    }
-    return null;
+    if (!isValidDateSuffix(ymdMatch[5])) return null;
+    return validParsedDate(
+      Number(ymdMatch[1]),
+      Number(ymdMatch[3]),
+      Number(ymdMatch[4]),
+    );
   }
 
-  // 3. MM-DD-YYYY or DD-MM-YYYY
-  const mdyRegex = /^\s*(\d{1,2})[-/.\s]+(\d{1,2})[-/.\s]+(\d{2,4})(?:\s|$|T)/i;
-  const mdyMatch = mdyRegex.exec(cleaned);
-  if (mdyMatch) {
-    let month = parseInt(mdyMatch[1], 10);
-    let day = parseInt(mdyMatch[2], 10);
-    const yearRaw = parseInt(mdyMatch[3], 10);
-    if (month > 12 && day <= 12) {
-      const temp = month;
-      month = day;
-      day = temp;
-    }
-    const year =
-      yearRaw < 100
-        ? yearRaw > 50
-          ? 1900 + yearRaw
-          : 2000 + yearRaw
-        : yearRaw;
-    if (isValidDay(month, day)) {
-      return { year, month, day };
-    }
-    return null;
+  const namedYmd = NAMED_YMD_REGEX.exec(cleaned);
+  if (namedYmd) {
+    if (!isValidDateSuffix(namedYmd[5])) return null;
+    return validParsedDate(
+      Number(namedYmd[1]),
+      MONTH_MAP[namedYmd[3].toLowerCase()],
+      Number(namedYmd[4]),
+    );
   }
 
-  // 4. Month Name patterns
-  const MONTH_MAP: Record<string, number> = {
-    jan: 1,
-    january: 1,
-    feb: 2,
-    february: 2,
-    mar: 3,
-    march: 3,
-    apr: 4,
-    april: 4,
-    may: 5,
-    jun: 6,
-    june: 6,
-    jul: 7,
-    july: 7,
-    aug: 8,
-    august: 8,
-    sep: 9,
-    september: 9,
-    oct: 10,
-    october: 10,
-    nov: 11,
-    november: 11,
-    dec: 12,
-    december: 12,
-  };
-  const monthNamesPattern =
-    '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  const chineseDate = /^(\d{4})年(\d{1,2})月(\d{1,2})日?(.*)$/.exec(cleaned);
+  if (chineseDate) {
+    if (!isValidDateSuffix(chineseDate[4])) return null;
+    return validParsedDate(
+      Number(chineseDate[1]),
+      Number(chineseDate[2]),
+      Number(chineseDate[3]),
+    );
+  }
 
-  // June 25, 2026
-  const mNameDayYear = new RegExp(
-    `^\\s*${monthNamesPattern}[-/.,\\s]+(\\d{1,2})(?:[-/.,\\s]+(\\d{2,4}))?`,
-    'i',
+  const numericDate = /^(\d{1,2})([-/.])(\d{1,2})\2(\d{2,4})(.*)$/.exec(
+    cleaned,
   );
-  const mndyMatch = mNameDayYear.exec(cleaned);
-  if (mndyMatch) {
-    const monthName = mndyMatch[1].toLowerCase();
-    const month = MONTH_MAP[monthName];
-    const day = parseInt(mndyMatch[2], 10);
-    if (month && isValidDay(month, day)) {
-      if (mndyMatch[3]) {
-        const yearRaw = parseInt(mndyMatch[3], 10);
-        const year =
-          yearRaw < 100
-            ? yearRaw > 50
-              ? 1900 + yearRaw
-              : 2000 + yearRaw
-            : yearRaw;
-        return { year, month, day };
-      }
-      return { month, day };
-    }
-    return null;
+  if (numericDate) {
+    if (!isValidDateSuffix(numericDate[5])) return null;
+    let month = Number(numericDate[1]);
+    let day = Number(numericDate[3]);
+    if (month > 12 && day <= 12) [month, day] = [day, month];
+    return validParsedDate(
+      yearFromTwoOrFourDigits(Number(numericDate[4])),
+      month,
+      day,
+    );
   }
 
-  // 25 June 2026
-  const dayMNameYear = new RegExp(
-    `^\\s*(\\d{1,2})(?:st|n[d]|rd|th)?[-/.,\\s]+(?:of\\s+)?${monthNamesPattern}(?:[-/.,\\s]+(\\d{2,4}))?`,
-    'i',
+  const monthDayYear = MONTH_DAY_YEAR_REGEX.exec(cleaned);
+  if (monthDayYear) {
+    if (!isValidDateSuffix(monthDayYear[4])) return null;
+    return validParsedDate(
+      monthDayYear[3]
+        ? yearFromTwoOrFourDigits(Number(monthDayYear[3]))
+        : undefined,
+      MONTH_MAP[monthDayYear[1].toLowerCase()],
+      Number(monthDayYear[2]),
+    );
+  }
+
+  const dayMonthYear = DAY_MONTH_YEAR_REGEX.exec(cleaned);
+  if (dayMonthYear) {
+    if (!isValidDateSuffix(dayMonthYear[4])) return null;
+    return validParsedDate(
+      dayMonthYear[3]
+        ? yearFromTwoOrFourDigits(Number(dayMonthYear[3]))
+        : undefined,
+      MONTH_MAP[dayMonthYear[2].toLowerCase()],
+      Number(dayMonthYear[1]),
+    );
+  }
+
+  const numericMonthDay = /^(\d{1,2})[-/.](\d{1,2})$/.exec(cleaned);
+  if (numericMonthDay) {
+    return validParsedDate(
+      undefined,
+      Number(numericMonthDay[1]),
+      Number(numericMonthDay[2]),
+    );
+  }
+
+  const chineseMonthDay = /^(\d{1,2})月(\d{1,2})日?$/.exec(cleaned);
+  if (chineseMonthDay) {
+    return validParsedDate(
+      undefined,
+      Number(chineseMonthDay[1]),
+      Number(chineseMonthDay[2]),
+    );
+  }
+
+  // Keep the previously accepted weekday form without relying on engine parsing.
+  const weekdayDate = /^(sun|mon|tue|wed|thu|fri|sat)\w*\s+(.+)$/i.exec(
+    cleaned,
   );
-  const dmnyMatch = dayMNameYear.exec(cleaned);
-  if (dmnyMatch) {
-    const day = parseInt(dmnyMatch[1], 10);
-    const monthName = dmnyMatch[2].toLowerCase();
-    const month = MONTH_MAP[monthName];
-    if (month && isValidDay(month, day)) {
-      if (dmnyMatch[3]) {
-        const yearRaw = parseInt(dmnyMatch[3], 10);
-        const year =
-          yearRaw < 100
-            ? yearRaw > 50
-              ? 1900 + yearRaw
-              : 2000 + yearRaw
-            : yearRaw;
-        return { year, month, day };
-      }
-      return { month, day };
-    }
-    return null;
-  }
-
-  // 5. MM-DD or MM/DD or MM.DD or MM月DD日
-  const mdRegex = /^\s*(\d{1,2})[-/.\s月]+(\d{1,2})(?:日|號)?\s*$/i;
-  const mdMatch = mdRegex.exec(cleaned);
-  if (mdMatch) {
-    const month = parseInt(mdMatch[1], 10);
-    const day = parseInt(mdMatch[2], 10);
-    if (isValidDay(month, day)) {
-      return { month, day };
-    }
-    return null;
-  }
-
-  // 6. General JS Date parsing fallback (only if it doesn't look like an invalid date string with slashes/dashes)
-  if (!/[\d-]/.test(cleaned) || !Number.isNaN(Date.parse(cleaned))) {
-    const fallbackDate = new Date(cleaned);
-    if (!Number.isNaN(fallbackDate.getTime())) {
-      const year = fallbackDate.getFullYear();
-      const month = fallbackDate.getMonth() + 1;
-      const day = fallbackDate.getDate();
-      if (isValidDay(month, day)) {
-        return { year, month, day };
-      }
-    }
+  if (weekdayDate) {
+    const parsed = parseDateString(weekdayDate[2]);
+    if (parsed?.year === undefined) return null;
+    const date = new Date(0);
+    date.setUTCFullYear(parsed.year, parsed.month - 1, parsed.day);
+    date.setUTCHours(0, 0, 0, 0);
+    const weekday = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][
+      date.getUTCDay()
+    ];
+    if (weekday !== weekdayDate[1].slice(0, 3).toLowerCase()) return null;
+    return parsed;
   }
 
   return null;
@@ -271,5 +314,6 @@ export const helper = {
   isBase64,
   isJSON,
   isValidDay,
+  isValidCalendarDate,
   parseDateString,
 };
