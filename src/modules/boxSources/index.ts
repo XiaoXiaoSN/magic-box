@@ -957,7 +957,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     name: 'Text Diff',
     description:
       'Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.',
-    defaultInput: 'foo\nbar\n::diff\n::lang=yaml',
+    defaultInput: 'foo\nbar\n---\nfoo\nbaz\n::textdiff',
     tag: '#',
     kind: 'Analyze',
     priority: 10,

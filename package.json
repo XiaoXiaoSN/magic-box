@@ -4,9 +4,6 @@
   "private": true,
   "license": "(MIT OR Apache-2.0)",
   "packageManager": "bun@1.3.4",
-  "bin": {
-    "magic-box-tui": "src/tui/index.tsx"
-  },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
@@ -91,8 +88,8 @@
     "typecheck:cypress": "tsc -p cypress/tsconfig.json --noEmit",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "tui": "bun run src/tui/index.tsx",
-    "tui:build": "bun build src/tui/index.tsx --target=node --external ink --external ink-text-input --external react --external base64-box --external math-box --outfile dist-tui/index.mjs",
-    "tui:node": "node dist-tui/index.mjs",
+    "tui:build": "bun scripts/build-tui.ts",
+    "tui:install": "bun scripts/install-tui.ts",
     "lint": "bunx --no-install biome ci src cypress *.config.ts",
     "lint:fix": "biome check --write src/ *.config.ts"
   },

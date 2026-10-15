@@ -52,6 +52,7 @@ export interface BoxProps {
   largeModal?: boolean;
   onClose?: () => void;
   selected?: boolean;
+  isError?: boolean;
   tag?: string;
   kind?: string;
 }
@@ -192,5 +193,7 @@ export function errorBox(
 ): Box {
   const builder = new BoxBuilder(name, message).setShowExpandButton(false);
   if (opts.priority !== undefined) builder.setPriority(opts.priority);
-  return builder.build();
+  const box = builder.build();
+  box.props.isError = true;
+  return box;
 }

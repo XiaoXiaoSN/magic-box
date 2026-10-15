@@ -1,5 +1,7 @@
+import type { BoxSource } from '@modules/BoxSource';
 import { render } from 'ink';
 import { createElement } from 'react';
+
 import { App, ResultList } from './App';
 import type { TerminalRenderer } from './renderer';
 
@@ -10,7 +12,7 @@ export const inkRenderer: TerminalRenderer = {
     instance.unmount();
     await instance.waitUntilExit();
   },
-  async startInteractive() {
-    await render(createElement(App)).waitUntilExit();
+  async startInteractive(sources?: BoxSource[]) {
+    await render(createElement(App, { sources })).waitUntilExit();
   },
 };
