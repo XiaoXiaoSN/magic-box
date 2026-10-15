@@ -157,4 +157,43 @@ describe('SpeedConvertBoxSource', () => {
       expect(opts['m/s']).toBe('0.3048');
     });
   });
+
+  it('uses the exact knot ratio shared with UnitConverter', async () => {
+    const boxes = await SpeedConvertBoxSource.generateBoxes('100 knots', {
+      speed: true,
+    });
+    expect(boxes[0].props.options).toMatchObject({ 'km/h': '185.2' });
+  });
+
+  it('accepts exponent notation', async () => {
+    const boxes = await SpeedConvertBoxSource.generateBoxes('1e3 km/h', {
+      speed: true,
+    });
+    expect(boxes[0].props.options).toMatchObject({ 'km/h': '1,000' });
+  });
+
+  it('reports numeric-only input as invalid format', async () => {
+    const boxes = await SpeedConvertBoxSource.generateBoxes('100', {
+      speed: true,
+    });
+    expect(boxes[0].props.options).toMatchObject({
+      Error: 'Invalid format. Expected: <number> <unit>',
+    });
+  });
+
+  it('accepts unambiguous grouped integers and rejects ambiguous punctuation', async () => {
+    const grouped = await SpeedConvertBoxSource.generateBoxes('1,000 km/h', {
+      speed: true,
+    });
+    expect(grouped[0].props.options).toMatchObject({ 'km/h': '1,000' });
+
+    for (const input of ['1,5 km/h', '1.234.567 km/h']) {
+      const boxes = await SpeedConvertBoxSource.generateBoxes(input, {
+        speed: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Error: 'Invalid format. Expected: <number> <unit>',
+      });
+    }
+  });
 });
