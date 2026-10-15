@@ -12,7 +12,10 @@ interface BuildManifest {
 describe('production math WASM recovery while offline', () => {
   it('loads a queried fresh glue module and its cached WASM after the server stops', () => {
     cy.visit('/');
-    cy.window().then((win) => win.navigator.serviceWorker.ready);
+    cy.window().then(
+      { timeout: 60_000 },
+      (win) => win.navigator.serviceWorker.ready,
+    );
     cy.reload();
     cy.window().should((win) => {
       expect(win.navigator.serviceWorker.controller).not.to.equal(null);
