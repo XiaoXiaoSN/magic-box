@@ -15,7 +15,7 @@ const manifestIds = sourceManifest.map((source) => source.id);
 
 describe('source manifest', () => {
   it('keeps the complete ordered registry in stable-id form', () => {
-    expect(sourceManifest).toHaveLength(90);
+    expect(sourceManifest).toHaveLength(93);
     expect(new Set(manifestIds).size).toBe(sourceManifest.length);
     expect(
       manifestIds.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),
@@ -27,10 +27,10 @@ describe('source manifest', () => {
       'base64-decode',
     ]);
     expect(manifestIds.slice(-4)).toEqual([
-      'case-converter',
-      'certificate-decode',
-      'cheat-sheet',
       'coordinates',
+      'html-entities',
+      'http-status',
+      'chmod-calculator',
     ]);
     expect(getBoxSource('DMS Coordinates')?.id).toBe('coordinates');
     expect(getBoxSource('coordinates')?.name).toBe('Coordinates');
@@ -80,6 +80,9 @@ describe('source manifest', () => {
     ['duration', '10\n::parseduration'],
     ['timestamp', '1735794245\n::unix'],
     ['certificate-decode', certificate],
+    ['html-entities', '&amp;lt;\n::htmldecode'],
+    ['http-status', '404\n::http'],
+    ['chmod-calculator', '4755\n::chmod'],
   ])('keeps supported aliases lazy and functional: %s', async (id, raw) => {
     const registered = getBoxSource(id);
     expect(registered).not.toBeNull();

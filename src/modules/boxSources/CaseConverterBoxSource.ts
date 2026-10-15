@@ -1,44 +1,92 @@
-import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const Priority = 10;
 const BoxName = 'Case Converter';
+const MAX_INPUT_LENGTH = 100 * 1024;
+const LOWERCASE = /^\p{Ll}$/u;
+const UPPERCASE = /^\p{Lu}$/u;
+const LETTER = /^\p{L}$/u;
+const NUMBER = /^\p{N}$/u;
+const MARK = /^\p{M}$/u;
+const SEPARATOR = /^[\s._/-]$/u;
 
-// split input into lowercase tokens by whitespace, separators, and camelCase/PascalCase boundaries
+function kindOf(
+  character: string,
+): 'lower' | 'upper' | 'letter' | 'number' | 'mark' | 'other' {
+  if (LOWERCASE.test(character)) return 'lower';
+  if (UPPERCASE.test(character)) return 'upper';
+  if (LETTER.test(character)) return 'letter';
+  if (NUMBER.test(character)) return 'number';
+  if (MARK.test(character)) return 'mark';
+  return 'other';
+}
+
 function tokenize(input: string): string[] {
-  // insert a space before every uppercase letter that follows a lowercase letter or digit (camelCase boundary)
-  const expanded = input
-    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
-    // split an acronym from a following word (XMLParser → XML Parser); the
-    // fixed-width lookahead avoids the catastrophic backtracking that
-    // `([A-Z]+)([A-Z][a-z])` exhibits on long uppercase runs (ReDoS)
-    .replace(/([A-Z])(?=[A-Z][a-z])/g, '$1 ');
+  const characters = [...input];
+  const kinds = characters.map(kindOf);
+  const tokens: string[] = [];
+  let token = '';
+  let previousKind: ReturnType<typeof kindOf> = 'other';
 
-  return expanded
-    .split(/[\s\-_.]+/)
-    .map((t) => t.toLowerCase())
-    .filter((t) => t.length > 0);
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
+    const kind = kinds[index];
+    if (SEPARATOR.test(character)) {
+      if (token) tokens.push(token.toLowerCase());
+      token = '';
+      previousKind = 'other';
+      continue;
+    }
+
+    if (token) {
+      let nextKind = kinds[index + 1] ?? 'other';
+      let lookahead = index + 1;
+      while (nextKind === 'mark') {
+        lookahead += 1;
+        nextKind = kinds[lookahead] ?? 'other';
+      }
+      const letterBoundary =
+        (previousKind === 'lower' && kind === 'upper') ||
+        (previousKind === 'upper' && kind === 'upper' && nextKind === 'lower');
+      const numberBoundary =
+        (previousKind === 'number' && kind !== 'number' && kind !== 'mark') ||
+        (previousKind !== 'number' && kind === 'number');
+      if (letterBoundary || numberBoundary) {
+        tokens.push(token.toLowerCase());
+        token = '';
+      }
+    }
+
+    token += character;
+    if (kind !== 'mark') previousKind = kind;
+  }
+
+  if (token) tokens.push(token.toLowerCase());
+  return tokens;
 }
 
 function capitalize(word: string): string {
-  return word.charAt(0).toUpperCase() + word.slice(1);
+  const firstCodePoint = word.codePointAt(0);
+  if (firstCodePoint === undefined) return word;
+  const firstLength = firstCodePoint > 0xffff ? 2 : 1;
+  return word.slice(0, firstLength).toUpperCase() + word.slice(firstLength);
 }
 
 interface CaseFormat {
   label: string;
-  // option keys that select only this format; `::case=<key>` accepts them too
-  keys: string[];
-  // word-based formats read the tokens; lowercase/UPPERCASE map the text as-is
-  convert: (tokens: string[], text: string) => string;
+  keys: readonly string[];
+  convert: (tokens: string[], line: string) => string;
 }
 
-const FORMATS: CaseFormat[] = [
+const FORMATS: readonly CaseFormat[] = [
   {
     label: 'camelCase',
     keys: ['camel', 'camelcase'],
     convert: (tokens) =>
-      tokens.map((t, i) => (i === 0 ? t : capitalize(t))).join(''),
+      tokens
+        .map((token, index) => (index === 0 ? token : capitalize(token)))
+        .join(''),
   },
   {
     label: 'PascalCase',
@@ -51,19 +99,14 @@ const FORMATS: CaseFormat[] = [
     convert: (tokens) => tokens.join('_'),
   },
   {
+    label: 'CONSTANT_CASE',
+    keys: ['constant', 'constantcase'],
+    convert: (tokens) => tokens.join('_').toUpperCase(),
+  },
+  {
     label: 'kebab-case',
     keys: ['kebab', 'kebabcase'],
     convert: (tokens) => tokens.join('-'),
-  },
-  {
-    label: 'CONSTANT_CASE',
-    keys: ['constant', 'constantcase'],
-    convert: (tokens) => tokens.map((t) => t.toUpperCase()).join('_'),
-  },
-  {
-    label: 'dot.case',
-    keys: ['dot', 'dotcase'],
-    convert: (tokens) => tokens.join('.'),
   },
   {
     label: 'Title Case',
@@ -71,42 +114,87 @@ const FORMATS: CaseFormat[] = [
     convert: (tokens) => tokens.map(capitalize).join(' '),
   },
   {
+    label: 'dot.case',
+    keys: ['dot', 'dotcase'],
+    convert: (tokens) => tokens.join('.'),
+  },
+  {
+    label: 'path/case',
+    keys: ['path', 'pathcase'],
+    convert: (tokens) => tokens.join('/'),
+  },
+  {
     label: 'Sentence case',
     keys: ['sentence', 'sentencecase'],
     convert: (tokens) =>
-      tokens.map((t, i) => (i === 0 ? capitalize(t) : t)).join(' '),
+      tokens
+        .map((token, index) => (index === 0 ? capitalize(token) : token))
+        .join(' '),
   },
   {
     label: 'lowercase',
     keys: ['lower', 'lowercase'],
-    convert: (_tokens, text) => text.toLowerCase(),
+    convert: (_tokens, line) => line.toLowerCase(),
   },
   {
     label: 'UPPERCASE',
     keys: ['upper', 'uppercase'],
-    convert: (_tokens, text) => text.toUpperCase(),
+    convert: (_tokens, line) => line.toUpperCase(),
   },
 ];
 
-const FORMAT_KEYS = FORMATS.flatMap((f) => f.keys);
+const FORMAT_KEYS = FORMATS.flatMap((format) => format.keys);
 
-// `::case=kebab-case`, `::case=Snake_Case` and `::case=snake` all name the
-// same format, so compare with case and separators stripped
 function normalizeFormatName(name: string): string {
-  return name.toLowerCase().replace(/[\s\-_.]+/g, '');
+  return name.toLowerCase().replace(/[\s._/-]+/g, '');
 }
 
 function findFormat(name: string): CaseFormat | undefined {
-  const key = normalizeFormatName(name);
-  return FORMATS.find((f) => f.keys.includes(key));
+  const normalized = normalizeFormatName(name);
+  return FORMATS.find((format) => format.keys.includes(normalized));
+}
+
+function convertLine(line: string, format: CaseFormat): string {
+  if (format.label === 'lowercase' || format.label === 'UPPERCASE') {
+    return format.convert([], line);
+  }
+  return format.convert(tokenize(line), line);
+}
+
+function isLineBreak(part: string): boolean {
+  return part === '\r' || part === '\n' || part === '\r\n';
+}
+
+function convertText(input: string, format: CaseFormat): string {
+  return input
+    .split(/(\r\n|\r|\n)/)
+    .map((part) => (isLineBreak(part) ? part : convertLine(part, format)))
+    .join('');
+}
+
+function convertAll(input: string): Record<string, string> {
+  const outputs: string[][] = FORMATS.map(() => []);
+  for (const part of input.split(/(\r\n|\r|\n)/)) {
+    if (isLineBreak(part)) {
+      for (const output of outputs) output.push(part);
+      continue;
+    }
+    const tokens = tokenize(part);
+    for (let index = 0; index < FORMATS.length; index += 1) {
+      outputs[index].push(FORMATS[index].convert(tokens, part));
+    }
+  }
+  return Object.fromEntries(
+    FORMATS.map((format, index) => [format.label, outputs[index].join('')]),
+  );
 }
 
 export const CaseConverterBoxSource = {
   defaultDisabled: true,
   name: BoxName,
   description:
-    'Convert text between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, Title Case, Sentence case, lowercase and UPPERCASE. ::case lists every format; ::case=<format> or a single-format option (::camel, ::snake, ::kebab, ::upper, ::lower, …) shows just that one.',
-  defaultInput: 'hello world foo bar\n::case',
+    'Convert each line between camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase and UPPERCASE. Use ::case to list formats or ::case=<format> to select one.',
+  defaultInput: 'XMLHttpRequest userID v2ApiKey\n::case',
   tag: 'Aa',
   kind: 'Convert',
   priority: Priority,
@@ -115,17 +203,24 @@ export const CaseConverterBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    // gate on the case options so this never intercepts unrelated inputs
     if (!hasOptionKeys(options, 'case', ...FORMAT_KEYS)) return [];
-    if (!isString(input)) return [];
-
-    const text = trim(input);
-    const tokens = tokenize(text);
-    if (tokens.length === 0) return [];
-
-    // `::case=<format>` and the single-format keys pick formats and may be
-    // combined; a bare `::case` with nothing picked lists every format
     const caseValue = options?.case;
+    if (
+      input.length > MAX_INPUT_LENGTH ||
+      (typeof caseValue === 'string' && caseValue.length > 64)
+    ) {
+      return [
+        errorBox(
+          BoxName,
+          'Case Converter supports input up to 100 KiB and format names up to 64 characters.',
+          {
+            priority: this.priority,
+          },
+        ),
+      ];
+    }
+    if (input.trim().length === 0) return [];
+
     const selected = new Set<CaseFormat>();
     if (typeof caseValue === 'string') {
       const format = findFormat(caseValue);
@@ -133,7 +228,7 @@ export const CaseConverterBoxSource = {
         return [
           errorBox(
             BoxName,
-            `Unknown case "${caseValue}". Use one of: ${FORMATS.map((f) => f.keys[0]).join(', ')}.`,
+            `Unknown case "${caseValue}". Use one of: ${FORMATS.map((format) => format.keys[0]).join(', ')}.`,
             { priority: this.priority },
           ),
         ];
@@ -145,19 +240,14 @@ export const CaseConverterBoxSource = {
     }
 
     if (selected.size === 0) {
-      const output = Object.fromEntries(
-        FORMATS.map((f) => [f.label, f.convert(tokens, text)]),
-      );
+      const output = convertAll(input);
       return [
-        keyValueBox('keyValue', BoxName, output, {
-          priority: this.priority,
-        }),
+        keyValueBox('keyValue', BoxName, output, { priority: this.priority }),
       ];
     }
 
-    // one box per requested format so its copy button yields the bare value
-    return FORMATS.filter((f) => selected.has(f)).map((format) =>
-      new BoxBuilder(format.label, format.convert(tokens, text))
+    return FORMATS.filter((format) => selected.has(format)).map((format) =>
+      new BoxBuilder(format.label, convertText(input, format))
         .setView('default')
         .setShowExpandButton(false)
         .setPriority(this.priority)
