@@ -9,6 +9,7 @@ import { BoxBuilder, extractOptionKeys } from '@modules/Box';
 
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
+const MAX_INPUT = 100_000;
 
 type Base64BoxModule = typeof import('base64-box');
 
@@ -64,6 +65,9 @@ export const Base64DecodeBoxSource = {
     options: BoxOptions = null,
   ): Promise<Match | undefined> {
     if (!isString(input)) {
+      return undefined;
+    }
+    if (input.length > MAX_INPUT) {
       return undefined;
     }
     const regularInput = trim(input);
@@ -128,6 +132,9 @@ export const Base64EncodeBoxSource = {
 
   async checkMatch(input: string): Promise<EncodeMatch | undefined> {
     if (!isString(input)) {
+      return undefined;
+    }
+    if (input.length > MAX_INPUT) {
       return undefined;
     }
     if (input === '' || trim(input) === '') {

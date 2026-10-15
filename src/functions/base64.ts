@@ -9,7 +9,10 @@ export interface Base64DecodeOptions {
   allowWhitespace?: boolean;
 }
 
-const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+const utf8Decoder = new TextDecoder('utf-8', {
+  fatal: true,
+  ignoreBOM: true,
+});
 
 /** Decode UTF-8 without replacement characters or disallowed controls. */
 export function decodeUtf8Strict(bytes: Uint8Array): string | null {

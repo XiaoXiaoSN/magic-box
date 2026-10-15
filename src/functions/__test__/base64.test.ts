@@ -1,6 +1,6 @@
 import { expect } from 'vitest';
 
-import { base64 } from '../base64';
+import { base64, decodeUtf8Strict } from '../base64';
 
 describe('base64 functions', () => {
   describe('decode Base64', () => {
@@ -40,6 +40,13 @@ describe('base64 functions', () => {
         decoded: new Uint8Array([65, 15, 255]),
         readableText: null,
       });
+    });
+
+    it('should preserve a leading UTF-8 BOM in the shared decoder', () => {
+      expect(decodeUtf8Strict(new Uint8Array([0xef, 0xbb, 0xbf, 0x41]))).toBe(
+        '\ufeffA',
+      );
+      expect(base64.decodeBase64('77u/QQ==').readableText).toBe('\ufeffA');
     });
 
     it('should reject control characters other than tab and newlines', () => {
