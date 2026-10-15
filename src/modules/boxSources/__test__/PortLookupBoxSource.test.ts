@@ -179,7 +179,6 @@ describe('PortLookupBoxSource', () => {
       expect(PortLookupBoxSource.name).toBe('Port Lookup');
       expect(PortLookupBoxSource.tag).toBe('#');
       expect(PortLookupBoxSource.kind).toBe('Decode');
-      expect(typeof PortLookupBoxSource.priority).toBe('number');
     });
   });
 });

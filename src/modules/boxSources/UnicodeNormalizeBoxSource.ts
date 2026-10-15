@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // supported Unicode normalization forms
@@ -27,7 +26,6 @@ export const UnicodeNormalizeBoxSource = {
   defaultInput: 'café\n::normalize=nfd',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -58,7 +56,7 @@ export const UnicodeNormalizeBoxSource = {
       new BoxBuilder('Unicode Normalize', plaintextOutput)
         .setOptions(kvOptions)
         .setView('keyValue')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

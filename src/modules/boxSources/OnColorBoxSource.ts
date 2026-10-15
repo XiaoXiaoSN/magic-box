@@ -9,7 +9,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const MAX_HEX_INPUT = 32;
 
 export const OnColorBoxSource = {
@@ -20,7 +19,6 @@ export const OnColorBoxSource = {
   defaultInput: '#3498db\n::oncolor',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -36,7 +34,6 @@ export const OnColorBoxSource = {
         errorBox(
           'Readable Text Color',
           'A valid hex color is required (e.g. #3498db or #fff)',
-          { priority: Priority },
         ),
       ];
     }
@@ -55,11 +52,7 @@ export const OnColorBoxSource = {
       'WCAG AAA': ratio >= 7 ? 'pass' : 'fail',
     };
 
-    return [
-      keyValueBox('keyValue', 'Readable Text Color', kvOptions, {
-        priority: Priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'Readable Text Color', kvOptions)];
   },
 };
 

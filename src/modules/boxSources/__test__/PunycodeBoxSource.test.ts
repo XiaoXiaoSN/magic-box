@@ -8,7 +8,6 @@ describe('PunycodeBoxSource', () => {
       expect(PunycodeBoxSource.name).toBe('Punycode');
       expect(PunycodeBoxSource.tag).toBe('#');
       expect(PunycodeBoxSource.kind).toBe('Encode');
-      expect(typeof PunycodeBoxSource.priority).toBe('number');
     });
   });
 

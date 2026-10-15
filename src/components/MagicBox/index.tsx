@@ -39,7 +39,7 @@ function decorateBoxes(boxes: BoxType[], source: BoxSource): BoxType[] {
 }
 
 function sourceErrorBox(source: BoxSource, message: string): BoxType {
-  return errorBox(source.name, message, { priority: source.priority });
+  return errorBox(source.name, message);
 }
 
 function hasExplicitSourceOption(

@@ -353,7 +353,6 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-21');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 

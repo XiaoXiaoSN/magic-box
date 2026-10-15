@@ -10,8 +10,6 @@ import {
   STRICT_NUMBER_TOKEN,
 } from './UnitConversionData';
 
-const Priority = 12;
-
 type UnitCategory =
   | 'length'
   | 'area'
@@ -645,7 +643,6 @@ export const UnitConverterBoxSource = {
   defaultInput: '100 km to mi',
   tag: '⇄',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -706,7 +703,7 @@ export const UnitConverterBoxSource = {
         new BoxBuilder(title, plaintext)
           .setView('keyValue')
           .setOptions(kvOptions)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -731,7 +728,7 @@ export const UnitConverterBoxSource = {
       new BoxBuilder(title, plaintext)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

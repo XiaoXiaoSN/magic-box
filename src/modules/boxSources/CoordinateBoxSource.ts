@@ -24,7 +24,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const BoxName = 'Coordinates';
 
 // coordinates are short; the cap bounds the pair search in parseCoordinate
@@ -200,7 +199,6 @@ export const CoordinateBoxSource = {
   defaultInput: '40.446195, -79.948862\n::coord',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -213,7 +211,7 @@ export const CoordinateBoxSource = {
 
     const parsed = parse(raw);
     if (parsed.kind === 'error') {
-      return [errorBox(BoxName, parsed.message, { priority: this.priority })];
+      return [errorBox(BoxName, parsed.message)];
     }
 
     const selected = FORMATS.filter((f) => hasOptionKeys(options, ...f.keys));
@@ -224,23 +222,19 @@ export const CoordinateBoxSource = {
         const value = formatValue(format, parsed);
         if (typeof value === 'string') rows[format.label] = value;
       }
-      return [
-        keyValueBox('keyValue', BoxName, rows, {
-          priority: this.priority,
-        }),
-      ];
+      return [keyValueBox('keyValue', BoxName, rows)];
     }
 
     // one box per requested format so its copy button yields the bare value
     return selected.map((format) => {
       const value = formatValue(format, parsed);
       if (typeof value !== 'string') {
-        return errorBox(format.label, value.error, { priority: this.priority });
+        return errorBox(format.label, value.error);
       }
       return new BoxBuilder(format.label, value)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build();
     });
   },

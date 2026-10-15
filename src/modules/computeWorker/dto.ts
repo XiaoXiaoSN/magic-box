@@ -13,7 +13,6 @@ export interface WorkerBoxDTO {
   options: Record<string, string | boolean> | null;
   sourceInput?: string;
   view?: BoxView;
-  priority?: number;
   showExpandButton?: boolean;
   disabled?: boolean;
   largeModal?: boolean;
@@ -186,12 +185,6 @@ export function isWorkerBoxDTO(value: unknown): value is WorkerBoxDTO {
     return false;
   }
   if (value.view !== undefined && !isBoxView(value.view)) return false;
-  if (
-    value.priority !== undefined &&
-    (typeof value.priority !== 'number' || !Number.isFinite(value.priority))
-  ) {
-    return false;
-  }
   for (const key of [
     'showExpandButton',
     'disabled',
@@ -309,7 +302,6 @@ export function toWorkerBox(box: Box): WorkerBoxDTO | null {
   };
   if (props.sourceInput !== undefined) dto.sourceInput = props.sourceInput;
   if (box.view !== undefined) dto.view = box.view;
-  if (props.priority !== undefined) dto.priority = props.priority;
   if (props.showExpandButton !== undefined) {
     dto.showExpandButton = props.showExpandButton;
   }
@@ -352,7 +344,6 @@ export function rehydrateWorkerBox(dto: WorkerBoxDTO): Box {
     options: dto.options,
     sourceInput: dto.sourceInput,
     onClick: () => {},
-    priority: dto.priority,
     showExpandButton: dto.showExpandButton,
     disabled: dto.disabled,
     largeModal: dto.largeModal,

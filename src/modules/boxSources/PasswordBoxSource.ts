@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const PriorityPasswordBox = 10;
 const DEFAULT_LENGTH = 16;
 const MIN_LENGTH = 4;
 const MAX_LENGTH = 256;
@@ -115,7 +114,6 @@ export const PasswordBoxSource = {
   defaultInput: '::password',
   tag: '🔑',
   kind: 'Generate',
-  priority: PriorityPasswordBox,
 
   async generateBoxes(_input: string, options: BoxOptions): Promise<Box[]> {
     if (!hasOptionKeys(options, 'password', 'pwd', 'pass')) {
@@ -133,7 +131,7 @@ export const PasswordBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -160,7 +158,7 @@ export const PasswordBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -172,7 +170,7 @@ export const PasswordBoxSource = {
         new BoxBuilder('Password Generator', password)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

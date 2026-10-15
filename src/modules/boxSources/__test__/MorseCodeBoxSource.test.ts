@@ -8,7 +8,6 @@ describe('MorseCodeBoxSource', () => {
       expect(MorseCodeBoxSource.name).toBe('Morse Code');
       expect(MorseCodeBoxSource.tag).toBe('·');
       expect(MorseCodeBoxSource.kind).toBe('Encode');
-      expect(typeof MorseCodeBoxSource.priority).toBe('number');
     });
   });
 

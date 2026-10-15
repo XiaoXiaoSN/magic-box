@@ -164,7 +164,6 @@ describe('BinaryTextBoxSource', () => {
       expect(BinaryTextBoxSource.name).toBe('Text to Binary');
       expect(BinaryTextBoxSource.tag).toBe('#');
       expect(BinaryTextBoxSource.kind).toBe('Encode');
-      expect(typeof BinaryTextBoxSource.priority).toBe('number');
     });
   });
 });

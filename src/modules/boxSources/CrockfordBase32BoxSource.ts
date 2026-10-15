@@ -3,7 +3,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // Crockford's base32: excludes I, L, O, U to avoid visual confusion; no padding
@@ -60,7 +59,6 @@ export const CrockfordBase32BoxSource = {
   defaultInput: 'hello\n::crockford',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -81,7 +79,7 @@ export const CrockfordBase32BoxSource = {
         new BoxBuilder('Crockford Base32 (Encode)', encoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -96,7 +94,7 @@ export const CrockfordBase32BoxSource = {
           )
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } else {
@@ -106,7 +104,7 @@ export const CrockfordBase32BoxSource = {
           new BoxBuilder('Crockford Base32 (Decode)', decoded)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

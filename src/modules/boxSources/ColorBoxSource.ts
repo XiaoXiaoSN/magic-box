@@ -8,8 +8,6 @@ import {
   keyValueBox,
 } from '@modules/Box';
 
-const PriorityColorBox = 80;
-
 interface RGBA {
   r: number;
   g: number;
@@ -299,7 +297,6 @@ export const ColorBoxSource = {
   defaultInput: '#ff6347',
   tag: '🎨',
   kind: 'Convert',
-  priority: PriorityColorBox,
 
   checkMatch(input: string): Match | undefined {
     const normalized = trim(input);
@@ -333,7 +330,6 @@ export const ColorBoxSource = {
           errorBox(
             'Color Mix',
             'Enter two opaque HEX, RGB, HSL, or CMYK colors.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -349,17 +345,12 @@ export const ColorBoxSource = {
         a: null,
       };
       summaries.push(
-        keyValueBox(
-          'keyValue',
-          'Color Mix',
-          {
-            'Color 1': toHex(first),
-            'Color 2': toHex(second),
-            Ratio: `${100 - percent}% / ${percent}%`,
-            Mixed: toHex(rgba),
-          },
-          { priority: this.priority },
-        ),
+        keyValueBox('keyValue', 'Color Mix', {
+          'Color 1': toHex(first),
+          'Color 2': toHex(second),
+          Ratio: `${100 - percent}% / ${percent}%`,
+          Mixed: toHex(rgba),
+        }),
       );
     } else {
       const match = this.checkMatch(input);
@@ -373,7 +364,6 @@ export const ColorBoxSource = {
           errorBox(
             'Color Adjust',
             'Enter an opaque color to lighten or darken.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -391,16 +381,11 @@ export const ColorBoxSource = {
         a: null,
       };
       summaries.push(
-        keyValueBox(
-          'keyValue',
-          'Color Adjust',
-          {
-            Original: original,
-            Adjusted: toHex(rgba),
-            Operation: `${operation} ${percent}%`,
-          },
-          { priority: this.priority },
-        ),
+        keyValueBox('keyValue', 'Color Adjust', {
+          Original: original,
+          Adjusted: toHex(rgba),
+          Operation: `${operation} ${percent}%`,
+        }),
       );
     }
 
@@ -412,17 +397,17 @@ export const ColorBoxSource = {
       new BoxBuilder('HEX', hexStr)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
       new BoxBuilder('RGB', rgbStr)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
       new BoxBuilder('HSL', hslStr)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
     if (wantsCmyk && rgba.a === null) {
@@ -430,15 +415,11 @@ export const ColorBoxSource = {
         new BoxBuilder('CMYK', toCmykString(rgba))
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     } else if (wantsCmyk) {
-      formats.push(
-        errorBox('CMYK', 'CMYK does not support an alpha channel.', {
-          priority: this.priority,
-        }),
-      );
+      formats.push(errorBox('CMYK', 'CMYK does not support an alpha channel.'));
     }
     return [...summaries, ...formats];
   },

@@ -172,13 +172,6 @@ describe('AspectRatioBoxSource', () => {
       expect(boxes[0].view).toBe('keyValue');
     });
 
-    it('sets priority from source constant', async () => {
-      const boxes = await AspectRatioBoxSource.generateBoxes('1920x1080', {
-        ratio: true,
-      });
-      expect(boxes[0].props.priority).toBe(AspectRatioBoxSource.priority);
-    });
-
     it('sets box name to Aspect Ratio', async () => {
       const boxes = await AspectRatioBoxSource.generateBoxes('1920x1080', {
         ratio: true,

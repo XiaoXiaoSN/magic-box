@@ -95,9 +95,8 @@ describe('MathExpressionBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('1026.25');
     });
 
-    it('should set correct priority and component', async () => {
+    it('sets the correct name, output, and view', async () => {
       const boxes = await MathExpressionBoxSource.generateBoxes('2 + 2');
-      expect(boxes[0].props.priority).toBe(10); // PriorityMathExpression value
       expect(boxes[0].props.name).toBe('Math Expression');
       expect(boxes[0].props.plaintextOutput).toBe('4');
       expect(boxes[0].view).toBe('default');

@@ -174,11 +174,4 @@ describe('Base62BoxSource', () => {
       });
     });
   });
-
-  describe('priority', () => {
-    it('sets priority to 10', async () => {
-      const boxes = await Base62BoxSource.generateBoxes('1', { base62: true });
-      expect(boxes[0].props.priority).toBe(10);
-    });
-  });
 });

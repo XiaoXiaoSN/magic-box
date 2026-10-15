@@ -14,8 +14,8 @@ interface QRCodeReaderProps {
 }
 
 const QRCodeReader = ({
-  sxReader,
-  sxIcon,
+  sxReader = {},
+  sxIcon = {},
   setUserInput,
 }: QRCodeReaderProps): React.JSX.Element => {
   const [showReader, setShowReader] = useState(false);
@@ -79,11 +79,6 @@ const QRCodeReader = ({
       />
     </React.Fragment>
   );
-};
-
-QRCodeReader.defaultProps = {
-  sxReader: {},
-  sxIcon: {},
 };
 
 export default QRCodeReader;

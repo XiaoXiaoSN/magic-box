@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // collapse runs of spaces/tabs to a single space on each line,
@@ -27,7 +26,6 @@ export const WhitespaceCleanBoxSource = {
   defaultInput: '  hello   world  \n\n\n  foo  bar\n::clean',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -43,7 +41,7 @@ export const WhitespaceCleanBoxSource = {
     return [
       new BoxBuilder('Whitespace Clean', cleaned)
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

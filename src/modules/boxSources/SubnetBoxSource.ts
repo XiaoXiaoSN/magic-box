@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT_LENGTH = 100;
 const MAX_SPLIT_SUBNETS = 1024;
 
@@ -88,7 +87,7 @@ function parseSplit(options: BoxOptions): number | null {
   return count;
 }
 
-function buildErrorBox(input: string, priority: number): Box {
+function buildErrorBox(input: string): Box {
   const shown =
     input.length > MAX_INPUT_LENGTH
       ? `${input.slice(0, MAX_INPUT_LENGTH)}…`
@@ -98,7 +97,7 @@ function buildErrorBox(input: string, priority: number): Box {
     .setView('keyValue')
     .setOptions({ Error: message })
     .setShowExpandButton(false)
-    .setPriority(priority)
+
     .build();
 }
 
@@ -110,7 +109,6 @@ export const SubnetBoxSource = {
   defaultInput: '192.168.1.10/24\n::subnet',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -128,20 +126,16 @@ export const SubnetBoxSource = {
         : input,
     );
     const parsed = parseNetwork(raw);
-    if (parsed === null) return [buildErrorBox(raw, this.priority)];
+    if (parsed === null) return [buildErrorBox(raw)];
 
     const split = parseSplit(options);
     if (split === null) {
-      return [
-        buildErrorBox('split must be a power of two up to 1024', this.priority),
-      ];
+      return [buildErrorBox('split must be a power of two up to 1024')];
     }
 
     const childPrefix = parsed.prefix + Math.log2(split);
     if (childPrefix > 32) {
-      return [
-        buildErrorBox('split exceeds the IPv4 prefix limit', this.priority),
-      ];
+      return [buildErrorBox('split exceeds the IPv4 prefix limit')];
     }
 
     const mask =
@@ -173,15 +167,11 @@ export const SubnetBoxSource = {
     const contains = extractOptionKeys(options, 'contains');
     if (contains !== null) {
       if (typeof contains !== 'string') {
-        return [
-          buildErrorBox('contains requires an IPv4 address', this.priority),
-        ];
+        return [buildErrorBox('contains requires an IPv4 address')];
       }
       const candidate = parseIpv4(contains.trim());
       if (candidate === null) {
-        return [
-          buildErrorBox('contains requires an IPv4 address', this.priority),
-        ];
+        return [buildErrorBox('contains requires an IPv4 address')];
       }
       values.Contains = String(candidate >= network && candidate <= broadcast);
     }
@@ -204,7 +194,7 @@ export const SubnetBoxSource = {
         .setView('keyValue')
         .setOptions(values)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

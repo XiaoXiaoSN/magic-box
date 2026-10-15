@@ -154,13 +154,5 @@ describe('ColorContrastBoxSource.generateBoxes', () => {
         JSON.stringify(box.props.options).includes('two');
       expect(mentionsTwoColors).toBe(true);
     });
-
-    it('priority matches source priority (10)', async () => {
-      const boxes = await ColorContrastBoxSource.generateBoxes(
-        '#000000 #ffffff',
-        { contrast: true },
-      );
-      expect(boxes[0].props.priority).toBe(10);
-    });
   });
 });

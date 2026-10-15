@@ -6,8 +6,6 @@ import {
   keyValueBox,
 } from '@modules/Box';
 
-const Priority = 10;
-
 // iterations are capped so a stray `::iterations=99999999` cannot pin the
 // crypto thread for seconds on every keystroke. deriveBits runs off the main
 // thread in browsers, but the box still cannot render until it resolves.
@@ -172,7 +170,6 @@ export const Pbkdf2BoxSource = {
   defaultInput: 'password\n::pbkdf2=salt',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -186,11 +183,7 @@ export const Pbkdf2BoxSource = {
     // bare `::pbkdf2` (and `::pbkdf2=`, which parses to true) — usage hint.
     // the password is the main input; the salt rides on the option.
     if (typeof salt !== 'string') {
-      return [
-        errorBox('PBKDF2', 'provide a salt, e.g. ::pbkdf2=salt', {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('PBKDF2', 'provide a salt, e.g. ::pbkdf2=salt')];
     }
 
     const prfs = selectPrfs(options);
@@ -199,7 +192,6 @@ export const Pbkdf2BoxSource = {
         errorBox(
           'PBKDF2',
           'unknown PRF; use ::prf=sha256, ::prf=sha1 or ::prf=sha512',
-          { priority: this.priority },
         ),
       ];
     }
@@ -210,7 +202,6 @@ export const Pbkdf2BoxSource = {
         errorBox(
           'PBKDF2',
           'PBKDF2 requires a secure context (HTTPS). crypto.subtle is not available.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -263,18 +254,13 @@ export const Pbkdf2BoxSource = {
 
       // the password is intentionally excluded from the output — it's a secret
       return prfs.map((prf, i) =>
-        keyValueBox(
-          'keyValue',
-          'PBKDF2',
-          {
-            'Derived Key (hex)': keys[i],
-            Salt: salt,
-            Iterations: String(iterations),
-            'Key Length (bytes)': String(dklen),
-            PRF: prf.label,
-          },
-          { priority: this.priority },
-        ),
+        keyValueBox('keyValue', 'PBKDF2', {
+          'Derived Key (hex)': keys[i],
+          Salt: salt,
+          Iterations: String(iterations),
+          'Key Length (bytes)': String(dklen),
+          PRF: prf.label,
+        }),
       );
     } catch (err) {
       if (
@@ -284,11 +270,7 @@ export const Pbkdf2BoxSource = {
         lastDerivation = null;
       }
       const message = err instanceof Error ? err.message : String(err);
-      return [
-        errorBox('PBKDF2', `Key derivation failed: ${message}`, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('PBKDF2', `Key derivation failed: ${message}`)];
     }
   },
 };

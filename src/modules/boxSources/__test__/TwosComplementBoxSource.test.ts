@@ -168,7 +168,6 @@ describe('TwosComplementBoxSource', () => {
       expect(TwosComplementBoxSource.name).toBe("Two's Complement");
       expect(TwosComplementBoxSource.tag).toBe('#');
       expect(TwosComplementBoxSource.kind).toBe('Convert');
-      expect(typeof TwosComplementBoxSource.priority).toBe('number');
     });
   });
 });

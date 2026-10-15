@@ -2,8 +2,6 @@ import { isRFC3339, isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
-const PriorityTimeFormat = 10;
-
 interface Match {
   timestamp: number;
 }
@@ -15,7 +13,6 @@ export const TimeFormatBoxSource = {
   defaultInput: '2025-06-21T19:34:57.530+08:00',
   tag: '⏱',
   kind: 'Time',
-  priority: PriorityTimeFormat,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -41,11 +38,11 @@ export const TimeFormatBoxSource = {
     return [
       new BoxBuilder('timestamp (s)', (timestamp / 1000).toString())
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
       new BoxBuilder('timestamp (ms)', timestamp.toString())
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

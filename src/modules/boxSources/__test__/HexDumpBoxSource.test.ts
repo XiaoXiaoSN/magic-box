@@ -150,7 +150,6 @@ describe('HexDumpBoxSource', () => {
       expect(HexDumpBoxSource.name).toBe('Hex Dump');
       expect(HexDumpBoxSource.tag).toBe('#');
       expect(HexDumpBoxSource.kind).toBe('Analyze');
-      expect(typeof HexDumpBoxSource.priority).toBe('number');
     });
   });
 });

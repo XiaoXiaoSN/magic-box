@@ -5,8 +5,6 @@ import type { BoxSourceContext } from '@modules/BoxSource';
 
 import { isHttpUrl, requestShortenURL } from './shortenURL';
 
-const PriorityShortenURL = 10;
-
 interface Match {
   shortenURL: string;
 }
@@ -19,7 +17,6 @@ export const ShortenURLBoxSource = {
 `,
   tag: '↗',
   kind: 'Transform',
-  priority: PriorityShortenURL,
 
   async getShortenURL(
     inputURL: string,
@@ -79,7 +76,7 @@ export const ShortenURLBoxSource = {
         })
         .setView('shortenURL')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

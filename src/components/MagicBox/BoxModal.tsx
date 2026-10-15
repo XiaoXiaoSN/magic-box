@@ -40,7 +40,7 @@ const BoxModal = memo(
       );
     }
 
-    const { name, plaintextOutput, options, sourceInput, priority, tag, kind } =
+    const { name, plaintextOutput, options, sourceInput, tag, kind } =
       box.props;
 
     return (
@@ -67,7 +67,6 @@ const BoxModal = memo(
               onClose={onClose}
               options={options}
               plaintextOutput={plaintextOutput}
-              priority={priority}
               sourceInput={sourceInput}
               tag={tag}
             />

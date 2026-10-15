@@ -50,7 +50,7 @@ const staticShellUrls = new Set([
   'apple-touch-icon.png',
   'favicon.ico',
   'manifest.webmanifest',
-  'masked-icon.svg',
+  'images/maskable-icon-512.png',
 ]);
 
 const normalizeBuildUrl = (value: string): string | null => {
@@ -206,48 +206,30 @@ export default defineConfig(({ command }) => {
           name: 'Magic Box',
           short_name: 'Magic Box',
           description: 'Magic Box Application',
-          theme_color: '#d18fd8',
-          background_color: '#fafafa',
+          theme_color: '#f8fafc',
+          background_color: '#f8fafc',
           display: 'standalone',
           orientation: 'portrait',
           scope: '/',
           start_url: '/',
           icons: [
             {
-              src: '/images/logo-16.png',
-              sizes: '16x16',
-              type: 'image/png',
-              purpose: 'maskable any',
-            },
-            {
-              src: '/images/logo-64.png',
-              sizes: '64x64',
-              type: 'image/png',
-              purpose: 'maskable any',
-            },
-            {
-              src: '/images/logo-128.png',
-              sizes: '128x128',
-              type: 'image/png',
-              purpose: 'maskable any',
-            },
-            {
               src: '/images/logo-192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'maskable any',
-            },
-            {
-              src: '/images/logo-256.png',
-              sizes: '256x256',
-              type: 'image/png',
-              purpose: 'maskable any',
+              purpose: 'any',
             },
             {
               src: '/images/logo-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'maskable any',
+              purpose: 'any',
+            },
+            {
+              src: '/images/maskable-icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
             },
           ],
         },
@@ -342,10 +324,6 @@ export default defineConfig(({ command }) => {
     optimizeDeps: {
       // wasm modules are loaded dynamically; skip pre-bundle
       exclude: ['base64-box', 'math-box'],
-      // pre-bundle so cypress component tests don't trigger mid-run
-      // re-optimization that reloads the iframe and aborts dynamic
-      // imports of *.cy.tsx specs.
-      include: ['workbox-window'],
     },
   };
 });

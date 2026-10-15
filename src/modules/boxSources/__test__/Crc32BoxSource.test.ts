@@ -76,13 +76,6 @@ describe('Crc32BoxSource', () => {
       });
       expect(boxes[0].view).toBe('keyValue');
     });
-
-    it('sets priority to 10', async () => {
-      const boxes = await Crc32BoxSource.generateBoxes('hello', {
-        crc32: true,
-      });
-      expect(boxes[0].props.priority).toBe(10);
-    });
   });
 
   describe('metadata', () => {
@@ -90,7 +83,6 @@ describe('Crc32BoxSource', () => {
       expect(Crc32BoxSource.name).toBe('CRC-32');
       expect(Crc32BoxSource.tag).toBe('#');
       expect(Crc32BoxSource.kind).toBe('Encode');
-      expect(Crc32BoxSource.priority).toBe(10);
     });
   });
 });

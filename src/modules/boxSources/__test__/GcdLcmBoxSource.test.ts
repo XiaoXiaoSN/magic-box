@@ -22,7 +22,6 @@ describe('GcdLcmBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('GCD / LCM');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toMatchObject({ GCD: '6', LCM: '72' });
       expect(boxes[0].view).toBe('keyValue');
     });

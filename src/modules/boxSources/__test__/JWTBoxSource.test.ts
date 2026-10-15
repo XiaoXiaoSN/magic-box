@@ -97,7 +97,6 @@ describe('JWTBoxSource', () => {
       const boxes = await JWTBoxSource.generateBoxes(validJWT);
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('JWT Decode');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toEqual(
         expect.objectContaining({
           language: 'json',

@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const BoxName = 'Case Converter';
 const MAX_INPUT_LENGTH = 100 * 1024;
 const LOWERCASE = /^\p{Ll}$/u;
@@ -200,7 +199,6 @@ export const CaseConverterBoxSource = {
   defaultInput: 'XMLHttpRequest userID v2ApiKey\n::case',
   tag: 'Aa',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -216,9 +214,6 @@ export const CaseConverterBoxSource = {
         errorBox(
           BoxName,
           'Case Converter supports input up to 100 KiB and format names up to 64 characters.',
-          {
-            priority: this.priority,
-          },
         ),
       ];
     }
@@ -232,7 +227,6 @@ export const CaseConverterBoxSource = {
           errorBox(
             BoxName,
             `Unknown case "${caseValue}". Use one of: ${FORMATS.map((format) => format.keys[0]).join(', ')}.`,
-            { priority: this.priority },
           ),
         ];
       }
@@ -244,16 +238,14 @@ export const CaseConverterBoxSource = {
 
     if (selected.size === 0) {
       const output = convertAll(input);
-      return [
-        keyValueBox('keyValue', BoxName, output, { priority: this.priority }),
-      ];
+      return [keyValueBox('keyValue', BoxName, output)];
     }
 
     return FORMATS.filter((format) => selected.has(format)).map((format) =>
       new BoxBuilder(format.label, convertText(input, format))
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     );
   },

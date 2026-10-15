@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
 const BoxName = 'HTTP Status';
 const MAX_INPUT_LENGTH = 256;
 
@@ -494,20 +493,15 @@ function statusBox(status: HttpStatusInfo): Box {
   const cache = HEURISTICALLY_CACHEABLE.has(status.code)
     ? 'Heuristically cacheable by default; response headers and method still apply.'
     : 'Not heuristically cacheable by default; explicit freshness can still allow caching.';
-  return keyValueBox(
-    'keyValue',
-    BoxName,
-    {
-      Code: String(status.code),
-      Name: status.name,
-      Category: category(status.code),
-      Description: status.description,
-      Reference: status.reference,
-      Caching: cache,
-      Retry: retryAdvice(status.code),
-    },
-    { priority: Priority },
-  );
+  return keyValueBox('keyValue', BoxName, {
+    Code: String(status.code),
+    Name: status.name,
+    Category: category(status.code),
+    Description: status.description,
+    Reference: status.reference,
+    Caching: cache,
+    Retry: retryAdvice(status.code),
+  });
 }
 
 function normalizeQuery(input: string): string {
@@ -535,7 +529,6 @@ export const HttpStatusBoxSource = {
   defaultInput: '404\n::http',
   tag: 'HTTP',
   kind: 'Decode',
-  priority: Priority,
 
   canHandle(input: string, options: BoxOptions): boolean {
     if (hasOptionKeys(options, 'http')) return true;
@@ -554,9 +547,7 @@ export const HttpStatusBoxSource = {
       return [];
     if (input.length > MAX_INPUT_LENGTH) {
       return [
-        errorBox(BoxName, 'HTTP Status supports input up to 256 characters.', {
-          priority: this.priority,
-        }),
+        errorBox(BoxName, 'HTTP Status supports input up to 256 characters.'),
       ];
     }
 
@@ -566,9 +557,7 @@ export const HttpStatusBoxSource = {
       optionValue.length > MAX_INPUT_LENGTH
     ) {
       return [
-        errorBox(BoxName, 'HTTP Status supports input up to 256 characters.', {
-          priority: this.priority,
-        }),
+        errorBox(BoxName, 'HTTP Status supports input up to 256 characters.'),
       ];
     }
     const query = normalizeQuery(
@@ -579,7 +568,6 @@ export const HttpStatusBoxSource = {
         errorBox(
           BoxName,
           'Enter a three-digit status code or exact reason phrase.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -591,7 +579,6 @@ export const HttpStatusBoxSource = {
         errorBox(
           BoxName,
           `"${query}" names more than one registered status (${matches.map((status) => status.code).join(', ')}); enter a code instead.`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -601,7 +588,6 @@ export const HttpStatusBoxSource = {
         errorBox(
           BoxName,
           `HTTP ${query} is not assigned in the IANA status code registry checked on 2026-10-15.`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -609,7 +595,6 @@ export const HttpStatusBoxSource = {
       errorBox(
         BoxName,
         `No exact IANA status phrase matches "${query}". Use a three-digit code or exact registered name.`,
-        { priority: this.priority },
       ),
     ];
   },

@@ -26,7 +26,6 @@ describe('HexTextBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Text to Hex');
       expect(boxes[0].props.plaintextOutput).toBe('4869');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 

@@ -165,7 +165,6 @@ describe('TemperatureBoxSource', () => {
       expect(TemperatureBoxSource.name).toBe('Temperature');
       expect(TemperatureBoxSource.tag).toBe('#');
       expect(TemperatureBoxSource.kind).toBe('Convert');
-      expect(typeof TemperatureBoxSource.priority).toBe('number');
     });
   });
 });

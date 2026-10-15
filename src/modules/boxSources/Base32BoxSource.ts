@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // RFC 4648 §6 standard alphabet (no padding char)
@@ -91,7 +90,6 @@ export const Base32BoxSource = {
   defaultInput: 'hello\n::base32',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -115,7 +113,7 @@ export const Base32BoxSource = {
         new BoxBuilder('Base32 (Encode)', encoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -129,7 +127,7 @@ export const Base32BoxSource = {
           new BoxBuilder('Base32 (Decode)', decoded)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } catch (err) {
@@ -138,7 +136,7 @@ export const Base32BoxSource = {
           new BoxBuilder('Base32 (Decode)', message)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

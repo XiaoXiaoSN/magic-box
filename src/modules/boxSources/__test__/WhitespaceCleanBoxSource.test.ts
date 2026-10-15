@@ -95,13 +95,6 @@ describe('WhitespaceCleanBoxSource', () => {
       expect(boxes[0].props.name).toBe('Whitespace Clean');
     });
 
-    it('sets priority to 10', async () => {
-      const boxes = await WhitespaceCleanBoxSource.generateBoxes('  a  b  ', {
-        clean: true,
-      });
-      expect(boxes[0].props.priority).toBe(10);
-    });
-
     it('assigns CodeBoxTemplate as boxTemplate', async () => {
       const boxes = await WhitespaceCleanBoxSource.generateBoxes('  a  b  ', {
         clean: true,

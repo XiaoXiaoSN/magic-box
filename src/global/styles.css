@@ -46,7 +46,6 @@
    value in JS (see global/theme.ts) before first paint, so this block is the
    only place dark tokens live -- there is no duplicated
    `@media (prefers-color-scheme: dark)` copy to keep in sync. */
-.dark-theme,
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0b1120;
@@ -654,15 +653,6 @@ pre,
   }
 }
 
-.out-count {
-  font-size: 11px;
-  color: var(--ink-3);
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-  font-family: var(--mono);
-}
-
 .boxes {
   display: flex;
   flex-direction: column;
@@ -843,15 +833,6 @@ pre,
 
 .box-body {
   padding: 12px 14px;
-}
-
-.box-meta {
-  font-size: 11px;
-  color: var(--ink-4);
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--line);
-  word-break: break-all;
 }
 
 .box-out {

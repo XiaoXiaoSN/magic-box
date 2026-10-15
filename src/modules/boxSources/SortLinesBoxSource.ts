@@ -3,7 +3,6 @@ import { compareCodePoints } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // NaN-last numeric comparator with string fallback
@@ -28,7 +27,6 @@ export const SortLinesBoxSource = {
   defaultInput: 'banana\napple\ncherry\n::sortlines',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -72,7 +70,7 @@ export const SortLinesBoxSource = {
     return [
       new BoxBuilder('Sort Lines', output)
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

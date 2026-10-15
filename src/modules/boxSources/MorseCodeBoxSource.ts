@@ -1,8 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // ITU-R M.1677-1 morse code table plus common non-standard extensions ($)
 const MORSE_ENCODE = new Map<string, string>([
   ['A', '.-'],
@@ -111,7 +109,6 @@ export const MorseCodeBoxSource = {
   defaultInput: 'SOS\n::morse',
   tag: '·',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -128,7 +125,7 @@ export const MorseCodeBoxSource = {
         new BoxBuilder('Morse Code (Encode)', encode(input))
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -138,7 +135,7 @@ export const MorseCodeBoxSource = {
         new BoxBuilder('Morse Code (Decode)', decode(input))
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

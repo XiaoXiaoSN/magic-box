@@ -9,7 +9,6 @@ import {
 
 import { formatIdSeconds } from './idTime';
 
-const Priority = 10;
 const OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
 
 function candidateFrom(input: string, options: BoxOptions): string {
@@ -20,11 +19,10 @@ function candidateFrom(input: string, options: BoxOptions): string {
   return trim(input);
 }
 
-function invalidBox(priority: number): Box {
+function invalidBox(): Box {
   return errorBox(
     'ObjectId',
     'Invalid ObjectId: expected exactly 24 hexadecimal characters.',
-    { priority },
   );
 }
 
@@ -36,7 +34,6 @@ export const ObjectIdBoxSource = {
   defaultInput: '507f1f77bcf86cd799439011\n::objectid',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -45,12 +42,12 @@ export const ObjectIdBoxSource = {
     if (!hasOptionKeys(options, 'objectid', 'object-id')) return [];
 
     const candidate = candidateFrom(input, options);
-    if (!OBJECT_ID_PATTERN.test(candidate)) return [invalidBox(this.priority)];
+    if (!OBJECT_ID_PATTERN.test(candidate)) return [invalidBox()];
 
     const normalized = candidate.toLowerCase();
     const seconds = BigInt(`0x${normalized.slice(0, 8)}`);
     const timestamp = formatIdSeconds(seconds);
-    if (timestamp === null) return [invalidBox(this.priority)];
+    if (timestamp === null) return [invalidBox()];
 
     const values: Record<string, string> = {
       ObjectId: normalized,
@@ -67,7 +64,7 @@ export const ObjectIdBoxSource = {
       new BoxBuilder('ObjectId', plaintext)
         .setView('keyValue')
         .setOptions(values)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

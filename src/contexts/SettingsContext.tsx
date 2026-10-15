@@ -11,7 +11,6 @@ import {
 
 export interface BoxSetting {
   id: string;
-  priority: number;
   secondaryOrder: number;
   enabled: boolean;
 }
@@ -28,11 +27,6 @@ const SETTINGS_STORAGE_KEY = 'mb_settings';
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const validatePriority = (value: number): number =>
-  typeof value !== 'number' || Number.isNaN(value)
-    ? 10
-    : Math.max(0, Math.min(99, value));
-
 export const buildDefaultSettings = (): Settings => ({
   version: SETTINGS_VERSION,
   boxes: Object.fromEntries(
@@ -41,7 +35,6 @@ export const buildDefaultSettings = (): Settings => ({
       {
         id: box.id ?? box.name,
         enabled: !box.defaultDisabled,
-        priority: validatePriority(box.priority ?? 10),
         secondaryOrder: idx,
       },
     ]),
@@ -85,11 +78,6 @@ const normalizeSettings = (value: unknown): Settings => {
           typeof setting.enabled === 'boolean'
             ? setting.enabled
             : fallback.enabled,
-        priority: validatePriority(
-          typeof setting.priority === 'number'
-            ? setting.priority
-            : fallback.priority,
-        ),
         secondaryOrder:
           typeof setting.secondaryOrder === 'number' &&
           Number.isFinite(setting.secondaryOrder)
@@ -123,7 +111,6 @@ interface SettingsContextType {
   filteredBoxSources: BoxSource[];
   resetSettings: () => void;
   updateSettings: (newSettings: Settings) => void;
-  validatePriority: (value: string) => number;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -156,35 +143,22 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
     SettingsStorage.save(newSettings);
   }, []);
 
-  // Apply settings to box sources - filter enabled and sort by priority (memoized for performance)
+  // Filter enabled sources and preserve the user's registry order.
   const getFilteredAndSortedBoxSources = useMemo((): BoxSource[] => {
     const enabledBoxSources = boxSources.filter(
       (boxSource) => settings.boxes[boxSource.id ?? boxSource.name]?.enabled,
     );
 
-    return (
-      enabledBoxSources
-        .map((boxSource) => {
-          const setting = settings.boxes[boxSource.id ?? boxSource.name];
-          return {
-            ...boxSource,
-            priority: validatePriority(
-              setting?.priority ?? boxSource.priority ?? 10,
-            ),
-            secondaryOrder: setting?.secondaryOrder ?? 0,
-          };
-        })
-        // Path B: sort solely by user-controlled drag order. priority kept on
-        // settings shape for back-compat but no longer drives box placement.
-        .sort((a, b) => (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0))
-    );
+    return enabledBoxSources
+      .map((boxSource) => {
+        const setting = settings.boxes[boxSource.id ?? boxSource.name];
+        return {
+          ...boxSource,
+          secondaryOrder: setting?.secondaryOrder ?? 0,
+        };
+      })
+      .sort((a, b) => (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0));
   }, [settings.boxes]);
-
-  // Helper function to validate priority input from UI
-  const validatePriorityInput = useCallback((value: string): number => {
-    const num = parseInt(value, 10);
-    return validatePriority(num);
-  }, []);
 
   const value = useMemo<SettingsContextType>(
     () => ({
@@ -192,15 +166,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
       settings,
       updateSettings,
       filteredBoxSources: getFilteredAndSortedBoxSources,
-      validatePriority: validatePriorityInput,
     }),
-    [
-      resetSettings,
-      settings,
-      updateSettings,
-      getFilteredAndSortedBoxSources,
-      validatePriorityInput,
-    ],
+    [resetSettings, settings, updateSettings, getFilteredAndSortedBoxSources],
   );
 
   return (

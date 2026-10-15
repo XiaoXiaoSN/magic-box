@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 const UNICODE_ESCAPE_REGEX = /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/y;
 
@@ -70,7 +69,6 @@ export const UnicodeEscapeBoxSource = {
   defaultInput: 'héllo 😀\n::unicodeescape',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -88,7 +86,7 @@ export const UnicodeEscapeBoxSource = {
         new BoxBuilder('Unicode Escape', escaped)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -99,7 +97,7 @@ export const UnicodeEscapeBoxSource = {
       new BoxBuilder('Unicode Unescape', unescaped)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

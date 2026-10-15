@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // parses a string as a non-negative integer in the given base using BigInt arithmetic.
 // returns null if any character is not a valid digit for the base.
 function parseBaseString(str: string, base: number): bigint | null {
@@ -26,7 +24,7 @@ function makeErrorBox(message: string): Box {
   return new BoxBuilder('Radix Convert', message)
     .setView('keyValue')
     .setOptions({ Info: message })
-    .setPriority(Priority)
+
     .build();
 }
 
@@ -38,7 +36,6 @@ export const RadixBoxSource = {
   defaultInput: 'ff\n::radix=16:2',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -142,7 +139,7 @@ export const RadixBoxSource = {
         Result: resultStr,
         Decimal: decimalStr,
       })
-      .setPriority(this.priority)
+
       .build();
 
     return [box];

@@ -4,8 +4,6 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
 import { diceOptions, dicePlaintext, rollDice } from '@modules/dice';
 
-const Priority = 10;
-
 // bound the number of animated cubes and random samples per request
 const MAX_COUNT = 20;
 
@@ -17,7 +15,6 @@ export const DiceRollBoxSource = {
   defaultInput: '::roll',
   tag: '#',
   kind: 'Generate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -44,7 +41,7 @@ export const DiceRollBoxSource = {
           'Enter a dice count from 1 to 20, e.g. ::roll=3. Every die has six sides.',
         )
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -57,7 +54,7 @@ export const DiceRollBoxSource = {
         .setView('diceRoll')
         .setShowExpandButton(false)
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

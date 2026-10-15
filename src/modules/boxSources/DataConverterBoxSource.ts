@@ -30,8 +30,6 @@ import {
   hasYamlDocumentShape,
 } from './dataConverterShape';
 
-const PriorityDataConverter = 10;
-
 enum DataFormat {
   JSON = 'json',
   YAML = 'yaml',
@@ -467,7 +465,6 @@ export const DataConverterBoxSource = {
     '{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}\n\n::toYAML\n::toTOML\n::toXML',
   tag: '{ }',
   kind: 'Format',
-  priority: PriorityDataConverter,
 
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     if (!isString(input)) return [];
@@ -492,7 +489,6 @@ export const DataConverterBoxSource = {
         errorBox(
           'Data Converter',
           `Input is too large (${inputSize} characters, limit ${hasAnyTargetOption ? EXPLICIT_INPUT_LIMIT : AUTO_INPUT_LIMIT}).`,
-          { priority: PriorityDataConverter },
         ),
       ];
     }
@@ -504,11 +500,7 @@ export const DataConverterBoxSource = {
       // explicit the intent is unambiguous, so report why parsing failed
       // instead of rendering nothing.
       if (!hasAnyTargetOption || trim(input) === '') return [];
-      return [
-        errorBox('Data Converter', describeDetectFailure(result.errors), {
-          priority: PriorityDataConverter,
-        }),
-      ];
+      return [errorBox('Data Converter', describeDetectFailure(result.errors))];
     }
 
     const {
@@ -555,7 +547,7 @@ export const DataConverterBoxSource = {
           new BoxBuilder(`${fmt.name} Output`, output)
             .setOptions({ language: fmt.id })
             .setView('code')
-            .setPriority(this.priority + (isSourceFormat ? 0.1 : 0))
+
             .build(),
         );
       } catch (e) {
@@ -568,7 +560,6 @@ export const DataConverterBoxSource = {
             errorBox(
               'Data Converter',
               `Cannot convert to ${fmt.name}: ${errorMessage(e)}`,
-              { priority: PriorityDataConverter },
             ),
           );
         }

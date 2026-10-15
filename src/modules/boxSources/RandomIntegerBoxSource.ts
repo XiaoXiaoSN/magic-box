@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder, errorBox } from '@modules/Box';
 
-const PriorityRandomBox = 10;
 const DEFAULT_MIN = 0;
 const DEFAULT_MAX = 100;
 const MAX_SAFE_INTEGER_TEXT = String(Number.MAX_SAFE_INTEGER);
@@ -108,7 +107,6 @@ export const RandomIntegerBoxSource = {
   defaultInput: 'random 1-6',
   tag: '⚂',
   kind: 'Generate',
-  priority: PriorityRandomBox,
 
   checkMatch(input: string): Match | undefined {
     return parseMatch(input).match ?? undefined;
@@ -117,9 +115,7 @@ export const RandomIntegerBoxSource = {
   async generateBoxes(input: string): Promise<Box[]> {
     const parsed = parseMatch(input);
     if (parsed.error !== null) {
-      return [
-        errorBox('Random Integer', parsed.error, { priority: this.priority }),
-      ];
+      return [errorBox('Random Integer', parsed.error)];
     }
 
     const match = parsed.match;
@@ -138,7 +134,7 @@ export const RandomIntegerBoxSource = {
           max: match.max.toString(),
         })
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

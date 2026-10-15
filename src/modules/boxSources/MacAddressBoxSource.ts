@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // max input length to guard against pathological inputs
 const MAX_INPUT_LENGTH = 40;
 
@@ -113,7 +111,6 @@ export const MacAddressBoxSource = {
   defaultInput: '01:23:45:67:89:ab\n::mac',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -134,7 +131,7 @@ export const MacAddressBoxSource = {
         new BoxBuilder('MAC Address', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -156,7 +153,7 @@ export const MacAddressBoxSource = {
       new BoxBuilder('MAC Address', kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

@@ -82,7 +82,6 @@ const BoxCard = memo(
         plaintextOutput,
         options,
         sourceInput,
-        priority,
         tag,
         kind,
         onClick,
@@ -316,7 +315,6 @@ const BoxCard = memo(
                   onResultChange={handleTemplateResultChange}
                   options={options}
                   plaintextOutput={plaintextOutput}
-                  priority={priority}
                   selected={selected}
                   sourceInput={sourceInput}
                   tag={tag}

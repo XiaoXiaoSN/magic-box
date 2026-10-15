@@ -8,7 +8,6 @@ describe('CreditCardInfoBoxSource', () => {
       expect(CreditCardInfoBoxSource.name).toBe('Credit Card Info');
       expect(CreditCardInfoBoxSource.tag).toBe('#');
       expect(CreditCardInfoBoxSource.kind).toBe('Validate');
-      expect(typeof CreditCardInfoBoxSource.priority).toBe('number');
     });
   });
 

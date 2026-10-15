@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // brand detection result
 interface CardBrand {
   name: string;
@@ -123,7 +121,6 @@ export const CreditCardInfoBoxSource = {
   defaultInput: '4111111111111111\n::cardinfo',
   tag: '#',
   kind: 'Validate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -162,7 +159,7 @@ export const CreditCardInfoBoxSource = {
         .setOptions(kvOptions)
         .setView('keyValue')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

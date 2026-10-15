@@ -87,13 +87,6 @@ describe('AsciiTableBoxSource', () => {
       expect(boxes[0].props.name).toBe('ASCII Code');
     });
 
-    it('sets priority', async () => {
-      const boxes = await AsciiTableBoxSource.generateBoxes('A', {
-        ascii: true,
-      });
-      expect(boxes[0].props.priority).toBe(10);
-    });
-
     it('includes HTML Entity', async () => {
       const boxes = await AsciiTableBoxSource.generateBoxes('A', {
         ascii: true,
