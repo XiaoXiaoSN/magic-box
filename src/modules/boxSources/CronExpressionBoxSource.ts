@@ -1,7 +1,13 @@
 import { isString, trim } from '@functions/helper';
-import { getLocale } from '@functions/runtimePrefs';
+import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
+import { toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys } from '@modules/Box';
+import { BoxBuilder, extractOptionKeys, keyValueBox } from '@modules/Box';
+import {
+  isCronExpressionSyntax,
+  nextCronOccurrences,
+  normalizeCronExpression,
+} from './cronSchedule';
 
 const PriorityCronExpression = 10;
 
@@ -57,10 +63,6 @@ const localeLoaders: Record<string, () => Promise<unknown>> = {
   zh_TW: () => import('cronstrue/locales/zh_TW.js'),
 };
 
-// cheap pre-screen so cronstrue/i18n (~263KB) loads only for cron-shaped inputs.
-// matches 5–7 fields of cron-allowed chars separated by whitespace.
-const CRON_SHAPE = /^[\d*/,?\-LW#]+(\s+[\d*/,?\-LW#]+){4,6}$/i;
-
 export const CronExpressionBoxSource = {
   name: 'Cron Expression',
   description: 'Translate cron expressions into human-readable schedules.',
@@ -82,7 +84,8 @@ export const CronExpressionBoxSource = {
 
     const regularInput = trim(input);
 
-    if (!CRON_SHAPE.test(regularInput)) {
+    // validate names and field count before importing cronstrue or a locale.
+    if (!isCronExpressionSyntax(regularInput)) {
       return undefined;
     }
 
@@ -99,11 +102,13 @@ export const CronExpressionBoxSource = {
       const { default: cronstrue } = await import('cronstrue');
       const loadLocale = localeLoaders[locale];
       if (loadLocale) await loadLocale();
-      const answer = cronstrue.toString(regularInput, {
+      const descriptionInput = normalizeCronExpression(regularInput);
+      if (descriptionInput === null) return undefined;
+      const answer = cronstrue.toString(descriptionInput, {
         use24HourTimeFormat: true,
         locale,
       });
-      if (answer === regularInput) {
+      if (answer === descriptionInput) {
         return undefined;
       }
 
@@ -119,17 +124,50 @@ export const CronExpressionBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
+    const capturedNow = new Date();
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
     }
 
     const { answer } = match;
+    const nextTimes = nextCronOccurrences(
+      input,
+      capturedNow,
+      getTimezoneOffset,
+    );
+    const nextBox =
+      nextTimes.status === 'ok'
+        ? keyValueBox(
+            'keyValue',
+            'Next executions',
+            Object.fromEntries(
+              nextTimes.occurrences.map((date, index) => [
+                String(index + 1),
+                toOffsetISOString(date, getTimezoneOffset(date)),
+              ]),
+            ),
+            { priority: this.priority, showExpandButton: false },
+          )
+        : new BoxBuilder(
+            'Next executions',
+            nextTimes.reason === 'unsupported-advanced'
+              ? 'Next execution times unavailable: L, W, and # expressions are described but are not calculated.'
+              : nextTimes.status === 'none'
+                ? 'No occurrences found within the 20-year search horizon.'
+                : nextTimes.reason === 'invalid'
+                  ? 'Next execution times unavailable: the schedule syntax is not supported for calculation.'
+                  : 'Next execution times unavailable: the bounded search budget was exceeded.',
+          )
+            .setShowExpandButton(false)
+            .setPriority(this.priority)
+            .build();
     return [
       new BoxBuilder('Cron Expression', answer)
         .setShowExpandButton(false)
         .setPriority(this.priority)
         .build(),
+      nextBox,
     ];
   },
 };
