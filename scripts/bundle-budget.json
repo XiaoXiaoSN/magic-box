@@ -1,0 +1,15 @@
+{
+  "scope": "index.html script/modulepreload/stylesheet references, generated precache manifest, and build/assets/*.js",
+  "baseline": {
+    "htmlEntryGzipBytes": 309495,
+    "precacheEntries": 60,
+    "precacheBytes": 2668778,
+    "jsFiles": 37
+  },
+  "budgets": {
+    "htmlEntryGzipBytes": 350000,
+    "precacheEntries": 72,
+    "precacheBytes": 3000000,
+    "jsFiles": 45
+  }
+}

@@ -46,6 +46,20 @@ Based on matching methods, we can roughly classify Boxes into two types:
 - Enter: copy the selected Box output to clipboard
 - Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
 
+### CI and release policy
+
+CI uses Bun 1.3.4 and the committed Cargo lockfiles. WASM packages are built
+once per run, then the same frozen shipping artifact is used by the unit,
+component, E2E, offline, budget, preview, and production gates. Pull requests
+run every gate; same-repository pull requests receive a Firebase preview after
+the gates pass, while fork previews are skipped because repository secrets are
+unavailable. Only a fully green push to `main` can deploy the live channel.
+
+The bundle budget report records the measured entry gzip size, precache
+manifest size, and JavaScript file count. Thresholds live in
+`scripts/bundle-budget.json` and must be updated deliberately when a product
+change needs more headroom.
+
 <details>
 <summary> <b>ColorBox</b> </summary>
 

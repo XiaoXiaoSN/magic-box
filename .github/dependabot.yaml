@@ -16,10 +16,17 @@ updates:
     ignore:
       # local file: dependency built from wasmModules/base64-box/pkg (gitignored build artifact)
       - dependency-name: "base64-box"
+      # local file: dependency built from wasmModules/math-box/pkg (gitignored build artifact)
+      - dependency-name: "math-box"
 
   # Maintain dependencies for Cargo
   - package-ecosystem: cargo
     directory: /wasmModules/base64-box
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: cargo
+    directory: /wasmModules/math-box
     schedule:
       interval: weekly
 

@@ -35,3 +35,27 @@ Cypress.Commands.add('verifyQRReaderClosed', () => {
     'not.exist',
   );
 });
+
+function setNetworkOffline(offline: boolean): Cypress.Chainable<void> {
+  return cy
+    .then(() =>
+      Cypress.automation('remote:debugger:protocol', {
+        command: 'Network.enable',
+      }),
+    )
+    .then(() =>
+      Cypress.automation('remote:debugger:protocol', {
+        command: 'Network.emulateNetworkConditions',
+        params: {
+          offline,
+          latency: 0,
+          downloadThroughput: -1,
+          uploadThroughput: -1,
+        },
+      }),
+    )
+    .then(() => undefined);
+}
+
+Cypress.Commands.add('setNetworkOffline', () => setNetworkOffline(true));
+Cypress.Commands.add('setNetworkOnline', () => setNetworkOffline(false));

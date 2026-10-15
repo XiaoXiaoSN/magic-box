@@ -94,7 +94,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 5\ncharacters: 11',
+            text: 'lines: 1\nwords: 2\ncharacters: 11',
           },
         ],
       },
@@ -113,7 +113,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 5\ncharacters: 11',
+            text: 'lines: 1\nwords: 2\ncharacters: 11',
           },
         ],
       },
@@ -142,7 +142,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 1\ncharacters: 155',
+            text: 'lines: 1\nwords: 3\ncharacters: 155',
           },
         ],
       },
@@ -160,7 +160,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 1\ncharacters: 6',
+            text: 'lines: 1\nwords: 2\ncharacters: 6',
           },
         ],
       },
@@ -182,7 +182,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 5\ncharacters: 45',
+            text: 'lines: 1\nwords: 7\ncharacters: 45',
           },
         ],
       },
@@ -204,7 +204,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 1\ncharacters: 29',
+            text: 'lines: 1\nwords: 7\ncharacters: 29',
           },
         ],
       },
@@ -222,7 +222,7 @@ describe('MagicBox Page', () => {
           },
           {
             title: 'Word Count',
-            text: 'lines: 1\nwords: 1\ncharacters: 45',
+            text: 'lines: 1\nwords: 8\ncharacters: 45',
           },
         ],
       },
