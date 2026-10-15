@@ -1,6 +1,9 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
-import { isPrivateInput } from '@functions/localAIPrivacy';
+import {
+  activateLocalAIPrivacy,
+  isPrivateInput,
+} from '@functions/localAIPrivacy';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
@@ -351,7 +354,12 @@ const PreviewPane = ({
   const display = getSourceDisplay(source, t);
   const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
+  const privateInput = useMemo(() => isPrivateInput(input), [input]);
   const sources = useMemo(() => [source], [source]);
+
+  useEffect(() => {
+    if (privateInput) activateLocalAIPrivacy();
+  }, [privateInput]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setMagicIn(input), 400);
@@ -380,7 +388,7 @@ const PreviewPane = ({
         <span className="preview-hint">{t('toolsList.previewHint')}</span>
         <ShareLinkButton
           data-testid="copy-tool-share-link"
-          disabled={isPrivateInput(input)}
+          disabled={privateInput}
           disabledLabel={t('shareLink.privateInput')}
           getShareLink={() =>
             buildShareLink({

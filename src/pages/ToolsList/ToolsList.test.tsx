@@ -1,3 +1,5 @@
+import { isLocalAIPrivate } from '@functions/localAIPrivacy';
+import { isAnalyticsEnabled } from '@functions/runtimePrefs';
 import {
   act,
   fireEvent,
@@ -71,6 +73,26 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+});
+
+describe('/list private preview input', () => {
+  it('closes the sticky telemetry gate when a secret directive is typed', async () => {
+    expect(isLocalAIPrivate()).toBe(false);
+    renderPage(['/list?box=JWT%20Decode']);
+    expect(isAnalyticsEnabled()).toBe(true);
+
+    const input = await screen.findByRole('textbox', { name: '' });
+    fireEvent.change(input, {
+      target: { value: 'header.payload.signature\n::secret=top-secret' },
+    });
+
+    expect(screen.getByTestId('copy-tool-share-link')).toBeDisabled();
+    expect(isLocalAIPrivate()).toBe(true);
+    expect(isAnalyticsEnabled()).toBe(false);
+
+    fireEvent.change(input, { target: { value: 'ordinary input' } });
+    expect(isAnalyticsEnabled()).toBe(false);
+  });
 });
 
 describe('/list exposes the Local AI box', () => {
