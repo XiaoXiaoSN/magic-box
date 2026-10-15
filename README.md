@@ -31,7 +31,7 @@ https://youtu.be/dQw4w9WgXcQ
 ::shorten=document
 ```
 
-Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. `::option=` with nothing after `=` is the same as a bare `::option`.
+Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. Keys start with a letter or underscore and may contain letters, digits, underscores, and hyphens. Values are trimmed at the edges while preserving internal whitespace and `=` characters. `::option=` with nothing after `=` is the same as a bare `::option`; a valid IPv6 literal such as `::1` remains input.
 
 Based on matching methods, we can roughly classify Boxes into two types:
 

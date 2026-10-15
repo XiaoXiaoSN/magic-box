@@ -47,6 +47,17 @@ describe('parseInput', () => {
       expect(input).toBe('text');
       expect(options).toEqual({ myopt: 'val' });
     });
+
+    it('accepts hyphens after the first key character', () => {
+      const [, options] = parseInput('text\n::key-name=1');
+      expect(options).toEqual({ 'key-name': '1' });
+    });
+
+    it('keeps invalid numeric and hyphen-leading keys in the input', () => {
+      const [input, options] = parseInput('::1\n::-name=1');
+      expect(input).toBe('::1\n::-name=1');
+      expect(options).toEqual({});
+    });
   });
 
   describe('residual input trimming', () => {
@@ -56,9 +67,9 @@ describe('parseInput', () => {
     });
 
     it('returns empty string when all lines are directives', () => {
-      const [input, options] = parseInput('::a\n::b=1');
+      const [input, options] = parseInput('::qrcode\n::b=1');
       expect(input).toBe('');
-      expect(options).toEqual({ a: true, b: '1' });
+      expect(options).toEqual({ qrcode: true, b: '1' });
     });
   });
 
@@ -66,6 +77,21 @@ describe('parseInput', () => {
     it('reads an empty value as a bare flag', () => {
       const [, options] = parseInput('text\n::locale=\n::qrcode');
       expect(options).toEqual({ locale: true, qrcode: true });
+    });
+
+    it('trims only the outer whitespace around a value', () => {
+      const [, options] = parseInput('text\n::k= v  w = x  ');
+      expect(options).toEqual({ k: 'v  w = x' });
+    });
+
+    it('keeps the legacy whitespace-separated value form', () => {
+      const [, options] = parseInput('text\n::ai what is WebGPU?  ');
+      expect(options).toEqual({ ai: 'what is WebGPU?' });
+    });
+
+    it('uses the last value for duplicate keys regardless of case', () => {
+      const [, options] = parseInput('::Mode=first\n::mode=second');
+      expect(options).toEqual({ mode: 'second' });
     });
 
     it('leaves a directive that does not start a line in the input', () => {
@@ -80,6 +106,54 @@ describe('parseInput', () => {
       const [input, options] = parseInput('plain text');
       expect(input).toBe('plain text');
       expect(options).toEqual({});
+    });
+
+    it('normalises CRLF and bare CR line endings once', () => {
+      const [input, options] = parseInput(
+        'hello\r\n::qrcode\r\nworld\r::locale=tw',
+      );
+      expect(input).toBe('hello\nworld');
+      expect(options).toEqual({ qrcode: true, locale: 'tw' });
+    });
+
+    it.each([
+      '::1',
+      '::ffff:192.168.1.1',
+      '::abcd',
+      '::',
+    ])('keeps a valid IPv6 literal beginning with :: as input: %s', (value) => {
+      const [input, options] = parseInput(value);
+      expect(input).toBe(value);
+      expect(options).toEqual({});
+    });
+
+    it('keeps an invalid colon tail in the input instead of partial parsing', () => {
+      const [input, options] = parseInput('::ffff:999.1.1.1');
+      expect(input).toBe('::ffff:999.1.1.1');
+      expect(options).toEqual({});
+    });
+
+    it('allows IPv6 as an explicit option value', () => {
+      const [input, options] = parseInput('::ipv6=::1');
+      expect(input).toBe('');
+      expect(options).toEqual({ ipv6: '::1' });
+    });
+
+    it('keeps ambiguous hexadecimal names that are valid IPv6 literals', () => {
+      const [input, options] = parseInput('::face');
+      expect(input).toBe('::face');
+      expect(options).toEqual({});
+    });
+
+    it('creates own properties for prototype-like option keys', () => {
+      const [, options] = parseInput(
+        '::constructor\n::__proto__=safe\n::toString=value',
+      );
+      if (options === null) throw new Error('parseInput returned null options');
+      expect(Object.getPrototypeOf(options)).toBeNull();
+      expect(Object.hasOwn(options, 'constructor')).toBe(true);
+      expect(Object.hasOwn(options, '__proto__')).toBe(true);
+      expect(Object.hasOwn(options, 'tostring')).toBe(true);
     });
   });
 });
@@ -117,6 +191,12 @@ describe('parseOptionsForChips', () => {
   describe('directive contract', () => {
     it('reads an empty value as a bare flag, like parseInput', () => {
       expect(parseOptionsForChips('text\n::locale=')).toEqual({ locale: true });
+    });
+
+    it('uses the full canonical value, including whitespace and equals signs', () => {
+      expect(parseOptionsForChips('text\n::k= v  w = x  ')).toEqual({
+        k: 'v  w = x',
+      });
     });
 
     it('ignores a directive that does not start a line, like parseInput', () => {
