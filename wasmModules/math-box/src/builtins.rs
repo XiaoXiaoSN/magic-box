@@ -1,3 +1,4 @@
+use alloc::vec::Vec;
 use core::f64::consts;
 
 use crate::error::{Error, Result};
@@ -370,9 +371,9 @@ fn gcd_values(args: &[Value]) -> Result<Value> {
 fn lcm_values(args: &[Value]) -> Result<Value> {
     use crate::limits::MAX_NUMERIC_BITS;
 
-    let mut result = abs_big(integer_big(&args[0])?);
-    for value in &args[1..] {
-        let value = abs_big(integer_big(value)?);
+    let values = args.iter().map(integer_big).collect::<Result<Vec<_>>>()?;
+    let mut result = abs_big(values[0].clone());
+    for value in values.into_iter().skip(1).map(abs_big) {
         if result == num_bigint::BigInt::from(0) || value == num_bigint::BigInt::from(0) {
             return Ok(Value::Big(num_bigint::BigInt::from(0)));
         }
@@ -439,9 +440,9 @@ fn gcd_values(args: &[Value]) -> Result<Value> {
 
 #[cfg(not(feature = "bigint"))]
 fn lcm_values(args: &[Value]) -> Result<Value> {
-    let mut result = integer_i128(&args[0])?.abs();
-    for value in &args[1..] {
-        let value = integer_i128(value)?.abs();
+    let values = args.iter().map(integer_i128).collect::<Result<Vec<_>>>()?;
+    let mut result = values[0].abs();
+    for value in values.into_iter().skip(1).map(i128::abs) {
         if result == 0 || value == 0 {
             return Ok(Value::Num(0.0));
         }

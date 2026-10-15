@@ -235,6 +235,10 @@ pub fn add(a: Value, b: Value) -> Result<Value> {
                 Num(x.to_f64() + y)
             }
         }
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Big(x), Frac(y)) => Frac(Fraction::raw_from_int_backend(x).add(&y)?),
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Frac(x), Big(y)) => Frac(x.add(&Fraction::raw_from_int_backend(y))?),
 
         #[cfg(feature = "complex")]
         (Complex(x), Complex(y)) => Complex(x.add(&y)),
@@ -335,6 +339,10 @@ pub fn sub(a: Value, b: Value) -> Result<Value> {
                 Num(x - y.to_f64())
             }
         }
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Big(x), Frac(y)) => Frac(Fraction::raw_from_int_backend(x).sub(&y)?),
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Frac(x), Big(y)) => Frac(x.sub(&Fraction::raw_from_int_backend(y))?),
 
         #[cfg(feature = "complex")]
         (Complex(x), Complex(y)) => Complex(x.sub(&y)),
@@ -412,6 +420,10 @@ pub fn mul(a: Value, b: Value) -> Result<Value> {
                 Num(x.to_f64() * y)
             }
         }
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Big(x), Frac(y)) => Frac(Fraction::raw_from_int_backend(x).mul(&y)?),
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Frac(x), Big(y)) => Frac(x.mul(&Fraction::raw_from_int_backend(y))?),
 
         #[cfg(feature = "complex")]
         (Complex(x), Complex(y)) => Complex(x.mul(&y)),
@@ -515,6 +527,10 @@ pub fn div(a: Value, b: Value) -> Result<Value> {
                 Num(x / y.to_f64())
             }
         }
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Big(x), Frac(y)) => Frac(Fraction::raw_from_int_backend(x).div(&y)?),
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Frac(x), Big(y)) => Frac(x.div(&Fraction::raw_from_int_backend(y))?),
 
         #[cfg(feature = "complex")]
         (Complex(x), Complex(y)) => Complex(x.div(&y)?),
@@ -576,6 +592,9 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
         (Big(x), Big(y)) => Ok(Big(floored_big_mod(x, y))),
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) => {
+            if y == 0.0 {
+                return Ok(Big(x));
+            }
             let y = num_to_bigint(y).ok_or(Error::TypeMismatch {
                 op: "%",
                 lhs: "big",
@@ -585,6 +604,9 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
         }
         #[cfg(feature = "bigint")]
         (Num(x), Big(y)) => {
+            if y == BigInt::from(0) {
+                return Ok(Num(x));
+            }
             let x = num_to_bigint(x).ok_or(Error::TypeMismatch {
                 op: "%",
                 lhs: "number",
@@ -607,6 +629,25 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
         (Big(x), Frac(y)) => Ok(Frac(Fraction::raw_from_int_backend(x).rem(&y)?)),
         #[cfg(all(feature = "bigint", feature = "fraction"))]
         (Frac(x), Big(y)) => Ok(Frac(x.rem(&Fraction::raw_from_int_backend(y))?)),
+
+        #[cfg(feature = "bigint")]
+        (Big(_), rhs) => Err(Error::TypeMismatch {
+            op: "%",
+            lhs: "big",
+            rhs: rhs.type_name(),
+        }),
+        #[cfg(feature = "bigint")]
+        (lhs, Big(_)) => Err(Error::TypeMismatch {
+            op: "%",
+            lhs: lhs.type_name(),
+            rhs: "big",
+        }),
+        #[cfg(all(feature = "fraction", feature = "complex"))]
+        (Frac(_), Complex(_)) | (Complex(_), Frac(_)) => Err(Error::TypeMismatch {
+            op: "%",
+            lhs: "fraction",
+            rhs: "complex",
+        }),
 
         (l, r) => {
             let x = l.as_f64().ok_or(Error::Domain {
@@ -647,7 +688,7 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
 
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) => {
-            if y.fract() == 0.0 && y >= 0.0 && y <= u32::MAX as f64 {
+            if y.is_finite() && y.fract() == 0.0 && y >= 0.0 && y <= u32::MAX as f64 {
                 return Ok(Big(bounded_big_power(&x, y as u32)?));
             }
             Err(Error::TypeMismatch {
@@ -684,27 +725,80 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
             Ok(Big(bounded_big_power(&x, exponent)?))
         }
 
-        #[cfg(feature = "complex")]
-        (Complex(x), rhs) => {
-            if let Some(exponent) = complex_integer_exponent(&rhs) {
-                return Ok(Complex(complex_pow_integer(x, exponent)?));
-            }
-            Ok(Complex(complex_power(x, to_complex(rhs)?)))
-        }
-        #[cfg(feature = "complex")]
-        (lhs, Complex(y)) => {
-            if let Some(exponent) = complex_integer_exponent(&Complex(y)) {
-                return Ok(Complex(complex_pow_integer(to_complex(lhs)?, exponent)?));
-            }
-            Ok(Complex(complex_power(to_complex(lhs)?, y)))
+        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        (Big(x), Frac(y)) => {
+            use num_traits::ToPrimitive;
+            let exponent = y.integer_backend().and_then(|value| value.to_u32()).ok_or(
+                Error::TypeMismatch {
+                    op: "^",
+                    lhs: "big",
+                    rhs: "fraction",
+                },
+            )?;
+            Ok(Big(bounded_big_power(&x, exponent)?))
         }
 
         #[cfg(feature = "fraction")]
-        (Frac(x), Num(y)) if y.fract() == 0.0 && (0.0..64.0).contains(&y) => {
-            Ok(Frac(x.pow(y as u32)?))
+        (Frac(x), Num(y)) => {
+            if y.is_finite() && y.fract() == 0.0 && y >= 0.0 && y <= u32::MAX as f64 {
+                return Ok(Frac(x.pow(y as u32)?));
+            }
+            #[cfg(feature = "complex")]
+            if y.is_finite() && y.fract() != 0.0 && x.to_f64() < 0.0 {
+                return Ok(Complex(complex_power(
+                    crate::value::Complex::new(x.to_f64(), 0.0),
+                    crate::value::Complex::new(y, 0.0),
+                )));
+            }
+            Err(Error::TypeMismatch {
+                op: "^",
+                lhs: "fraction",
+                rhs: "number",
+            })
         }
 
-        #[cfg(all(feature = "bigint", feature = "fraction"))]
+        #[cfg(feature = "fraction")]
+        (Num(x), Frac(y)) => {
+            use num_traits::ToPrimitive;
+            if let Some(integer) = y.integer_backend() {
+                if let Some(exponent) = integer.to_u32() {
+                    #[cfg(feature = "bigint")]
+                    if x.is_finite()
+                        && x.fract() == 0.0
+                        && x.abs() < 1e21
+                        && let Some(base) = num_to_bigint(x)
+                        && (x.abs() > MAX_EXACT_FLOAT
+                            || x.powf(exponent as f64).abs() > MAX_EXACT_FLOAT)
+                    {
+                        return Ok(Big(bounded_big_power(&base, exponent)?));
+                    }
+                    return Ok(Num(x.powf(exponent as f64)));
+                }
+                return Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: "number",
+                    rhs: "fraction",
+                });
+            }
+            #[cfg(feature = "complex")]
+            if x < 0.0 {
+                return Ok(Complex(complex_power(
+                    crate::value::Complex::new(x, 0.0),
+                    crate::value::Complex::new(y.to_f64(), 0.0),
+                )));
+            }
+            if y.to_f64().is_finite() {
+                Ok(Num(x.powf(y.to_f64())))
+            } else {
+                Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: "number",
+                    rhs: "fraction",
+                })
+            }
+        }
+
+        #[cfg(all(feature = "fraction", feature = "bigint"))]
         (Frac(x), Big(y)) => {
             use num_traits::ToPrimitive;
             let exponent = y.to_u32().ok_or(Error::TypeMismatch {
@@ -714,6 +808,102 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
             })?;
             Ok(Frac(x.pow(exponent)?))
         }
+
+        #[cfg(feature = "fraction")]
+        (Frac(x), Frac(y)) => {
+            use num_traits::ToPrimitive;
+            if let Some(integer) = y.integer_backend() {
+                if let Some(exponent) = integer.to_u32() {
+                    return Ok(Frac(x.pow(exponent)?));
+                }
+                return Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: "fraction",
+                    rhs: "fraction",
+                });
+            }
+            #[cfg(feature = "complex")]
+            if x.to_f64() < 0.0 {
+                return Ok(Complex(complex_power(
+                    crate::value::Complex::new(x.to_f64(), 0.0),
+                    crate::value::Complex::new(y.to_f64(), 0.0),
+                )));
+            }
+            Err(Error::TypeMismatch {
+                op: "^",
+                lhs: "fraction",
+                rhs: "fraction",
+            })
+        }
+
+        #[cfg(all(feature = "bigint", feature = "complex"))]
+        (Big(_), Complex(_)) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: "big",
+            rhs: "complex",
+        }),
+        #[cfg(all(feature = "fraction", feature = "complex"))]
+        (Frac(_), Complex(_)) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: "fraction",
+            rhs: "complex",
+        }),
+
+        #[cfg(feature = "complex")]
+        (Complex(x), rhs) => {
+            let rhs_name = rhs.type_name();
+            if let Some(exponent) = complex_integer_exponent(&rhs) {
+                return Ok(Complex(complex_pow_integer(x, exponent)?));
+            }
+            if is_exact_integral_value(&rhs) {
+                return Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: "complex",
+                    rhs: rhs_name,
+                });
+            }
+            Ok(Complex(complex_power(x, to_complex(rhs)?)))
+        }
+        #[cfg(feature = "complex")]
+        (lhs, Complex(y)) => {
+            let lhs_name = lhs.type_name();
+            if let Some(exponent) = complex_integer_exponent(&Complex(y)) {
+                return Ok(Complex(complex_pow_integer(to_complex(lhs)?, exponent)?));
+            }
+            if is_exact_integral_value(&Complex(y)) {
+                return Err(Error::TypeMismatch {
+                    op: "^",
+                    lhs: lhs_name,
+                    rhs: "complex",
+                });
+            }
+            Ok(Complex(complex_power(to_complex(lhs)?, y)))
+        }
+
+        #[cfg(feature = "bigint")]
+        (Big(_), rhs) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: "big",
+            rhs: rhs.type_name(),
+        }),
+        #[cfg(feature = "bigint")]
+        (lhs, Big(_)) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: lhs.type_name(),
+            rhs: "big",
+        }),
+        #[cfg(feature = "fraction")]
+        (Frac(_), rhs) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: "fraction",
+            rhs: rhs.type_name(),
+        }),
+        #[cfg(feature = "fraction")]
+        (lhs, Frac(_)) => Err(Error::TypeMismatch {
+            op: "^",
+            lhs: lhs.type_name(),
+            rhs: "fraction",
+        }),
 
         (lhs, rhs) => {
             let x = lhs.as_f64().ok_or(Error::Domain {
@@ -754,7 +944,7 @@ fn to_complex(v: Value) -> Result<Complex> {
 fn complex_integer_exponent(value: &Value) -> Option<i64> {
     match value {
         Value::Num(n) if n.is_finite() && n.fract() == 0.0 => {
-            if *n >= i64::MIN as f64 && *n <= i64::MAX as f64 {
+            if *n >= i64::MIN as f64 && *n < 9_223_372_036_854_775_808.0 {
                 Some(*n as i64)
             } else {
                 None
@@ -765,14 +955,32 @@ fn complex_integer_exponent(value: &Value) -> Option<i64> {
             use num_traits::ToPrimitive;
             n.to_i64()
         }
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => {
+            use num_traits::ToPrimitive;
+            value.integer_backend()?.to_i64()
+        }
         Value::Complex(c) if c.im == 0.0 && c.re.is_finite() && c.re.fract() == 0.0 => {
-            if c.re >= i64::MIN as f64 && c.re <= i64::MAX as f64 {
+            if c.re >= i64::MIN as f64 && c.re < 9_223_372_036_854_775_808.0 {
                 Some(c.re as i64)
             } else {
                 None
             }
         }
         _ => None,
+    }
+}
+
+#[cfg(feature = "complex")]
+fn is_exact_integral_value(value: &Value) -> bool {
+    match value {
+        Value::Num(n) => n.is_finite() && n.fract() == 0.0,
+        #[cfg(feature = "bigint")]
+        Value::Big(_) => true,
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => value.integer_backend().is_some(),
+        Value::Complex(value) => value.im == 0.0 && value.re.is_finite() && value.re.fract() == 0.0,
+        _ => false,
     }
 }
 
@@ -847,24 +1055,48 @@ pub fn logical_not(a: Value) -> Result<Value> {
 
 pub fn factorial(a: Value) -> Result<Value> {
     #[cfg(feature = "bigint")]
-    if let Value::Big(n) = &a {
-        use num_bigint::Sign;
-        use num_traits::ToPrimitive;
+    {
+        use num_traits::FromPrimitive;
 
-        if n.sign() == Sign::Minus {
+        let count = match &a {
+            Value::Big(value) => Some(value.clone()),
+            Value::Num(value) if value.is_finite() && value.fract() == 0.0 => {
+                Some(BigInt::from_f64(*value).ok_or(Error::Overflow)?)
+            }
+            #[cfg(feature = "fraction")]
+            Value::Frac(value) => Some(value.integer_backend().ok_or(Error::Domain {
+                what: "factorial requires a non-negative integer",
+            })?),
+            _ => None,
+        };
+        if let Some(count) = count {
+            use num_bigint::Sign;
+            use num_traits::ToPrimitive;
+
+            if count.sign() == Sign::Minus {
+                return Err(Error::Domain {
+                    what: "factorial requires a non-negative integer",
+                });
+            }
+            let count = count.to_u32().ok_or(Error::LimitExceeded {
+                what: "factorial operand",
+                limit: u32::MAX as usize,
+            })?;
+            let mut result = BigInt::from(1);
+            for value in 2..=count {
+                result = bounded_big_multiply(&result, &BigInt::from(value))?;
+            }
+            return Ok(Value::Big(result));
+        }
+    }
+
+    #[cfg(all(feature = "fraction", not(feature = "bigint")))]
+    if let Value::Frac(value) = &a {
+        if value.integer_backend().is_none() {
             return Err(Error::Domain {
                 what: "factorial requires a non-negative integer",
             });
         }
-        let count = n.to_u32().ok_or(Error::LimitExceeded {
-            what: "factorial operand",
-            limit: u32::MAX as usize,
-        })?;
-        let mut result = BigInt::from(1);
-        for value in 2..=count {
-            result = bounded_big_multiply(&result, &BigInt::from(value))?;
-        }
-        return Ok(Value::Big(result));
     }
     let n = a.as_f64().ok_or(Error::Domain {
         what: "factorial requires a numeric operand",

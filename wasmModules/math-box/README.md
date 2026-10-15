@@ -34,6 +34,12 @@ exact and use the crate's numeric bit and display limits. Mixing a BigInt with
 an inexact floating number returns a type error rather than converting the
 integer through `f64`.
 
+With the `bigint` feature enabled, integral `Num` and `Fraction` factorial
+operands use the same bounded BigInt backend as `n`-suffixed values.
+Fraction/BigInt arithmetic remains exact in either operand order, and
+nonnegative integral fraction exponents use bounded exact powers; unsupported
+inexact combinations return a type error.
+
 `%` uses floored modulo: the result has the divisor's sign, and a zero divisor
 returns the dividend. Fractions retain their BigInt numerator and denominator
 backend, including when an integral floating input is converted; the input's

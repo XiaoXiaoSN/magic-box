@@ -185,6 +185,96 @@ fn exact_fraction_conversion_uses_full_integer_backend() {
 }
 
 #[test]
+fn fraction_bigint_arithmetic_is_exact_in_both_orders() {
+    let integer = "1000000000000000000000000000000";
+    assert_eval(
+        &format!("frac(1, 2) + {integer}"),
+        "2000000000000000000000000000001/2",
+    );
+    assert_eval(
+        &format!("{integer} + frac(1, 2)"),
+        "2000000000000000000000000000001/2",
+    );
+    assert_eval(
+        &format!("frac(1, 2) - {integer}"),
+        "-1999999999999999999999999999999/2",
+    );
+    assert_eval(
+        &format!("{integer} - frac(1, 2)"),
+        "1999999999999999999999999999999/2",
+    );
+    assert_eval(
+        &format!("frac(1, 2) * {integer}"),
+        "500000000000000000000000000000",
+    );
+    assert_eval(
+        &format!("{integer} * frac(1, 2)"),
+        "500000000000000000000000000000",
+    );
+    assert_eval(
+        &format!("frac(1, 2) / {integer}"),
+        "1/2000000000000000000000000000000",
+    );
+    assert_eval(
+        &format!("{integer} / frac(1, 2)"),
+        "2000000000000000000000000000000",
+    );
+    assert!(math_box::evaluate("frac(1, 2) / 0n").is_err());
+    assert!(math_box::evaluate("0n / frac(1, 2)").is_ok());
+}
+
+#[test]
+fn factorial_preserves_integral_num_and_fraction_values() {
+    let factorial_171 = "1241018070217667823424840524103103992616605577501693185388951803611996075221691752992751978120487585576464959501670387052809889858690710767331242032218484364310473577889968548278290754541561964852153468318044293239598173696899657235903947616152278558180061176365108428800000000000000000000000000000000000000000";
+    assert_eval("25!", "15511210043330985984000000");
+    assert_eval("25n!", "15511210043330985984000000");
+    assert_eval("fact(25)", "15511210043330985984000000");
+    assert_eval("fact(25n)", "15511210043330985984000000");
+    assert_eval("frac(25, 1)!", "15511210043330985984000000");
+    assert_eval("fact(frac(25, 1))", "15511210043330985984000000");
+    assert_eval("171!", factorial_171);
+    assert_eval("171n!", factorial_171);
+    assert_eval("fact(171)", factorial_171);
+    assert_eval("fact(frac(171, 1))", factorial_171);
+    assert_eval("x = 171; x!", factorial_171);
+    assert!(math_box::evaluate("frac(5, 2)!").is_err());
+    assert!(math_box::evaluate("(-1)!").is_err());
+}
+
+#[test]
+fn power_exact_dispatch_handles_fraction_exponents() {
+    assert_eval("9007199254740993n ^ frac(1, 1)", "9007199254740993");
+    assert_eval("frac(1, 2)^64", "1/18446744073709551616");
+    assert_eval("frac(1, 2)^64n", "1/18446744073709551616");
+    assert_eval("frac(1, 2)^65", "1/36893488147419103232");
+    assert_eval("x = frac(1, 2); x^64", "1/18446744073709551616");
+    assert_eval("(-8)^frac(1, 3)", "1+1.732050807568877i");
+    assert!(math_box::evaluate("2n ^ frac(1, 2)").is_err());
+    assert!(math_box::evaluate("frac(1, 2)^frac(1, 3)").is_err());
+}
+
+#[test]
+fn complex_integer_exponent_rejects_unrepresentable_f64() {
+    assert_eval("i ^ 9223372036854774784.0", "1");
+    assert_eval("i ^ -9223372036854775808.0", "1");
+    assert!(math_box::evaluate("i ^ 9223372036854775808.0").is_err());
+    assert!(math_box::evaluate("i ^ 9223372036854775807.0").is_err());
+}
+
+#[test]
+fn modulo_checks_exact_zero_and_rejects_complex_big_mix() {
+    assert_eval("1.5 % 0n", "1.5");
+    assert_eval("frac(3, 2) % 0n", "3/2");
+    assert_eval("1.5 % frac(0, 1)", "1.5");
+    assert_eval("-1.5 % -0", "-1.5");
+    assert_eval("frac(-7, 2) % 3", "5/2");
+    assert_eval("frac(7, 2) % -3", "-5/2");
+    assert!(math_box::evaluate("1n % 0.5").is_err());
+    assert!(math_box::evaluate("9007199254740993n % complex(10, 0)").is_err());
+    assert!(math_box::evaluate("complex(10, 0) % 9007199254740993n").is_err());
+}
+
+#[test]
 fn fraction_basic() {
     assert_eval("frac(1, 3) + frac(1, 4)", "7/12");
     assert_eval("frac(1, 2) * frac(2, 3)", "1/3");
@@ -316,6 +406,8 @@ fn gcd_lcm() {
     assert_eval("lcm(0, 5)", "0");
     assert_eval("lcm(10000000000, 10000000001)", "100000000010000000000");
     assert!(math_box::evaluate("gcd(1.5, 3)").is_err());
+    assert!(math_box::evaluate("lcm(0, 5, 1.5)").is_err());
+    assert!(math_box::evaluate("lcm(2, 0, 1.5)").is_err());
 }
 
 #[test]
