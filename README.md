@@ -38,6 +38,8 @@ Based on matching methods, we can roughly classify Boxes into two types:
 1. match by the `input` string
 2. match by `options`
 
+The optional Case Converter, HTML Entities, HTTP Status, and chmod tools use explicit commands such as `::case`, `::htmldecode`, `::http`, and `::chmod`. See [text and reference tools](docs/text-reference-tools.md) for their formats and limits.
+
 ### Keyboard Shortcuts ⌨️
 
 - Ctrl + n: move to the next Box

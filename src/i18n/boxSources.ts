@@ -96,6 +96,9 @@ export const BOX_SOURCE_IDS = [
   'certificate-decode',
   'cheat-sheet',
   'coordinates',
+  'html-entities',
+  'http-status',
+  'chmod-calculator',
 ] as const;
 export type BoxSourceId = (typeof BOX_SOURCE_IDS)[number];
 
@@ -507,7 +510,7 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
   'case-converter': {
     name: 'Case Converter',
     description:
-      'Convert text between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, Title Case, Sentence case, lowercase and UPPERCASE. ::case lists every format; ::case=<format> or a single-format option (::camel, ::snake, ::kebab, ::upper, ::lower, …) shows just that one.',
+      'Convert each line between camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase and UPPERCASE. Use ::case to list formats or ::case=<format> to select one.',
   },
   'certificate-decode': {
     name: 'Certificate Decode',
@@ -522,6 +525,21 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
     name: 'Coordinates',
     description:
       'Convert a coordinate between decimal degrees, DDM, DMS, Plus Code, Geohash, UTM, MGRS and geo URI. ::coord shows every format; ::dms, ::pluscode, ::geohash, ::utm, … show just that one. Accepts lat/lng in any of the angle formats, a full Plus Code or a Geohash.',
+  },
+  'html-entities': {
+    name: 'HTML Entities',
+    description:
+      'Decode HTML5 character references without parsing markup, or encode text with ::htmlencode (add =all to encode non-ASCII characters).',
+  },
+  'http-status': {
+    name: 'HTTP Status',
+    description:
+      'Look up an IANA-assigned HTTP status by code or exact reason phrase with ::http, http 502, or status 404.',
+  },
+  'chmod-calculator': {
+    name: 'chmod Calculator',
+    description:
+      'Convert absolute octal, rwx symbolic, and u/g/o permission modes with ::chmod. Use ::umask=022 for standard new-file and directory permissions.',
   },
 };
 
@@ -892,7 +910,7 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   'case-converter': {
     name: '大小寫轉換',
     description:
-      '在 camelCase、PascalCase、snake_case、kebab-case、CONSTANT_CASE、dot.case、標題式、句首大寫、小寫與大寫之間轉換。::case 列出所有格式；::case=<format> 或單一格式選項（::camel、::snake、::kebab、::upper、::lower、…）只顯示指定格式。',
+      '逐行在 camelCase、PascalCase、snake_case、CONSTANT_CASE、kebab-case、標題式、dot.case、path/case、句首大寫、小寫與大寫之間轉換。使用 ::case 列出所有格式，或用 ::case=<format> 選擇單一格式。',
   },
   'certificate-decode': {
     name: '憑證解碼',
@@ -906,6 +924,21 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
     name: '座標',
     description:
       '在十進位角度、DDM、DMS、Plus Code、Geohash、UTM、MGRS 與 geo URI 之間轉換座標。::coord 顯示所有格式；::dms、::pluscode、::geohash、::utm、… 只顯示指定格式。接受各種角度格式的 lat/lng、完整 Plus Code 或 Geohash。',
+  },
+  'html-entities': {
+    name: 'HTML 字元實體',
+    description:
+      '解碼 HTML5 字元參照而不剖析標記，或使用 ::htmlencode 編碼文字（加上 =all 也會編碼非 ASCII 字元）。',
+  },
+  'http-status': {
+    name: 'HTTP 狀態碼',
+    description:
+      '依代碼或完全相符的原因短語查詢 IANA 註冊的 HTTP 狀態碼；可使用 ::http、http 502 或 status 404。',
+  },
+  'chmod-calculator': {
+    name: 'chmod 權限計算器',
+    description:
+      '使用 ::chmod 轉換完整八進位、rwx 符號與 u/g/o 絕對權限設定。使用 ::umask=022 計算新檔案與目錄的預設權限。',
   },
 };
 

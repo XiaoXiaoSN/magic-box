@@ -26,6 +26,7 @@
     "base64-box": "file:wasmModules/base64-box/pkg",
     "cannon-es": "0.20.0",
     "cronstrue": "^3.14.0",
+    "entities": "8.1.0",
     "fast-xml-parser": "^5.7.3",
     "firebase": "^12.13.0",
     "ink": "^7.1.0",

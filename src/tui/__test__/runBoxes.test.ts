@@ -27,6 +27,20 @@ describe('headless box generation', () => {
     );
   });
 
+  it('converts input after the shared parser normalizes whitespace and line endings', async () => {
+    const caseConverter = tuiBoxSources.find(
+      (source) => source.name === 'Case Converter',
+    );
+    if (!caseConverter)
+      throw new Error('Case Converter missing from TUI registry');
+
+    const boxes = await runBoxes('  fooBar  \r\n\r\n bazQux \r\n::case=snake', [
+      caseConverter,
+    ]);
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toBe('foo_bar\n\nbaz_qux');
+  });
+
   it('converts a unix timestamp into RFC 3339 boxes', async () => {
     const boxes = await runBoxes('1700000000');
     const names = boxes.map((box) => box.props.name);

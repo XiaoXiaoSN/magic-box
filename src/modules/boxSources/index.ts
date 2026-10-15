@@ -90,6 +90,16 @@ const mathCanHandle = (input: string, options: BoxOptions): boolean => {
     shape.test(trimmed) && (/\d/.test(trimmed) || /[<>=!&|]/.test(trimmed))
   );
 };
+const htmlEntityOptionMatcher = optionMatcher(['htmlencode', 'htmldecode']);
+const htmlEntityCanHandle = (input: string, options: BoxOptions): boolean =>
+  htmlEntityOptionMatcher(input, options) ||
+  (input.length <= 100 * 1024 &&
+    /&(?:#(?:[xX][\da-fA-F]+|\d+)|[a-zA-Z][a-zA-Z\d]*);/.test(input));
+const httpStatusOptionMatcher = optionMatcher(['http']);
+const httpStatusCanHandle = (input: string, options: BoxOptions): boolean =>
+  httpStatusOptionMatcher(input, options) ||
+  (input.length <= 256 &&
+    /^(?:http|status)(?:\s+|:\s*)\d{3}$/i.test(input.trim()));
 
 const definitions: readonly LazyBoxSourceDefinition[] = [
   {
@@ -1508,8 +1518,8 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     id: 'case-converter',
     name: 'Case Converter',
     description:
-      'Convert text between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, Title Case, Sentence case, lowercase and UPPERCASE. ::case lists every format; ::case=<format> or a single-format option (::camel, ::snake, ::kebab, ::upper, ::lower, …) shows just that one.',
-    defaultInput: 'hello world foo bar\n::case',
+      'Convert each line between camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase and UPPERCASE. Use ::case to list formats or ::case=<format> to select one.',
+    defaultInput: 'XMLHttpRequest userID v2ApiKey\n::case',
     tag: 'Aa',
     kind: 'Convert',
     priority: 10,
@@ -1528,6 +1538,8 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'constantcase',
       'dot',
       'dotcase',
+      'path',
+      'pathcase',
       'title',
       'titlecase',
       'sentence',
@@ -1552,6 +1564,8 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'constantcase',
       'dot',
       'dotcase',
+      'path',
+      'pathcase',
       'title',
       'titlecase',
       'sentence',
@@ -1638,6 +1652,53 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     ]),
     load: () =>
       import('./CoordinateBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'html-entities',
+    name: 'HTML Entities',
+    description:
+      'Decode HTML5 character references without parsing markup, or encode text with ::htmlencode (add =all to encode non-ASCII characters).',
+    defaultInput: '&amp;lt; &#x1F600;\n::htmldecode',
+    tag: '&',
+    kind: 'Encode',
+    priority: 10,
+    defaultDisabled: true,
+    optionKeys: ['htmlencode', 'htmldecode'],
+    headless: true,
+    canHandle: htmlEntityCanHandle,
+    load: () =>
+      import('./HtmlEntityBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'http-status',
+    name: 'HTTP Status',
+    description:
+      'Look up an IANA-assigned HTTP status by code or exact reason phrase with ::http, http 502, or status 404.',
+    defaultInput: '404\n::http',
+    tag: 'HTTP',
+    kind: 'Decode',
+    priority: 10,
+    defaultDisabled: true,
+    optionKeys: ['http'],
+    headless: true,
+    canHandle: httpStatusCanHandle,
+    load: () =>
+      import('./HttpStatusBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'chmod-calculator',
+    name: 'chmod Calculator',
+    description:
+      'Convert absolute octal, rwx symbolic, and u/g/o permission modes with ::chmod. Use ::umask=022 for standard new-file and directory permissions.',
+    defaultInput: '4755\n::chmod',
+    tag: 'rwx',
+    kind: 'Convert',
+    priority: 10,
+    defaultDisabled: true,
+    optionKeys: ['chmod', 'umask'],
+    headless: true,
+    canHandle: optionMatcher(['chmod', 'umask']),
+    load: () => import('./ChmodBoxSource').then((module) => module.default),
   },
 ];
 
