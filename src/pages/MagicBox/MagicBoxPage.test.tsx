@@ -7,27 +7,40 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InputDraftProvider } from '../../contexts/InputDraftContext';
 import { LocaleProvider, useLocale } from '../../contexts/LocaleContext';
 
 // Mock the heavy children so the page can be tested in isolation without
 // pulling in SettingsContext / WASM box sources. The mocks expose the page's
-// callbacks (onPasteInput, QR setUserInput) as DOM buttons we can trigger.
+// callbacks as DOM buttons we can trigger.
 vi.mock('@components/MagicBox', () => ({
   default: ({
     input,
     onPasteInput,
+    onInputCommit,
   }: {
     input: string;
     onPasteInput?: (value: string) => void;
+    onInputCommit?: (value: string) => void;
   }) => (
     <div>
       <div data-testid="magic-input-echo">{input}</div>
       <button
         data-testid="paste-back"
-        onClick={() => onPasteInput?.('pasted-value')}
+        onClick={() => {
+          onInputCommit?.(input);
+          onPasteInput?.('pasted-value');
+        }}
         type="button"
       >
         paste back
+      </button>
+      <button
+        data-testid="copy-result"
+        onClick={() => onInputCommit?.(input)}
+        type="button"
+      >
+        copy
       </button>
     </div>
   ),
@@ -50,7 +63,9 @@ import MagicBoxPage from './MagicBoxPage';
 const renderPage = () =>
   render(
     <LocaleProvider>
-      <MagicBoxPage />
+      <InputDraftProvider>
+        <MagicBoxPage />
+      </InputDraftProvider>
     </LocaleProvider>,
   );
 
@@ -70,18 +85,20 @@ const HISTORY_KEY = 'mb_search_history';
 const readHistory = (): { id: string; input: string; timestamp: number }[] =>
   JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
 
-// The page debounces input by 500 ms before it records anything.
-const settleInput = async (value: string) => {
+const typeInput = (value: string) => {
   fireEvent.change(getInput(), { target: { value } });
-  await act(async () => {
-    vi.advanceTimersByTime(600);
-  });
+};
+
+const blurInput = async () => {
+  fireEvent.blur(getInput(), { relatedTarget: null });
+  await act(async () => undefined);
 };
 
 describe('<MagicBoxPage />', () => {
   beforeEach(() => {
     window.history.replaceState({}, '', '/');
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   afterEach(() => {
@@ -89,7 +106,7 @@ describe('<MagicBoxPage />', () => {
     vi.restoreAllMocks();
   });
 
-  it('prefills state from the ?input query param on mount', async () => {
+  it('prefills state from the ?input query param on mount', () => {
     window.history.replaceState({}, '', '/?input=hello%20world');
 
     renderPage();
@@ -103,6 +120,18 @@ describe('<MagicBoxPage />', () => {
     renderPage();
 
     expect(getInput().value).toBe('short');
+  });
+
+  it('uses an explicit empty query value instead of a restored draft', () => {
+    sessionStorage.setItem(
+      'mb_input_draft',
+      JSON.stringify({ version: 1, input: 'restored draft' }),
+    );
+    window.history.replaceState({}, '', '/?input=');
+
+    renderPage();
+
+    expect(getInput().value).toBe('');
   });
 
   it('keeps the textarea controlled when typing', () => {
@@ -131,6 +160,7 @@ describe('<MagicBoxPage />', () => {
   });
 
   it('updates state and caret when output is pasted back into the input', async () => {
+    window.history.replaceState({}, '', '/?input=source');
     renderPage();
 
     await act(async () => {
@@ -143,6 +173,7 @@ describe('<MagicBoxPage />', () => {
       expect(input.selectionStart).toBe('pasted-value'.length);
       expect(input.selectionEnd).toBe('pasted-value'.length);
     });
+    expect(readHistory().map((entry) => entry.input)).toEqual(['source']);
   });
 
   describe('search history', () => {
@@ -154,36 +185,65 @@ describe('<MagicBoxPage />', () => {
       vi.useRealTimers();
     });
 
-    it('records ordinary input once it settles', async () => {
+    it('does not record input merely because typing pauses', async () => {
       renderPage();
 
-      await settleInput('hello world');
+      typeInput('hello world');
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(readHistory()).toEqual([]);
+    });
+
+    it('records ordinary input when editing completes with blur', async () => {
+      renderPage();
+
+      typeInput('hello world');
+      await blurInput();
 
       expect(readHistory().map((entry) => entry.input)).toEqual([
         'hello world',
       ]);
     });
 
-    it('never records an ::ai input, which carries the model prompt', async () => {
+    it('does not treat focus moving to a control as an input completion', async () => {
       renderPage();
 
-      await settleInput('say hello\n::ai');
-      await settleInput('translate this\n::localai');
+      typeInput('hello world');
+      fireEvent.blur(getInput(), {
+        relatedTarget: screen.getByTestId('history-toggle'),
+      });
+      await act(async () => undefined);
 
       expect(readHistory()).toEqual([]);
     });
 
-    it('withdraws the partial prompt recorded before ::ai was typed', async () => {
-      // Regression: the prompt is typed in front of the directive, and every
-      // pause settled on an ordinary-looking partial input that was recorded.
+    it('records a successful result copy once and deduplicates repeats', async () => {
       renderPage();
 
-      await settleInput('my medical question');
-      await settleInput('my medical question\n::');
-      await settleInput('my medical question\n::a');
-      expect(readHistory()).toHaveLength(3);
+      typeInput('hello world');
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      fireEvent.click(screen.getByTestId('copy-result'));
+      fireEvent.click(screen.getByTestId('copy-result'));
 
-      await settleInput('my medical question\n::ai');
+      expect(readHistory().map((entry) => entry.input)).toEqual([
+        'hello world',
+      ]);
+    });
+
+    it('withdraws entries from the same edit session when ::ai is typed', async () => {
+      renderPage();
+
+      typeInput('my medical question');
+      await blurInput();
+      typeInput('my medical question\n::');
+      await blurInput();
+      expect(readHistory()).toHaveLength(2);
+
+      typeInput('my medical question\n::ai');
 
       expect(readHistory()).toEqual([]);
       expect(isLocalAIPrivate()).toBe(true);
@@ -192,11 +252,13 @@ describe('<MagicBoxPage />', () => {
     it('withdraws partial input before a secret directive and hides its value', async () => {
       renderPage();
 
-      await settleInput('jwt body');
-      await settleInput('jwt body\n::se');
+      typeInput('jwt body');
+      await blurInput();
+      typeInput('jwt body\n::se');
+      await blurInput();
       expect(readHistory()).toHaveLength(2);
 
-      await settleInput('jwt body\n::SECRET = top-secret');
+      typeInput('jwt body\n::SECRET = top-secret');
 
       expect(readHistory()).toEqual([]);
       expect(screen.getByTestId('input-options')).toHaveTextContent('secret');
@@ -211,6 +273,18 @@ describe('<MagicBoxPage />', () => {
       );
     });
 
+    it('masks local AI option values in chips and sharing', () => {
+      renderPage();
+
+      typeInput('private prompt\n::ai=hidden prompt');
+
+      expect(screen.getByTestId('input-options')).toHaveTextContent('ai');
+      expect(screen.getByTestId('input-options')).not.toHaveTextContent(
+        'hidden prompt',
+      );
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
     it('keeps entries that existed before this edit session', async () => {
       localStorage.setItem(
         HISTORY_KEY,
@@ -218,12 +292,15 @@ describe('<MagicBoxPage />', () => {
       );
       renderPage();
 
-      await settleInput('hello');
-      await settleInput('');
-      await settleInput('base64 me');
-      await settleInput('');
-      await settleInput('say hi');
-      await settleInput('say hi\n::ai');
+      typeInput('hello');
+      await blurInput();
+      typeInput('');
+      typeInput('base64 me');
+      await blurInput();
+      typeInput('');
+      typeInput('say hi');
+      await blurInput();
+      typeInput('say hi\n::ai');
 
       // `hello` was only moved to the top, and `base64 me` belonged to an
       // earlier session; only the partial prompt goes.
@@ -258,6 +335,27 @@ describe('<MagicBoxPage />', () => {
       expect(screen.queryByText('missing-input')).not.toBeInTheDocument();
     });
 
+    it('bounds history previews and titles without exposing the full input', () => {
+      const longInput = '😀'.repeat(300);
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'long', timestamp: 1, input: longInput }]),
+      );
+
+      renderPage();
+      fireEvent.click(screen.getByTestId('history-toggle'));
+
+      const historyButton = screen
+        .getByTestId('history-panel')
+        .querySelector('button.history-item-btn') as HTMLButtonElement;
+      expect(historyButton).toHaveAttribute('title');
+      const title = historyButton.getAttribute('title') ?? '';
+      expect(Array.from(title)).toHaveLength(256);
+      expect(title.endsWith('…')).toBe(true);
+      expect(title).not.toBe(longInput);
+      expect(screen.getByText(title)).toBeInTheDocument();
+    });
+
     it('keeps the history panel usable when storage reads fail', () => {
       const getItem = vi
         .spyOn(localStorage, 'getItem')
@@ -280,7 +378,8 @@ describe('<MagicBoxPage />', () => {
         });
 
       renderPage();
-      await settleInput('memory only');
+      typeInput('memory only');
+      await blurInput();
       fireEvent.click(screen.getByTestId('history-toggle'));
 
       expect(screen.getByTitle('memory only')).toBeInTheDocument();
@@ -296,8 +395,10 @@ describe('<MagicBoxPage />', () => {
 
       try {
         renderPage();
-        await settleInput('first');
-        await settleInput('second');
+        typeInput('first');
+        await blurInput();
+        typeInput('second');
+        await blurInput();
 
         const ids = readHistory().map((entry) => entry.id);
         expect(ids).toHaveLength(2);

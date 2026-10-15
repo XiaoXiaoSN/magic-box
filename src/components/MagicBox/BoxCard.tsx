@@ -47,6 +47,7 @@ interface BoxCardProps {
   stale: boolean;
   onSelect: (index: number) => void;
   onCopy: (text: string) => Promise<boolean>;
+  onInputCommit?: () => void;
   onExpand?: (box: BoxType) => void;
   onResultChange?: (
     box: BoxType,
@@ -66,6 +67,7 @@ const BoxCard = memo(
         stale,
         onSelect,
         onCopy,
+        onInputCommit,
         onExpand,
         onResultChange,
       },
@@ -99,6 +101,15 @@ const BoxCard = memo(
       }, []);
 
       useLayoutEffect(() => {
+        if (!stale) return;
+        copySequence.current += 1;
+        if (copiedTimer.current !== null) {
+          window.clearTimeout(copiedTimer.current);
+          copiedTimer.current = null;
+        }
+      }, [stale]);
+
+      useLayoutEffect(() => {
         if (previousPlaintextOutput.current === plaintextOutput) return;
 
         previousPlaintextOutput.current = plaintextOutput;
@@ -129,6 +140,7 @@ const BoxCard = memo(
           }
           if (!copied || sequence !== copySequence.current) return;
 
+          onInputCommit?.();
           setJustCopied(true);
           copiedTimer.current = window.setTimeout(() => {
             if (sequence !== copySequence.current) return;
@@ -136,7 +148,23 @@ const BoxCard = memo(
             setJustCopied(false);
           }, COPIED_TIMEOUT_MS);
         },
-        [onCopy, stale],
+        [onCopy, onInputCommit, stale],
+      );
+
+      const copyAndCommit = useCallback(
+        async (text: string): Promise<void> => {
+          if (stale) return;
+          const sequence = ++copySequence.current;
+          let copied = false;
+          try {
+            copied = await onCopy(text);
+          } catch {
+            copied = false;
+          }
+          if (!copied || sequence !== copySequence.current || stale) return;
+          onInputCommit?.();
+        },
+        [onCopy, onInputCommit, stale],
       );
 
       const handleCopy = useCallback(
@@ -159,9 +187,9 @@ const BoxCard = memo(
       const handleCardClick = useCallback(() => {
         if (stale) return;
         onSelect(index);
-        void Promise.resolve(onCopy(plaintextOutput)).catch(() => undefined);
+        void copyAndCommit(plaintextOutput);
         onClick(plaintextOutput);
-      }, [index, onClick, onCopy, onSelect, plaintextOutput, stale]);
+      }, [copyAndCommit, index, onClick, onSelect, plaintextOutput, stale]);
 
       // A click on a control inside the card belongs to that control, not to
       // the card's copy action. A portal opened by a template also bubbles
@@ -193,10 +221,10 @@ const BoxCard = memo(
       const handleTemplateClick = useCallback(
         (text: string): void => {
           if (stale) return;
-          void Promise.resolve(onCopy(text)).catch(() => undefined);
+          void copyAndCommit(text);
           onClick(text);
         },
-        [onClick, onCopy, stale],
+        [copyAndCommit, onClick, stale],
       );
 
       const handleTemplateResultChange = useCallback(

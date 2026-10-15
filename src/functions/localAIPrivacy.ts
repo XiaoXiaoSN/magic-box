@@ -39,6 +39,9 @@ export const isSensitiveInput = (raw: string): boolean => {
 export const isSensitiveOptionKey = (key: string): boolean =>
   (SENSITIVE_OPTION_KEYS as readonly string[]).includes(key.toLowerCase());
 
+export const isPrivateOptionKey = (key: string): boolean =>
+  (PRIVATE_OPTION_KEYS as readonly string[]).includes(key.toLowerCase());
+
 // A private shared link can mount a box on first paint. Detect it from the
 // seeded input before any SDK is initialized rather than waiting for React.
 export const isLocalAIMode = (search: string): boolean => {

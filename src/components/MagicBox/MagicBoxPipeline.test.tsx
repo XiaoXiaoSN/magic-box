@@ -279,6 +279,7 @@ describe('MagicBox source pipeline', () => {
     const firstClick = vi.fn();
     const secondClick = vi.fn();
     const onPasteInput = vi.fn();
+    const onInputCommit = vi.fn();
     const sources = [
       sourceWithResult('first', first.promise),
       sourceWithResult('second', second.promise),
@@ -294,15 +295,22 @@ describe('MagicBox source pipeline', () => {
 
     render(
       <LocaleProvider>
-        <MagicBox input="input" onPasteInput={onPasteInput} sources={sources} />
+        <MagicBox
+          input="input"
+          onInputCommit={onInputCommit}
+          onPasteInput={onPasteInput}
+          sources={sources}
+        />
       </LocaleProvider>,
     );
 
     second.resolve([secondBox]);
     const selectedCard = await screen.findByTestId('magic-box-result');
     fireEvent.click(selectedCard);
+    await waitFor(() => expect(onInputCommit).toHaveBeenCalledWith('input'));
     vi.mocked(copyTextToClipboard).mockClear();
     secondClick.mockClear();
+    onInputCommit.mockClear();
 
     first.resolve([firstBox]);
     await waitFor(() =>
@@ -316,13 +324,17 @@ describe('MagicBox source pipeline', () => {
     expect(copyTextToClipboard).toHaveBeenLastCalledWith('second output');
     expect(secondClick).toHaveBeenLastCalledWith('second output');
     expect(firstClick).not.toHaveBeenCalled();
+    await waitFor(() => expect(onInputCommit).toHaveBeenCalledWith('input'));
 
     vi.mocked(copyTextToClipboard).mockClear();
     secondClick.mockClear();
     fireEvent.keyDown(window, { key: 'Enter', metaKey: true });
     expect(copyTextToClipboard).toHaveBeenLastCalledWith('second output');
     expect(secondClick).toHaveBeenLastCalledWith('second output');
-    expect(onPasteInput).toHaveBeenLastCalledWith('second output');
+    await waitFor(() =>
+      expect(onPasteInput).toHaveBeenLastCalledWith('second output'),
+    );
+    expect(onInputCommit).toHaveBeenCalledTimes(2);
     expect(firstClick).not.toHaveBeenCalled();
   });
 

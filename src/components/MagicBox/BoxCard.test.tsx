@@ -134,16 +134,23 @@ describe('BoxCard click handling', () => {
   });
 
   it('still copies when the card itself is clicked', async () => {
+    const onInputCommit = vi.fn();
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[interactive]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[interactive]}
+        />
       </LocaleProvider>,
     );
     fireEvent.click(await screen.findByTestId('plain'));
     expect(copyTextToClipboard).toHaveBeenCalledWith('card output');
+    await waitFor(() => expect(onInputCommit).toHaveBeenCalledWith('x'));
   });
 
   it('only shows Copied after the clipboard confirms success', async () => {
+    const onInputCommit = vi.fn();
     let resolveCopy!: (value: boolean) => void;
     const copyPromise = new Promise<boolean>((resolve) => {
       resolveCopy = resolve;
@@ -151,7 +158,11 @@ describe('BoxCard click handling', () => {
     vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[interactive]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[interactive]}
+        />
       </LocaleProvider>,
     );
 
@@ -160,6 +171,7 @@ describe('BoxCard click handling', () => {
     ).querySelector('button.box-copy') as HTMLButtonElement;
     fireEvent.click(button);
     expect(button).toHaveTextContent('Copy');
+    expect(onInputCommit).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveCopy(false);
@@ -189,6 +201,7 @@ describe('BoxCard click handling', () => {
   });
 
   it('does not mark a new output copied when an old copy resolves later', async () => {
+    const onInputCommit = vi.fn();
     let resolveCopy!: (value: boolean) => void;
     const copyPromise = new Promise<boolean>((resolve) => {
       resolveCopy = resolve;
@@ -202,7 +215,11 @@ describe('BoxCard click handling', () => {
 
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[changing]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[changing]}
+        />
       </LocaleProvider>,
     );
 
@@ -222,6 +239,7 @@ describe('BoxCard click handling', () => {
     });
 
     expect(copyButton).toHaveTextContent('Copy');
+    expect(onInputCommit).not.toHaveBeenCalled();
   });
 
   it('resets Copied when the card output changes', async () => {
