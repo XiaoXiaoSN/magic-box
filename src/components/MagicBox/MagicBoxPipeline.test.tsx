@@ -97,6 +97,59 @@ describe('MagicBox source pipeline', () => {
     ).toEqual(['First', 'Second']);
   });
 
+  it('keeps a selected result stable when an earlier source settles later', async () => {
+    const first = deferred<Box[]>();
+    const second = deferred<Box[]>();
+    const firstClick = vi.fn();
+    const secondClick = vi.fn();
+    const onPasteInput = vi.fn();
+    const sources = [
+      sourceWithResult('first', first.promise),
+      sourceWithResult('second', second.promise),
+    ];
+    const firstBox = new BoxBuilder('First', 'first output')
+      .setOnClick(firstClick)
+      .setShowExpandButton(false)
+      .build();
+    const secondBox = new BoxBuilder('Second', 'second output')
+      .setOnClick(secondClick)
+      .setShowExpandButton(false)
+      .build();
+
+    render(
+      <LocaleProvider>
+        <MagicBox input="input" onPasteInput={onPasteInput} sources={sources} />
+      </LocaleProvider>,
+    );
+
+    second.resolve([secondBox]);
+    const selectedCard = await screen.findByTestId('magic-box-result');
+    fireEvent.click(selectedCard);
+    vi.mocked(copyTextToClipboard).mockClear();
+    secondClick.mockClear();
+
+    first.resolve([firstBox]);
+    await waitFor(() =>
+      expect(screen.getAllByTestId('magic-box-result')).toHaveLength(2),
+    );
+    const cards = screen.getAllByTestId('magic-box-result');
+    expect(cards[0]).not.toHaveClass('is-selected');
+    expect(cards[1]).toHaveClass('is-selected');
+
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(copyTextToClipboard).toHaveBeenLastCalledWith('second output');
+    expect(secondClick).toHaveBeenLastCalledWith('second output');
+    expect(firstClick).not.toHaveBeenCalled();
+
+    vi.mocked(copyTextToClipboard).mockClear();
+    secondClick.mockClear();
+    fireEvent.keyDown(window, { key: 'Enter', metaKey: true });
+    expect(copyTextToClipboard).toHaveBeenLastCalledWith('second output');
+    expect(secondClick).toHaveBeenLastCalledWith('second output');
+    expect(onPasteInput).toHaveBeenLastCalledWith('second output');
+    expect(firstClick).not.toHaveBeenCalled();
+  });
+
   it('isolates source failures and settles the pending state', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const healthy = deferred<Box[]>();

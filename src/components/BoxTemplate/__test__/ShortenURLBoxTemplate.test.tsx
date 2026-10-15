@@ -28,12 +28,13 @@ describe('ShortenURLBoxTemplate', () => {
     );
 
   it('waits for the explicit action before sending the request', async () => {
+    const onResultChange = vi.fn();
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
       json: async () => ({ shorten: 'abc' }),
     });
-    renderTemplate();
+    renderTemplate({ onResultChange });
 
     expect(fetchMock).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('shorten-url-action'));
@@ -42,6 +43,10 @@ describe('ShortenURLBoxTemplate', () => {
       'https://10oz.tw/abc',
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(onResultChange).toHaveBeenCalledWith({
+      options: null,
+      plaintextOutput: 'https://10oz.tw/abc',
+    });
   });
 
   it('shows validation errors and leaves preview inert', async () => {

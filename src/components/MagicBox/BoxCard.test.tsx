@@ -3,6 +3,7 @@ import copyTextToClipboard from '@functions/clipboard';
 import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
+import { ShortenURLBoxSource } from '@modules/boxSources/ShortenURLBoxSource';
 import { Modal } from '@mui/material';
 import {
   act,
@@ -282,6 +283,52 @@ describe('Local AI card output across input edits', () => {
         .mocked(copyTextToClipboard)
         .mock.calls.every(([t]) => t === 'the answer'),
     ).toBe(true);
+  });
+});
+
+describe('Shorten URL card output', () => {
+  it('uses the generated URL for the card copy button and Enter shortcut', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ shorten: 'abc' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      render(
+        <LocaleProvider>
+          <MagicBox
+            input={'https://example.com\n::surl'}
+            sources={[ShortenURLBoxSource]}
+          />
+        </LocaleProvider>,
+      );
+
+      fireEvent.click(await screen.findByTestId('shorten-url-action'));
+      expect(await screen.findByTestId('shorten-url-result')).toHaveTextContent(
+        'https://10oz.tw/abc',
+      );
+
+      const card = screen.getByTestId('magic-box-result');
+      const copyButton = card.querySelector(
+        'button.box-copy',
+      ) as HTMLButtonElement;
+      vi.mocked(copyTextToClipboard).mockClear();
+      fireEvent.click(copyButton);
+      expect(copyTextToClipboard).toHaveBeenLastCalledWith(
+        'https://10oz.tw/abc',
+      );
+
+      fireEvent.click(card);
+      vi.mocked(copyTextToClipboard).mockClear();
+      fireEvent.keyDown(window, { key: 'Enter' });
+      expect(copyTextToClipboard).toHaveBeenLastCalledWith(
+        'https://10oz.tw/abc',
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

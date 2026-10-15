@@ -42,10 +42,9 @@ interface BoxEntry {
 }
 
 interface KeyboardState {
-  boxes: BoxType[];
   copyMode: 'enter' | 'paste' | 'off';
-  indexes: number[];
-  selectedIndex: number;
+  entries: BoxEntry[];
+  selectedKey: string | null;
 }
 
 const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
@@ -92,7 +91,7 @@ const MagicBox = ({
   const [runState, setRunState] = useState<RunState>('idle');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const itemRefCallbacks = useRef<
@@ -138,18 +137,25 @@ const MagicBox = ({
     () => boxEntries.filter(({ stale }) => !stale),
     [boxEntries],
   );
+  const selectedIndex = useMemo(
+    () =>
+      selectedKey === null
+        ? -1
+        : boxEntries.findIndex(
+            ({ key, stale }) => key === selectedKey && !stale,
+          ),
+    [boxEntries, selectedKey],
+  );
 
   const latestKeyboardState = useRef<KeyboardState>({
-    boxes: [],
     copyMode,
-    indexes: [],
-    selectedIndex: -1,
+    entries: [],
+    selectedKey: null,
   });
   latestKeyboardState.current = {
-    boxes: selectableEntries.map(({ box }) => box),
     copyMode,
-    indexes: selectableEntries.map((entry) => boxEntries.indexOf(entry)),
-    selectedIndex,
+    entries: selectableEntries,
+    selectedKey,
   };
 
   useEffect(() => {
@@ -160,7 +166,7 @@ const MagicBox = ({
 
   useEffect(() => {
     if (resetTrigger !== undefined) {
-      setSelectedIndex(-1);
+      setSelectedKey(null);
     }
   }, [resetTrigger]);
 
@@ -207,7 +213,7 @@ const MagicBox = ({
     if (trim(magicIn) === '') {
       setSourceResults([]);
       setRunState('idle');
-      setSelectedIndex(-1);
+      setSelectedKey(null);
       setModalOpen(false);
       setModalBox(null);
       return () => {
@@ -228,7 +234,7 @@ const MagicBox = ({
       ),
     );
     setRunState('pending');
-    setSelectedIndex(-1);
+    setSelectedKey(null);
     setModalOpen(false);
     setModalBox(null);
 
@@ -282,12 +288,12 @@ const MagicBox = ({
   }, [currentRunKey, filteredBoxSources, magicIn, preview, sources]);
 
   useEffect(() => {
-    if (selectedIndex < 0) return;
-    const selectedEntry = boxEntries[selectedIndex];
+    if (selectedKey === null) return;
+    const selectedEntry = boxEntries.find(({ key }) => key === selectedKey);
     if (!selectedEntry || selectedEntry.stale) {
-      setSelectedIndex(-1);
+      setSelectedKey(null);
     }
-  }, [boxEntries, selectedIndex]);
+  }, [boxEntries, selectedKey]);
 
   useEffect(() => {
     if (
@@ -335,9 +341,11 @@ const MagicBox = ({
   const handleSelect = useCallback(
     (index: number): void => {
       if (isStale) return;
-      setSelectedIndex(index);
+      const entry = boxEntries[index];
+      if (!entry || entry.stale) return;
+      setSelectedKey(entry.key);
     },
-    [isStale],
+    [boxEntries, isStale],
   );
 
   const handleResultChange = useCallback(
@@ -399,12 +407,13 @@ const MagicBox = ({
       if (interactive && !target?.closest('.box-card')) return;
 
       const state = latestKeyboardState.current;
-      if (state.boxes.length === 0) return;
+      if (state.entries.length === 0) return;
 
       const isCtrl = event.ctrlKey || event.metaKey;
-      const selectedPosition = state.indexes.indexOf(state.selectedIndex);
-      const selected =
-        selectedPosition >= 0 ? state.boxes[selectedPosition] : undefined;
+      const selectedPosition = state.entries.findIndex(
+        ({ key }) => key === state.selectedKey,
+      );
+      const selected = state.entries[selectedPosition]?.box;
 
       if (event.key === 'Enter' && isCtrl) {
         event.preventDefault();
@@ -422,16 +431,18 @@ const MagicBox = ({
 
       if (isCtrl && (event.key === 'n' || event.key === 'N')) {
         event.preventDefault();
-        setSelectedIndex((previous) => {
-          const previousPosition = state.indexes.indexOf(previous);
+        setSelectedKey((previous) => {
+          const previousPosition = state.entries.findIndex(
+            ({ key }) => key === previous,
+          );
           const next = event.shiftKey
             ? previousPosition - 1
             : previousPosition + 1;
-          if (next < 0) return state.indexes[0] ?? -1;
-          if (next >= state.indexes.length) {
-            return state.indexes[state.indexes.length - 1] ?? -1;
+          if (next < 0) return state.entries[0]?.key ?? null;
+          if (next >= state.entries.length) {
+            return state.entries[state.entries.length - 1]?.key ?? null;
           }
-          return state.indexes[next] ?? -1;
+          return state.entries[next]?.key ?? null;
         });
         return;
       }
@@ -442,10 +453,12 @@ const MagicBox = ({
         (event.key === 'p' || event.key === 'P')
       ) {
         event.preventDefault();
-        setSelectedIndex((previous) => {
-          const previousPosition = state.indexes.indexOf(previous);
+        setSelectedKey((previous) => {
+          const previousPosition = state.entries.findIndex(
+            ({ key }) => key === previous,
+          );
           const next = Math.max(previousPosition - 1, 0);
-          return state.indexes[next] ?? -1;
+          return state.entries[next]?.key ?? null;
         });
         return;
       }

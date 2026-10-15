@@ -16,6 +16,7 @@ const ShortenURLBoxTemplate = memo(
   ({
     disabled = false,
     onClick,
+    onResultChange,
     options,
     plaintextOutput,
     sourceInput,
@@ -63,6 +64,7 @@ const ShortenURLBoxTemplate = memo(
         );
         if (controller.signal.aborted) return;
         setResult(shortURL);
+        onResultChange?.({ options, plaintextOutput: shortURL });
       } catch {
         if (controller.signal.aborted) return;
         setError(t('shortenURL.requestFailed'));
@@ -72,7 +74,7 @@ const ShortenURLBoxTemplate = memo(
           setLoading(false);
         }
       }
-    }, [alias, disabled, input, loading, preview, t]);
+    }, [alias, disabled, input, loading, onResultChange, options, preview, t]);
 
     const handleResultClick = useCallback(() => {
       if (result) onClick(result);
