@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../../contexts/PreferencesContext';
@@ -14,6 +14,9 @@ const idle: AIState = {
   submitted: null,
   error: null,
   progress: null,
+  inputTokens: null,
+  countedRequest: null,
+  metrics: null,
 };
 
 // The real registry total for the pinned revision: weights + tokenizer.
@@ -49,6 +52,10 @@ const insideDisclosure = (pattern: RegExp) =>
   screen.getByText(pattern).closest('details');
 
 describe('LocalAISettingsDialog', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   beforeEach(() => {
     localStorage.clear();
   });
@@ -100,6 +107,37 @@ describe('LocalAISettingsDialog', () => {
     open({ state: { info: { bytes: REAL_BYTES, cached: false } } });
     expect(screen.getByTestId('local-ai-size')).toHaveTextContent(
       'First use downloads 467.3 MiB',
+    );
+  });
+
+  it('shows cache verification and a browser storage preflight', async () => {
+    open({ state: { info: { bytes: REAL_BYTES, cached: false } } });
+    expect(screen.getByTestId('local-ai-cache-state')).toHaveTextContent(
+      'not fully present in this device cache',
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('local-ai-storage-status')).toHaveTextContent(
+        'Storage estimate unavailable',
+      ),
+    );
+  });
+
+  it('shows persistence status and warns when available storage is too small', async () => {
+    vi.stubGlobal('navigator', {
+      storage: {
+        estimate: vi.fn(async () => ({ quota: REAL_BYTES, usage: 1 })),
+        persisted: vi.fn(async () => false),
+      },
+    });
+    open({ state: { info: { bytes: REAL_BYTES, cached: false } } });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('local-ai-storage-status')).toHaveTextContent(
+        'persistent storage: no',
+      ),
+    );
+    expect(screen.getByTestId('local-ai-storage-warning')).toHaveTextContent(
+      'available estimate is smaller than the model download',
     );
   });
 

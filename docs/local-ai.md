@@ -226,14 +226,14 @@ three: `Downloading model…` only while `state.progress` is non-null **and**
 `info.cached` to true, so after a release the box offers `Load model`, not the
 full download and its sources again.
 
-Progress is the runtime's aggregate `progress_total` only, shown as one
-percentage. transformers.js 4.3.0 emits it right before every per-file
-`progress`; forwarding both made the bar alternate between the overall and the
-per-file figure at twice the message rate. The tokenizer files have no
-aggregate, so their ticks arrive with `progress: null` — an indeterminate bar,
-and a sign of life for the stall timeout. Naming all three at once
-was both vaguer and noisier — the box status is a live region, so the full list
-was announced on every change.
+Progress uses the runtime's aggregate `progress_total` percentage when
+available. transformers.js 4.3.0 emits it right before per-file `progress`;
+forwarding both numbers made the bar alternate between overall and per-file
+figures. When no aggregate exists, per-file events still send an indeterminate
+progress event to keep the stall timer alive. Aggregate values are floored to
+integer percentages and sent only when they change, at a 250 ms heartbeat, and
+on completion. This keeps the accessible live status useful without publishing
+hundreds of identical React updates.
 
 Switching task, changing locale and typing in the panel's own textarea never
 start inference, and generation never implicitly downloads a model (`generate`
@@ -268,8 +268,8 @@ current text.
 | --- | --- | --- |
 | Runtime | `@huggingface/transformers@4.3.0/dist/transformers.min.js` from jsDelivr | The standalone bundle. `dist/transformers.web.js` keeps an external ONNX dependency, and the package root can resolve an entry that drags native onnxruntime/sharp into the graph. Loaded with a dynamic `import()` inside the worker, so no npm or lockfile dependency is added. |
 | Model | `onnx-community/Qwen2.5-0.5B-Instruct`, revision `cc5cc01a…`, dtype `q4f16` | 467.3 MiB, Apache-2.0, fits a phone GPU. |
-| Prompt budget | 6,000 chars / 1,024 tokens of the rendered chat template | Rejected, never silently truncated. |
-| Output budget | 256 new tokens, `do_sample: false`, `logits_processor: [createRepetitionGuard(promptLength)]` | Deterministic and bounded. Pure greedy decoding on this 0.5B model degenerates into repeating one token to the budget — measured on real hardware: one word repeated ~80 times. A repetition penalty of 1.1 plus a 3-gram block ended it. They are applied by `repetition.ts` to **generated tokens only**: the built-in `repetition_penalty` / `no_repeat_ngram_size` see `all_input_ids`, prompt included, which forbade translate, rewrite and summarize from copying any 3-token span of the input — names, numbers, URLs, code, CJK text. The guard is incremental (O(1) amortized per step) where the built-in n-gram processor rebuilt a JSON-keyed map over the whole sequence every token. Neither introduces sampling. |
+| Prompt budget | 1,024 tokens in the complete rendered chat template; 6,000 characters is a separate transport safety cap | The loaded tokenizer counts the current task, language and prompt after a short debounce. Before it is available the count is unknown. The worker checks the final rendered prompt again and rejects it rather than truncating. |
+| Output budget | 256 new tokens, `do_sample: false`, explicit `repetition_penalty: 1`, `no_repeat_ngram_size: 0`, and `logits_processor: [createRepetitionGuard(promptLength)]` | The pinned generation config enables sampling and a built-in 1.1 repetition penalty, so runtime options explicitly override both defaults. `repetition.ts` applies a 1.1 penalty only to generated token IDs and bans a token only when a contiguous one-to-four-token sequence is repeating. Pinned tokenizer fixtures cover repeated CJK entities, URL prefixes, similar code loops and a sustained single-token loop. These are decoding contract tests, not a claim of measured answer-quality improvement. |
 
 `loadRuntime` asserts `env.version === '4.3.0'` so an unexpected CDN payload
 becomes a load error instead of a half-initialized engine.
@@ -285,8 +285,10 @@ The model cache key carries the runtime version, model revision and dtype, so
 bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes every
 cache in the reserved `magic-box-local-ai-` namespace, including older runtime
 and model versions. Workbox's app caches and other features' storage are
-untouched. Close Local AI in other tabs first: another tab can repopulate a shared
-cache while this one deletes it.
+untouched. Deletion asks other Local AI tabs to release the model, then takes an
+exclusive Web Lock until the cache clear finishes. A timeout or unsupported lock
+API leaves the downloads untouched and shows a retry message. The normal
+prepare path also removes stale pins after a successful load.
 
 Workbox's 4 MiB `maximumFileSizeToCacheInBytes` precache budget is untouched;
 weights never enter the app cache.
@@ -307,12 +309,15 @@ terminated worker's queued message can never revive a stale phase.
   mid-generation cannot change what was submitted or what the answer is
   attributed to.
 - **Stop.** During generation the client sends `cancel` first — a cooperative
-  `InterruptableStoppingCriteria` keeps the loaded model warm — and terminates
-  the worker if it has not settled within 2 s. During download or initialization,
+  `InterruptableStoppingCriteria` keeps the loaded model warm. It waits up to 2 s
+  for the worker to acknowledge the request, then gives an acknowledged cancel
+  up to 30 s to settle before terminating. During download or initialization,
   stop terminates immediately, because a blocked ORT init never yields.
   Post-cancel deltas are dropped, and a completion that raced with the cancel is
   still reported as `stopped`/incomplete.
-- **Timeouts.** 60 s inspect, 3 min generate. A download is bounded by
+- **Timeouts.** 60 s inspect. Generation gets 5 min for the first visible output
+  and 2 min of inactivity after each streamed delta. A timeout sends cooperative
+  cancellation before terminating the worker. A download is bounded by
   inactivity, not wall clock: 120 s without a progress event, re-armed by every
   event. A fixed 10-minute load needed ≥ 6.5 Mbit/s sustained for 467 MiB, and a
   retry started the large file from zero, so a slower link could never install
@@ -328,15 +333,31 @@ terminated worker's queued message can never revive a stale phase.
   A model loaded in one is loaded in the others, and clearing the input to type
   the next question, or visiting Settings and coming back, no longer terminates
   it. Tests pass their own factory and so get an isolated client.
+- **One model across tabs.** Web Locks gives one tab exclusive model ownership.
+  A second tab receives a clear busy state instead of allocating another GPU
+  session. Deletion broadcasts a release request and clears CacheStorage only
+  while holding the same lock. When a hidden tab becomes visible, it reloads
+  only if that tab had successfully prepared the model and the cache still
+  verifies; the reload is cache-only, so eviction never becomes a download.
+  Browsers without Web Locks fail promptly with an actionable busy message.
+- **Prompt counts and generation statistics.** A debounced count uses the
+  loaded tokenizer on the same fully rendered chat template as generation. It
+  does not load weights or contact the model registry, and stale counts are
+  discarded. The worker enforces the 1,024-token input budget again at
+  generation time. Completion reports generated token IDs, tokens per second,
+  and time to the first visible token; timing is based on actual token output,
+  not the number of text chunks emitted by the streamer.
 - **Memory.** A backgrounded tab holding ~500 MB of GPU memory is the usual
-  cause of allocation failures elsewhere, so the worker is released when the
-  tab is hidden, 30 s after the last surface unmounts, on `pagehide`, and on
+  cause of allocation failures elsewhere, so the worker is released 30 s after
+  the tab is hidden, 30 s after the last surface unmounts, on `pagehide`, and on
   **Release memory**. The first two are *requests* (`requestRelease`) honoured
   once nothing is in flight: terminating mid-download lost the whole in-flight
   file (a phone locking its screen meant starting over) and mid-generation
   dropped an answer being waited for. With no surface left, a running
   generation is stopped first, since nobody can read it; a download is left to
-  finish so its bytes land in the cache.
+  finish so its bytes land in the cache. Progress sends only integer percentage
+  changes or a 250 ms heartbeat, plus a final update; per-file events remain
+  alive without resetting React state for an unchanged percentage.
 
 ## Privacy
 
@@ -419,18 +440,22 @@ Automated (`bun run test`):
   isolation, cancellation, timeouts (inactivity-bounded download, stall,
   session setup), deferred release requests, `info.cached` after a load,
   recoverable vs fatal errors, prompt construction, bounds, capability checks.
-- `src/features/local-ai/__test__/repetition.test.ts` — the prompt is never
-  penalized or banned, answer trigrams are, and the incremental guard equals a
-  from-scratch scan.
+- `src/features/local-ai/__test__/repetition.test.ts` — pinned tokenizer IDs
+  preserve repeated CJK entities, URL prefixes and similar code loops, while a
+  sustained single-token loop is stopped; only generated tokens receive the
+  custom penalty.
 - `src/features/local-ai/__test__/engine.test.ts` — pinned-size/cache-only inspection,
   single-flight load, warm-up failure handling, streaming and output budget,
-  over-budget rejection, cancel delivery, quota mapping, aggregate-only
-  progress, and the answer-scoped logits processor in place of the built-ins.
+  over-budget rejection, cancel delivery, token counts from the prepared
+  tokenizer, cache verification, quota mapping, throttled aggregate/per-file
+  progress, token-based completion metrics, and the answer-scoped logits
+  processor in place of the built-ins.
 - `src/features/local-ai/__test__/LocalAIPanel.test.tsx` — checking on open and
   its persistence, the pinned exact size, run preconditions, streaming,
   settled-output publishing, sanitized errors, and the carried-prompt rules:
   no worker while unloaded, one run per prompt (also across a remount), a stale
   run stopped when the prompt changes, honoring `aiAutoRun`, task and language;
+  stale counts ignored after prompt edits, over-budget counts blocking a run,
   an editable draft during the check; a loaded model surviving a remount and
   released after the grace period.
 - `src/features/local-ai/__test__/LocalAIPanelPreview.test.tsx` — a `/list`
@@ -446,8 +471,18 @@ Automated (`bun run test`):
   from Settings with no box mounted: no worker on render, the same two steps,
   sanitized errors, Stop for its own download, and a cache deletion that
   terminates the worker first and touches only this feature's cache namespace.
+- `src/features/local-ai/__test__/LocalAISettingsDialog.test.tsx` — exact cache
+  verification and browser-storage preflight, including persistence and low
+  storage copy.
 - `src/features/local-ai/__test__/caches.test.ts` — deleting current and older
-  AI downloads while preserving unrelated caches, and sanitized storage errors.
+  AI downloads, cleaning stale pins while preserving current and unrelated
+  caches, and sanitized storage errors.
+- `src/features/local-ai/__test__/ownership.test.ts` and
+  `progress.test.ts` — exclusive cross-tab model ownership, release before
+  deletion, unsupported-lock handling, percentage throttling, heartbeat and
+  final progress events.
+- `src/features/local-ai/__test__/storage.test.ts` — storage quota and
+  persistence preflight with unavailable-browser fallbacks.
 - `src/features/local-ai/__test__/core.test.ts` also covers `describeSetupStep`
   (device/cache check before a quoted size, the source note on every download step, the
   cached variant, localization) and `describePhase`.
@@ -488,6 +523,5 @@ independently useful and can stay.
 
 ## Out of scope
 
-Additional models, automatic model selection, conversation memory, cross-tab
-coordination, self-hosting the runtime, verified offline readiness, and letting
-the model drive tools.
+Additional models, automatic model selection, conversation memory, self-hosting
+the runtime, verified offline readiness, and letting the model drive tools.

@@ -1,6 +1,8 @@
+import { deleteStaleLocalAIDownloads } from './caches';
 import { isModelCached } from './modelCache';
 import { MAX_NEW_TOKENS, MODEL, MODEL_OPTIONS } from './modelCatalog';
-import { createRepetitionGuard } from './repetition';
+import { createProgressReporter } from './progress';
+import { createRepetitionGuard, type Logits } from './repetition';
 import type {
   GenerativeModel,
   Interruptor,
@@ -40,7 +42,12 @@ export class LocalAIEngine {
       if (this.active?.id === command.id && this.active.kind === 'generate') {
         this.interrupted = true;
         this.interruptor?.interrupt();
+        this.send({ type: 'cancelling', id: command.id });
       }
+      return;
+    }
+    if (command.type === 'count') {
+      await this.count(command.id, command.request);
       return;
     }
     if (this.active) return; // the client already rejects duplicate submissions
@@ -56,8 +63,7 @@ export class LocalAIEngine {
         });
       } else if (command.type === 'prepare') {
         await this.check();
-        await this.getSession(command.id);
-        this.send({ type: 'ready', id: command.id });
+        await this.prepare(command.id, command.cacheOnly);
       } else {
         await this.generate(command.id, command.request);
       }
@@ -81,6 +87,48 @@ export class LocalAIEngine {
     }
   }
 
+  private async prepare(id: number, cacheOnly: boolean): Promise<void> {
+    const cached = await this.inspectCache();
+    if (cacheOnly && !cached) {
+      this.send({
+        type: 'available',
+        id,
+        info: { bytes: MODEL.downloadBytes, cached: false },
+      });
+      return;
+    }
+    if (cached) this.send({ type: 'progress', id, progress: 100 });
+    await this.getSession(id, cacheOnly);
+    const verified = await this.inspectCache().catch(() => false);
+    await deleteStaleLocalAIDownloads().catch(() => undefined);
+    this.send({ type: 'ready', id, cached: verified });
+  }
+
+  private async count(id: number, request: AIRequest): Promise<void> {
+    try {
+      const sessionPromise = this.sessionPromise;
+      if (!sessionPromise) {
+        this.send({ type: 'counted', id, tokens: null });
+        return;
+      }
+      const { tokenizer } = await sessionPromise;
+      const inputs = tokenizer.apply_chat_template(buildMessages(request), {
+        tokenize: true,
+        add_generation_prompt: true,
+        return_dict: true,
+      });
+      const tokens = inputs.input_ids.dims.at(-1);
+      this.send({
+        type: 'counted',
+        id,
+        tokens:
+          Number.isSafeInteger(tokens) && tokens && tokens > 0 ? tokens : null,
+      });
+    } catch {
+      this.send({ type: 'counted', id, tokens: null });
+    }
+  }
+
   // The model revision/dtype and exact download byte count are pinned together.
   // Inspection therefore needs no Hugging Face Range metadata requests: it only
   // loads the small runtime, probes the local cache, and reports the pinned size.
@@ -98,36 +146,45 @@ export class LocalAIEngine {
     return this.runtimePromise;
   }
 
-  private getSession(id: number): Promise<Session> {
+  private getSession(id: number, localFilesOnly: boolean): Promise<Session> {
     this.sessionPromise ??= (async () => {
       const runtime = await this.getRuntime();
+      const progressReporter = createProgressReporter((value) => {
+        this.send({ type: 'progress', id, progress: value });
+      });
       // The tokenizer (~6.7 MiB) gets no aggregate event, so its per-file ticks
       // go out without a percentage: an indeterminate bar, and a sign of life
       // for the client's stall timer, rather than a bar that fills twice.
       const tokenizer = await runtime.AutoTokenizer.from_pretrained(MODEL.id, {
         revision: MODEL.revision,
+        local_files_only: localFilesOnly,
         progress_callback: (event: RuntimeProgress) => {
-          if (event.status === 'progress') {
-            this.send({ type: 'progress', id, progress: null });
-          }
+          if (event.status === 'progress') progressReporter.report(null);
         },
       });
       const model = await runtime.AutoModelForCausalLM.from_pretrained(
         MODEL.id,
         {
           ...MODEL_OPTIONS,
+          local_files_only: localFilesOnly,
           // The default wrapper emits a `progress_total` right before every
           // per-file `progress`. Forwarding both made the bar alternate between
           // the overall and the per-file percentage at twice the message rate;
           // the aggregate is the one number a user can act on.
           progress_callback: (event: RuntimeProgress) => {
-            if (event.status !== 'progress_total') return;
-            const progress =
-              typeof event.progress === 'number' &&
-              Number.isFinite(event.progress)
-                ? Math.max(0, Math.min(100, event.progress))
-                : null;
-            this.send({ type: 'progress', id, progress });
+            if (event.status === 'progress_total') {
+              const progress =
+                typeof event.progress === 'number' &&
+                Number.isFinite(event.progress)
+                  ? Math.max(0, Math.min(100, event.progress))
+                  : null;
+              progressReporter.report(progress);
+            } else if (
+              event.status === 'progress' &&
+              !progressReporter.hasAggregate
+            ) {
+              progressReporter.report(null);
+            }
           },
         },
       );
@@ -143,11 +200,14 @@ export class LocalAIEngine {
           ...inputs,
           max_new_tokens: 1,
           do_sample: false,
+          repetition_penalty: 1,
+          no_repeat_ngram_size: 0,
         });
       } catch (error) {
         await model.dispose().catch(() => undefined);
         throw error;
       }
+      progressReporter.report(100, true);
       return { runtime, tokenizer, model };
     })().catch((error) => {
       this.sessionPromise = null;
@@ -170,23 +230,56 @@ export class LocalAIEngine {
     checkTokenBudget(promptLength);
     this.interruptor = new runtime.InterruptableStoppingCriteria();
     if (this.interrupted) this.interruptor.interrupt();
+    const startedAt = performance.now();
+    let firstTokenAt: number | null = null;
+    let outputTokens = 0;
+    const guard = createRepetitionGuard(promptLength);
     const streamer = new runtime.TextStreamer(tokenizer, {
       skip_prompt: true,
       callback_function: (text) => {
-        if (!this.interrupted && text) this.send({ type: 'delta', id, text });
+        if (!this.interrupted && text) {
+          firstTokenAt ??= performance.now();
+          this.send({ type: 'delta', id, text });
+        }
       },
     });
     await model.generate({
       ...inputs,
       max_new_tokens: MAX_NEW_TOKENS,
       do_sample: false,
-      // Replaces the built-in `repetition_penalty` / `no_repeat_ngram_size`,
-      // which also act on the prompt tokens (see repetition.ts). Still
-      // deterministic: the same prompt produces the same answer.
-      logits_processor: [createRepetitionGuard(promptLength)],
+      repetition_penalty: 1,
+      no_repeat_ngram_size: 0,
+      logits_processor: [
+        (inputIds: bigint[][], logits: Logits) => {
+          outputTokens = Math.max(
+            outputTokens,
+            inputIds[0].length - promptLength + 1,
+          );
+          return guard(inputIds, logits);
+        },
+      ],
       streamer,
       stopping_criteria: [this.interruptor],
     });
-    this.send({ type: this.interrupted ? 'cancelled' : 'complete', id });
+    if (this.interrupted) {
+      this.send({ type: 'cancelled', id });
+    } else {
+      const finishedAt = performance.now();
+      const generationSeconds =
+        firstTokenAt === null ? 0 : (finishedAt - firstTokenAt) / 1000;
+      this.send({
+        type: 'complete',
+        id,
+        metrics: {
+          outputTokens,
+          tokensPerSecond:
+            outputTokens > 0 && generationSeconds > 0
+              ? outputTokens / generationSeconds
+              : null,
+          timeToFirstTokenMs:
+            firstTokenAt === null ? null : firstTokenAt - startedAt,
+        },
+      });
+    }
   }
 }

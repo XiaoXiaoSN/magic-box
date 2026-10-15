@@ -1,0 +1,36 @@
+{
+  "runtimeVersion": "4.3.0",
+  "modelRevision": "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0",
+  "cases": [
+    {
+      "name": "repeated-cjk-entity",
+      "text": "台積電今天宣布擴廠，分析師認為台積電將受益。",
+      "tokenIds": [
+        53938, 103315, 99866, 100644, 104148, 113454, 103360, 3837, 101042,
+        100879, 106590, 53938, 103315, 99866, 101110, 106048, 1773
+      ]
+    },
+    {
+      "name": "repeated-url-prefix",
+      "text": "Visit https://example.com/docs and then https://example.com/api.",
+      "tokenIds": [
+        26218, 3703, 1110, 8687, 905, 25967, 323, 1221, 3703, 1110, 8687, 905,
+        10508, 13
+      ]
+    },
+    {
+      "name": "similar-code-loops",
+      "text": "for (let i = 0; i < n; i++) {}\nfor (let j = 0; j < m; j++) {}",
+      "tokenIds": [
+        1958, 320, 1149, 600, 284, 220, 15, 26, 600, 366, 308, 26, 600, 2457,
+        5613, 1958, 320, 1149, 502, 284, 220, 15, 26, 502, 366, 296, 26, 502,
+        2457, 4687
+      ]
+    },
+    {
+      "name": "genuine-single-token-loop",
+      "text": "ha ha ha ha ha ha ha ha",
+      "tokenIds": [4223, 6386, 6386, 6386, 6386, 6386, 6386, 6386]
+    }
+  ]
+}

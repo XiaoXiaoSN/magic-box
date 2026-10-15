@@ -55,7 +55,11 @@ describe('LocalAIModelSettings', () => {
     );
 
     fireEvent.click(screen.getByTestId('settings-ai-setup'));
-    expect(workers[0].commands.at(-1)).toEqual({ type: 'prepare', id: 2 });
+    expect(workers[0].commands.at(-1)).toEqual({
+      type: 'prepare',
+      id: 2,
+      cacheOnly: false,
+    });
 
     workers[0].reply({ type: 'ready' });
     expect(screen.getByTestId('settings-ai-setup')).toBeDisabled();

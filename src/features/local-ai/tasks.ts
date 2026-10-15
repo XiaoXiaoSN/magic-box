@@ -1,4 +1,4 @@
-import { MAX_INPUT_CHARS, MAX_PROMPT_TOKENS } from './modelCatalog';
+import { MAX_PROMPT_TOKENS, MAX_TRANSPORT_INPUT_CHARS } from './modelCatalog';
 import type { AIRequest } from './types';
 import { LocalAIError } from './types';
 
@@ -32,7 +32,7 @@ export function buildMessages(request: AIRequest): ChatMessage[] {
   ) {
     throw new LocalAIError('invalidRequest');
   }
-  if (request.input.length > MAX_INPUT_CHARS) {
+  if (request.input.length > MAX_TRANSPORT_INPUT_CHARS) {
     throw new LocalAIError('inputLimit');
   }
   return [

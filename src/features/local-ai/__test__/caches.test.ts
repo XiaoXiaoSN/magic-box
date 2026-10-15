@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { deleteLocalAIDownloads } from '../caches';
+import { deleteLocalAIDownloads, deleteStaleLocalAIDownloads } from '../caches';
 import { MODEL, MODEL_CACHE, RUNTIME_CACHE } from '../modelCatalog';
 import { LocalAIError } from '../types';
 
@@ -9,6 +9,31 @@ afterEach(() => {
 });
 
 describe('deleting local AI downloads', () => {
+  it('removes stale pins while retaining the current model and runtime', async () => {
+    const stale = [
+      `magic-box-local-ai-4.2.0-${MODEL.revision}-q4f16`,
+      'magic-box-local-ai-runtime-v1',
+    ];
+    const remaining = new Set([
+      ...stale,
+      MODEL_CACHE,
+      RUNTIME_CACHE,
+      'workbox-precache-v2',
+    ]);
+    vi.stubGlobal('caches', {
+      keys: vi.fn(async () => [...remaining]),
+      delete: vi.fn(async (name: string) => remaining.delete(name)),
+    });
+
+    await deleteStaleLocalAIDownloads();
+
+    expect([...remaining]).toEqual([
+      MODEL_CACHE,
+      RUNTIME_CACHE,
+      'workbox-precache-v2',
+    ]);
+  });
+
   it('reclaims older pins and preserves unrelated caches', async () => {
     const owned = [
       `magic-box-local-ai-4.2.0-${MODEL.revision}-q4f16`,

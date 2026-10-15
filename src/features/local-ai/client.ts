@@ -1,3 +1,4 @@
+import type { ModelOwnership } from './ownership';
 import type {
   AICommand,
   AIErrorCode,
@@ -23,6 +24,9 @@ const initialState = (): AIState => ({
   submitted: null,
   error: null,
   progress: null,
+  inputTokens: null,
+  countedRequest: null,
+  metrics: null,
 });
 
 const TIMEOUTS = {
@@ -36,9 +40,10 @@ const TIMEOUTS = {
   // Once the bytes are in (or were cached), ORT builds the WebGPU session and
   // runs the warm-up. That emits no events, so it gets its own fixed bound.
   init: 300_000,
-  generate: 180_000,
-  // Grace period for a cooperative interrupt before the worker is terminated.
-  interrupt: 2_000,
+  firstToken: 300_000,
+  inactivity: 120_000,
+  cancelAck: 2_000,
+  cancel: 30_000,
 } as const;
 
 export type ReleaseReason = 'hidden' | 'unused';
@@ -52,14 +57,24 @@ export class LocalAIClient {
   private worker: WorkerPort | null = null;
   private nextId = 0;
   private activeId: number | null = null;
+  private latestCountId: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<() => void>();
   // Reasons the worker should go as soon as nothing is in flight. A release
   // requested mid-download or mid-generation waits for that work to settle
   // instead of throwing it away (see `requestRelease`).
   private releaseRequests = new Set<ReleaseReason>();
+  private stopReason: 'user' | 'timeout' | null = null;
 
-  constructor(private readonly createWorker: () => WorkerPort) {}
+  constructor(
+    private readonly createWorker: () => WorkerPort,
+    private readonly ownership: ModelOwnership | null = null,
+  ) {
+    ownership?.setReleaseHandler(() => {
+      this.release();
+      this.forgetCache();
+    });
+  }
 
   getSnapshot = (): AIState => this.state;
 
@@ -81,15 +96,16 @@ export class LocalAIClient {
     );
   }
 
-  prepare(): boolean {
+  prepare(options: { cacheOnly?: boolean } = {}): boolean {
     if (isBusy(this.state.phase) || !this.state.info || this.state.loaded) {
       return false;
     }
+    const cacheOnly = options.cacheOnly ?? this.state.info.cached;
     return this.start(
-      { type: 'prepare', id: ++this.nextId },
+      { type: 'prepare', id: ++this.nextId, cacheOnly },
       'loading',
       // Cached files move no bytes, so the whole step is session setup.
-      this.state.info.cached ? TIMEOUTS.init : TIMEOUTS.stall,
+      cacheOnly ? TIMEOUTS.init : TIMEOUTS.stall,
     );
   }
 
@@ -98,12 +114,42 @@ export class LocalAIClient {
     // Snapshot the request: editing the draft mid-generation must not change
     // what was actually submitted, or what the result is attributed to.
     const snapshot = { ...request };
-    this.update({ output: '', submitted: snapshot });
+    this.stopReason = null;
+    this.update({ output: '', submitted: snapshot, metrics: null });
     return this.start(
       { type: 'generate', id: ++this.nextId, request: snapshot },
       'generating',
-      TIMEOUTS.generate,
+      TIMEOUTS.firstToken,
+      () => this.expireGeneration(),
     );
+  }
+
+  count(request: AIRequest): boolean {
+    if (!this.state.loaded || !this.worker) return false;
+    const snapshot = { ...request };
+    const id = ++this.nextId;
+    this.latestCountId = id;
+    this.update({ inputTokens: null, countedRequest: snapshot });
+    try {
+      this.worker.postMessage({ type: 'count', id, request: snapshot });
+      return true;
+    } catch {
+      this.fail('load');
+      return false;
+    }
+  }
+
+  invalidateCount(): void {
+    this.latestCountId = null;
+    this.update({ inputTokens: null, countedRequest: null });
+  }
+
+  async acquireDeletionLease(): Promise<(() => void) | null> {
+    this.release();
+    this.forgetCache();
+    if (!this.ownership) return () => {};
+    if (!(await this.ownership.acquireForDeletion())) return null;
+    return () => this.ownership?.release();
   }
 
   stop(): void {
@@ -113,12 +159,9 @@ export class LocalAIClient {
       this.worker &&
       this.activeId !== null
     ) {
+      this.stopReason = 'user';
       this.update({ phase: 'stopping' });
-      this.clearTimer();
-      // Cooperative stop first so the loaded model survives a cancel. If
-      // inference monopolizes the worker event loop, terminate it rather than
-      // ignoring its output forever.
-      this.timer = setTimeout(() => this.release(), TIMEOUTS.interrupt);
+      this.arm(TIMEOUTS.cancelAck, () => this.release());
       try {
         this.worker.postMessage({ type: 'cancel', id: this.activeId });
       } catch {
@@ -147,17 +190,30 @@ export class LocalAIClient {
 
   release(): void {
     this.releaseRequests.clear();
-    const phase = isBusy(this.state.phase)
-      ? 'stopped'
-      : this.state.phase === 'complete' || this.state.phase === 'stopped'
-        ? this.state.phase
-        : 'idle';
+    const phase =
+      this.state.phase === 'error'
+        ? 'error'
+        : isBusy(this.state.phase)
+          ? 'stopped'
+          : this.state.phase === 'complete' || this.state.phase === 'stopped'
+            ? this.state.phase
+            : 'idle';
+    this.stopReason = null;
+    this.latestCountId = null;
     this.terminate();
-    this.update({ phase, loaded: false, progress: null });
+    this.update({
+      phase,
+      loaded: false,
+      progress: null,
+      inputTokens: null,
+      countedRequest: null,
+    });
   }
 
   reset(): void {
     this.releaseRequests.clear();
+    this.stopReason = null;
+    this.latestCountId = null;
     this.terminate();
     this.state = initialState();
     this.emit();
@@ -168,16 +224,41 @@ export class LocalAIClient {
   // around this cleanup.
   dispose(): void {
     this.reset();
+    this.ownership?.dispose();
   }
 
   private start(
     command: AICommand,
     phase: AIState['phase'],
     timeout: number,
+    onTimeout?: () => void,
   ): boolean {
     this.activeId = command.id;
     this.update({ phase, error: null, progress: null });
-    this.arm(timeout);
+    this.arm(timeout, onTimeout);
+    if (command.type === 'prepare' && this.ownership) {
+      void this.ownership
+        .acquire()
+        .then((status) => {
+          if (this.activeId !== command.id) {
+            if (status === 'acquired') this.ownership?.release();
+            return;
+          }
+          if (status !== 'acquired') {
+            this.fail('busy');
+            return;
+          }
+          this.post(command);
+        })
+        .catch(() => {
+          if (this.activeId === command.id) this.fail('busy');
+        });
+      return true;
+    }
+    return this.post(command);
+  }
+
+  private post(command: AICommand): boolean {
     try {
       if (!this.worker) {
         const worker = this.createWorker();
@@ -202,10 +283,25 @@ export class LocalAIClient {
   }
 
   private receive(event: AIEvent): void {
+    if (event.type === 'counted') {
+      if (event.id === this.latestCountId)
+        this.update({ inputTokens: event.tokens });
+      return;
+    }
     if (event.id !== this.activeId) return;
     if (event.type === 'delta') {
       if (this.state.phase === 'generating') {
+        this.arm(TIMEOUTS.inactivity, () => this.expireGeneration());
         this.update({ output: this.state.output + event.text });
+      }
+      return;
+    }
+    if (event.type === 'cancelling') {
+      if (this.state.phase === 'stopping') {
+        this.arm(TIMEOUTS.cancel, () => {
+          if (this.stopReason === 'timeout') this.fail('timeout');
+          else this.release();
+        });
       }
       return;
     }
@@ -214,40 +310,82 @@ export class LocalAIClient {
         // A sign of life re-arms the stall bound; the last byte hands over to
         // the session-setup bound.
         this.arm(event.progress === 100 ? TIMEOUTS.init : TIMEOUTS.stall);
-        this.update({ progress: { percent: event.progress } });
+        if (
+          this.state.progress === null ||
+          this.state.progress.percent !== event.progress
+        ) {
+          this.update({ progress: { percent: event.progress } });
+        }
       }
       return;
     }
     this.clearTimer();
     this.activeId = null;
     if (event.type === 'error') {
-      if (event.code === 'inputLimit' || event.code === 'invalidRequest') {
+      const error = this.stopReason === 'timeout' ? 'timeout' : event.code;
+      this.stopReason = null;
+      if (error === 'inputLimit' || error === 'invalidRequest') {
         // Recoverable: the loaded model stays usable for a shorter prompt.
-        this.update({ phase: 'error', error: event.code });
+        this.update({ phase: 'error', error });
       } else {
-        this.fail(event.code);
+        this.fail(error);
       }
     } else if (event.type === 'available') {
-      this.update({ phase: 'available', info: event.info });
+      this.ownership?.release();
+      this.update({
+        phase: 'available',
+        loaded: false,
+        info: event.info,
+        error: null,
+        progress: null,
+      });
     } else if (event.type === 'ready') {
-      // A loaded model is proof the files are in the cache now. Without this a
-      // later release would offer the full download again, and describePhase
-      // would call the cache read a download.
       this.update({
         phase: 'ready',
         loaded: true,
         progress: null,
-        info: this.state.info ? { ...this.state.info, cached: true } : null,
+        error: null,
+        inputTokens: null,
+        countedRequest: null,
+        info: this.state.info
+          ? { ...this.state.info, cached: event.cached }
+          : null,
+      });
+    } else if (event.type === 'complete') {
+      const wasStopping = this.state.phase === 'stopping';
+      const timedOut = this.stopReason === 'timeout';
+      this.stopReason = null;
+      this.update({
+        phase: timedOut ? 'error' : wasStopping ? 'stopped' : 'complete',
+        error: timedOut ? 'timeout' : null,
+        metrics: event.metrics,
       });
     } else {
-      // A completion racing with cancel is still reported as stopped; no delta
-      // after the cancel was ever accepted, so the text would be misleading.
+      const timedOut = this.stopReason === 'timeout';
+      this.stopReason = null;
       this.update({
-        phase:
-          event.type === 'cancelled' || this.state.phase === 'stopping'
-            ? 'stopped'
-            : 'complete',
+        phase: timedOut ? 'error' : 'stopped',
+        loaded: true,
+        error: timedOut ? 'timeout' : null,
       });
+    }
+  }
+
+  private expireGeneration(): void {
+    if (
+      this.state.phase !== 'generating' ||
+      !this.worker ||
+      this.activeId === null
+    ) {
+      return;
+    }
+    this.stopReason = 'timeout';
+    this.update({ phase: 'stopping' });
+    this.arm(TIMEOUTS.cancelAck, () => this.fail('timeout'));
+    try {
+      this.worker.postMessage({ type: 'cancel', id: this.activeId });
+    } catch {
+      this.fail('timeout');
     }
   }
 
@@ -255,12 +393,15 @@ export class LocalAIClient {
     // Terminating also discards a poisoned ORT initialization chain, so a retry
     // starts from a clean worker instead of re-awaiting a rejected promise.
     this.terminate();
+    this.stopReason = null;
+    this.latestCountId = null;
     this.update({ phase: 'error', loaded: false, error, progress: null });
   }
 
   private terminate(): void {
     this.clearTimer();
     this.activeId = null;
+    this.ownership?.release();
     const worker = this.worker;
     this.worker = null;
     if (worker) {
@@ -271,9 +412,12 @@ export class LocalAIClient {
     }
   }
 
-  private arm(timeout: number): void {
+  private arm(
+    timeout: number,
+    onTimeout: () => void = () => this.fail('timeout'),
+  ): void {
     this.clearTimer();
-    this.timer = setTimeout(() => this.fail('timeout'), timeout);
+    this.timer = setTimeout(onTimeout, timeout);
   }
 
   private releaseIfRequested(): void {
@@ -296,6 +440,12 @@ export class LocalAIClient {
     this.state = { ...this.state, ...next };
     this.emit();
     this.releaseIfRequested();
+  }
+
+  private forgetCache(): void {
+    if (this.state.info?.cached) {
+      this.update({ info: { ...this.state.info, cached: false } });
+    }
   }
 
   private emit(): void {
