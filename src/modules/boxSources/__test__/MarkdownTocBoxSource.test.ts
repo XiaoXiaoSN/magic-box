@@ -214,6 +214,26 @@ describe('MarkdownTocBoxSource', () => {
     );
   });
 
+  it('applies the rule of three to adjacent delimiter runs', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## *foo**bar***\n## *foo**bar*',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [foobar](#foobar)\n- [foo\\*\\*bar](#foobar-1)',
+    );
+  });
+
+  it('supports emphasis delimiter runs longer than three markers', async () => {
+    const boxes = await MarkdownTocBoxSource.generateBoxes(
+      '## ****bold****\n## foo******bar*********baz',
+      { toc: true },
+    );
+    expect(boxes[0].props.plaintextOutput).toBe(
+      '- [bold](#bold)\n- [foobar\\*\\*\\*baz](#foobarbaz)',
+    );
+  });
+
   it('keeps unmatched emphasis delimiters literal', async () => {
     const boxes = await MarkdownTocBoxSource.generateBoxes(
       '## **unclosed\n## unclosed*',

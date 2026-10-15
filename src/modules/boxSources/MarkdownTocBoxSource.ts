@@ -18,9 +18,15 @@ interface InlineLinks {
   closing: Map<number, number>;
 }
 
-interface EmphasisOpener {
+interface EmphasisDelimiter {
+  canClose: boolean;
+  canOpen: boolean;
+  delimiter: string;
   index: number;
-  remaining: number;
+  length: number;
+  next: number;
+  originalLength: number;
+  previous: number;
 }
 
 function isMarkdownEscape(text: string, index: number): boolean {
@@ -170,13 +176,29 @@ function isPunctuation(char: string): boolean {
   return char !== '' && /^[\p{P}\p{S}]$/u.test(char);
 }
 
+function unlinkEmphasisDelimiter(
+  delimiters: EmphasisDelimiter[],
+  index: number,
+): void {
+  const delimiter = delimiters[index];
+  if (delimiter.previous >= 0) {
+    delimiters[delimiter.previous].next = delimiter.next;
+  }
+  if (delimiter.next >= 0) {
+    delimiters[delimiter.next].previous = delimiter.previous;
+  }
+  delimiter.previous = -1;
+  delimiter.next = -1;
+}
+
 function findEmphasis(
   text: string,
   codeSpans: Map<number, number>,
   links: InlineLinks,
 ): Map<number, number> {
-  const openers = new Map<string, EmphasisOpener[]>();
+  const delimiters: EmphasisDelimiter[] = [];
   const markers = new Map<number, number>();
+  const tildeOpeners: number[] = [];
 
   for (let index = 0; index < text.length; ) {
     const codeEnd = codeSpans.get(index);
@@ -193,8 +215,7 @@ function findEmphasis(
     ) {
       const delimiter = text[index];
       const length = delimiterRunLength(text, index, delimiter);
-      const allowed = delimiter === '~' ? length === 2 : length <= 3;
-      if (!allowed) {
+      if (delimiter === '~' && length !== 2) {
         index += length;
         continue;
       }
@@ -219,39 +240,108 @@ function findEmphasis(
         delimiter === '_'
           ? rightFlanking && (!leftFlanking || afterPunctuation)
           : rightFlanking;
-      let remaining = length;
 
-      if (canClose) {
-        const stack = openers.get(delimiter);
-        while (remaining > 0 && stack && stack.length > 0) {
-          const opening = stack[stack.length - 1];
-          const matchedLength =
-            delimiter === '~'
-              ? 2
-              : opening.remaining >= 2 && remaining >= 2
-                ? 2
-                : 1;
-
-          markers.set(
-            opening.index,
-            (markers.get(opening.index) ?? 0) + matchedLength,
-          );
-          markers.set(index, (markers.get(index) ?? 0) + matchedLength);
-          opening.remaining -= matchedLength;
-          remaining -= matchedLength;
-          if (opening.remaining === 0) stack.pop();
+      if (delimiter === '~') {
+        let matched = false;
+        if (canClose) {
+          const opening = tildeOpeners.pop();
+          if (opening !== undefined) {
+            markers.set(opening, 2);
+            markers.set(index, 2);
+            matched = true;
+          }
         }
-      }
-      if (canOpen && remaining > 0) {
-        const stack = openers.get(delimiter) ?? [];
-        stack.push({ index: index + length - remaining, remaining });
-        openers.set(delimiter, stack);
+        if (canOpen && !matched) tildeOpeners.push(index);
+      } else {
+        const previous = delimiters.length - 1;
+        const delimiterIndex = delimiters.length;
+        if (previous >= 0) delimiters[previous].next = delimiterIndex;
+        delimiters.push({
+          canClose,
+          canOpen,
+          delimiter,
+          index,
+          length,
+          next: -1,
+          originalLength: length,
+          previous,
+        });
       }
       index += length;
     } else {
       index++;
     }
   }
+
+  const openersBottom = [
+    new Int32Array(6).fill(-1),
+    new Int32Array(6).fill(-1),
+  ];
+  let closerIndex = delimiters.length === 0 ? -1 : 0;
+
+  while (closerIndex >= 0) {
+    const closer = delimiters[closerIndex];
+    if (!closer.canClose) {
+      closerIndex = closer.next;
+      continue;
+    }
+
+    const delimiterBucket = closer.delimiter === '*' ? 0 : 1;
+    const closerBucket =
+      (closer.originalLength % 3) * 2 + Number(closer.canOpen);
+    const bottom = openersBottom[delimiterBucket][closerBucket];
+    let openerIndex = closer.previous;
+
+    while (openerIndex > bottom) {
+      const opener = delimiters[openerIndex];
+      const ruleOfThreeBlocksMatch =
+        opener.delimiter === closer.delimiter &&
+        opener.canOpen &&
+        (opener.canClose || closer.canOpen) &&
+        (opener.originalLength + closer.originalLength) % 3 === 0 &&
+        (opener.originalLength % 3 !== 0 || closer.originalLength % 3 !== 0);
+      if (
+        opener.delimiter === closer.delimiter &&
+        opener.canOpen &&
+        !ruleOfThreeBlocksMatch
+      ) {
+        break;
+      }
+      openerIndex = opener.previous;
+    }
+
+    if (openerIndex <= bottom) {
+      openersBottom[delimiterBucket][closerBucket] = closer.previous;
+      const next = closer.next;
+      if (!closer.canOpen) unlinkEmphasisDelimiter(delimiters, closerIndex);
+      closerIndex = next;
+      continue;
+    }
+
+    const opener = delimiters[openerIndex];
+    const matchedLength = opener.length >= 2 && closer.length >= 2 ? 2 : 1;
+    markers.set(opener.index, (markers.get(opener.index) ?? 0) + matchedLength);
+    markers.set(closer.index, (markers.get(closer.index) ?? 0) + matchedLength);
+    opener.length -= matchedLength;
+    closer.length -= matchedLength;
+
+    let between = opener.next;
+    while (between !== closerIndex) {
+      const next = delimiters[between].next;
+      unlinkEmphasisDelimiter(delimiters, between);
+      between = next;
+    }
+
+    if (opener.length === 0) {
+      unlinkEmphasisDelimiter(delimiters, openerIndex);
+    }
+    if (closer.length === 0) {
+      const next = closer.next;
+      unlinkEmphasisDelimiter(delimiters, closerIndex);
+      closerIndex = next;
+    }
+  }
+
   return markers;
 }
 
