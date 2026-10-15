@@ -1,16 +1,31 @@
+import { MODEL_CACHE, RUNTIME_CACHE } from './modelCatalog';
+
 export type OwnershipStatus = 'acquired' | 'busy' | 'unsupported';
+
+export interface OwnershipAcquireOptions {
+  signal: AbortSignal;
+  wait: true;
+}
 
 export interface ModelOwnership {
   setReleaseHandler(handler: () => void): void;
-  acquire(): Promise<OwnershipStatus>;
+  setCacheDeletedHandler(handler: () => void): void;
+  acquire(options?: OwnershipAcquireOptions): Promise<OwnershipStatus>;
   release(): void;
   acquireForDeletion(): Promise<boolean>;
+  notifyCacheDeleted(): void;
   dispose(): void;
 }
 
 type OwnershipMessage =
   | { type: 'release-request'; from: string; requestId: string }
-  | { type: 'released'; from: string; requestId: string };
+  | { type: 'released'; from: string; requestId: string }
+  | {
+      type: 'cache-deleted';
+      from: string;
+      modelCache: string;
+      runtimeCache: string;
+    };
 
 const LOCK_NAME = 'magic-box-local-ai-model';
 const CHANNEL_NAME = 'magic-box-local-ai';
@@ -25,17 +40,25 @@ export class LocalAIModelOwnership implements ModelOwnership {
   private lockTask: Promise<void> | null = null;
   private requestSequence = 0;
   private releaseHandler = () => {};
+  private cacheDeletedHandler = () => {};
 
   setReleaseHandler(handler: () => void): void {
     this.releaseHandler = handler;
+    this.openChannel();
   }
 
-  async acquire(): Promise<OwnershipStatus> {
-    return this.requestLease('model');
+  setCacheDeletedHandler(handler: () => void): void {
+    this.cacheDeletedHandler = handler;
+    this.openChannel();
+  }
+
+  async acquire(options?: OwnershipAcquireOptions): Promise<OwnershipStatus> {
+    return this.requestLease('model', options);
   }
 
   private async requestLease(
     type: 'model' | 'deletion',
+    options?: OwnershipAcquireOptions,
   ): Promise<OwnershipStatus> {
     if (this.releaseLock) {
       return this.leaseType === type ? 'acquired' : 'busy';
@@ -54,28 +77,29 @@ export class LocalAIModelOwnership implements ModelOwnership {
       unlock = resolve;
     });
     const leaseId = Symbol(type);
+    const lockOptions: LockOptions = options
+      ? { mode: 'exclusive', signal: options.signal }
+      : { mode: 'exclusive', ifAvailable: true };
     const task = locks
-      .request(
-        LOCK_NAME,
-        { mode: 'exclusive', ifAvailable: true },
-        async (lock) => {
-          if (!lock) {
-            resolveAcquired('busy');
-            return;
-          }
-          this.leaseId = leaseId;
-          this.leaseType = type;
-          this.releaseLock = unlock;
-          resolveAcquired('acquired');
-          await held;
-          if (this.leaseId === leaseId) {
-            this.releaseLock = null;
-            this.leaseType = null;
-            this.leaseId = null;
-          }
-        },
-      )
-      .catch(() => resolveAcquired('unsupported'));
+      .request(LOCK_NAME, lockOptions, async (lock) => {
+        if (!lock) {
+          resolveAcquired('busy');
+          return;
+        }
+        this.leaseId = leaseId;
+        this.leaseType = type;
+        this.releaseLock = unlock;
+        resolveAcquired('acquired');
+        await held;
+        if (this.leaseId === leaseId) {
+          this.releaseLock = null;
+          this.leaseType = null;
+          this.leaseId = null;
+        }
+      })
+      .catch(() =>
+        resolveAcquired(options?.signal.aborted ? 'busy' : 'unsupported'),
+      );
     this.lockTask = task;
     void task.then(() => {
       if (this.lockTask === task) this.lockTask = null;
@@ -115,6 +139,16 @@ export class LocalAIModelOwnership implements ModelOwnership {
     return false;
   }
 
+  notifyCacheDeleted(): void {
+    if (this.leaseType !== 'deletion') return;
+    this.openChannel()?.postMessage({
+      type: 'cache-deleted',
+      from: this.id,
+      modelCache: MODEL_CACHE,
+      runtimeCache: RUNTIME_CACHE,
+    } satisfies OwnershipMessage);
+  }
+
   dispose(): void {
     this.release();
     this.channel?.close();
@@ -131,15 +165,26 @@ export class LocalAIModelOwnership implements ModelOwnership {
     }
     this.channel.onmessage = (event: MessageEvent<OwnershipMessage>) => {
       const message = event.data;
-      if (message?.type !== 'release-request' || message.from === this.id) {
+      if (!message || message.from === this.id) {
         return;
       }
-      this.releaseHandler();
-      this.channel?.postMessage({
-        type: 'released',
-        from: this.id,
-        requestId: message.requestId,
-      } satisfies OwnershipMessage);
+      if (message.type === 'cache-deleted') {
+        if (
+          message.modelCache === MODEL_CACHE &&
+          message.runtimeCache === RUNTIME_CACHE
+        ) {
+          this.cacheDeletedHandler();
+        }
+        return;
+      }
+      if (message.type === 'release-request') {
+        this.releaseHandler();
+        this.channel?.postMessage({
+          type: 'released',
+          from: this.id,
+          requestId: message.requestId,
+        } satisfies OwnershipMessage);
+      }
     };
     return this.channel;
   }

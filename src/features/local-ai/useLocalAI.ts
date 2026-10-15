@@ -1,11 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { LocalAIClient, type WorkerPort } from './client';
-import { LocalAIModelOwnership } from './ownership';
+import { LocalAIModelOwnership, type ModelOwnership } from './ownership';
 import { isBusy } from './types';
 
 export interface UseLocalAIOptions {
   // Tests inject a deterministic port instead of spawning a real module worker.
   createWorker?: () => WorkerPort;
+  // tests can provide real cross-client ownership around deterministic workers.
+  createOwnership?: () => ModelOwnership | null;
   // Run the device/cache check once on mount. An inspect fetches the pinned
   // runtime from jsDelivr, probes WebGPU and reads the local model cache. It
   // never contacts Hugging Face model files or requests weights, so callers
@@ -70,6 +72,7 @@ const scheduleUnusedCleanup = (entry: SharedClient): void => {
 const onVisibilityChange = (): void => {
   for (const entry of shared.values()) {
     if (document.hidden) {
+      entry.client.cancelPendingCacheOnlyPrepare();
       if (entry.hiddenGrace !== null) clearTimeout(entry.hiddenGrace);
       entry.hiddenGrace = setTimeout(() => {
         entry.hiddenGrace = null;
@@ -96,7 +99,7 @@ const onVisibilityChange = (): void => {
       !isBusy(state.phase) &&
       state.info?.cached
     ) {
-      entry.client.prepare({ cacheOnly: true });
+      entry.client.prepare({ cacheOnly: true, waitForOwnership: true });
     }
   }
 };
@@ -119,11 +122,17 @@ function installLifecycleListeners(): void {
   lifecycleListenersInstalled = true;
 }
 
-const acquire = (createWorker: () => WorkerPort): SharedClient => {
+const acquire = (
+  createWorker: () => WorkerPort,
+  createOwnership?: () => ModelOwnership | null,
+): SharedClient => {
   const existing = shared.get(createWorker);
   if (existing) return existing;
-  const ownership =
-    createWorker === createModuleWorker ? new LocalAIModelOwnership() : null;
+  const ownership = createOwnership
+    ? createOwnership()
+    : createWorker === createModuleWorker
+      ? new LocalAIModelOwnership()
+      : null;
   const client = new LocalAIClient(createWorker, ownership);
   const entry: SharedClient = {
     createWorker,
@@ -156,11 +165,12 @@ const acquire = (createWorker: () => WorkerPort): SharedClient => {
 
 export function useLocalAI({
   createWorker = createModuleWorker,
+  createOwnership,
   autoInspect = false,
 }: UseLocalAIOptions = {}) {
   // Construction is side-effect free, including under React StrictMode: no
   // worker is spawned until an explicit inspect/prepare call.
-  const [entry] = useState(() => acquire(createWorker));
+  const [entry] = useState(() => acquire(createWorker, createOwnership));
   const { client } = entry;
   const state = useSyncExternalStore(client.subscribe, client.getSnapshot);
 
@@ -173,6 +183,7 @@ export function useLocalAI({
     return () => {
       entry.surfaces -= 1;
       if (entry.surfaces > 0) return;
+      entry.client.cancelPendingCacheOnlyPrepare();
       entry.grace = setTimeout(() => {
         entry.grace = null;
         // Nobody can read an answer that is still streaming, so stop it; a

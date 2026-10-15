@@ -53,7 +53,7 @@ export function useLocalAISetup(
     }
     try {
       await deleteLocalAIDownloads();
-      client.cacheDeleted();
+      client.cacheDeletionSucceeded();
       setNotice(m.removed);
     } catch {
       setNotice(m.errors.storage);

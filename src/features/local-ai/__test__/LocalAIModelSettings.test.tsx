@@ -88,11 +88,41 @@ describe('LocalAIModelSettings', () => {
 
     const workers = setup();
     fireEvent.click(screen.getByTestId('settings-ai-setup'));
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 490_035_255, cached: true },
+    });
     fireEvent.click(screen.getByText('Delete'));
 
     expect(workers[0].terminated).toBe(true);
     expect(await screen.findByText('AI downloads deleted.')).toBeVisible();
     expect(remove.mock.calls.flat()).toEqual([MODEL_CACHE, RUNTIME_CACHE]);
+    expect(screen.getByTestId('settings-ai-setup')).toHaveTextContent(
+      'Download model',
+    );
+  });
+
+  it('retains verified cache state when Cache Storage deletion fails', async () => {
+    vi.stubGlobal('caches', {
+      keys: vi.fn(async () => [MODEL_CACHE]),
+      delete: vi.fn(async () => {
+        throw new Error('private storage failure');
+      }),
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const workers = setup();
+    fireEvent.click(screen.getByTestId('settings-ai-setup'));
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 490_035_255, cached: true },
+    });
+    fireEvent.click(screen.getByText('Delete'));
+
+    expect(await screen.findByText(/browser storage/i)).toBeVisible();
+    expect(screen.getByTestId('settings-ai-setup')).toHaveTextContent(
+      'Load model',
+    );
   });
 
   it('can stop a download it started, like the box can', () => {

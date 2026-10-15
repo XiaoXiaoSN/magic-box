@@ -218,7 +218,7 @@ describe('local AI client ownership', () => {
     expect(client.generate(request())).toBe(false);
     expect(client.count(request())).toBe(false);
 
-    client.cacheDeleted();
+    client.cacheDeletionSucceeded();
     expect(client.getSnapshot().info?.cached).toBe(false);
     lease?.();
     expect(client.prepare()).toBe(true);
@@ -231,9 +231,11 @@ describe('local AI client ownership', () => {
     });
     const ownership: ModelOwnership = {
       setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
       acquire: vi.fn(async () => 'acquired' as const),
       release: vi.fn(),
       acquireForDeletion: vi.fn(() => leasePending),
+      notifyCacheDeleted: vi.fn(),
       dispose: vi.fn(),
     };
     const { client } = setupClient(true, ownership);
@@ -255,9 +257,11 @@ describe('local AI client ownership', () => {
     const workers: FakeWorker[] = [];
     const ownership: ModelOwnership = {
       setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
       acquire: vi.fn(async () => 'acquired' as const),
       release: vi.fn(),
       acquireForDeletion: vi.fn(async () => false),
+      notifyCacheDeleted: vi.fn(),
       dispose: vi.fn(),
     };
     const client = new LocalAIClient(() => {
@@ -274,6 +278,35 @@ describe('local AI client ownership', () => {
 
     await expect(client.acquireDeletionLease()).resolves.toBeNull();
     expect(client.getSnapshot().info).toEqual({ bytes: 500, cached: true });
+  });
+
+  it('keeps an explicit prepare immediate when another tab owns the model', async () => {
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
+      acquire: vi.fn(async () => 'busy' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(async () => false),
+      notifyCacheDeleted: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const { client, workers } = setupClient(false, ownership);
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: true },
+    });
+
+    client.prepare({ cacheOnly: true });
+    await Promise.resolve();
+
+    expect(ownership.acquire).toHaveBeenCalledWith(undefined);
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'busy',
+      loaded: false,
+    });
+    expect(workers[0].commands).toHaveLength(1);
   });
 
   it('terminates an unresponsive generation after the cancel deadline', () => {

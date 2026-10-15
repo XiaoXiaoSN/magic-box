@@ -48,6 +48,11 @@ const TIMEOUTS = {
 
 export type ReleaseReason = 'hidden' | 'unused';
 
+interface PendingOwnership {
+  command: Extract<AICommand, { type: 'prepare' }>;
+  controller: AbortController | null;
+}
+
 // Owns the worker lifecycle and the single-flight state machine. Every
 // transition is driven from the main thread so that a request id AND the worker
 // identity both have to match before an event is accepted — a terminated
@@ -67,6 +72,7 @@ export class LocalAIClient {
   private stopReason: 'user' | 'timeout' | null = null;
   private deletionPending = false;
   private deletionLeaseActive = false;
+  private pendingOwnership: PendingOwnership | null = null;
 
   constructor(
     private readonly createWorker: () => WorkerPort,
@@ -74,6 +80,10 @@ export class LocalAIClient {
   ) {
     ownership?.setReleaseHandler(() => {
       this.release();
+    });
+    ownership?.setCacheDeletedHandler(() => {
+      this.cancelPendingCacheOnlyPrepare();
+      this.forgetCache();
     });
   }
 
@@ -104,7 +114,9 @@ export class LocalAIClient {
     );
   }
 
-  prepare(options: { cacheOnly?: boolean } = {}): boolean {
+  prepare(
+    options: { cacheOnly?: boolean; waitForOwnership?: boolean } = {},
+  ): boolean {
     if (
       this.deletionPending ||
       this.deletionLeaseActive ||
@@ -120,6 +132,8 @@ export class LocalAIClient {
       'loading',
       // Cached files move no bytes, so the whole step is session setup.
       cacheOnly ? TIMEOUTS.init : TIMEOUTS.stall,
+      undefined,
+      options.waitForOwnership ?? false,
     );
   }
 
@@ -175,6 +189,7 @@ export class LocalAIClient {
   async acquireDeletionLease(): Promise<(() => void) | null> {
     if (this.deletionPending || this.deletionLeaseActive) return null;
     this.deletionPending = true;
+    this.cancelPendingCacheOnlyPrepare();
     this.release();
     if (this.ownership && !(await this.ownership.acquireForDeletion())) {
       this.deletionPending = false;
@@ -228,7 +243,24 @@ export class LocalAIClient {
     this.releaseRequests.delete(reason);
   }
 
+  cancelPendingCacheOnlyPrepare(): boolean {
+    const pending = this.pendingOwnership;
+    if (!pending?.controller || !pending.command.cacheOnly) return false;
+    this.abortPendingOwnership();
+    if (this.activeId === pending.command.id) {
+      this.activeId = null;
+      this.clearTimer();
+      this.update({
+        phase: this.state.info ? 'available' : 'idle',
+        error: null,
+        progress: null,
+      });
+    }
+    return true;
+  }
+
   release(): void {
+    this.abortPendingOwnership();
     this.releaseRequests.clear();
     const phase =
       this.state.phase === 'error'
@@ -272,18 +304,32 @@ export class LocalAIClient {
     phase: AIState['phase'],
     timeout: number,
     onTimeout?: () => void,
+    waitForOwnership = false,
   ): boolean {
     this.activeId = command.id;
     this.update({ phase, error: null, progress: null });
     this.arm(timeout, onTimeout);
     if (command.type === 'prepare' && this.ownership) {
+      const pending: PendingOwnership = {
+        command,
+        controller: waitForOwnership ? new AbortController() : null,
+      };
+      this.pendingOwnership = pending;
       void this.ownership
-        .acquire()
+        .acquire(
+          pending.controller
+            ? { wait: true, signal: pending.controller.signal }
+            : undefined,
+        )
         .then((status) => {
-          if (this.activeId !== command.id) {
+          if (
+            this.pendingOwnership !== pending ||
+            this.activeId !== command.id
+          ) {
             if (status === 'acquired') this.ownership?.release();
             return;
           }
+          this.pendingOwnership = null;
           if (status !== 'acquired') {
             this.fail('busy');
             return;
@@ -291,7 +337,13 @@ export class LocalAIClient {
           this.post(command);
         })
         .catch(() => {
-          if (this.activeId === command.id) this.fail('busy');
+          if (
+            this.pendingOwnership === pending &&
+            this.activeId === command.id
+          ) {
+            this.pendingOwnership = null;
+            this.fail('busy');
+          }
         });
       return true;
     }
@@ -439,6 +491,7 @@ export class LocalAIClient {
   }
 
   private terminate(): void {
+    this.abortPendingOwnership();
     this.clearTimer();
     this.activeId = null;
     if (!this.deletionLeaseActive) this.ownership?.release();
@@ -488,8 +541,17 @@ export class LocalAIClient {
     }
   }
 
-  cacheDeleted(): void {
+  cacheDeletionSucceeded(): void {
+    if (!this.deletionLeaseActive) return;
+    this.cancelPendingCacheOnlyPrepare();
     this.forgetCache();
+    this.ownership?.notifyCacheDeleted();
+  }
+
+  private abortPendingOwnership(): void {
+    const pending = this.pendingOwnership;
+    this.pendingOwnership = null;
+    pending?.controller?.abort();
   }
 
   private emit(): void {
