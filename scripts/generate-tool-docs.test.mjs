@@ -1,74 +1,117 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import ts from 'typescript-docs';
-import { optionKeys } from './generate-tool-docs.mjs';
 
-const parse = (text, filename = 'fixture.ts') =>
-  ts.createSourceFile(filename, text, ts.ScriptTarget.Latest, true);
+import {
+  parseSourceManifest,
+  readSourceManifest,
+  renderDocumentation,
+} from './generate-tool-docs.mjs';
 
-test('reads helper aliases, direct options, spreads and both conditional branches', () => {
-  const file = parse(`
-    const KEYS = ['first', 'second'] as const;
-    function run(options) {
-      const operation = options.lighten ? 'lighten' : 'darken';
-      hasOptionKeys(options, ...KEYS, 'alias');
-      extractOptionKeys(options, operation);
-      return options?.uppercase;
-    }
-  `);
-  assert.deepEqual(optionKeys(file), [
-    'alias',
-    'darken',
-    'first',
-    'lighten',
-    'second',
-    'uppercase',
+const root = fileURLToPath(new URL('../', import.meta.url));
+
+test('reads the complete ordered source manifest without loading implementations', () => {
+  const sources = readSourceManifest();
+  assert.equal(sources.length, 93);
+  assert.equal(new Set(sources.map((source) => source.id)).size, 93);
+  assert.deepEqual(
+    sources.slice(0, 4).map((source) => source.id),
+    ['color', 'color-contrast', 'escape-string', 'base64-decode'],
+  );
+  assert.deepEqual(
+    sources.slice(-4).map((source) => source.id),
+    ['coordinates', 'html-entities', 'http-status', 'chmod-calculator'],
+  );
+  assert.equal(
+    sources.find((source) => source.id === 'local-ai').defaultDisabled,
+    false,
+  );
+  assert.equal(
+    sources.find((source) => source.id === 'json-tools').defaultDisabled,
+    true,
+  );
+  assert.deepEqual(sources.find((source) => source.id === 'hash').optionKeys, [
+    'hash',
+    'md5',
+    'sha1',
+    'sha256',
+    'sha384',
+    'sha512',
   ]);
 });
 
-test('collects every algorithm key without treating labels as options', () => {
-  const file = parse(`
-    const FORMATS = [
-      { label: 'One', keys: ['one', '1'] },
-      { label: 'Two', keys: ['two', '2'] },
-    ];
-    const KEYS = FORMATS.flatMap((format) => format.keys);
-    hasOptionKeys(options, ...KEYS);
-    FORMATS.filter((format) => hasOptionKeys(options, ...format.keys));
-  `);
-  assert.deepEqual(optionKeys(file), ['1', '2', 'one', 'two']);
-});
-
-test('collects computed option access in a for-of loop', () => {
-  assert.deepEqual(
-    optionKeys(
-      parse(`
-    const KEYS = ['hmac', 'sha256'];
-    for (const key of KEYS) { const value = options[key]; }
-  `),
-    ),
-    ['hmac', 'sha256'],
-  );
-});
-
-test('resolves imported routing keys and format arrays in the real converter', () => {
-  const filename = fileURLToPath(
-    new URL(
-      '../src/modules/boxSources/DataConverterBoxSource.ts',
-      import.meta.url,
-    ),
-  );
-  const keys = optionKeys(parse(readFileSync(filename, 'utf8'), filename));
-  for (const key of ['json', 'toyaml', 'toyml', 'jsonpointer', 'fromjsonl'])
-    assert.ok(keys.includes(key), key);
-  assert.ok(!keys.includes('JSON'));
-});
-
-test('fails on unresolved option expressions rather than generating incomplete docs', () => {
+test('resolves manifest arrays and rejects unsupported expressions', () => {
+  const fixture = `
+    const KEYS = ['one', 'two'] as const;
+    const definitions = [{
+      id: 'fixture',
+      name: 'Fixture',
+      description: 'fixture source',
+      defaultInput: 'hello',
+      kind: 'Transform',
+      defaultDisabled: true,
+      optionKeys: [...KEYS],
+      load: () => import('./FixtureBoxSource').then((module) => module.default),
+    }];
+    export const sourceManifest = definitions;
+  `;
+  assert.deepEqual(parseSourceManifest(fixture), [
+    {
+      id: 'fixture',
+      name: 'Fixture',
+      description: 'fixture source',
+      defaultInput: 'hello',
+      kind: 'Transform',
+      defaultDisabled: true,
+      optionKeys: ['one', 'two'],
+      file: 'src/modules/boxSources/FixtureBoxSource.ts',
+    },
+  ]);
   assert.throws(
-    () => optionKeys(parse('hasOptionKeys(options, ...getKeys());')),
-    /Unsupported documentation expression/,
+    () =>
+      parseSourceManifest(`
+        const definitions = [{
+          id: 'fixture', name: 'Fixture', description: 'fixture',
+          defaultInput: 'hello', kind: getKind(), optionKeys: [],
+          load: () => import('./FixtureBoxSource'),
+        }];
+        export const sourceManifest = definitions;
+      `),
+    /Unsupported registry expression/,
   );
+});
+
+test('renders stable IDs and the registry metadata into both outputs', () => {
+  const sources = readSourceManifest();
+  const { tools, llms } = renderDocumentation(sources);
+  assert.match(tools, /All 93 registered tools/);
+  assert.equal((tools.match(/^\| `[^`]+` \|/gm) ?? []).length, 93);
+  assert.match(tools, /\| `json-tools` \| \[JSON Tools\]/);
+  assert.match(llms, /^### Local AI \(local-ai\)$/m);
+  assert.match(llms, /Enabled by default on the web: true/);
+  assert.match(llms, /Option keys: ::hash, ::md5, ::sha1/);
+});
+
+test('generated output does not include the hand-maintained README', () => {
+  const readme = readFileSync(`${root}/README.md`, 'utf8');
+  const { tools, llms } = renderDocumentation(readSourceManifest());
+  assert.equal(tools.includes('README.md'), true);
+  assert.equal(llms.includes('README.md'), true);
+  assert.equal(
+    readme.includes('<!-- Generated by scripts/generate-tool-docs.mjs'),
+    false,
+  );
+});
+
+test('drift check leaves the hand-maintained README untouched', () => {
+  const readmePath = `${root}/README.md`;
+  const generatorPath = `${root}/scripts/generate-tool-docs.mjs`;
+  const before = readFileSync(readmePath, 'utf8');
+  execFileSync(process.execPath, [generatorPath, '--check'], {
+    cwd: root,
+    stdio: 'pipe',
+  });
+  assert.equal(readFileSync(readmePath, 'utf8'), before);
 });

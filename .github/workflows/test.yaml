@@ -183,6 +183,31 @@ jobs:
       - name: Run Biome checks
         run: bunx --no-install biome ci src cypress -- *.config.ts scripts/check-bundle-budget.mjs scripts/check-bundle-budget.test.mjs
 
+  docs:
+    name: docs
+    needs: wasm-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: wasm-modules
+          path: .
+
+      - name: Restore WASM packages
+        run: tar -xzf wasm-modules.tar.gz
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - name: Check documentation generator formatting
+        run: bunx --no-install biome ci scripts/generate-tool-docs.mjs scripts/generate-tool-docs.test.mjs
+
+      - name: Check generated documentation
+        run: bun run docs:check
+
   codespell:
     name: codespell
     runs-on: ubuntu-latest

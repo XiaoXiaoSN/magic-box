@@ -40,10 +40,13 @@ Rebuild them when their Rust source changes.
 | `bun run docs:generate` | Regenerate the tool reference and llms.txt |
 | `bun run docs:check` | Run generator tests and check for documentation drift |
 
-The [terminal guide](docs/terminal-ui.md) covers `bun run tui`, compiling with
-`bun run tui:build`, and running the compiled entry with `bun run tui:node`.
-The source `bin` entry is not a standalone Node executable: installed
-dependencies and WASM packages are needed alongside the compiled entry.
+The [terminal guide](docs/terminal-ui.md) covers interactive mode and
+`bun run tui`. The registry has 93 sources in total; 89 headless sources
+without network side effects are included in the TUI. Build a standalone
+`magic-box-tui` binary with `bun run tui:build`, then install it with
+`bun run tui:install -- --bin-dir "$HOME/.local/bin"`. The binary embeds Bun,
+the TUI and both WASM packages, so build it on each target host; runtime proof
+in this repository currently covers macOS.
 
 ## Validation
 
@@ -74,9 +77,9 @@ for the measured artifact and reproduction commands.
 
 ### Updating tools
 
-The runtime registry in `src/modules/boxSources/index.ts` is also the source
-for the interactive `/list` page and generated documentation. After adding a
-source or changing its metadata/options, run:
+The 93-entry `sourceManifest` in `src/modules/boxSources/index.ts` is also the
+source for the interactive `/list` page, TUI source selection and generated
+documentation. After adding a source or changing its metadata/options, run:
 
 ```sh
 bun run docs:generate
@@ -88,9 +91,10 @@ quality CI job checks both outputs on every PR without rewriting them.
 The README stays hand-edited: add useful screenshots or usage tips inside a
 matching `<details>` block, and link to the reference for the full inventory.
 
-The generator reads TypeScript syntax without executing tools, browser
-components, WASM or network requests. Unsupported metadata/option expressions
-fail with a file and expression to handle in `scripts/generate-tool-docs.mjs`.
+The generator reads only the static registry metadata with TypeScript syntax;
+it does not load source implementations or execute browser components, WASM,
+AI or network requests. Unsupported metadata/option expressions fail with the
+expression to handle in `scripts/generate-tool-docs.mjs`.
 Sources that delegate option parsing to a shared helper can expose
 `optionKeys` referencing the same constant, as JSON Tools does.
 

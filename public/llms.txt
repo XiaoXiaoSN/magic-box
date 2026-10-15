@@ -10,19 +10,19 @@
 
 ## Tools
 
-### Color
+### Color (color)
 
 Convert HEX, RGB, and HSL colors; use ::cmyk, ::lighten, ::darken, or ::colormix for more formats and adjustments.
 
 Category: Convert. Enabled by default on the web: true.
-Option keys: ::blend, ::cmyk, ::colormix, ::darken, ::lighten, ::mixcolor.
+Option keys: ::cmyk, ::lighten, ::darken, ::colormix, ::mixcolor, ::blend.
 
 Example (each ::option starts a new line):
 ~~~~text
 #ff6347
 ~~~~
 
-### Color Contrast
+### Color Contrast (color-contrast)
 
 WCAG contrast ratio between two hex colors (space- or newline-separated).
 
@@ -35,7 +35,7 @@ Example (each ::option starts a new line):
 ::contrast
 ~~~~
 
-### Escape String
+### Escape String (escape-string)
 
 Unescape JSON-escaped strings (\") and strip ANSI color codes.
 
@@ -47,19 +47,19 @@ Example (each ::option starts a new line):
 "{\"message\":\"something here\"}"
 ~~~~
 
-### Base64 Decode
+### Base64 Decode (base64-decode)
 
 Decode a Base64 encoded string back into readable text.
 
 Category: Decode. Enabled by default on the web: true.
-Option keys: none.
+Option keys: ::language, ::lang, ::l.
 
 Example (each ::option starts a new line):
 ~~~~text
 SGVsbG8gV29ybGQK
 ~~~~
 
-### Cron Expression
+### Cron Expression (cron-expression)
 
 Translate cron expressions into human-readable schedules.
 
@@ -71,12 +71,12 @@ Example (each ::option starts a new line):
 */5 0 12 * * ?
 ~~~~
 
-### Data Converter
+### Data Converter (data-converter)
 
 Pretty-print and convert between JSON, YAML, TOML and XML.
 
 Category: Format. Enabled by default on the web: true.
-Option keys: ::fromjsonl, ::json, ::jsonl, ::jsonmerge, ::jsonomit, ::jsonpick, ::jsonpointer, ::jsonptr, ::merge, ::ndjson, ::tojson, ::tojsonl, ::toml, ::totoml, ::toxml, ::toyaml, ::toyml, ::xml, ::yaml, ::yml.
+Option keys: ::json, ::tojson, ::yaml, ::yml, ::toyaml, ::toyml, ::toml, ::totoml, ::xml, ::toxml.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -87,12 +87,12 @@ Example (each ::option starts a new line):
 ::toXML
 ~~~~
 
-### JSON Tools
+### JSON Tools (json-tools)
 
 Merge, pick/omit, query (RFC 6901 JSON Pointer) and JSONL-convert JSON. ::jsonmerge (objects separated by a --- line), ::jsonpick=a,b, ::jsonomit=a,b, ::jsonpointer=/a/0, ::tojsonl, ::fromjsonl, ::jsonl (auto).
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::fromjsonl, ::jsonl, ::jsonmerge, ::jsonomit, ::jsonpick, ::jsonpointer, ::jsonptr, ::merge, ::ndjson, ::tojsonl.
+Option keys: ::jsonmerge, ::jsonpick, ::jsonomit, ::jsonpointer, ::tojsonl, ::fromjsonl, ::jsonl.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -102,24 +102,24 @@ Example (each ::option starts a new line):
 ::jsonmerge
 ~~~~
 
-### Date Calculate
+### Date Calculate (date-calculate)
 
-Add or subtract days from a date, or compute the duration between two dates.
+Add or subtract calendar or time units from a date, or compute the duration between two dates.
 
 Category: Time. Enabled by default on the web: true.
-Option keys: ::relative, ::relativetime, ::timeago, ::timelater.
+Option keys: ::relative, ::timeago, ::timelater, ::relativetime.
 
 Example (each ::option starts a new line):
 ~~~~text
 now + 7d
 ~~~~
 
-### Duration
+### Duration (duration)
 
 Convert numeric seconds/milliseconds or human duration formats (e.g. 10s, 8789sec, 1m48s, 1h3s) to/from human durations and clock formats.
 
 Category: Convert. Enabled by default on the web: true.
-Option keys: ::duration, ::duration2s, ::humanize, ::humantime, ::parseduration.
+Option keys: ::duration, ::humantime, ::parseduration, ::duration2s, ::humanize.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -127,7 +127,7 @@ Example (each ::option starts a new line):
 ::duration
 ~~~~
 
-### Generate QR Code
+### Generate QR Code (generate-qr-code)
 
 Turn any input into a scannable QR code.
 
@@ -141,12 +141,12 @@ https://mb.10oz.tw/list
 
 ~~~~
 
-### Hash
+### Hash (hash)
 
-Compute cryptographic hashes (SHA-1, SHA-256, SHA-512) of the input text via Web Crypto.
+Compute SHA hashes via Web Crypto and MD5 as a legacy checksum.
 
 Category: Hash. Enabled by default on the web: true.
-Option keys: ::hash, ::sha1, ::sha256, ::sha512.
+Option keys: ::hash, ::md5, ::sha1, ::sha256, ::sha384, ::sha512.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -154,19 +154,45 @@ hello world
 ::sha256
 ~~~~
 
-### JWT Decode
+### JWT Decode (jwt-decode)
 
-Decode the header and payload of a JSON Web Token.
+Decode a JWT, render NumericDate claims in the preferred timezone, and optionally verify HS256/HS384/HS512 with ::secret.
 
 Category: Decode. Enabled by default on the web: true.
-Option keys: none.
+Option keys: ::secret.
 
 Example (each ::option starts a new line):
 ~~~~text
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
 ~~~~
 
-### K8s Secret
+### ObjectId (objectid)
+
+Decode a MongoDB ObjectId timestamp, random value, and counter with ::objectid.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::objectid, ::object-id.
+
+Example (each ::option starts a new line):
+~~~~text
+507f1f77bcf86cd799439011
+::objectid
+~~~~
+
+### KSUID (ksuid)
+
+Decode a KSUID timestamp and 128-bit payload with ::ksuid.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::ksuid.
+
+Example (each ::option starts a new line):
+~~~~text
+0ujtsYcgvSTl8PAuAdqWYSMnLOv
+::ksuid
+~~~~
+
+### K8s Secret (k8s-secret)
 
 Base64-decode all values inside a Kubernetes Secret YAML.
 
@@ -185,19 +211,19 @@ data:
   password: cGFzc3dvcmQ=
 ~~~~
 
-### Math Expression
+### Math Expression (math-expression)
 
 Evaluate mathematical expressions with standard operators.
 
 Category: Compute. Enabled by default on the web: true.
-Option keys: none.
+Option keys: ::math.
 
 Example (each ::option starts a new line):
 ~~~~text
 1 + 2 * (3 + 4) / 5
 ~~~~
 
-### My IP
+### My IP (my-ip)
 
 Show your public IP address along with geolocation.
 
@@ -209,9 +235,9 @@ Example (each ::option starts a new line):
 ip
 ~~~~
 
-### Now
+### Now (now)
 
-Display the current time in UTC, the preferred timezone (default UTC+8), and Unix timestamp.
+Display the current time in UTC, the preferred timezone, and Unix timestamp.
 
 Category: Time. Enabled by default on the web: true.
 Option keys: none.
@@ -221,19 +247,19 @@ Example (each ::option starts a new line):
 now
 ~~~~
 
-### Password Generator
+### Password Generator (password-generator)
 
 Generates a secure random password.
 
 Category: Generate. Enabled by default on the web: true.
-Option keys: ::len, ::nolower, ::nonumbers, ::nosymbols, ::noupper, ::pass, ::password, ::pwd.
+Option keys: ::password, ::pwd, ::pass, ::len, ::noupper, ::nolower, ::nonumbers, ::nosymbols.
 
 Example (each ::option starts a new line):
 ~~~~text
 ::password
 ~~~~
 
-### Random Integer
+### Random Integer (random-integer)
 
 Generate a random integer in a range of your choosing.
 
@@ -245,7 +271,7 @@ Example (each ::option starts a new line):
 random 1-6
 ~~~~
 
-### Readable Bytes
+### Readable Bytes (readable-bytes)
 
 Turn a comma-separated byte array into a readable string.
 
@@ -257,12 +283,12 @@ Example (each ::option starts a new line):
 83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115
 ~~~~
 
-### Shorten URL
+### Shorten URL (shorten-url)
 
 Generate a short URL with an optional custom alias.
 
 Category: Transform. Enabled by default on the web: true.
-Option keys: ::shorten, ::surl.
+Option keys: ::surl, ::shorten.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -271,7 +297,7 @@ https://github.com/XiaoXiaoSN/magic-box
 
 ~~~~
 
-### Time Format
+### Time Format (time-format)
 
 Convert an RFC 3339 timestamp into Unix seconds and milliseconds.
 
@@ -283,7 +309,7 @@ Example (each ::option starts a new line):
 2025-06-21T19:34:57.530+08:00
 ~~~~
 
-### URL Decode
+### URL Decode (url-decode)
 
 Decode percent-encoded strings.
 
@@ -295,31 +321,31 @@ Example (each ::option starts a new line):
 https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme
 ~~~~
 
-### UUID
+### UUID (uuid)
 
-Generate a fresh UUID v4, uppercase optional.
+Generate UUID v4 or v7 values, or inspect RFC 9562 version, variant, and embedded timestamps.
 
 Category: Generate. Enabled by default on the web: true.
-Option keys: ::upper, ::uppercase.
+Option keys: ::uppercase, ::upper.
 
 Example (each ::option starts a new line):
 ~~~~text
 uuid
 ~~~~
 
-### Timestamp
+### Timestamp (timestamp)
 
 Convert a Unix timestamp back to a human-readable date.
 
 Category: Time. Enabled by default on the web: true.
-Option keys: none.
+Option keys: ::timestamp, ::unix, ::ts.
 
 Example (each ::option starts a new line):
 ~~~~text
 1735794245
 ~~~~
 
-### Base64 Encode
+### Base64 Encode (base64-encode)
 
 Encode a string to Base64.
 
@@ -331,12 +357,12 @@ Example (each ::option starts a new line):
 Hello World
 ~~~~
 
-### Word Wrap
+### Word Wrap (word-wrap)
 
 Wrap text to a column width at word boundaries. Use ::wrap=N for width N (default 80).
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::wordwrap, ::wrap.
+Option keys: ::wrap, ::wordwrap.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -344,12 +370,12 @@ The quick brown fox jumps over the lazy dog
 ::wrap=20
 ~~~~
 
-### A1Z26
+### A1Z26 (a1z26)
 
 Encode letters to their position numbers (A=1..Z=26) or decode numbers back to letters.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::a1z26, ::a1z26decode, ::a1z26encode.
+Option keys: ::a1z26, ::a1z26encode, ::a1z26decode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -357,7 +383,7 @@ hello
 ::a1z26
 ~~~~
 
-### ASCII Code
+### ASCII Code (ascii-code)
 
 Look up a character or a code point: decimal, hex, octal, binary, and the glyph.
 
@@ -370,12 +396,12 @@ A
 ::ascii
 ~~~~
 
-### Aspect Ratio
+### Aspect Ratio (aspect-ratio)
 
 Simplify width x height into an aspect ratio (e.g. 1920x1080 → 16:9).
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::aspect, ::ratio.
+Option keys: ::ratio, ::aspect.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -383,12 +409,12 @@ Example (each ::option starts a new line):
 ::ratio
 ~~~~
 
-### Base32
+### Base32 (base32)
 
 RFC 4648 Base32 encode/decode. ::base32 to encode, ::base32decode to decode.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::base32, ::base32decode, ::base32encode.
+Option keys: ::base32, ::base32encode, ::base32decode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -396,12 +422,12 @@ hello
 ::base32
 ~~~~
 
-### Base58
+### Base58 (base58)
 
 Encode text to Base58 (Bitcoin alphabet) or decode Base58 back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::base58, ::base58decode, ::base58encode.
+Option keys: ::base58, ::base58encode, ::base58decode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -409,12 +435,12 @@ Hello World!
 ::base58
 ~~~~
 
-### Base62
+### Base62 (base62)
 
 Encode a non-negative integer to Base62, or decode a Base62 string to a number.
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::base62, ::base62decode, ::base62encode.
+Option keys: ::base62, ::base62encode, ::base62decode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -422,12 +448,12 @@ Example (each ::option starts a new line):
 ::base62
 ~~~~
 
-### Base85
+### Base85 (base85)
 
 Encode text to Ascii85 (Base85) or decode Ascii85 back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::ascii85, ::base85, ::base85decode, ::base85encode.
+Option keys: ::base85, ::base85encode, ::base85decode, ::ascii85.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -435,12 +461,12 @@ hello
 ::base85
 ~~~~
 
-### basE91
+### basE91 (base91)
 
 Encode text to basE91 or decode a basE91 string.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::base91, ::base91decode, ::base91encode.
+Option keys: ::base91, ::base91encode, ::base91decode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -448,12 +474,12 @@ hello
 ::base91
 ~~~~
 
-### Text to Binary
+### Text to Binary (text-to-binary)
 
 Convert text to space-separated 8-bit binary (UTF-8), or binary back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::binary, ::binarydecode, ::frombinary, ::tobinary.
+Option keys: ::binary, ::tobinary, ::binarydecode, ::frombinary.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -461,7 +487,7 @@ Hi
 ::binary
 ~~~~
 
-### BMI
+### BMI (bmi)
 
 Compute Body Mass Index. Input: "<weight>kg <height>m" or "<weight>lb <height>in".
 
@@ -474,24 +500,24 @@ Example (each ::option starts a new line):
 ::bmi
 ~~~~
 
-### Dice Roll
+### Dice Roll (dice-roll)
 
 Roll six-sided dice. Specify a count from 1 to 20; defaults to 1. ::roll or ::dice=3.
 
 Category: Generate. Enabled by default on the web: false.
-Option keys: ::dice, ::roll.
+Option keys: ::roll, ::dice.
 
 Example (each ::option starts a new line):
 ~~~~text
 ::roll
 ~~~~
 
-### Easter
+### Easter (easter)
 
 Compute the date of Easter Sunday (Gregorian) and Lunar New Year for a given year.
 
 Category: Calculate. Enabled by default on the web: false.
-Option keys: ::cny, ::easter, ::lny, ::lunarnewyear.
+Option keys: ::easter, ::lny, ::cny, ::lunarnewyear.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -499,7 +525,7 @@ Example (each ::option starts a new line):
 ::easter
 ~~~~
 
-### Fraction
+### Fraction (fraction)
 
 Convert a decimal to a simplified fraction, or a fraction (a/b) to a decimal.
 
@@ -512,7 +538,7 @@ Example (each ::option starts a new line):
 ::fraction
 ~~~~
 
-### Frequency
+### Frequency (frequency)
 
 Count character frequencies in the input, sorted by count.
 
@@ -525,7 +551,7 @@ hello world
 ::freq
 ~~~~
 
-### GCD / LCM
+### GCD / LCM (gcd-lcm)
 
 Compute the GCD and LCM of a list of integers (comma or space separated).
 
@@ -538,12 +564,12 @@ Example (each ::option starts a new line):
 ::gcd
 ~~~~
 
-### Distance
+### Distance (distance)
 
 Great-circle distance between two coordinates. Input: "lat1,lng1 to lat2,lng2".
 
 Category: Calculate. Enabled by default on the web: false.
-Option keys: ::distance, ::haversine.
+Option keys: ::haversine, ::distance.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -551,12 +577,12 @@ Example (each ::option starts a new line):
 ::haversine
 ~~~~
 
-### Line Tools
+### Line Tools (line-tools)
 
-Sort, de-duplicate, or reverse the lines of a text block.
+De-duplicate or reverse the lines of a text block.
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::reverselines, ::sortlines, ::uniquelines.
+Option keys: ::uniquelines, ::reverselines.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -564,12 +590,12 @@ banana
 apple
 cherry
 apple
-::sortlines
+::uniquelines
 ~~~~
 
-### Power Convert
+### Power Convert (power-convert)
 
-Convert power between W, kW, MW, hp, PS, BTU/h.
+Convert power between W, kW, mW, MW, hp, PS, BTU/h.
 
 Category: Convert. Enabled by default on the web: false.
 Option keys: ::power.
@@ -580,7 +606,7 @@ Example (each ::option starts a new line):
 ::power
 ~~~~
 
-### Semver
+### Semver (semver)
 
 Parse and validate a Semantic Version string into its components.
 
@@ -593,12 +619,12 @@ Example (each ::option starts a new line):
 ::semver
 ~~~~
 
-### Snowflake
+### Snowflake (snowflake)
 
 Parse a Snowflake ID (Discord/Twitter) into its timestamp and components.
 
 Category: Analyze. Enabled by default on the web: false.
-Option keys: ::epoch, ::snowflake.
+Option keys: ::snowflake, ::epoch.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -606,12 +632,12 @@ Example (each ::option starts a new line):
 ::snowflake
 ~~~~
 
-### Sort Lines
+### Sort Lines (sort-lines)
 
 Sort the lines of text. ::sortlines (asc), modifiers ::desc, ::numeric, ::unique, ::ci (case-insensitive).
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::caseinsensitive, ::ci, ::desc, ::numeric, ::reverse, ::sort, ::sortlines, ::uniq, ::unique.
+Option keys: ::sortlines, ::sort, ::numeric, ::ci, ::caseinsensitive, ::desc, ::reverse, ::unique, ::uniq.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -621,7 +647,7 @@ cherry
 ::sortlines
 ~~~~
 
-### Soundex
+### Soundex (soundex)
 
 Compute the American Soundex phonetic code for each word in the input.
 
@@ -634,7 +660,7 @@ Robert
 ::soundex
 ~~~~
 
-### Speed Convert
+### Speed Convert (speed-convert)
 
 Convert a speed between m/s, km/h, mph, knots, and ft/s.
 
@@ -647,12 +673,12 @@ Example (each ::option starts a new line):
 ::speed
 ~~~~
 
-### Subnet
+### Subnet (subnet)
 
-IPv4 CIDR subnet calculator. e.g. 192.168.1.10/24 ::subnet.
+Calculate IPv4 CIDR or IP/netmask subnets, split a network, and test membership with ::subnet.
 
 Category: Analyze. Enabled by default on the web: false.
-Option keys: ::cidr, ::subnet.
+Option keys: ::subnet, ::cidr, ::split, ::contains.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -660,7 +686,7 @@ Example (each ::option starts a new line):
 ::subnet
 ~~~~
 
-### Temperature
+### Temperature (temperature)
 
 Convert a temperature between Celsius, Fahrenheit and Kelvin. e.g. "100C ::temp".
 
@@ -673,24 +699,26 @@ Example (each ::option starts a new line):
 ::temp
 ~~~~
 
-### Text Diff
+### Text Diff (text-diff)
 
 Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.
 
 Category: Analyze. Enabled by default on the web: true.
-Option keys: ::diff, ::l, ::lang, ::language, ::linediff, ::textdiff.
+Option keys: ::diff, ::textdiff, ::linediff, ::lang, ::language, ::l.
 
 Example (each ::option starts a new line):
 ~~~~text
 foo
 bar
-::diff
-::lang=yaml
+---
+foo
+baz
+::textdiff
 ~~~~
 
-### Text Reverse
+### Text Reverse (text-reverse)
 
-Reverse the characters of the input string (Unicode code-point aware).
+Reverse the characters of the input string without splitting grapheme clusters.
 
 Category: Transform. Enabled by default on the web: false.
 Option keys: ::reverse, ::reversetext.
@@ -701,7 +729,7 @@ hello 😀
 ::reverse
 ~~~~
 
-### Two's Complement
+### Two's Complement (twos-complement)
 
 Show the two's-complement binary/hex of an integer at a bit width. ::twos=<bits> (default 8).
 
@@ -714,7 +742,7 @@ Example (each ::option starts a new line):
 ::twos=8
 ~~~~
 
-### ULID
+### ULID (ulid)
 
 Generate a ULID (::ulid) or decode the timestamp of an existing ULID (::ulid=<ulid> or ::ulidparse).
 
@@ -726,7 +754,7 @@ Example (each ::option starts a new line):
 ::ulid
 ~~~~
 
-### Unicode Normalize
+### Unicode Normalize (unicode-normalize)
 
 Normalize text to a Unicode form (NFC/NFD/NFKC/NFKD). ::normalize=nfc (default NFC).
 
@@ -739,24 +767,24 @@ café
 ::normalize=nfd
 ~~~~
 
-### Unit Converter
+### Unit Converter (unit-converter)
 
 Convert units automatically for length, area, volume, mass, temperature, speed, pressure, power, energy, data size, data rate, and time (e.g. 100 km, 50 MB to GB, 37 C).
 
 Category: Convert. Enabled by default on the web: true.
-Option keys: ::convert, ::unit.
+Option keys: ::unit, ::convert.
 
 Example (each ::option starts a new line):
 ~~~~text
 100 km to mi
 ~~~~
 
-### Week Number
+### Week Number (week-number)
 
 Compute the ISO 8601 week number (and weekday, day-of-year) for a date.
 
 Category: Analyze. Enabled by default on the web: false.
-Option keys: ::isoweek, ::weeknum.
+Option keys: ::weeknum, ::isoweek.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -764,7 +792,7 @@ Example (each ::option starts a new line):
 ::weeknum
 ~~~~
 
-### Whitespace Clean
+### Whitespace Clean (whitespace-clean)
 
 Trim each line, collapse internal whitespace runs, and remove blank lines.
 
@@ -780,7 +808,7 @@ Example (each ::option starts a new line):
 ::clean
 ~~~~
 
-### Words to Number
+### Words to Number (words-to-number)
 
 Parse English number words into an integer (e.g. "one thousand two hundred" → 1200).
 
@@ -793,12 +821,12 @@ one million two hundred thirty-four thousand
 ::wordstonum
 ~~~~
 
-### Zodiac Sign
+### Zodiac Sign (zodiac-sign)
 
 Determine the Western zodiac sign for a date (MM-DD or YYYY-MM-DD).
 
 Category: Calculate. Enabled by default on the web: false.
-Option keys: ::starsign, ::zodiac.
+Option keys: ::zodiac, ::starsign.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -806,7 +834,7 @@ Example (each ::option starts a new line):
 ::zodiac
 ~~~~
 
-### Word Count
+### Word Count (word-count)
 
 Count the lines, words and characters in any input.
 
@@ -820,12 +848,12 @@ i'mdifficult
 
 ~~~~
 
-### Markdown TOC
+### Markdown TOC (markdown-toc)
 
 Generate a table of contents (nested bullet list with anchor links) from Markdown headings.
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::tableofcontents, ::toc.
+Option keys: ::toc, ::tableofcontents.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -836,12 +864,12 @@ Example (each ::option starts a new line):
 ::toc
 ~~~~
 
-### Punycode
+### Punycode (punycode)
 
 Convert an internationalized domain name to/from its Punycode (xn--) ASCII form.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::idn, ::idndecode, ::punycode, ::punycodedecode, ::punycodeencode.
+Option keys: ::punycode, ::punycodeencode, ::idn, ::punycodedecode, ::idndecode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -849,12 +877,12 @@ münchen.de
 ::punycode
 ~~~~
 
-### Radix Convert
+### Radix Convert (radix-convert)
 
 Convert an integer between arbitrary bases (2-36). e.g. ::radix=16:2 for hex→binary.
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::baseconvert, ::radix.
+Option keys: ::radix, ::baseconvert.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -862,7 +890,7 @@ ff
 ::radix=16:2
 ~~~~
 
-### Query String
+### Query String (query-string)
 
 Convert a URL query string to JSON, or a flat JSON object to a query string.
 
@@ -875,7 +903,7 @@ a=1&b=2&b=3
 ::qs
 ~~~~
 
-### Hex Dump
+### Hex Dump (hex-dump)
 
 Produce a canonical hex + ASCII dump of the input (like hexdump -C).
 
@@ -888,12 +916,12 @@ Hello, World!
 ::hexdump
 ~~~~
 
-### Text to Hex
+### Text to Hex (text-to-hex)
 
 Convert text to a hex string (UTF-8) or decode a hex string back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::fromhex, ::hex, ::hexdecode, ::tohex.
+Option keys: ::hex, ::tohex, ::hexdecode, ::fromhex.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -901,12 +929,12 @@ Hi
 ::hex
 ~~~~
 
-### URL Parse
+### URL Parse (url-parse)
 
 Break a URL into protocol, host, port, path, query, and hash.
 
 Category: Analyze. Enabled by default on the web: false.
-Option keys: ::parseurl, ::urlparse.
+Option keys: ::urlparse, ::parseurl.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -914,7 +942,7 @@ https://user:pass@example.com:8080/a/b?x=1&y=2#frag
 ::urlparse
 ~~~~
 
-### Readable Text Color
+### Readable Text Color (readable-text-color)
 
 Given a background hex color, pick the readable foreground (black or white) and the WCAG contrast.
 
@@ -927,12 +955,12 @@ Example (each ::option starts a new line):
 ::oncolor
 ~~~~
 
-### Credit Card Info
+### Credit Card Info (credit-card-info)
 
 Detect the card brand from a number and check Luhn validity (masks the number).
 
 Category: Validate. Enabled by default on the web: false.
-Option keys: ::cardinfo, ::cardtype, ::creditcard.
+Option keys: ::cardtype, ::creditcard, ::cardinfo.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -940,7 +968,7 @@ Example (each ::option starts a new line):
 ::cardinfo
 ~~~~
 
-### Glob to Regex
+### Glob to Regex (glob-to-regex)
 
 Convert a shell glob pattern (*, ?, [...], **) into an anchored regular expression.
 
@@ -953,12 +981,12 @@ src/**/*.ts
 ::glob2regex
 ~~~~
 
-### HSV
+### HSV (hsv)
 
 Convert a color between hex/RGB and HSV (HSB).
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::hsb, ::hsv.
+Option keys: ::hsv, ::hsb.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -966,7 +994,7 @@ Example (each ::option starts a new line):
 ::hsv
 ~~~~
 
-### IPv6
+### IPv6 (ipv6)
 
 Expand and compress an IPv6 address (RFC 5952).
 
@@ -979,12 +1007,12 @@ Example (each ::option starts a new line):
 ::ipv6
 ~~~~
 
-### IEEE 754
+### IEEE 754 (ieee-754)
 
 Show the IEEE-754 (double + single) bit representation of a number, or decode a hex pattern back to a float.
 
 Category: Analyze. Enabled by default on the web: false.
-Option keys: ::floatbits, ::ieee754.
+Option keys: ::ieee754, ::floatbits.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -992,7 +1020,7 @@ Example (each ::option starts a new line):
 ::ieee754
 ~~~~
 
-### MAC Address
+### MAC Address (mac-address)
 
 Normalize a MAC address and show its formats, OUI prefix, and flags.
 
@@ -1005,12 +1033,12 @@ Example (each ::option starts a new line):
 ::mac
 ~~~~
 
-### Morse Code
+### Morse Code (morse-code)
 
 Encode text to Morse code or decode Morse code back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::morse, ::morsedecode, ::morseencode.
+Option keys: ::morse, ::morseencode, ::morsedecode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -1018,7 +1046,7 @@ SOS
 ::morse
 ~~~~
 
-### Port Lookup
+### Port Lookup (port-lookup)
 
 Look up a well-known port number or service name. ::port
 
@@ -1031,12 +1059,12 @@ Example (each ::option starts a new line):
 ::port
 ~~~~
 
-### Unicode Escape
+### Unicode Escape (unicode-escape)
 
 Escape text to \uXXXX sequences, or unescape \uXXXX / \u{...} back to text.
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::uescape, ::unicodeescape, ::unicodeunescape, ::uunescape.
+Option keys: ::unicodeescape, ::uescape, ::unicodeunescape, ::uunescape.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -1044,7 +1072,7 @@ héllo 😀
 ::unicodeescape
 ~~~~
 
-### HMAC
+### HMAC (hmac)
 
 Compute HMAC of the input with a key: ::hmac=<key>. Select algorithms with ::sha256, ::sha1, ::sha512 (default: all); each also accepts the key, e.g. ::sha512=<key>.
 
@@ -1057,12 +1085,12 @@ The quick brown fox jumps over the lazy dog
 ::hmac=key
 ~~~~
 
-### PBKDF2
+### PBKDF2 (pbkdf2)
 
 Derive a key from the input password: ::pbkdf2=<salt>. Options ::iterations=<n>, ::dklen=<bytes>, and the PRF via ::prf=sha256|sha1|sha512 or bare ::sha256/::sha1/::sha512 (default HMAC-SHA256).
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::dklen, ::iterations, ::pbkdf2, ::prf, ::sha1, ::sha256, ::sha512.
+Option keys: ::pbkdf2, ::prf, ::iterations, ::dklen, ::sha1, ::sha256, ::sha512.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -1070,7 +1098,7 @@ password
 ::pbkdf2=salt
 ~~~~
 
-### Local AI
+### Local AI (local-ai)
 
 Run a small language model entirely in this browser with WebGPU: ask, translate, rewrite or summarize. Nothing is downloaded or generated until you ask for it, and prompts never leave the device. ::ai
 
@@ -1082,7 +1110,7 @@ Example (each ::option starts a new line):
 ::ai
 ~~~~
 
-### CRC-32
+### CRC-32 (crc-32)
 
 Compute the CRC-32 (IEEE 802.3) checksum of the input text.
 
@@ -1095,12 +1123,12 @@ hello
 ::crc32
 ~~~~
 
-### Crockford Base32
+### Crockford Base32 (crockford-base32)
 
 Encode text to Crockford's Base32 or decode it back (case-insensitive, no padding).
 
 Category: Encode. Enabled by default on the web: false.
-Option keys: ::crockford, ::crockforddecode, ::crockfordencode.
+Option keys: ::crockford, ::crockfordencode, ::crockforddecode.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -1108,25 +1136,25 @@ hello
 ::crockford
 ~~~~
 
-### Case Converter
+### Case Converter (case-converter)
 
-Convert text between camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, dot.case, Title Case, Sentence case, lowercase and UPPERCASE. ::case lists every format; ::case=<format> or a single-format option (::camel, ::snake, ::kebab, ::upper, ::lower, …) shows just that one.
+Convert each line between camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase and UPPERCASE. Use ::case to list formats or ::case=<format> to select one.
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::camel, ::camelcase, ::case, ::constant, ::constantcase, ::dot, ::dotcase, ::kebab, ::kebabcase, ::lower, ::lowercase, ::pascal, ::pascalcase, ::sentence, ::sentencecase, ::snake, ::snakecase, ::title, ::titlecase, ::upper, ::uppercase.
+Option keys: ::case, ::camel, ::camelcase, ::pascal, ::pascalcase, ::snake, ::snakecase, ::kebab, ::kebabcase, ::constant, ::constantcase, ::dot, ::dotcase, ::path, ::pathcase, ::title, ::titlecase, ::sentence, ::sentencecase, ::lower, ::lowercase, ::upper, ::uppercase.
 
 Example (each ::option starts a new line):
 ~~~~text
-hello world foo bar
+XMLHttpRequest userID v2ApiKey
 ::case
 ~~~~
 
-### Certificate Decode
+### Certificate Decode (certificate-decode)
 
 Decode PEM X.509 certificates and CA bundles locally. ::cert
 
 Category: Decode. Enabled by default on the web: true.
-Option keys: ::ca, ::cert, ::certificate.
+Option keys: ::cert, ::certificate, ::ca.
 
 Example (each ::option starts a new line):
 ~~~~text
@@ -1134,7 +1162,7 @@ Paste a PEM certificate here
 ::cert
 ~~~~
 
-### Cheat Sheet
+### Cheat Sheet (cheat-sheet)
 
 Offline command examples. Enter curl, cheat:git, or ::cheat=jq.
 
@@ -1146,15 +1174,54 @@ Example (each ::option starts a new line):
 curl
 ~~~~
 
-### Coordinates
+### Coordinates (coordinates)
 
 Convert a coordinate between decimal degrees, DDM, DMS, Plus Code, Geohash, UTM, MGRS and geo URI. ::coord shows every format; ::dms, ::pluscode, ::geohash, ::utm, … show just that one. Accepts lat/lng in any of the angle formats, a full Plus Code or a Geohash.
 
 Category: Convert. Enabled by default on the web: false.
-Option keys: ::coord, ::coords, ::dd, ::ddm, ::decimal, ::dms, ::geo, ::geohash, ::geouri, ::latlng, ::latlon, ::mgrs, ::olc, ::pluscode, ::utm.
+Option keys: ::coord, ::coords, ::latlng, ::latlon, ::dd, ::decimal, ::ddm, ::dms, ::pluscode, ::olc, ::geohash, ::utm, ::mgrs, ::geo, ::geouri.
 
 Example (each ::option starts a new line):
 ~~~~text
 40.446195, -79.948862
 ::coord
+~~~~
+
+### HTML Entities (html-entities)
+
+Decode HTML5 character references without parsing markup, or encode text with ::htmlencode (add =all to encode non-ASCII characters).
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::htmlencode, ::htmldecode.
+
+Example (each ::option starts a new line):
+~~~~text
+&amp;lt; &#x1F600;
+::htmldecode
+~~~~
+
+### HTTP Status (http-status)
+
+Look up an IANA-assigned HTTP status by code or exact reason phrase with ::http, http 502, or status 404.
+
+Category: Decode. Enabled by default on the web: false.
+Option keys: ::http.
+
+Example (each ::option starts a new line):
+~~~~text
+404
+::http
+~~~~
+
+### chmod Calculator (chmod-calculator)
+
+Convert absolute octal, rwx symbolic, and u/g/o permission modes with ::chmod. Use ::umask=022 for standard new-file and directory permissions.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::chmod, ::umask.
+
+Example (each ::option starts a new line):
+~~~~text
+4755
+::chmod
 ~~~~

@@ -1,244 +1,171 @@
-// Read the registry as TypeScript syntax: documentation generation must not
-// initialize browser components, WASM, workers, or network-backed sources.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-// TypeScript 7's default entry has no parser API. Keep the stable 5.x parser
-// isolated from the application's TypeScript compiler.
+
+// Parse the static registry with the pinned TypeScript 5.x API. The generator
+// never imports a source implementation, so documentation stays offline and
+// cannot initialize browser, WASM, worker, AI, or network code.
 import ts from 'typescript-docs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const modules = new Map();
-const helpers = new Set(['hasOptionKeys', 'extractOptionKeys']);
+const registryPath = path.join(root, 'src/modules/boxSources/index.ts');
 
-function readModule(filename) {
-  if (modules.has(filename)) return modules.get(filename);
-  const file = ts.createSourceFile(
-    filename,
-    readFileSync(filename, 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
+function propertyName(property) {
+  return property.name?.text ?? property.name?.getText();
+}
+
+function declarations(file) {
+  return new Map(
+    file.statements.flatMap((statement) => {
+      if (!ts.isVariableStatement(statement)) return [];
+      return statement.declarationList.declarations.map((declaration) => [
+        declaration.name.getText(file),
+        declaration.initializer,
+      ]);
+    }),
   );
-  modules.set(filename, file);
-  return file;
 }
 
-function importedFile(node) {
-  const specifier = node.moduleSpecifier.text;
-  const filename = specifier.startsWith('@')
-    ? path.join(root, 'src', specifier.slice(1))
-    : path.resolve(path.dirname(node.getSourceFile().fileName), specifier);
-  return readModule(`${filename}.ts`);
-}
-
-function declaration(file, name) {
-  for (const statement of file.statements) {
-    if (ts.isVariableStatement(statement)) {
-      const item = statement.declarationList.declarations.find(
-        (d) => d.name.getText(file) === name,
-      );
-      if (item) return item.initializer;
-    }
-    if (ts.isImportDeclaration(statement) && statement.importClause) {
-      const clause = statement.importClause;
-      if (clause.name?.text === name) {
-        const imported = importedFile(statement);
-        return imported.statements.find(ts.isExportAssignment)?.expression;
-      }
-      const binding = clause.namedBindings;
-      if (binding && ts.isNamedImports(binding)) {
-        const item = binding.elements.find((e) => e.name.text === name);
-        if (item)
-          return declaration(
-            importedFile(statement),
-            item.propertyName?.text ?? name,
-          );
-      }
-    }
-  }
-  throw new Error(`Cannot resolve ${name} in ${file.fileName}`);
-}
-
-// Resolve only the data expressions used by source metadata and option keys.
-// Unsupported syntax fails generation instead of silently omitting a tool/key.
-function values(node, seen = new Set()) {
-  if (!node || seen.has(node))
-    throw new Error(`Unresolved/cyclic expression: ${node?.getText()}`);
-  const next = new Set(seen).add(node);
-  const resolve = (child) => values(child, next);
-  if (ts.isStringLiteralLike(node)) return [node.text];
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return [true];
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return [false];
+function evaluateStatic(node, bindings, seen = new Set()) {
+  if (!node) throw new Error('Missing static registry expression');
+  if (ts.isStringLiteralLike(node)) return node.text;
+  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
+  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
   if (
     ts.isAsExpression(node) ||
     ts.isParenthesizedExpression(node) ||
     ts.isSatisfiesExpression(node)
-  )
-    return resolve(node.expression);
-  if (ts.isArrayLiteralExpression(node)) return node.elements.flatMap(resolve);
-  if (ts.isSpreadElement(node)) return resolve(node.expression);
-  if (ts.isObjectLiteralExpression(node)) return [node];
-  if (
-    ts.isBinaryExpression(node) &&
-    node.operatorToken.kind === ts.SyntaxKind.PlusToken
   ) {
-    const left = resolve(node.left),
-      right = resolve(node.right);
-    if (left.length === 1 && right.length === 1) return [left[0] + right[0]];
-  }
-  if (ts.isConditionalExpression(node))
-    return [...resolve(node.whenTrue), ...resolve(node.whenFalse)];
-  if (ts.isTemplateExpression(node)) {
-    return [
-      node.head.text +
-        node.templateSpans
-          .map((span) => {
-            const value = resolve(span.expression);
-            if (value.length !== 1) throw new Error('Ambiguous template');
-            return value[0] + span.literal.text;
-          })
-          .join(''),
-    ];
+    return evaluateStatic(node.expression, bindings, seen);
   }
   if (ts.isIdentifier(node)) {
-    // Callback parameters and for-of bindings represent every member of the
-    // data array, not just the first algorithm/format.
-    for (let parent = node.parent; parent; parent = parent.parent) {
-      if (
-        ts.isArrowFunction(parent) &&
-        parent.parameters.some((p) => p.name.getText() === node.text)
-      ) {
-        const call = parent.parent;
-        if (
-          ts.isCallExpression(call) &&
-          ts.isPropertyAccessExpression(call.expression)
-        )
-          return resolve(call.expression.expression);
-      }
-      if (
-        ts.isForOfStatement(parent) &&
-        parent.initializer.getText().replace(/^(const|let)\s+/, '') ===
-          node.text
-      )
-        return resolve(parent.expression);
-      if (ts.isBlock(parent)) {
-        for (const statement of parent.statements) {
-          if (!ts.isVariableStatement(statement)) continue;
-          const binding = statement.declarationList.declarations.find(
-            (d) => d.name.getText() === node.text,
-          );
-          if (binding) return resolve(binding.initializer);
-        }
-      }
-    }
-    return resolve(declaration(node.getSourceFile(), node.text));
+    if (seen.has(node.text))
+      throw new Error(`Cyclic registry expression: ${node.text}`);
+    const expression = bindings.get(node.text);
+    if (!expression)
+      throw new Error(`Unsupported registry identifier: ${node.text}`);
+    return evaluateStatic(expression, bindings, new Set(seen).add(node.text));
   }
-  if (ts.isPropertyAccessExpression(node)) {
-    return resolve(node.expression).flatMap((object) => {
-      const field = object.properties?.find(
-        (p) => p.name?.getText().replace(/['"]/g, '') === node.name.text,
-      );
-      if (!field || !ts.isPropertyAssignment(field))
-        throw new Error(`Cannot resolve ${node.getText()}`);
-      return resolve(field.initializer);
-    });
+  if (ts.isSpreadElement(node))
+    return evaluateStatic(node.expression, bindings, seen);
+  if (ts.isArrayLiteralExpression(node))
+    return node.elements.flatMap((element) =>
+      evaluateStatic(element, bindings, seen),
+    );
+  if (ts.isObjectLiteralExpression(node)) {
+    const metadataFields = new Set([
+      'id',
+      'name',
+      'description',
+      'defaultInput',
+      'kind',
+      'defaultDisabled',
+      'optionKeys',
+      'load',
+    ]);
+    return Object.fromEntries(
+      node.properties.map((property) => {
+        if (!ts.isPropertyAssignment(property))
+          throw new Error(
+            `Unsupported registry property: ${property.getText()}`,
+          );
+        const name = propertyName(property);
+        if (!name)
+          throw new Error(
+            `Missing registry property name: ${property.getText()}`,
+          );
+        if (!metadataFields.has(name)) return [name, undefined];
+        if (name === 'load') return [name, property.initializer.getText()];
+        return [name, evaluateStatic(property.initializer, bindings, seen)];
+      }),
+    );
+  }
+  throw new Error(`Unsupported registry expression: ${node.getText()}`);
+}
+
+function loadModulePath(source) {
+  const match = source.load?.match(/import\(\s*['"](\.\/[^'"]+)['"]\s*\)/);
+  if (!match)
+    throw new Error(`Missing source loader for ${source.id ?? '<unknown>'}`);
+  return `src/modules/boxSources/${match[1].slice(2)}.ts`;
+}
+
+function validateSource(source, index) {
+  const required = [
+    'id',
+    'name',
+    'description',
+    'defaultInput',
+    'kind',
+    'optionKeys',
+  ];
+  for (const field of required) {
+    if (!(field in source))
+      throw new Error(`Source ${index + 1} is missing ${field}`);
   }
   if (
-    ts.isCallExpression(node) &&
-    ts.isPropertyAccessExpression(node.expression)
-  ) {
-    const method = node.expression.name.text;
-    if (node.expression.getText() === 'Object.values') {
-      return resolve(node.arguments[0]).flatMap((object) =>
-        object.properties.flatMap((p) => resolve(p.initializer)),
-      );
-    }
-    if (method === 'flat') return resolve(node.expression.expression);
-    if (method === 'flatMap' || method === 'map') {
-      const callback = node.arguments[0];
-      if (ts.isArrowFunction(callback)) return resolve(callback.body);
-    }
-  }
-  throw new Error(
-    `Unsupported documentation expression in ${node.getSourceFile().fileName}: ${node.getText()}`,
-  );
-}
-
-function property(object, name, fallback) {
-  const field = object.properties.find((p) => p.name?.getText() === name);
-  if (!field) {
-    if (fallback !== undefined) return fallback;
-    throw new Error(`Missing source metadata: ${name}`);
-  }
-  const result = values(field.initializer);
-  if (result.length !== 1)
-    throw new Error(`Ambiguous source metadata: ${name}`);
-  return result[0];
-}
-
-export function optionKeys(file) {
-  const keys = new Set();
-  const add = (node) => {
-    for (const key of values(node)) {
-      if (typeof key !== 'string')
-        throw new Error(`Non-string option key in ${file.fileName}`);
-      keys.add(key);
-    }
+    typeof source.id !== 'string' ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(source.id)
+  )
+    throw new Error(`Invalid source id at position ${index + 1}: ${source.id}`);
+  if (typeof source.name !== 'string' || typeof source.description !== 'string')
+    throw new Error(`Invalid source labels for ${source.id}`);
+  if (
+    typeof source.defaultInput !== 'string' ||
+    typeof source.kind !== 'string'
+  )
+    throw new Error(`Invalid source defaults for ${source.id}`);
+  if (
+    !Array.isArray(source.optionKeys) ||
+    source.optionKeys.some((key) => typeof key !== 'string')
+  )
+    throw new Error(`Invalid option keys for ${source.id}`);
+  return {
+    id: source.id,
+    name: source.name,
+    description: source.description,
+    defaultInput: source.defaultInput,
+    kind: source.kind,
+    defaultDisabled: source.defaultDisabled === true,
+    optionKeys: source.optionKeys,
+    file: loadModulePath(source),
   };
-  const visit = (node) => {
-    if (ts.isCallExpression(node) && helpers.has(node.expression.getText()))
-      node.arguments.slice(1).forEach(add);
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      node.expression.getText() === 'options'
-    )
-      keys.add(node.name.text);
-    if (
-      ts.isElementAccessExpression(node) &&
-      node.expression.getText() === 'options'
-    )
-      add(node.argumentExpression);
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-  return [...keys].sort();
 }
 
-function main() {
-  const registry = readModule(
-    path.join(root, 'src/modules/boxSources/index.ts'),
+export function parseSourceManifest(text, filename = registryPath) {
+  const file = ts.createSourceFile(
+    filename,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
   );
-  const sources = values(declaration(registry, 'boxSources')).map((source) => ({
-    name: property(source, 'name'),
-    description: property(source, 'description'),
-    defaultInput: property(source, 'defaultInput'),
-    kind: property(source, 'kind'),
-    defaultDisabled: property(source, 'defaultDisabled', false),
-    optionKeys: [
-      ...new Set([
-        ...optionKeys(source.getSourceFile()),
-        ...source.properties
-          .filter((p) => p.name?.getText() === 'optionKeys')
-          .flatMap((p) => values(p.initializer)),
-      ]),
-    ].sort(),
-    file: path
-      .relative(root, source.getSourceFile().fileName)
-      .split(path.sep)
-      .join('/'),
-  }));
-  if (new Set(sources.map((s) => s.name)).size !== sources.length)
-    throw new Error('Duplicate source names');
+  const bindings = declarations(file);
+  const manifest = bindings.get('sourceManifest');
+  if (!manifest) throw new Error('Cannot find sourceManifest declaration');
+  const sources = evaluateStatic(manifest, bindings).map(validateSource);
+  const ids = new Set(sources.map((source) => source.id));
+  if (ids.size !== sources.length) throw new Error('Duplicate source ids');
+  return sources;
+}
 
-  const html = (value) =>
-    String(value)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('|', '&#124;')
-      .replaceAll('`', '&#96;');
-  const code = (value) =>
-    `<code>${html(value).replaceAll('\n', '<br>')}</code>`;
+export function readSourceManifest() {
+  return parseSourceManifest(readFileSync(registryPath, 'utf8'));
+}
+
+function html(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('|', '&#124;')
+    .replaceAll('`', '&#96;');
+}
+
+function code(value) {
+  return `<code>${html(value).replaceAll('\n', '<br>')}</code>`;
+}
+
+export function renderDocumentation(sources) {
   const table = [
     '# Tool reference',
     '',
@@ -246,15 +173,15 @@ function main() {
     '',
     '<!-- Generated by scripts/generate-tool-docs.mjs; do not edit by hand. -->',
     '',
-    `All ${sources.length} registered tools. Each line break in an example is significant; put each \`::option\` on its own line. Enable tools marked **off** in Settings before using them on the web.`,
+    `All ${sources.length} registered tools, in the same order as the runtime registry. Each line break in an example is significant; put each \`::option\` on its own line. Enable tools marked **off** in Settings before using them on the web.`,
     '',
-    'Option keys include aliases and routing controls; a dash means the source matches input without a tool-specific option. See the description and detailed guides for accepted values.',
+    'Option keys include aliases and routing controls; a dash means the source matches input without a tool-specific option. See the README and focused guides for usage details.',
     '',
-    '| Tool | Kind | Default | Description | Example input | Option keys |',
-    '| --- | --- | --- | --- | --- | --- |',
+    '| ID | Tool | Kind | Default | Description | Example input | Option keys |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
     ...sources.map(
-      (s) =>
-        `| [${html(s.name)}](../${s.file}) | ${html(s.kind)} | ${s.defaultDisabled ? '**off**' : 'on'} | ${html(s.description)} | ${code(s.defaultInput)} | ${s.optionKeys.map((key) => code(`::${key}`)).join(', ') || '—'} |`,
+      (source) =>
+        `| \`${source.id}\` | [${html(source.name)}](../${source.file}) | ${html(source.kind)} | ${source.defaultDisabled ? '**off**' : 'on'} | ${html(source.description)} | ${code(source.defaultInput)} | ${source.optionKeys.map((key) => code(`::${key}`)).join(', ') || '—'} |`,
     ),
   ].join('\n');
 
@@ -271,39 +198,46 @@ function main() {
     '',
     '## Tools',
     '',
-    ...sources.flatMap((s) => [
-      `### ${s.name}`,
+    ...sources.flatMap((source) => [
+      `### ${source.name} (${source.id})`,
       '',
-      s.description,
+      source.description,
       '',
-      `Category: ${s.kind}. Enabled by default on the web: ${!s.defaultDisabled}.`,
-      `Option keys: ${s.optionKeys.map((key) => `::${key}`).join(', ') || 'none'}.`,
+      `Category: ${source.kind}. Enabled by default on the web: ${!source.defaultDisabled}.`,
+      `Option keys: ${source.optionKeys.map((key) => `::${key}`).join(', ') || 'none'}.`,
       '',
       'Example (each ::option starts a new line):',
       '~~~~text',
-      s.defaultInput,
+      source.defaultInput,
       '~~~~',
       '',
     ]),
   ].join('\n');
 
+  return { tools: `${table}\n`, llms };
+}
+
+function main() {
+  const sources = readSourceManifest();
+  const { tools, llms } = renderDocumentation(sources);
   let stale = false;
   for (const [filename, content] of [
-    ['docs/tools.md', `${table}\n`],
+    ['docs/tools.md', tools],
     ['public/llms.txt', llms],
   ]) {
+    const outputPath = path.join(root, filename);
     if (process.argv.includes('--check')) {
-      let current;
+      let current = null;
       try {
-        current = readFileSync(path.join(root, filename), 'utf8');
+        current = readFileSync(outputPath, 'utf8');
       } catch {
-        /* missing output is drift */
+        // missing output is drift
       }
       if (current !== content) {
         console.error(`${filename} is stale; run bun run docs:generate`);
         stale = true;
       }
-    } else writeFileSync(path.join(root, filename), content);
+    } else writeFileSync(outputPath, content);
   }
   if (stale) process.exitCode = 1;
   else

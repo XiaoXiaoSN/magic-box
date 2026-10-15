@@ -214,12 +214,16 @@ controls.
 Supported syntax (highlights):
 
 - arithmetic `+ - * / % ^`, factorial `5!`, function calls `sin(PI/2)`
+- comparisons, boolean literals, short-circuiting `&&`/`||`, and `!true`
+- implicit multiplication (`2 pi`, `2(3 + 4)`) and percentages (`10% of 200`)
 - variables and statement chaining: `x = 5; y = 7; x*y + x^2`
 - user-defined functions: `sq(x) = x^2; sq(11) + sq(13)`
-- BigInt literals via `n` suffix: `9007199254740993n + 1n`
+- BigInt literals via `n` suffix or automatic promotion of large integers:
+  `9007199254740993 + 1`
 - fractions: `frac(1, 3) + frac(1, 4)` → `7/12`
 - complex numbers: `(2 + 3*i) * (2 - 3*i)` → `13`
-- units: `1 km + 500 m to m` → `1500 m` (length / mass / time SI)
+- units: `(1 km + 500 m) to m` → `1500 m` (length, mass, time, temperature,
+  data and derived SI units)
 
 See the [math-box README](wasmModules/math-box/README.md) for the
 implemented syntax, numeric behavior and limits.
@@ -356,15 +360,31 @@ six-sided die, or `::roll=3` for three dice (up to 20).
 
 ## Terminal UI (TUI) 🖥️
 
-Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup):
+Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup).
+The registry contains 93 sources; 89 headless sources without network side
+effects are available in the TUI. The four browser-only or network-backed
+sources are Generate QR Code, My IP, Shorten URL and Local AI.
 
 ```bash
 bun run tui "uuid"
 printf 'uuid\n::uppercase' | bun run tui
 bun run tui --json '1 + 2 * 3'
+bun run tui --list
+bun run tui --list --json
 ```
 
-See the [terminal guide](docs/terminal-ui.md) for interactive mode, Node usage,
+Build a standalone `magic-box-tui` binary for the current host, then install it
+where it is on your `PATH`:
+
+```bash
+bun run tui:build
+bun run tui:install -- --bin-dir "$HOME/.local/bin"
+magic-box-tui --json '1 + 2 * 3'
+```
+
+The standalone binary embeds the Bun runtime, the TUI and the WASM packages.
+Build it on each target host; the repository currently has runtime proof on
+macOS only. See the [terminal guide](docs/terminal-ui.md) for interactive mode,
 preferences and supported tools.
 
 ## Development ⛑️
