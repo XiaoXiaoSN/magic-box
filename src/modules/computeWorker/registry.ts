@@ -1,23 +1,8 @@
-import {
-  Base64DecodeBoxSource,
-  Base64EncodeBoxSource,
-} from '@modules/boxSources/Base64BoxSource';
-import CronExpressionBoxSource from '@modules/boxSources/CronExpressionBoxSource';
-import DataConverterBoxSource from '@modules/boxSources/DataConverterBoxSource';
-import DateCalculateBoxSource from '@modules/boxSources/DateCalculateBoxSource';
-import JsonToolsBoxSource from '@modules/boxSources/JsonToolsBoxSource';
-import MathExpressionBoxSource from '@modules/boxSources/MathExpressionBoxSource';
-import NowBoxSource from '@modules/boxSources/NowBoxSource';
-import Pbkdf2BoxSource from '@modules/boxSources/Pbkdf2BoxSource';
-import SortLinesBoxSource from '@modules/boxSources/SortLinesBoxSource';
-import TimestampBoxSource from '@modules/boxSources/TimestampBoxSource';
-import UnitConverterBoxSource from '@modules/boxSources/UnitConverterBoxSource';
-import WeekNumberBoxSource from '@modules/boxSources/WeekNumberBoxSource';
 import type { ComputeWorkerSource, ResolveComputeWorkerSource } from './entry';
 
 type WorkerSourceLoader = () => Promise<ComputeWorkerSource>;
 
-/** Keeps the worker graph limited to the source implementations that can run there. */
+/** keeps the worker graph limited to the source implementations that can run there. */
 export const workerSourceIds = [
   'base64-decode',
   'cron-expression',
@@ -34,20 +19,94 @@ export const workerSourceIds = [
   'pbkdf2',
 ] as const;
 
+const loadBase64Sources = () => import('@modules/boxSources/Base64BoxSource');
+
 const workerLoaders = new Map<string, WorkerSourceLoader>([
-  ['base64-decode', async () => Base64DecodeBoxSource],
-  ['cron-expression', async () => CronExpressionBoxSource],
-  ['data-converter', async () => DataConverterBoxSource],
-  ['json-tools', async () => JsonToolsBoxSource],
-  ['date-calculate', async () => DateCalculateBoxSource],
-  ['math-expression', async () => MathExpressionBoxSource],
-  ['now', async () => NowBoxSource],
-  ['timestamp', async () => TimestampBoxSource],
-  ['base64-encode', async () => Base64EncodeBoxSource],
-  ['sort-lines', async () => SortLinesBoxSource],
-  ['unit-converter', async () => UnitConverterBoxSource],
-  ['week-number', async () => WeekNumberBoxSource],
-  ['pbkdf2', async () => Pbkdf2BoxSource],
+  [
+    'base64-decode',
+    () => loadBase64Sources().then((module) => module.Base64DecodeBoxSource),
+  ],
+  [
+    'cron-expression',
+    () =>
+      import('@modules/boxSources/CronExpressionBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'data-converter',
+    () =>
+      import('@modules/boxSources/DataConverterBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'json-tools',
+    () =>
+      import('@modules/boxSources/JsonToolsBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'date-calculate',
+    () =>
+      import('@modules/boxSources/DateCalculateBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'math-expression',
+    () =>
+      import('@modules/boxSources/MathExpressionBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'now',
+    () =>
+      import('@modules/boxSources/NowBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'timestamp',
+    () =>
+      import('@modules/boxSources/TimestampBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'base64-encode',
+    () => loadBase64Sources().then((module) => module.Base64EncodeBoxSource),
+  ],
+  [
+    'sort-lines',
+    () =>
+      import('@modules/boxSources/SortLinesBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'unit-converter',
+    () =>
+      import('@modules/boxSources/UnitConverterBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'week-number',
+    () =>
+      import('@modules/boxSources/WeekNumberBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'pbkdf2',
+    () =>
+      import('@modules/boxSources/Pbkdf2BoxSource').then(
+        (module) => module.default,
+      ),
+  ],
 ]);
 const workerSources = new Map<string, Promise<ComputeWorkerSource>>();
 
