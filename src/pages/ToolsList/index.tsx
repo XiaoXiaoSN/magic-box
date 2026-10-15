@@ -112,7 +112,7 @@ const ToolsListPage = (): React.JSX.Element => {
   const { filteredBoxSources } = useSettings();
 
   const [selectedName, setSelectedName] = useState<string | null>(() => {
-    const fromUrl = new URLSearchParams(window.location.search).get('box');
+    const fromUrl = searchParams.get('box');
     return fromUrl ?? localStorage.getItem(SELECTION_KEY);
   });
 
@@ -187,6 +187,7 @@ const ToolsListPage = (): React.JSX.Element => {
     setDrawerOpen(false);
     const next = new URLSearchParams(searchParams);
     next.set('box', source.name);
+    next.delete('input');
     setSearchParams(next, { replace: true });
   };
 
@@ -203,6 +204,10 @@ const ToolsListPage = (): React.JSX.Element => {
   }
 
   const selectedDisplay = getSourceDisplay(selected, t);
+  const urlBox = searchParams.get('box');
+  const urlInput = searchParams.get('input');
+  const initialInput =
+    urlBox === selected.name ? (urlInput ?? undefined) : undefined;
 
   return (
     <div
@@ -316,7 +321,11 @@ const ToolsListPage = (): React.JSX.Element => {
         </aside>
 
         <section className="preview">
-          <PreviewPane key={selected.name} source={selected} />
+          <PreviewPane
+            initialInput={initialInput}
+            key={selected.name}
+            source={selected}
+          />
         </section>
       </div>
     </div>
@@ -324,22 +333,28 @@ const ToolsListPage = (): React.JSX.Element => {
 };
 
 interface PreviewPaneProps {
+  initialInput?: string;
   source: BoxSource;
 }
 
-const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
+const PreviewPane = ({
+  initialInput,
+  source,
+}: PreviewPaneProps): React.JSX.Element => {
   const { t } = useLocale();
   const display = getSourceDisplay(source, t);
-  const [input, setInput] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('input') ?? source.defaultInput ?? '';
-  });
+  const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
+  const sources = useMemo(() => [source], [source]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setMagicIn(input), 400);
     return () => window.clearTimeout(id);
   }, [input]);
+
+  useEffect(() => {
+    setInput(initialInput ?? source.defaultInput ?? '');
+  }, [initialInput, source.defaultInput]);
 
   return (
     <div className="preview-stack">
@@ -388,7 +403,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
             that would reach the network on mount does not do it for a user who
             is only browsing the list. */}
         <BoxPreviewProvider>
-          <MagicBox input={magicIn} sources={[source]} />
+          <MagicBox input={magicIn} sources={sources} />
         </BoxPreviewProvider>
       </div>
     </div>
