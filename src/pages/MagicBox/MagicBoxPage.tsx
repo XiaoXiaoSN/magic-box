@@ -1,11 +1,12 @@
 import MagicBox from '@components/MagicBox';
+import DirectiveAutocomplete, {
+  DirectiveChips,
+} from '@components/MagicBox/DirectiveAutocomplete';
 import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
   isPrivateInput,
-  isPrivateOptionKey,
 } from '@functions/localAIPrivacy';
-import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, {
   Suspense,
@@ -206,9 +207,12 @@ const MagicBoxPage = (): React.JSX.Element => {
     sessionAddedRef.current = [];
   }, [privateInput, removeInputs]);
 
-  const optionChips = useMemo(
-    () => Object.entries(parseOptionsForChips(userInput)),
-    [userInput],
+  const replaceDirective = useCallback(
+    (value: string, caret: number): void => {
+      pendingCaretRef.current = caret;
+      applyInput(value, false);
+    },
+    [applyInput],
   );
 
   // After a programmatic value replacement, the controlled textarea re-renders
@@ -285,21 +289,7 @@ const MagicBoxPage = (): React.JSX.Element => {
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.input')}</span>
-            {optionChips.length > 0 ? (
-              <span className="input-options" data-testid="input-options">
-                {optionChips.map(([k, v]) => (
-                  <span className="opt-chip" key={k}>
-                    <span className="opt-k">{k}</span>
-                    {v !== true && !isPrivateOptionKey(k) ? (
-                      <>
-                        <span className="opt-eq">=</span>
-                        <span className="opt-v">{String(v)}</span>
-                      </>
-                    ) : null}
-                  </span>
-                ))}
-              </span>
-            ) : null}
+            <DirectiveChips input={userInput} onReplace={replaceDirective} />
             <ShareLinkButton
               data-testid="copy-share-link"
               disabled={privateInput}
@@ -389,20 +379,29 @@ const MagicBoxPage = (): React.JSX.Element => {
           ) : null}
 
           <div className="input-card">
-            <textarea
-              ref={inputRef}
+            <DirectiveAutocomplete
+              aria-label={t('magicBox.inputLabel')}
+              className="magic-main-input"
+              data-magic-input="true"
               data-testid="magic-input"
               name="magicInput"
               onBlur={handleInputBlur}
-              onChange={(e) => applyInput(e.target.value, false)}
+              onChange={(value) => applyInput(value, false)}
               onFocus={() => setResetCounter((c) => c + 1)}
+              onReplace={replaceDirective}
               placeholder={t('magicBox.placeholder')}
               rows={8}
               spellCheck={false}
+              textareaRef={inputRef}
               value={userInput}
             />
             <Suspense fallback={<div />}>
-              <QrButton setUserInput={handleScannedInput} />
+              <QrButton
+                closeLabel={t('magicBox.closeQrReader')}
+                dialogLabel={t('magicBox.qrDialog')}
+                openLabel={t('magicBox.openQrReader')}
+                setUserInput={handleScannedInput}
+              />
             </Suspense>
           </div>
         </div>
@@ -412,8 +411,8 @@ const MagicBoxPage = (): React.JSX.Element => {
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.output')}</span>
             <span className="swap">
-              <span className="kbd">⌃</span>
-              <span className="kbd">N</span>
+              <span className="kbd">Alt</span>
+              <span className="kbd">↓</span>
               <span className="swap-label">{t('magicBox.next')}</span>
               <span className="swap-sep" />
               <span className="kbd">↵</span>
@@ -436,16 +435,27 @@ const MagicBoxPage = (): React.JSX.Element => {
 };
 
 interface QrButtonProps {
+  closeLabel: string;
+  dialogLabel: string;
+  openLabel: string;
   setUserInput: (value: string) => void;
 }
 
 // QR scanner button pinned bottom-right of the input card.
-const QrButton = ({ setUserInput }: QrButtonProps) => (
+const QrButton = ({
+  closeLabel,
+  dialogLabel,
+  openLabel,
+  setUserInput,
+}: QrButtonProps) => (
   <div className="input-qr-btn" data-testid="qr-reader-launcher">
     <QRCodeReader
       setUserInput={
         setUserInput as React.Dispatch<React.SetStateAction<string>>
       }
+      closeLabel={closeLabel}
+      dialogLabel={dialogLabel}
+      openLabel={openLabel}
       sxIcon={{ fontSize: 18, color: 'inherit' }}
     />
   </div>

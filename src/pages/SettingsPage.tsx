@@ -1,8 +1,13 @@
 import { type ControlOption, Select, Toggle } from '@components/Controls';
-import type { DragEndEvent } from '@dnd-kit/core';
+import type {
+  Announcements,
+  DragEndEvent,
+  ScreenReaderInstructions,
+} from '@dnd-kit/core';
 import {
   closestCenter,
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -10,6 +15,7 @@ import {
 import {
   arrayMove,
   SortableContext,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
@@ -40,6 +46,16 @@ import { boxSources } from '../modules/boxSources';
 const LocalAIModelSettings = lazy(
   async () => import('../features/local-ai/LocalAIModelSettings'),
 );
+
+const primaryModifierLabel = (): string => {
+  if (
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad/.test(navigator.platform)
+  ) {
+    return '⌘';
+  }
+  return 'Ctrl';
+};
 
 const GripIcon = () => (
   <svg
@@ -149,43 +165,113 @@ const Section = ({ title, subtitle, children }: SectionProps) => (
 interface FieldProps {
   label: string;
   hint?: string;
+  controlId?: string;
+  group?: boolean;
   children: React.ReactNode;
 }
 
-const Field = ({ label, hint, children }: FieldProps) => (
-  <div className="field">
+const Field = ({
+  label,
+  hint,
+  controlId,
+  group = false,
+  children,
+}: FieldProps) => {
+  const fieldInfo = (
     <div className="field-info">
-      <div className="field-label">{label}</div>
+      {controlId ? (
+        <label className="field-label" htmlFor={controlId}>
+          {label}
+        </label>
+      ) : (
+        <div className="field-label">{label}</div>
+      )}
       {hint ? <div className="field-hint">{hint}</div> : null}
     </div>
-    <div className="field-control">{children}</div>
-  </div>
-);
+  );
+  if (group) {
+    return (
+      <fieldset className="field field-group">
+        <legend className="field-label">{label}</legend>
+        {hint ? (
+          <div className="field-info">
+            <div className="field-hint">{hint}</div>
+          </div>
+        ) : null}
+        <div className="field-control">{children}</div>
+      </fieldset>
+    );
+  }
+  return (
+    <div className="field">
+      {fieldInfo}
+      <div className="field-control">{children}</div>
+    </div>
+  );
+};
 
 interface SegmentedProps<T extends string> {
   value: T;
   onChange: (v: T) => void;
   options: ControlOption<T>[];
+  label: string;
 }
 
 const Segmented = <T extends string>({
   value,
   onChange,
   options,
-}: SegmentedProps<T>) => (
-  <div className="seg">
-    {options.map((o) => (
-      <button
-        className={`seg-item${o.value === value ? ' active' : ''}`}
-        key={o.value}
-        onClick={() => onChange(o.value)}
-        type="button"
-      >
-        {o.label}
-      </button>
-    ))}
-  </div>
-);
+  label,
+}: SegmentedProps<T>) => {
+  const moveFocus = (
+    index: number,
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    const next = options[index];
+    if (!next) return;
+    event.preventDefault();
+    onChange(next.value);
+    const nextButton = event.currentTarget
+      .closest('.seg')
+      ?.querySelector(
+        `input[data-segment-index="${index}"]`,
+      ) as HTMLInputElement | null;
+    nextButton?.focus();
+  };
+
+  return (
+    <div aria-label={label} className="seg" role="radiogroup">
+      {options.map((o, index) => (
+        <label
+          className={`seg-item${o.value === value ? ' active' : ''}`}
+          key={o.value}
+        >
+          <input
+            aria-checked={o.value === value}
+            checked={o.value === value}
+            data-segment-index={index}
+            name={`settings-${label}`}
+            onChange={() => onChange(o.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                moveFocus((index + 1) % options.length, event);
+              } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                moveFocus((index - 1 + options.length) % options.length, event);
+              } else if (event.key === 'Home') {
+                moveFocus(0, event);
+              } else if (event.key === 'End') {
+                moveFocus(options.length - 1, event);
+              }
+            }}
+            type="radio"
+            value={o.value}
+          />
+          <span>{o.label}</span>
+        </label>
+      ))}
+    </div>
+  );
+};
 
 interface TextInputProps {
   value: string;
@@ -193,6 +279,7 @@ interface TextInputProps {
   placeholder?: string;
   invalid?: boolean;
   ariaLabel: string;
+  id?: string;
   inputMode?: 'text' | 'numeric' | 'url';
 }
 
@@ -202,12 +289,14 @@ const TextInput = ({
   placeholder,
   invalid,
   ariaLabel,
+  id,
   inputMode = 'text',
 }: TextInputProps) => (
   <input
     aria-invalid={invalid ?? false}
     aria-label={ariaLabel}
     className={`text-input${invalid ? ' is-invalid' : ''}`}
+    id={id}
     inputMode={inputMode}
     onChange={(e) => onChange(e.target.value)}
     placeholder={placeholder}
@@ -242,6 +331,7 @@ const SettingsPage = (): React.JSX.Element => {
   // commit to prefs once the value parses/validates.
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
   const [shortenDraft, setShortenDraft] = useState(prefs.shortenUrl);
+  const primaryModifier = primaryModifierLabel();
 
   // resync drafts when prefs change out of band (e.g. clear local data).
   useEffect(() => {
@@ -304,7 +394,59 @@ const SettingsPage = (): React.JSX.Element => {
     persistOrder(next);
   };
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const dragAnnouncements = useMemo<Announcements>(
+    () => ({
+      onDragStart: ({ active }) => {
+        const source = sourceLookup.get(String(active.id));
+        return t('settings.dragStart', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+      onDragOver: ({ active, over }) => {
+        if (!over) return undefined;
+        const source = sourceLookup.get(String(active.id));
+        const overSource = sourceLookup.get(String(over.id));
+        return t('settings.dragOver', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+          over: overSource
+            ? getBoxSourceDisplay(overSource, locale).name
+            : String(over.id),
+        });
+      },
+      onDragEnd: ({ active }) => {
+        const source = sourceLookup.get(String(active.id));
+        return t('settings.dragEnd', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+      onDragCancel: ({ active }) => {
+        const source = sourceLookup.get(String(active.id));
+        return t('settings.dragCancel', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+    }),
+    [locale, sourceLookup, t],
+  );
+  const dragInstructions = useMemo<ScreenReaderInstructions>(
+    () => ({ draggable: t('settings.dragInstructions') }),
+    [t],
+  );
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -369,6 +511,10 @@ const SettingsPage = (): React.JSX.Element => {
           title={t('settings.section.boxOrder')}
         >
           <DndContext
+            accessibility={{
+              announcements: dragAnnouncements,
+              screenReaderInstructions: dragInstructions,
+            }}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
             sensors={sensors}
@@ -400,8 +546,13 @@ const SettingsPage = (): React.JSX.Element => {
         </Section>
 
         <Section title={t('settings.section.appearance')}>
-          <Field hint={t('settings.themeHint')} label={t('settings.theme')}>
+          <Field
+            group
+            hint={t('settings.themeHint')}
+            label={t('settings.theme')}
+          >
             <Segmented
+              label={t('settings.theme')}
               onChange={(v) => setPref('theme', v)}
               options={[
                 { value: 'light', label: t('settings.themeLight') },
@@ -411,8 +562,13 @@ const SettingsPage = (): React.JSX.Element => {
               value={prefs.theme}
             />
           </Field>
-          <Field hint={t('settings.densityHint')} label={t('settings.density')}>
+          <Field
+            group
+            hint={t('settings.densityHint')}
+            label={t('settings.density')}
+          >
             <Segmented
+              label={t('settings.density')}
               onChange={(v) => setPref('density', v)}
               options={[
                 {
@@ -428,10 +584,12 @@ const SettingsPage = (): React.JSX.Element => {
 
         <Section title={t('settings.section.io')}>
           <Field
+            controlId="settings-language"
             hint={t('settings.languageHint')}
             label={t('settings.language')}
           >
             <Select<Locale>
+              id="settings-language"
               onChange={setLocale}
               options={[
                 { value: 'en', label: t('settings.langEn') },
@@ -441,10 +599,12 @@ const SettingsPage = (): React.JSX.Element => {
             />
           </Field>
           <Field
+            group
             hint={t('settings.enterBehaviorHint')}
             label={t('settings.enterBehavior')}
           >
             <Segmented
+              label={t('settings.enterBehavior')}
               onChange={(v) => setPref('copyMode', v)}
               options={[
                 { value: 'enter', label: t('settings.enterCopy') },
@@ -455,10 +615,12 @@ const SettingsPage = (): React.JSX.Element => {
             />
           </Field>
           <Field
+            controlId="settings-timezone"
             hint={t('settings.timezoneHint')}
             label={t('settings.timezone')}
           >
             <Select
+              id="settings-timezone"
               label={t('settings.timezone')}
               options={timezoneOptions}
               value={
@@ -483,11 +645,13 @@ const SettingsPage = (): React.JSX.Element => {
           title={t('settings.section.server')}
         >
           <Field
+            controlId="settings-toolbox-url"
             hint={t('settings.toolboxUrlHint')}
             label={t('settings.toolboxUrl')}
           >
             <TextInput
               ariaLabel={t('settings.toolboxUrl')}
+              id="settings-toolbox-url"
               inputMode="url"
               invalid={toolboxInvalid}
               onChange={(v) => {
@@ -499,11 +663,13 @@ const SettingsPage = (): React.JSX.Element => {
             />
           </Field>
           <Field
+            controlId="settings-shorten-url"
             hint={t('settings.shortenUrlHint')}
             label={t('settings.shortenUrl')}
           >
             <TextInput
               ariaLabel={t('settings.shortenUrl')}
+              id="settings-shorten-url"
               inputMode="url"
               invalid={shortenInvalid}
               onChange={(v) => {
@@ -518,14 +684,21 @@ const SettingsPage = (): React.JSX.Element => {
 
         <Section title={t('settings.section.shortcuts')}>
           <div className="shortcut-list">
-            <Shortcut keys={['⌃', 'N']} label={t('settings.shortcutNext')} />
+            <Shortcut keys={['Alt', '↓']} label={t('settings.shortcutNext')} />
+            <Shortcut keys={['Alt', '↑']} label={t('settings.shortcutPrev')} />
             <Shortcut
-              keys={['⌃', '⇧', 'N']}
-              label={t('settings.shortcutPrev')}
+              keys={['Alt', 'Home']}
+              label={t('settings.shortcutFirst')}
             />
-            <Shortcut keys={['⌃', 'P']} label={t('settings.shortcutPrevAlt')} />
+            <Shortcut
+              keys={['Alt', 'End']}
+              label={t('settings.shortcutLast')}
+            />
             <Shortcut keys={['↵']} label={t('settings.shortcutCopy')} />
-            <Shortcut keys={['⌘', '↵']} label={t('settings.shortcutPaste')} />
+            <Shortcut
+              keys={[primaryModifier, '↵']}
+              label={t('settings.shortcutPaste')}
+            />
           </div>
         </Section>
 

@@ -50,6 +50,8 @@ const zhTW: Translations = {
   'settings.shortcutNext': '下一個 Box',
   'settings.shortcutPrev': '上一個 Box',
   'settings.shortcutPrevAlt': '上一個 Box (替代)',
+  'settings.shortcutFirst': '第一個 Box',
+  'settings.shortcutLast': '最後一個 Box',
   'settings.shortcutCopy': '複製選取的輸出',
   'settings.shortcutPaste': '將輸出貼回輸入',
   'settings.section.localAI': '本地 AI',
@@ -88,11 +90,19 @@ const zhTW: Translations = {
   'settings.langEn': 'English',
   'settings.langTw': '繁體中文',
   'settings.dragReorderLabel': '拖曳以重新排序 {{name}}',
+  'settings.dragStart':
+    '已抓取 {{name}}。使用方向鍵移動、空白鍵放下，或按 Escape 取消。',
+  'settings.dragOver': '{{name}} 已移到 {{over}} 前面。',
+  'settings.dragEnd': '已放下 {{name}}。',
+  'settings.dragCancel': '已取消重新排序。',
+  'settings.dragInstructions':
+    '按空白鍵抓取 Box，使用方向鍵移動，再按空白鍵放下，或按 Escape 取消。',
   'settings.disableBoxLabel': '停用 {{name}}',
   'settings.enableBoxLabel': '啟用 {{name}}',
   'settings.toggle': '切換',
 
   'magicBox.input': '輸入',
+  'magicBox.inputLabel': 'Magic 輸入',
   'magicBox.output': '輸出',
   'magicBox.next': '下一個',
   'magicBox.copy': '複製',
@@ -110,6 +120,9 @@ const zhTW: Translations = {
   'magicBox.emptyNoMatchesSub':
     '試試其他格式 — JSON、JWT、時間戳記、cron、base64、數學式…',
   'magicBox.loading': '正在檢查匹配結果…',
+  'magicBox.openQrReader': '開啟 QR 掃描器',
+  'magicBox.closeQrReader': '關閉 QR 掃描器',
+  'magicBox.qrDialog': 'QR 掃描器',
 
   'time.justNow': '剛剛',
   'time.minutesAgo': '{{n}} 分鐘前',
@@ -134,6 +147,19 @@ const zhTW: Translations = {
   'boxCard.expand': '展開',
   'boxCard.copyLabel': '複製 {{name}} 的輸出',
   'boxCard.expandLabel': '展開 {{name}}',
+  'boxCard.select': '選取',
+  'boxCard.selected': '已選取',
+  'boxCard.selectLabel': '選取 {{name}}',
+
+  'directiveAutocomplete.globalTimezone': '輸入時區',
+  'directiveAutocomplete.globalLocale': '輸入語言地區',
+  'directiveAutocomplete.unknown': '未知指令',
+  'directiveAutocomplete.disabled': '工具已停用',
+  'directiveAutocomplete.suggestion': '你是要輸入 ::{{key}} 嗎？',
+  'directiveAutocomplete.enableOwner': '啟用 {{name}}',
+  'directiveAutocomplete.count': '{{count}} 個指令建議',
+  'directiveAutocomplete.noSuggestions': '沒有指令建議',
+  'directiveAutocomplete.listLabel': '指令建議',
 
   'boxModal.close': '關閉',
   'boxModal.closeBackdrop': '關閉模態背景',

@@ -49,6 +49,8 @@ const en = {
   'settings.shortcutNext': 'Next box',
   'settings.shortcutPrev': 'Previous box',
   'settings.shortcutPrevAlt': 'Previous box (alt)',
+  'settings.shortcutFirst': 'First box',
+  'settings.shortcutLast': 'Last box',
   'settings.shortcutCopy': 'Copy selected output',
   'settings.shortcutPaste': 'Paste output back into input',
   'settings.section.localAI': 'Local AI',
@@ -89,11 +91,19 @@ const en = {
   'settings.langEn': 'English',
   'settings.langTw': '繁體中文',
   'settings.dragReorderLabel': 'Drag to reorder {{name}}',
+  'settings.dragStart':
+    'Picked up {{name}}. Use arrow keys to move, Space to drop, or Escape to cancel.',
+  'settings.dragOver': '{{name}} moved before {{over}}.',
+  'settings.dragEnd': '{{name}} dropped.',
+  'settings.dragCancel': 'Reordering cancelled.',
+  'settings.dragInstructions':
+    'To pick up a box, press Space. Use arrow keys to move, Space to drop, or Escape to cancel.',
   'settings.disableBoxLabel': 'Disable {{name}}',
   'settings.enableBoxLabel': 'Enable {{name}}',
   'settings.toggle': 'Toggle',
 
   'magicBox.input': 'Input',
+  'magicBox.inputLabel': 'Magic input',
   'magicBox.output': 'Output',
   'magicBox.next': 'next',
   'magicBox.copy': 'copy',
@@ -111,6 +121,9 @@ const en = {
   'magicBox.emptyNoMatchesSub':
     'Try a different format — JSON, JWT, timestamp, cron, base64, math…',
   'magicBox.loading': 'Checking matches…',
+  'magicBox.openQrReader': 'Open QR scanner',
+  'magicBox.closeQrReader': 'Close QR scanner',
+  'magicBox.qrDialog': 'QR scanner',
 
   'time.justNow': 'just now',
   'time.minutesAgo': '{{n}}m ago',
@@ -135,6 +148,19 @@ const en = {
   'boxCard.expand': 'Expand',
   'boxCard.copyLabel': 'Copy {{name}} output',
   'boxCard.expandLabel': 'Expand {{name}}',
+  'boxCard.select': 'Select',
+  'boxCard.selected': 'Selected',
+  'boxCard.selectLabel': 'Select {{name}}',
+
+  'directiveAutocomplete.globalTimezone': 'Input timezone',
+  'directiveAutocomplete.globalLocale': 'Input locale',
+  'directiveAutocomplete.unknown': 'Unknown directive',
+  'directiveAutocomplete.disabled': 'Tool disabled',
+  'directiveAutocomplete.suggestion': 'Did you mean ::{{key}}?',
+  'directiveAutocomplete.enableOwner': 'Enable {{name}}',
+  'directiveAutocomplete.count': '{{count}} directive suggestions',
+  'directiveAutocomplete.noSuggestions': 'No directive suggestions',
+  'directiveAutocomplete.listLabel': 'Directive suggestions',
 
   'boxModal.close': 'Close',
   'boxModal.closeBackdrop': 'Close modal backdrop',

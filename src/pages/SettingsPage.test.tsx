@@ -1,5 +1,11 @@
 import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../contexts/LocaleContext';
 import { PreferencesProvider } from '../contexts/PreferencesContext';
@@ -50,6 +56,59 @@ describe('Settings timezone and defaults', () => {
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneMode,
     ).toBe('system');
+  });
+  it('supports keyboard radio navigation for segmented preferences', () => {
+    mount();
+    const radios = within(
+      screen.getByRole('radiogroup', { name: 'Theme' }),
+    ).getAllByRole('radio');
+
+    expect(radios[2]).toBeChecked();
+    fireEvent.keyDown(radios[2], { key: 'ArrowLeft' });
+
+    expect(radios[1]).toBeChecked();
+    expect(radios[1]).toHaveFocus();
+  });
+  it('reorders and persists boxes through the keyboard sensor', async () => {
+    mount();
+    const grips = screen.getAllByRole('button', {
+      name: /^Drag to reorder /,
+    });
+    const firstId = boxSources[0].id ?? boxSources[0].name;
+    const secondId = boxSources[1].id ?? boxSources[1].name;
+    const rows = Array.from(document.querySelectorAll<HTMLElement>('.dnd-row'));
+    rows.forEach((row, index) => {
+      vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({
+        bottom: (index + 1) * 40,
+        height: 32,
+        left: 0,
+        right: 320,
+        top: index * 40,
+        width: 320,
+        x: 0,
+        y: index * 40,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    fireEvent.keyDown(grips[0], { code: 'Space', key: ' ' });
+    await waitFor(() =>
+      expect(grips[0]).toHaveAttribute('aria-pressed', 'true'),
+    );
+    fireEvent.keyDown(grips[0], { code: 'ArrowDown', key: 'ArrowDown' });
+    fireEvent.keyDown(grips[0], { code: 'Space', key: ' ' });
+
+    await waitFor(() => {
+      const settings = JSON.parse(
+        localStorage.getItem('mb_settings') ?? '{}',
+      ) as { boxes: Record<string, { secondaryOrder: number }> };
+      expect(settings.boxes[firstId].secondaryOrder).toBe(1);
+      expect(settings.boxes[secondId].secondaryOrder).toBe(0);
+    });
   });
   it('restores preferences and true source defaults without erasing history', () => {
     localStorage.setItem(

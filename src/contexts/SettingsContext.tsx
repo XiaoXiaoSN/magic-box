@@ -125,6 +125,9 @@ export const useSettings = (): SettingsContextType => {
   return context;
 };
 
+export const useOptionalSettings = (): SettingsContextType | null =>
+  useContext(SettingsContext) ?? null;
+
 interface SettingsProviderProps {
   children: React.ReactNode;
 }

@@ -180,7 +180,7 @@ describe('/list preview input state', () => {
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open list' }));
 
-    const input = await screen.findByRole('textbox', { name: '' });
+    const input = await screen.findByRole('combobox', { name: 'Input' });
     expect(input).toHaveValue(WordCountBoxSource.defaultInput);
   });
 
@@ -189,7 +189,7 @@ describe('/list preview input state', () => {
     const generateBoxes = vi.spyOn(WordCountBoxSource, 'generateBoxes');
     renderPage(['/list?box=Word%20Count']);
 
-    const input = screen.getByRole('textbox', { name: '' });
+    const input = screen.getByRole('combobox', { name: 'Input' });
     fireEvent.change(input, { target: { value: 'a' } });
     await act(async () => {
       vi.advanceTimersByTime(100);

@@ -15,9 +15,7 @@ import {
 } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
-// Anything a template renders that the user operates. The card itself is a
-// role button div, which is fine: closest reaches it only when the click
-// landed on no control in between.
+// Anything a template renders that the user operates.
 const CONTROL_SELECTOR =
   'a, button, input, select, textarea, summary, label, [role="button"], [contenteditable="true"]';
 
@@ -46,6 +44,7 @@ interface BoxCardProps {
   selected: boolean;
   stale: boolean;
   onSelect: (index: number) => void;
+  selectionTabIndex: number;
   onCopy: (text: string) => Promise<boolean>;
   onInputCommit?: () => void;
   onExpand?: (box: BoxType) => void;
@@ -58,7 +57,7 @@ interface BoxCardProps {
 const COPIED_TIMEOUT_MS = 1200;
 
 const BoxCard = memo(
-  forwardRef<HTMLDivElement, BoxCardProps>(
+  forwardRef<HTMLElement, BoxCardProps>(
     (
       {
         box,
@@ -70,6 +69,7 @@ const BoxCard = memo(
         onInputCommit,
         onExpand,
         onResultChange,
+        selectionTabIndex,
       },
       ref,
     ) => {
@@ -194,25 +194,13 @@ const BoxCard = memo(
       // the card's copy action. A portal opened by a template also bubbles
       // through the React tree without sitting inside the card in the DOM.
       const handleMouseClick = useCallback(
-        (event: React.MouseEvent<HTMLDivElement>) => {
+        (event: React.MouseEvent<HTMLElement>) => {
           if (stale) return;
           const target = event.target as Element;
           if (!event.currentTarget.contains(target)) return;
-          if (target.closest(CONTROL_SELECTOR) !== event.currentTarget) return;
+          const control = target.closest(CONTROL_SELECTOR);
+          if (control && control !== event.currentTarget) return;
           handleCardClick();
-        },
-        [handleCardClick, stale],
-      );
-
-      const handleKeyDown = useCallback(
-        (event: React.KeyboardEvent<HTMLDivElement>) => {
-          if (stale) return;
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.stopPropagation();
-            if (event.target !== event.currentTarget) return;
-            event.preventDefault();
-            handleCardClick();
-          }
         },
         [handleCardClick, stale],
       );
@@ -242,11 +230,54 @@ const BoxCard = memo(
         [stale],
       );
 
+      const handleSelectionClick = useCallback(
+        (event: React.MouseEvent<HTMLButtonElement>): void => {
+          event.stopPropagation();
+          if (!stale) onSelect(index);
+        },
+        [index, onSelect, stale],
+      );
+
+      const handleSelectionKeyDown = useCallback(
+        (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+          if (stale) return;
+          if (
+            event.key !== 'Home' &&
+            event.key !== 'End' &&
+            event.key !== 'ArrowDown' &&
+            event.key !== 'ArrowUp'
+          )
+            return;
+          event.preventDefault();
+          const buttons = Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+              '[data-box-selection-index]',
+            ),
+          ).filter((button) => !button.disabled);
+          const currentPosition = buttons.findIndex(
+            (button) => Number(button.dataset.boxSelectionIndex) === index,
+          );
+          const targetPosition =
+            event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? buttons.length - 1
+                : event.key === 'ArrowUp'
+                  ? Math.max(0, currentPosition - 1)
+                  : Math.min(buttons.length - 1, currentPosition + 1);
+          const nextButton = buttons[targetPosition];
+          if (!nextButton) return;
+          onSelect(Number(nextButton.dataset.boxSelectionIndex));
+          nextButton.focus();
+        },
+        [index, onSelect, stale],
+      );
+
       const Comp = resolveBoxTemplate(box);
 
       return (
-        // biome-ignore lint/a11y/useSemanticElements: outer needs nested buttons (Copy / Expand), so it cannot itself be a button.
-        <div
+        <article
+          aria-labelledby={`box-card-title-${index}`}
           ref={ref}
           aria-disabled={stale || undefined}
           className={
@@ -259,11 +290,14 @@ const BoxCard = memo(
           onClickCapture={blockStaleInteraction}
           onChangeCapture={blockStaleInteraction}
           onInputCapture={blockStaleInteraction}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            if (event.target !== event.currentTarget) return;
+            event.preventDefault();
+            handleCardClick();
+          }}
           onKeyDownCapture={blockStaleInteraction}
           onPointerDownCapture={blockStaleInteraction}
-          role="button"
-          tabIndex={stale ? -1 : 0}
         >
           <div className="box-head">
             <span aria-hidden="true" className="box-tag">
@@ -272,12 +306,26 @@ const BoxCard = memo(
             <span
               className="box-title"
               data-testid="magic-box-result-title"
+              id={`box-card-title-${index}`}
               title={name}
             >
               {name}
             </span>
             {kind ? <span className="box-kind">{kind}</span> : null}
             <span className="box-actions">
+              <button
+                aria-label={t('boxCard.selectLabel', { name })}
+                aria-pressed={selected}
+                className="box-select"
+                data-box-selection-index={index}
+                disabled={stale}
+                onClick={handleSelectionClick}
+                onKeyDown={handleSelectionKeyDown}
+                tabIndex={stale ? -1 : selectionTabIndex}
+                type="button"
+              >
+                {selected ? t('boxCard.selected') : t('boxCard.select')}
+              </button>
               <button
                 className="box-copy"
                 disabled={stale}
@@ -322,7 +370,7 @@ const BoxCard = memo(
               </Suspense>
             </ErrorBoundary>
           </div>
-        </div>
+        </article>
       );
     },
   ),

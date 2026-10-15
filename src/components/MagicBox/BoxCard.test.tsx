@@ -99,6 +99,13 @@ const stableTemplate = ({ plaintextOutput }: BoxProps): React.JSX.Element => (
   <span data-testid="stable-output">{plaintextOutput}</span>
 );
 
+const second = source(() =>
+  new BoxBuilder('Second', 'second output').setTemplate(stableTemplate).build(),
+);
+const firstSelection = source(() =>
+  new BoxBuilder('First', 'first output').setTemplate(stableTemplate).build(),
+);
+
 const changingTemplate = ({
   onResultChange,
   plaintextOutput,
@@ -118,6 +125,30 @@ const changingTemplate = ({
 );
 
 describe('BoxCard click handling', () => {
+  it('uses a dedicated roving selection button without an outer button role', async () => {
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[firstSelection, second]} />
+      </LocaleProvider>,
+    );
+
+    const cards = await screen.findAllByTestId('magic-box-result');
+    const selectionButtons = screen.getAllByRole('button', {
+      name: /^Select /,
+    });
+    expect(cards[0].tagName).toBe('ARTICLE');
+    expect(cards[0]).not.toHaveAttribute('role');
+
+    fireEvent.click(selectionButtons[1]);
+    expect(selectionButtons[1]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(selectionButtons[1], { key: 'ArrowUp' });
+
+    expect(selectionButtons[0]).toHaveFocus();
+    await waitFor(() =>
+      expect(selectionButtons[0]).toHaveAttribute('aria-pressed', 'true'),
+    );
+  });
+
   it('leaves clicks on a template’s own controls to those controls', async () => {
     // Regression: clicking into the Local AI textarea to paste overwrote the
     // clipboard with the card's last answer first.

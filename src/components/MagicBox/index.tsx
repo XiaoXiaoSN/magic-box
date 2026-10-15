@@ -127,9 +127,9 @@ const MagicBox = ({
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const itemRefs = useRef<Map<string, HTMLElement | null>>(new Map());
   const itemRefCallbacks = useRef<
-    Map<string, (element: HTMLDivElement | null) => void>
+    Map<string, (element: HTMLElement | null) => void>
   >(new Map());
   const copySequence = useRef(0);
   const notificationId = useRef(0);
@@ -532,11 +532,11 @@ const MagicBox = ({
   }, [boxEntries, selectedIndex]);
 
   const getItemRef = useCallback(
-    (key: string): ((element: HTMLDivElement | null) => void) => {
+    (key: string): ((element: HTMLElement | null) => void) => {
       const current = itemRefCallbacks.current.get(key);
       if (current) return current;
 
-      const callback = (element: HTMLDivElement | null): void => {
+      const callback = (element: HTMLElement | null): void => {
         if (element) {
           itemRefs.current.set(key, element);
         } else {
@@ -615,7 +615,24 @@ const MagicBox = ({
 
       const target = event.target instanceof Element ? event.target : null;
       const interactive = target?.closest('a, button, [role="button"]');
-      if (interactive && !target?.closest('.box-card')) return;
+      if (interactive && !target?.matches('.box-card')) return;
+
+      const focusedElement =
+        target ??
+        (document.activeElement instanceof Element
+          ? document.activeElement
+          : null);
+      const inDialog = focusedElement?.closest(
+        '[role="dialog"], .box-modal-root, .MuiModal-root',
+      );
+      if (inDialog) return;
+      const isMainInput =
+        focusedElement?.matches('textarea[data-magic-input="true"]') ?? false;
+      const isResultFocus = focusedElement?.closest('.box-card') !== null;
+      const eventWasDispatchedOnWindow = !(event.target instanceof Element);
+      if (!isMainInput && !isResultFocus && !eventWasDispatchedOnWindow) {
+        return;
+      }
 
       const state = latestKeyboardState.current;
       if (state.entries.length === 0) return;
@@ -625,6 +642,30 @@ const MagicBox = ({
         ({ key }) => key === state.selectedKey,
       );
       const selected = state.entries[selectedPosition]?.box;
+
+      if (
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        (event.key === 'ArrowDown' ||
+          event.key === 'ArrowUp' ||
+          event.key === 'Home' ||
+          event.key === 'End')
+      ) {
+        event.preventDefault();
+        setSelectedKey(() => {
+          if (event.key === 'Home') return state.entries[0]?.key ?? null;
+          if (event.key === 'End') {
+            return state.entries.at(-1)?.key ?? null;
+          }
+          const current = selectedPosition < 0 ? 0 : selectedPosition;
+          const next = event.key === 'ArrowUp' ? current - 1 : current + 1;
+          return state.entries[
+            Math.max(0, Math.min(state.entries.length - 1, next))
+          ]?.key;
+        });
+        return;
+      }
 
       if (event.key === 'Enter' && isCtrl) {
         event.preventDefault();
@@ -647,7 +688,6 @@ const MagicBox = ({
       }
 
       if (isCtrl && (event.key === 'n' || event.key === 'N')) {
-        event.preventDefault();
         setSelectedKey((previous) => {
           const previousPosition = state.entries.findIndex(
             ({ key }) => key === previous,
@@ -680,7 +720,13 @@ const MagicBox = ({
         return;
       }
 
-      if (event.key !== 'Enter' || isCtrl || state.copyMode === 'off') return;
+      if (
+        event.key !== 'Enter' ||
+        isCtrl ||
+        state.copyMode === 'off' ||
+        (!isMainInput && !isResultFocus && !eventWasDispatchedOnWindow)
+      )
+        return;
       if (!selected) return;
 
       const tag = target?.tagName?.toUpperCase();
@@ -720,6 +766,15 @@ const MagicBox = ({
       }
       onResultChange={handleResultChange}
       onSelect={handleSelect}
+      selectionTabIndex={
+        selectedIndex >= 0
+          ? index === selectedIndex
+            ? 0
+            : -1
+          : index === 0
+            ? 0
+            : -1
+      }
       selected={!stale && index === selectedIndex}
       stale={stale}
     />
