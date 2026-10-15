@@ -119,7 +119,15 @@ const DiceRollBoxTemplateComponent = ({
     [rollsValue],
   );
   const [rerollGeneration, setRerollGeneration] = useState(0);
-  const rollIdentity = `${rollsValue}:${total}:${rerollGeneration}`;
+  const rollIdentity = useMemo(
+    () => ({
+      options,
+      rerollGeneration,
+      rollsValue,
+      total,
+    }),
+    [options, rerollGeneration, rollsValue, total],
+  );
   const [phase, setPhase] = useState<'rolling' | 'gathering' | 'ready'>(
     'rolling',
   );
@@ -172,7 +180,7 @@ const DiceRollBoxTemplateComponent = ({
     return () => observer.disconnect();
   }, [rolls]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: rollIdentity distinguishes identical rerolls
+  // biome-ignore lint/correctness/useExhaustiveDependencies: rollIdentity covers upstream and local rerolls
   useEffect(() => {
     const element = tray.current;
     if (!element) return;
@@ -326,8 +334,8 @@ const DiceRollBoxTemplateComponent = ({
       stop();
       media.removeEventListener('change', preferenceChanged);
     };
-    // A generation token keeps an identical reroll animated; it is intentionally
-    // separate from the stable rolls dependency.
+    // The options identity catches a fresh upstream result; the generation token
+    // keeps an identical local reroll animated.
   }, [rollIdentity, rolls]);
 
   const reroll = () => {

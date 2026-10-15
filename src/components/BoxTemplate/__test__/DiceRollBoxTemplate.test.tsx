@@ -140,6 +140,21 @@ describe('DiceRollBoxTemplate', () => {
     });
   });
 
+  it('animates a fresh upstream result with unchanged roll values', async () => {
+    const motion = mockMotion();
+    const options = { Dice: '1', Rolls: '[4]', Total: '4' };
+    const { rerender } = renderDice({ ...props, options });
+    await waitFor(() => expect(simulateDiceThrow).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <LocaleProvider>
+        <DiceRollBoxTemplate {...props} options={{ ...options }} />
+      </LocaleProvider>,
+    );
+    await waitFor(() => expect(simulateDiceThrow).toHaveBeenCalledTimes(2));
+    expect(motion.animate).toHaveBeenCalled();
+  });
+
   it('updates dice labels on locale changes without rerolling', async () => {
     const motion = mockMotion(true);
     render(
