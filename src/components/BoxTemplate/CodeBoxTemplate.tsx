@@ -3,12 +3,13 @@ import type { BoxProps } from '@modules/Box';
 import { CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { lazy, memo, Suspense } from 'react';
+import type { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 
 interface HighlighterProps {
   language: string;
   children: string;
   mode: ThemeMode;
-  customStyle?: React.CSSProperties;
+  customStyle?: SyntaxHighlighterProps['customStyle'];
   dataTestId?: string;
 }
 
@@ -17,7 +18,7 @@ interface HighlighterProps {
 // 500+ per-language chunks emitted when importing the full build.
 const LazyHighlighter = lazy(async () => {
   const [
-    { Light: SyntaxHighlighter },
+    { default: SyntaxHighlighter },
     atomOneLight,
     atomOneDark,
     json,
@@ -25,7 +26,7 @@ const LazyHighlighter = lazy(async () => {
     xml,
     diff,
   ] = await Promise.all([
-    import('react-syntax-highlighter'),
+    import('react-syntax-highlighter/dist/esm/light'),
     import('react-syntax-highlighter/dist/esm/styles/hljs/atom-one-light'),
     import('react-syntax-highlighter/dist/esm/styles/hljs/atom-one-dark'),
     import('react-syntax-highlighter/dist/esm/languages/hljs/json'),
