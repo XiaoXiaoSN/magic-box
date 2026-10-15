@@ -34,6 +34,14 @@ describe('base64 functions', () => {
       });
     });
 
+    it('should reject malformed UTF-8 instead of returning replacement text', () => {
+      const result = base64.decodeBase64('QQ//');
+      expect(result).toEqual({
+        decoded: new Uint8Array([65, 15, 255]),
+        readableText: null,
+      });
+    });
+
     it('should throw an error for invalid base64 string', () => {
       expect(() => base64.decodeBase64('invalid!!')).toThrow();
     });
