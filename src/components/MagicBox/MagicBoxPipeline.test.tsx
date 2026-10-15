@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
@@ -164,6 +164,69 @@ describe('MagicBox source pipeline', () => {
       expect(screen.queryByText('Old output')).not.toBeInTheDocument(),
     );
   });
+
+  it('keeps a settled source interactive while a sibling source is pending', async () => {
+    const slow = deferred<Box[]>();
+    const interactiveTemplate = ({
+      onClick,
+      onResultChange,
+      plaintextOutput,
+    }: BoxProps): React.JSX.Element => {
+      const [value, setValue] = useState(plaintextOutput);
+      return (
+        <>
+          <input
+            aria-label="interactive value"
+            value={value}
+            onChange={(event) => {
+              const next = event.target.value;
+              setValue(next);
+              onResultChange?.({
+                options: { value: next },
+                plaintextOutput: next,
+              });
+            }}
+          />
+          <span data-testid="interactive-visible">{value}</span>
+          <button type="button" onClick={() => onClick(value)}>
+            Copy current
+          </button>
+        </>
+      );
+    };
+    const fastBox = new BoxBuilder('Fast', 'initial')
+      .setTemplate(interactiveTemplate)
+      .setShowExpandButton(false)
+      .build();
+    const sources = [
+      sourceWithResult('fast', Promise.resolve([fastBox])),
+      sourceWithResult('slow', slow.promise),
+    ];
+
+    render(tree('input', sources));
+    expect(await screen.findByTestId('interactive-visible')).toHaveTextContent(
+      'initial',
+    );
+    expect(screen.getByTestId('magic-box-pending')).toBeInTheDocument();
+    const input = screen.getByRole('textbox', {
+      name: 'interactive value',
+    });
+    fireEvent.change(input, { target: { value: 'updated' } });
+    expect(screen.getByTestId('interactive-visible')).toHaveTextContent(
+      'updated',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Copy current' }));
+    expect(copyTextToClipboard).toHaveBeenLastCalledWith('updated');
+
+    slow.resolve([box('Slow')]);
+    await waitFor(() =>
+      expect(screen.queryByTestId('magic-box-pending')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('interactive-visible')).toHaveTextContent(
+      'updated',
+    );
+    expect(copyTextToClipboard).toHaveBeenLastCalledWith('updated');
+  });
 });
 
 describe('MagicBox live input and keyboard boundaries', () => {
@@ -217,6 +280,31 @@ describe('MagicBox live input and keyboard boundaries', () => {
     expect(
       screen.getByTestId('magic-box-result').querySelector('button'),
     ).toBeDisabled();
+  });
+
+  it('marks old results stale as soon as the debounced input becomes current', async () => {
+    const runs: Array<Deferred<Box[]>> = [];
+    const source: BoxSource = {
+      name: 'Changing',
+      description: '',
+      defaultInput: '',
+      tag: '·',
+      kind: 'Test',
+      async generateBoxes(): Promise<Box[]> {
+        const next = deferred<Box[]>();
+        runs.push(next);
+        return next.promise;
+      },
+    };
+    const { rerender } = render(tree('old', [source]));
+    await waitFor(() => expect(runs).toHaveLength(1));
+    runs[0].resolve([box('Old')]);
+    const oldCard = await screen.findByTestId('magic-box-result');
+    rerender(tree('new', [source]));
+
+    expect(oldCard).toHaveClass('is-stale');
+    expect(oldCard.querySelector('button')).toBeDisabled();
+    await waitFor(() => expect(runs).toHaveLength(2));
   });
 
   it('rerenders only changed memoized templates and registers one key listener', async () => {

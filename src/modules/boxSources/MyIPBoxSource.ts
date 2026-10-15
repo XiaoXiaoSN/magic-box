@@ -3,7 +3,7 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSourceContext } from '@modules/BoxSource';
 
-import { fetchWithTimeout, withAbort } from './network';
+import { fetchJsonWithTimeout, withAbort } from './network';
 
 interface IPInfoResponse {
   city?: string;
@@ -52,7 +52,9 @@ const fetchIPInfo = async (
   url: string,
   signal: AbortSignal,
 ): Promise<Match> => {
-  const response = await fetchWithTimeout(url, { signal });
+  const { response, payload } = await fetchJsonWithTimeout<unknown>(url, {
+    signal,
+  });
   if (
     response.ok === false ||
     (response.status !== undefined &&
@@ -61,7 +63,6 @@ const fetchIPInfo = async (
     throw new Error('The My IP request failed.');
   }
 
-  const payload: unknown = await response.json();
   if (!isIPInfoResponse(payload)) {
     throw new Error('The My IP response was invalid.');
   }

@@ -205,6 +205,15 @@ const BoxCard = memo(
         [box, onResultChange, stale],
       );
 
+      const blockStaleInteraction = useCallback(
+        (event: React.SyntheticEvent): void => {
+          if (!stale) return;
+          event.preventDefault();
+          event.stopPropagation();
+        },
+        [stale],
+      );
+
       const Comp = resolveBoxTemplate(box);
 
       return (
@@ -219,7 +228,12 @@ const BoxCard = memo(
           }
           data-testid="magic-box-result"
           onClick={handleMouseClick}
+          onClickCapture={blockStaleInteraction}
+          onChangeCapture={blockStaleInteraction}
+          onInputCapture={blockStaleInteraction}
           onKeyDown={handleKeyDown}
+          onKeyDownCapture={blockStaleInteraction}
+          onPointerDownCapture={blockStaleInteraction}
           role="button"
           tabIndex={stale ? -1 : 0}
         >

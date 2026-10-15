@@ -1,6 +1,6 @@
 import { getShortenUrl, getToolboxUrl } from '@functions/runtimePrefs';
 
-import { fetchWithTimeout } from './network';
+import { fetchJsonWithTimeout } from './network';
 
 export const isHttpUrl = (input: string): boolean => {
   try {
@@ -33,12 +33,15 @@ export async function requestShortenURL(
     throw new Error('Enter a valid HTTP(S) URL.');
   }
 
-  const response = await fetchWithTimeout(`${getToolboxUrl()}/api/v1/surl`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, shorten }),
-    signal,
-  });
+  const { response, payload } = await fetchJsonWithTimeout<unknown>(
+    `${getToolboxUrl()}/api/v1/surl`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, shorten }),
+      signal,
+    },
+  );
   if (
     response.ok === false ||
     (response.status !== undefined &&
@@ -47,10 +50,9 @@ export async function requestShortenURL(
     throw new Error('The Shorten URL request failed.');
   }
 
-  const result: unknown = await response.json();
-  if (!isShortenResponse(result)) {
+  if (!isShortenResponse(payload)) {
     throw new Error('The Shorten URL response was invalid.');
   }
 
-  return `${getShortenUrl().replace(/\/$/, '')}/${result.shorten.trim()}`;
+  return `${getShortenUrl().replace(/\/$/, '')}/${payload.shorten.trim()}`;
 }

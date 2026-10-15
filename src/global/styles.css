@@ -743,6 +743,11 @@ pre,
     var(--shadow-sm);
 }
 
+.box-card.is-stale {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .box-head {
   display: flex;
   align-items: center;
