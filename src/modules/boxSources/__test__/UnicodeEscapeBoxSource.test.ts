@@ -90,6 +90,17 @@ describe('UnicodeEscapeBoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('😀');
     });
 
+    it.each([
+      String.raw`\U0041`,
+      String.raw`\U0001F600`,
+      String.raw`\U{1f600}`,
+    ])('preserves unsupported uppercase U syntax: %s', async (input) => {
+      const boxes = await UnicodeEscapeBoxSource.generateBoxes(input, {
+        unicodeunescape: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe(input);
+    });
+
     it('does not reinterpret a backslash produced by a braces escape', async () => {
       const boxes = await UnicodeEscapeBoxSource.generateBoxes(
         String.raw`\u{5c}u0041`,

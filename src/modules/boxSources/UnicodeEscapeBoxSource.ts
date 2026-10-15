@@ -4,7 +4,7 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
-const UNICODE_ESCAPE_REGEX = /\\u(?:\{([0-9a-f]{1,6})\}|([0-9a-f]{4}))/iy;
+const UNICODE_ESCAPE_REGEX = /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/y;
 
 // escape each UTF-16 code unit: keep printable ASCII (0x20–0x7e), \uXXXX everything else.
 // astral chars (e.g. emoji) are naturally emitted as surrogate pairs (\uD800–\uDFFF).
