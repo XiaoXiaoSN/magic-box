@@ -43,17 +43,22 @@ export function useLocalAISetup(
     if (typeof window !== 'undefined' && !window.confirm(m.removeConfirm)) {
       return;
     }
-    // Terminate first: this tab must not be able to repopulate the cache it is
-    // about to delete. Other tabs still can, hence the warning in the prompt.
-    client.reset();
     setDeleting(true);
     setNotice('');
+    const lease = await client.acquireDeletionLease();
+    if (!lease) {
+      setNotice(m.removeBusy);
+      setDeleting(false);
+      return;
+    }
     try {
       await deleteLocalAIDownloads();
+      client.cacheDeletionSucceeded();
       setNotice(m.removed);
     } catch {
       setNotice(m.errors.storage);
     } finally {
+      lease();
       setDeleting(false);
     }
   };

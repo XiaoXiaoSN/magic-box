@@ -1,72 +1,101 @@
 import { describe, expect, it } from 'vitest';
 
+import { MODEL, RUNTIME_VERSION } from '../modelCatalog';
 import {
   createRepetitionGuard,
   type Logits,
   REPETITION_PENALTY,
 } from '../repetition';
+import generationConfig from './fixtures/generation_config.json';
+import tokenizerFixture from './fixtures/tokenizer_cases.json';
 
-const VOCAB = 16;
+interface TokenizerCase {
+  name: string;
+  text: string;
+  tokenIds: number[];
+}
 
-// Runs one decoding step over `ids` with flat scores and returns them.
+const fixture = tokenizerFixture as {
+  runtimeVersion: string;
+  modelRevision: string;
+  cases: TokenizerCase[];
+};
+const scoreCount = 151_646;
+
 const step = (
   guard: ReturnType<typeof createRepetitionGuard>,
   ids: number[],
-  score = 1,
+  scores: Float32Array,
 ): Float32Array => {
-  const data = new Float32Array(VOCAB).fill(score);
-  const logits: Logits = { 0: { data } };
+  scores.fill(1);
+  const logits: Logits = { 0: { data: scores } };
   guard([ids.map(BigInt)], logits);
-  return data;
+  return scores;
 };
 
 describe('createRepetitionGuard', () => {
-  it('never penalizes or bans a token for appearing in the prompt', () => {
-    // A rewrite must be able to copy "7 8 9" from its input verbatim. The
-    // built-in processors saw the prompt too and forbade exactly that.
-    const prompt = [7, 8, 9, 7, 8];
-    const guard = createRepetitionGuard(prompt.length);
-    const scores = step(guard, prompt);
-    expect(Array.from(scores)).toEqual(new Array(VOCAB).fill(1));
+  it('overrides the pinned model repetition defaults and matches the runtime/tokenizer fixtures', () => {
+    expect(fixture.runtimeVersion).toBe(RUNTIME_VERSION);
+    expect(fixture.modelRevision).toBe(MODEL.revision);
+    expect(generationConfig.repetition_penalty).toBe(1.1);
+    expect(generationConfig.do_sample).toBe(true);
+    expect(REPETITION_PENALTY).toBe(1.1);
   });
 
-  it('bans a trigram the answer already produced', () => {
-    const prompt = [1, 2];
-    const guard = createRepetitionGuard(prompt.length);
-    // Answer so far: 3 4 5 3 4 → next 5 would repeat "3 4 5".
-    const scores = step(guard, [...prompt, 3, 4, 5, 3, 4]);
-    expect(scores[5]).toBe(-Infinity);
-    expect(scores[6]).toBe(1);
+  it('never penalizes or bans a token for appearing in the prompt', () => {
+    const prompt = [7, 8, 9, 7, 8];
+    const scores = step(
+      createRepetitionGuard(prompt.length),
+      prompt,
+      new Float32Array(scoreCount),
+    );
+    expect(Array.from(scores.slice(0, 16))).toEqual(new Array(16).fill(1));
+  });
+
+  it('keeps repeated CJK entities, URL prefixes and similar code loops available', () => {
+    const promptToken = 151_643;
+    const scores = new Float32Array(scoreCount);
+    for (const sample of fixture.cases.filter(
+      ({ name }) => name !== 'genuine-single-token-loop',
+    )) {
+      expect(sample.text.length).toBeGreaterThan(0);
+      const guard = createRepetitionGuard(1);
+      const ids = [promptToken];
+      for (const token of sample.tokenIds) {
+        const current = step(guard, ids, scores);
+        expect(current[token]).not.toBe(-Infinity);
+        ids.push(token);
+      }
+    }
+  });
+
+  it('stops a sustained single-token loop after four repeated generated tokens', () => {
+    const loop = fixture.cases.find(
+      ({ name }) => name === 'genuine-single-token-loop',
+    );
+    expect(loop).toBeDefined();
+    const repeatedToken = loop?.tokenIds.at(-1);
+    expect(repeatedToken).toBeDefined();
+    const guard = createRepetitionGuard(1);
+    const scores = step(
+      guard,
+      [151_643, ...(loop?.tokenIds.slice(0, 5) ?? [])],
+      new Float32Array(scoreCount),
+    );
+    expect(scores[repeatedToken as number]).toBe(-Infinity);
   });
 
   it('penalizes only generated tokens, in the direction of the sign', () => {
     const guard = createRepetitionGuard(2);
-    const positive = step(guard, [9, 10, 3], 2);
-    expect(positive[3]).toBeCloseTo(2 / REPETITION_PENALTY);
-    expect(positive[9]).toBe(2);
+    const scores = new Float32Array(scoreCount);
+    const positive = step(guard, [9, 10, 3], scores);
+    expect(positive[3]).toBeCloseTo(1 / REPETITION_PENALTY);
+    expect(positive[9]).toBe(1);
 
     const negativeGuard = createRepetitionGuard(2);
-    const negative = step(negativeGuard, [9, 10, 3], -2);
-    expect(negative[3]).toBeCloseTo(-2 * REPETITION_PENALTY);
-  });
-
-  it('matches a from-scratch scan when fed one token per step', () => {
-    // The guard is incremental; stepping it must equal rebuilding the n-gram
-    // table over the whole answer at the last step.
-    const prompt = [0];
-    const answer = [3, 4, 5, 3, 4, 6, 3, 4];
-    const incremental = createRepetitionGuard(prompt.length);
-    let scores: Float32Array = new Float32Array();
-    for (let n = 0; n <= answer.length; n++) {
-      scores = step(incremental, [...prompt, ...answer.slice(0, n)]);
-    }
-    const fresh = step(createRepetitionGuard(prompt.length), [
-      ...prompt,
-      ...answer,
-    ]);
-    expect(Array.from(scores)).toEqual(Array.from(fresh));
-    // "3 4" was followed by 5 and by 6: both are banned now.
-    expect(scores[5]).toBe(-Infinity);
-    expect(scores[6]).toBe(-Infinity);
+    const negativeScores = new Float32Array(scoreCount);
+    negativeScores.fill(-2);
+    negativeGuard([[9n, 10n, 3n]], { 0: { data: negativeScores } });
+    expect(negativeScores[3]).toBeCloseTo(-2 * REPETITION_PENALTY);
   });
 });

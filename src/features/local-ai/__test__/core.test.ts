@@ -2,15 +2,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { checkCapabilities } from '../capabilities';
 import { LocalAIClient, type WorkerPort } from '../client';
-import { MAX_INPUT_CHARS, MAX_PROMPT_TOKENS } from '../modelCatalog';
+import { MAX_PROMPT_TOKENS, MAX_TRANSPORT_INPUT_CHARS } from '../modelCatalog';
+import type { ModelOwnership } from '../ownership';
 import { describePhase, describeSetupStep } from '../setupStep';
 import { buildMessages, checkTokenBudget } from '../tasks';
-import type { AICommand, AIEvent, AIRequest, AIState } from '../types';
+import type {
+  AICommand,
+  AIEvent,
+  AIRequest,
+  AIState,
+  GenerationMetrics,
+} from '../types';
 import { LocalAIError } from '../types';
 
 // `Omit` over a discriminated union collapses to the shared keys, so distribute
 // it to keep each variant's payload.
-type WorkerEventBody<T> = T extends { id: number } ? Omit<T, 'id'> : never;
+type WorkerEventBody<T> = T extends { type: 'ready'; id: number }
+  ? Omit<T, 'id' | 'cached'> & { cached?: boolean }
+  : T extends { type: 'complete'; id: number }
+    ? Omit<T, 'id' | 'metrics'> & { metrics?: GenerationMetrics }
+    : T extends { id: number }
+      ? Omit<T, 'id'>
+      : never;
 
 const request = (): AIRequest => ({
   input: 'A private question',
@@ -36,19 +49,36 @@ class FakeWorker implements WorkerPort {
   // Replies against the id of the last admitted command, like the real worker.
   reply(event: WorkerEventBody<AIEvent>): void {
     const id = this.commands.at(-1)?.id ?? -1;
-    this.emit({ ...event, id } as AIEvent);
+    const normalized =
+      event.type === 'ready'
+        ? { ...event, id, cached: event.cached ?? true }
+        : event.type === 'complete'
+          ? {
+              ...event,
+              id,
+              metrics: event.metrics ?? {
+                outputTokens: 0,
+                tokensPerSecond: null,
+                timeToFirstTokenMs: null,
+              },
+            }
+          : { ...event, id };
+    this.emit(normalized as AIEvent);
   }
 }
 
 const clients: LocalAIClient[] = [];
 
-const setupClient = (ready = false) => {
+const setupClient = (
+  ready = false,
+  ownership: ModelOwnership | null = null,
+) => {
   const workers: FakeWorker[] = [];
   const client = new LocalAIClient(() => {
     const worker = new FakeWorker();
     workers.push(worker);
     return worker;
-  });
+  }, ownership);
   clients.push(client);
   if (ready) {
     client.inspect();
@@ -141,13 +171,142 @@ describe('local AI client ownership', () => {
     expect(workers[0].terminated).toBe(false);
   });
 
+  it('ignores stale token counts and clears a count when the request changes', () => {
+    const { client, workers } = setupClient(true);
+    client.count(request());
+    const firstCountId = workers[0].commands.at(-1)?.id ?? 0;
+    client.count({ ...request(), input: 'new request' });
+    const secondCountId = workers[0].commands.at(-1)?.id ?? 0;
+    workers[0].emit({ type: 'counted', id: firstCountId, tokens: 9 });
+    expect(client.getSnapshot().inputTokens).toBeNull();
+    workers[0].emit({ type: 'counted', id: secondCountId, tokens: 17 });
+    expect(client.getSnapshot()).toMatchObject({ inputTokens: 17 });
+    client.invalidateCount();
+    workers[0].emit({ type: 'counted', id: secondCountId, tokens: 18 });
+    expect(client.getSnapshot()).toMatchObject({
+      inputTokens: null,
+      countedRequest: null,
+    });
+  });
+
   it('reports a completion that raced with cancel as a partial stop', () => {
     const { client, workers } = setupClient(true);
     client.generate(request());
     workers[0].reply({ type: 'delta', text: 'partial' });
     client.stop();
-    workers[0].reply({ type: 'complete' });
-    expect(client.getSnapshot().phase).toBe('stopped');
+    workers[0].reply({
+      type: 'complete',
+      metrics: {
+        outputTokens: 50,
+        tokensPerSecond: 12,
+        timeToFirstTokenMs: 100,
+      },
+    });
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'stopped',
+      output: 'partial',
+      metrics: null,
+    });
+  });
+
+  it('blocks a remounted surface until the deletion lease is released', async () => {
+    const { client } = setupClient(true);
+    const lease = await client.acquireDeletionLease();
+    expect(lease).toEqual(expect.any(Function));
+    expect(client.getSnapshot().info?.cached).toBe(true);
+    expect(client.prepare()).toBe(false);
+    expect(client.generate(request())).toBe(false);
+    expect(client.count(request())).toBe(false);
+
+    client.cacheDeletionSucceeded();
+    expect(client.getSnapshot().info?.cached).toBe(false);
+    lease?.();
+    expect(client.prepare()).toBe(true);
+  });
+
+  it('blocks operations while a deletion lease is pending', async () => {
+    let grantLease: (granted: boolean) => void = () => {};
+    const leasePending = new Promise<boolean>((resolve) => {
+      grantLease = resolve;
+    });
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
+      acquire: vi.fn(async () => 'acquired' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(() => leasePending),
+      notifyCacheDeleted: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const { client } = setupClient(true, ownership);
+
+    const cacheStatus = client.getSnapshot().info;
+    const acquiring = client.acquireDeletionLease();
+    expect(client.getSnapshot().info).toEqual(cacheStatus);
+    expect(client.prepare()).toBe(false);
+    expect(client.generate(request())).toBe(false);
+    expect(client.count(request())).toBe(false);
+    grantLease(true);
+    const lease = await acquiring;
+    expect(client.prepare()).toBe(false);
+    lease?.();
+    expect(client.prepare()).toBe(true);
+  });
+
+  it('preserves verified cache status when the deletion lease is denied', async () => {
+    const workers: FakeWorker[] = [];
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
+      acquire: vi.fn(async () => 'acquired' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(async () => false),
+      notifyCacheDeleted: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const client = new LocalAIClient(() => {
+      const worker = new FakeWorker();
+      workers.push(worker);
+      return worker;
+    }, ownership);
+    clients.push(client);
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: true },
+    });
+
+    await expect(client.acquireDeletionLease()).resolves.toBeNull();
+    expect(client.getSnapshot().info).toEqual({ bytes: 500, cached: true });
+  });
+
+  it('keeps an explicit prepare immediate when another tab owns the model', async () => {
+    const ownership: ModelOwnership = {
+      setReleaseHandler: () => {},
+      setCacheDeletedHandler: () => {},
+      acquire: vi.fn(async () => 'busy' as const),
+      release: vi.fn(),
+      acquireForDeletion: vi.fn(async () => false),
+      notifyCacheDeleted: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const { client, workers } = setupClient(false, ownership);
+    client.inspect();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 500, cached: true },
+    });
+
+    client.prepare({ cacheOnly: true });
+    await Promise.resolve();
+
+    expect(ownership.acquire).toHaveBeenCalledWith(undefined);
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'busy',
+      loaded: false,
+    });
+    expect(workers[0].commands).toHaveLength(1);
   });
 
   it('terminates an unresponsive generation after the cancel deadline', () => {
@@ -161,6 +320,87 @@ describe('local AI client ownership', () => {
     expect(client.getSnapshot()).toMatchObject({
       phase: 'stopped',
       loaded: false,
+    });
+  });
+
+  it('gives cooperative cancellation time to finish after its acknowledgement', () => {
+    vi.useFakeTimers();
+    const { client, workers } = setupClient(true);
+    client.generate(request());
+    client.stop();
+    workers[0].reply({ type: 'cancelling' });
+    vi.advanceTimersByTime(2_000);
+    expect(workers[0].terminated).toBe(false);
+    workers[0].reply({ type: 'cancelled' });
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'stopped',
+      loaded: true,
+    });
+    expect(workers[0].terminated).toBe(false);
+  });
+
+  it('resets generation inactivity after each delta beyond three minutes', () => {
+    vi.useFakeTimers();
+    const { client, workers } = setupClient(true);
+    client.generate(request());
+    const id = workers[0].commands.at(-1)?.id ?? 0;
+    workers[0].emit({ type: 'delta', id, text: 'first' });
+    vi.advanceTimersByTime(100_000);
+    workers[0].emit({ type: 'delta', id, text: 'second' });
+    vi.advanceTimersByTime(100_000);
+    workers[0].emit({ type: 'delta', id, text: 'third' });
+    vi.advanceTimersByTime(100_000);
+    expect(client.getSnapshot().phase).toBe('generating');
+    expect(client.getSnapshot().output).toBe('firstsecondthird');
+    vi.advanceTimersByTime(21_000);
+    expect(client.getSnapshot().phase).toBe('stopping');
+    expect(workers[0].commands.at(-1)?.type).toBe('cancel');
+    workers[0].reply({ type: 'cancelling' });
+    workers[0].reply({ type: 'cancelled' });
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'timeout',
+      loaded: true,
+    });
+  });
+
+  it('tries cooperative cancellation before terminating after the first-token bound', () => {
+    vi.useFakeTimers();
+    const { client, workers } = setupClient(true);
+    client.generate(request());
+    vi.advanceTimersByTime(300_000);
+    expect(client.getSnapshot().phase).toBe('stopping');
+    expect(workers[0].commands.at(-1)?.type).toBe('cancel');
+    expect(workers[0].terminated).toBe(false);
+
+    workers[0].reply({ type: 'cancelling' });
+    vi.advanceTimersByTime(30_000);
+    expect(workers[0].terminated).toBe(true);
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'timeout',
+      loaded: false,
+    });
+  });
+
+  it('keeps a completion racing with timeout marked as timed out', () => {
+    vi.useFakeTimers();
+    const { client, workers } = setupClient(true);
+    client.generate(request());
+    vi.advanceTimersByTime(300_000);
+    workers[0].reply({
+      type: 'complete',
+      metrics: {
+        outputTokens: 50,
+        tokensPerSecond: 12,
+        timeToFirstTokenMs: 100,
+      },
+    });
+
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      error: 'timeout',
+      metrics: null,
     });
   });
 
@@ -419,7 +659,7 @@ describe('prompt construction and bounds', () => {
     }
     expect(() =>
       buildMessages({
-        input: 'x'.repeat(MAX_INPUT_CHARS + 1),
+        input: 'x'.repeat(MAX_TRANSPORT_INPUT_CHARS + 1),
         task: 'ask',
         language: 'en',
       }),
@@ -476,6 +716,9 @@ describe('describeSetupStep', () => {
     submitted: null,
     error: null,
     progress: null,
+    inputTokens: null,
+    countedRequest: null,
+    metrics: null,
   };
   // The real registry total for the pinned revision: weights + tokenizer.
   const info = { bytes: 490_035_255, cached: false };
@@ -529,6 +772,9 @@ describe('describePhase', () => {
     submitted: null,
     error: null,
     progress: null,
+    inputTokens: null,
+    countedRequest: null,
+    metrics: null,
   };
 
   it('names the download only while bytes are actually moving', () => {

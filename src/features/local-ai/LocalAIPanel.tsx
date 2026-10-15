@@ -1,6 +1,6 @@
 import copyTextToClipboard from '@functions/clipboard';
 import { activateLocalAIPrivacy } from '@functions/localAIPrivacy';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useIsBoxPreview } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
@@ -10,7 +10,11 @@ import './localAI.css';
 import LocalAIProgress from './LocalAIProgress';
 import LocalAISettingsDialog from './LocalAISettingsDialog';
 import { localAIMessages } from './messages';
-import { MAX_INPUT_CHARS, MODEL } from './modelCatalog';
+import {
+  MAX_PROMPT_TOKENS,
+  MAX_TRANSPORT_INPUT_CHARS,
+  MODEL,
+} from './modelCatalog';
 import { describePhase, phaseTone } from './setupStep';
 import { isBusy } from './types';
 import { useLocalAI } from './useLocalAI';
@@ -28,6 +32,9 @@ interface Props {
   // single place the prompt is edited.
   sourceInput?: string;
 }
+
+const requestKey = (input: string, task: string, language: string) =>
+  JSON.stringify([input.trim(), task, language]);
 
 const GearIcon = () => (
   <svg
@@ -72,13 +79,19 @@ const LocalAIPanel = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   // A resolved clipboard write must not mark a newer output as copied.
   const copySequence = useRef(0);
-  // The last host prompt that was actually submitted. It suppresses a second
-  // run of the same text — including the re-run the auto-run effect would
+  // the last request that was actually submitted. It suppresses a second
+  // run of the same input, task and language — including the re-run the auto-run effect would
   // otherwise fire the moment a manual run settles. Seeded from the shared
   // client, so remounting the box over a model that already answered this
   // prompt does not answer it again.
   const lastRunRef = useRef<string | null>(
-    client.getSnapshot().submitted?.input ?? null,
+    state.submitted
+      ? requestKey(
+          state.submitted.input,
+          state.submitted.task,
+          state.submitted.language,
+        )
+      : null,
   );
   // Edge of `state.loaded`, so a model that was released and loaded again
   // re-arms the carried prompt instead of looking inert.
@@ -92,7 +105,34 @@ const LocalAIPanel = ({
   const prompt = hostPrompt || draft;
   const task = prefs.aiTask;
   const language = resolveAILanguage(prefs.aiLanguage, locale);
-  const overLimit = prompt.length > MAX_INPUT_CHARS;
+  const overLimit = prompt.length > MAX_TRANSPORT_INPUT_CHARS;
+  const hasCurrentCount =
+    state.countedRequest !== null &&
+    state.countedRequest.input.trim() === prompt.trim() &&
+    state.countedRequest.task === task &&
+    state.countedRequest.language === language;
+  const tokenLimitExceeded =
+    hasCurrentCount &&
+    state.inputTokens !== null &&
+    state.inputTokens > MAX_PROMPT_TOKENS;
+  const sameAsSubmitted =
+    state.submitted !== null &&
+    requestKey(prompt, task, language) ===
+      requestKey(
+        state.submitted.input,
+        state.submitted.task,
+        state.submitted.language,
+      );
+  const numberLocale = locale === 'tw' ? 'zh-TW' : locale;
+  const numberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(numberLocale, {
+        maximumFractionDigits: 1,
+      }),
+    [numberLocale],
+  );
+  const formatNumber = (value: number | null): string =>
+    value === null ? '—' : numberFormatter.format(value);
   // The host's callback identity is not stable; keep it out of effect deps so a
   // parent re-render cannot republish the same output.
   const onOutputRef = useRef(onOutput);
@@ -129,6 +169,15 @@ const LocalAIPanel = ({
     onOutputRef.current?.(text);
   }, [state.phase, state.output]);
 
+  useEffect(() => {
+    client.invalidateCount();
+    if (!prompt.trim() || !state.loaded || overLimit) return;
+    const timeout = setTimeout(() => {
+      client.count({ input: prompt, task, language });
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [client, language, overLimit, prompt, state.loaded, task]);
+
   // A prompt carried in by `::ai` runs on its own ONLY when the model is
   // already loaded in this tab — which took a deliberate click — and only
   // once per distinct prompt. It never downloads anything, and `state.phase`
@@ -145,17 +194,23 @@ const LocalAIPanel = ({
     if (
       state.phase === 'generating' &&
       lastRunRef.current !== null &&
-      state.submitted?.input === lastRunRef.current &&
-      hostPrompt !== lastRunRef.current
+      state.submitted !== null &&
+      requestKey(
+        state.submitted.input,
+        state.submitted.task,
+        state.submitted.language,
+      ) === lastRunRef.current &&
+      requestKey(hostPrompt, task, language) !== lastRunRef.current
     ) {
       client.stop();
       return;
     }
-    if (!hostPrompt || hostPrompt.length > MAX_INPUT_CHARS) return;
+    if (!hostPrompt || hostPrompt.length > MAX_TRANSPORT_INPUT_CHARS) return;
     if (!state.loaded || isBusy(state.phase)) return;
-    if (lastRunRef.current === hostPrompt) return;
+    const key = requestKey(hostPrompt, task, language);
+    if (lastRunRef.current === key) return;
     if (client.generate({ input: hostPrompt, task, language })) {
-      lastRunRef.current = hostPrompt;
+      lastRunRef.current = key;
     }
   }, [
     client,
@@ -182,7 +237,9 @@ const LocalAIPanel = ({
     setup.clearNotice();
     // Recorded even for a draft run (as null) so switching back to a host
     // prompt still auto-runs it once.
-    lastRunRef.current = hostPrompt || null;
+    lastRunRef.current = hostPrompt
+      ? requestKey(hostPrompt, task, language)
+      : null;
     client.generate({ input: prompt, task, language });
   };
 
@@ -263,11 +320,17 @@ const LocalAIPanel = ({
           <button
             className="local-ai-button primary"
             data-testid="local-ai-run"
-            disabled={busy || setup.deleting || !prompt.trim() || overLimit}
+            disabled={
+              busy ||
+              setup.deleting ||
+              !prompt.trim() ||
+              overLimit ||
+              tokenLimitExceeded
+            }
             onClick={runPrompt}
             type="button"
           >
-            {m.run}
+            {sameAsSubmitted ? m.regenerate : m.run}
           </button>
         )}
         {setup.canStop ? (
@@ -281,9 +344,11 @@ const LocalAIPanel = ({
             {m.stop}
           </button>
         ) : null}
-        {!hostPrompt && draft.length > 0 ? (
-          <span className="local-ai-count">
-            {draft.length.toLocaleString()} / {MAX_INPUT_CHARS.toLocaleString()}
+        {prompt.trim() ? (
+          <span className="local-ai-count" data-testid="local-ai-token-count">
+            {hasCurrentCount && state.inputTokens !== null
+              ? `${formatNumber(state.inputTokens)} / 1,024 tokens`
+              : m.tokenCountUnknown}
           </span>
         ) : null}
       </div>
@@ -305,7 +370,16 @@ const LocalAIPanel = ({
           {m.errors[state.error]}
         </p>
       ) : null}
-      {overLimit ? (
+      {state.loaded && state.info?.cached === false ? (
+        <p
+          className="local-ai-error"
+          data-testid="local-ai-cache-warning"
+          role="alert"
+        >
+          {m.memoryOnly}
+        </p>
+      ) : null}
+      {overLimit || tokenLimitExceeded ? (
         <p className="local-ai-error" role="alert">
           {m.errors.inputLimit}
         </p>
@@ -332,6 +406,23 @@ const LocalAIPanel = ({
           <pre aria-busy={busy} data-testid="local-ai-output">
             {state.output}
           </pre>
+          {state.metrics ? (
+            <p
+              className="local-ai-note"
+              data-testid="local-ai-generation-stats"
+            >
+              {m.generationStats
+                .replace('{{tokens}}', formatNumber(state.metrics.outputTokens))
+                .replace(
+                  '{{rate}}',
+                  formatNumber(state.metrics.tokensPerSecond),
+                )
+                .replace(
+                  '{{ttft}}',
+                  formatNumber(state.metrics.timeToFirstTokenMs),
+                )}
+            </p>
+          ) : null}
           <div className="local-ai-actions">
             <button
               className="local-ai-button"
@@ -375,6 +466,7 @@ const LocalAIPanel = ({
         promptFromInput={hostPrompt !== ''}
         onRelease={() => client.release()}
         onRemove={() => void setup.removeDownloads()}
+        onInspect={() => client.inspect()}
         open={settingsOpen}
         state={state}
       />

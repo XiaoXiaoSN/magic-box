@@ -42,7 +42,11 @@ const LocalAIModelSettings = ({
         <div className="field-info">
           <div className="field-label">{t('settings.aiModel')}</div>
           <div className="field-hint">
-            {state.loaded ? m.provisioned : t('settings.aiModelHint')}
+            {state.loaded
+              ? state.info?.cached
+                ? m.provisioned
+                : m.memoryOnly
+              : t('settings.aiModelHint')}
           </div>
           <div className="field-hint" data-testid="settings-ai-status">
             {describePhase(state, locale)}
@@ -74,9 +78,22 @@ const LocalAIModelSettings = ({
 
       {/* Only rendered when it has something to say: an empty grid would
           otherwise add a gap between the two field rows. */}
-      {step?.note || state.progress || state.error || setup.notice ? (
+      {step?.note ||
+      state.progress ||
+      state.error ||
+      setup.notice ||
+      (state.loaded && !state.info?.cached) ? (
         <div className="local-ai">
           {step?.note ? <p className="local-ai-hint">{step.note}</p> : null}
+          {state.loaded && state.info?.cached === false ? (
+            <p
+              className="local-ai-error"
+              data-testid="settings-ai-cache-warning"
+              role="alert"
+            >
+              {m.memoryOnly}
+            </p>
+          ) : null}
           {state.progress ? (
             <LocalAIProgress
               label={m.downloading}

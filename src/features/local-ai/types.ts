@@ -12,6 +12,7 @@ export type AIErrorCode =
   | 'generation'
   | 'inputLimit'
   | 'invalidRequest'
+  | 'busy'
   | 'timeout';
 
 export interface AIRequest {
@@ -25,10 +26,17 @@ export interface ModelInfo {
   cached: boolean;
 }
 
+export interface GenerationMetrics {
+  outputTokens: number;
+  tokensPerSecond: number | null;
+  timeToFirstTokenMs: number | null;
+}
+
 export type AICommand =
   | { type: 'inspect'; id: number }
-  | { type: 'prepare'; id: number }
+  | { type: 'prepare'; id: number; cacheOnly: boolean }
   | { type: 'cancel'; id: number }
+  | { type: 'count'; id: number; request: AIRequest }
   | { type: 'generate'; id: number; request: AIRequest };
 
 export type AIEvent =
@@ -36,7 +44,10 @@ export type AIEvent =
   // `progress` is the aggregate model download in percent, or null while only
   // a sign of life is known (the tokenizer files).
   | { type: 'progress'; id: number; progress: number | null }
-  | { type: 'ready' | 'complete' | 'cancelled'; id: number }
+  | { type: 'ready'; id: number; cached: boolean }
+  | { type: 'complete'; id: number; metrics: GenerationMetrics }
+  | { type: 'cancelled' | 'cancelling'; id: number }
+  | { type: 'counted'; id: number; tokens: number | null }
   | { type: 'delta'; id: number; text: string }
   | { type: 'error'; id: number; code: AIErrorCode };
 
@@ -60,6 +71,9 @@ export interface AIState {
   submitted: AIRequest | null;
   error: AIErrorCode | null;
   progress: { percent: number | null } | null;
+  inputTokens: number | null;
+  countedRequest: AIRequest | null;
+  metrics: GenerationMetrics | null;
 }
 
 export class LocalAIError extends Error {

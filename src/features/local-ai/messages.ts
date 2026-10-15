@@ -31,10 +31,12 @@ interface Messages {
   maintenanceTitle: string;
   inspect: string;
   run: string;
+  regenerate: string;
   stop: string;
   release: string;
   remove: string;
   removeConfirm: string;
+  removeBusy: string;
   removed: string;
   task: string;
   language: string;
@@ -54,6 +56,19 @@ interface Messages {
   evictionNote: string;
   requirements: string;
   budget: string;
+  tokenCountUnknown: string;
+  inputCap: string;
+  storageChecking: string;
+  storageUnavailable: string;
+  storageSummary: string;
+  storagePersistent: string;
+  storageTemporary: string;
+  storageUnknown: string;
+  lowStorage: string;
+  cachedVerified: string;
+  cacheMissing: string;
+  memoryOnly: string;
+  generationStats: string;
   memoryNote: string;
   telemetryNote: string;
   stoppedNote: string;
@@ -95,11 +110,14 @@ export const localAIMessages: Record<UILocale, Messages> = {
     checkDetail:
       'Opening this box checks WebGPU support and the local model cache. The exact download size is pinned to this model revision. No weights are fetched until you press the download button. Turn it off in Settings › AI.',
     run: 'Run locally',
+    regenerate: 'Regenerate',
     stop: 'Stop',
     release: 'Release memory',
     remove: 'Delete AI downloads',
     removeConfirm:
-      'Delete this feature’s model and runtime caches? Close Local AI in other tabs first. Your other tools and settings will not be removed.',
+      'Delete this feature’s model and runtime caches? Other Local AI tabs will be asked to release the model first. Your other tools and settings will not be removed.',
+    removeBusy:
+      'Could not get every Local AI tab to release the model. Try again when those tabs are active.',
     removed: 'AI downloads deleted.',
     task: 'Task',
     language: 'Output language',
@@ -109,6 +127,11 @@ export const localAIMessages: Record<UILocale, Messages> = {
     firstUseSized:
       'First use downloads {{size}}, then keeps it on this device.',
     cached: 'Model files were found in the cache at the last check.',
+    cachedVerified:
+      'The required model files are present in this device cache.',
+    cacheMissing: 'The model files are not fully present in this device cache.',
+    memoryOnly:
+      'The model is loaded, but its files could not be verified in the device cache. Releasing it will require a fresh download.',
     source: 'Model card',
     caution: 'This small local model can produce wrong answers.',
     modelDetails: 'Model details',
@@ -119,7 +142,21 @@ export const localAIMessages: Record<UILocale, Messages> = {
       'The browser may evict the cache, so this is not an offline guarantee.',
     requirements:
       'Requires WebGPU with shader-f16. There is no cloud or CPU fallback.',
-    budget: 'Single turn · 1,024 input tokens · 256 output tokens.',
+    budget:
+      'Single turn · 1,024 input tokens · 256 output tokens. A separate 6,000-character transport cap also applies.',
+    tokenCountUnknown: 'Token count available after the model is loaded.',
+    inputCap: 'A 6,000-character transport safety cap also applies.',
+    storageChecking: 'Checking browser storage…',
+    storageUnavailable: 'Storage estimate unavailable.',
+    storageSummary:
+      'Storage estimate: {{available}} available of {{quota}}; persistent storage: {{persisted}}.',
+    storagePersistent: 'yes',
+    storageTemporary: 'no',
+    storageUnknown: 'unknown',
+    lowStorage:
+      'The available estimate is smaller than the model download; the browser may not keep all model files.',
+    generationStats:
+      '{{tokens}} output tokens · {{rate}} tokens/s · first visible token {{ttft}} ms',
     memoryNote:
       'GPU memory is released when the tab goes to the background, once a download or answer in progress has finished.',
     telemetryNote: 'Usage statistics stay disabled for the rest of this visit.',
@@ -154,11 +191,12 @@ export const localAIMessages: Record<UILocale, Messages> = {
       generation:
         'Generation failed. The worker was released; load the model again and retry with shorter text.',
       inputLimit:
-        'Text exceeds the character or 1,024-token prompt budget (including instructions). Shorten it and retry.',
+        'Text exceeds the 6,000-character transport cap or 1,024-token prompt budget (including instructions). Shorten it and retry.',
       invalidRequest:
         'Enter non-empty text and select a supported task and language.',
       timeout:
         'The operation timed out and was stopped. Check the connection or try a shorter request.',
+      busy: 'Another tab may be using Local AI, or this browser cannot coordinate model ownership. Release the other session and retry.',
     },
   },
   tw: {
@@ -182,11 +220,13 @@ export const localAIMessages: Record<UILocale, Messages> = {
     checkDetail:
       '開啟這個 box 會檢查 WebGPU 支援與本機模型快取。精確下載大小已和此模型 revision 一起固定；在你按下下載按鈕前不會取得任何權重。可在「設定 › AI」關閉。',
     run: '本機執行',
+    regenerate: '重新產生',
     stop: '停止',
     release: '釋放記憶體',
     remove: '刪除 AI 下載',
     removeConfirm:
-      '刪除此功能的模型與 runtime 快取？請先關閉其他分頁的本地 AI。其他工具與設定不會被刪除。',
+      '刪除此功能的模型與 runtime 快取？系統會先請其他本地 AI 分頁釋放模型。其他工具與設定不會被刪除。',
+    removeBusy: '無法請所有本地 AI 分頁釋放模型，請等其他分頁恢復作用後再試。',
     removed: '已刪除 AI 下載。',
     task: '任務',
     language: '輸出語言',
@@ -194,7 +234,11 @@ export const localAIMessages: Record<UILocale, Messages> = {
     autoRunHint: '否則請自行按「本機執行」。',
     firstUse: '模型會在首次使用時下載，並保存在這台裝置。',
     firstUseSized: '首次使用會下載 {{size}}，之後保存在這台裝置。',
-    cached: '上次檢查時，模型檔案已在快取中。',
+    cached: '本次檢查已在快取中找到模型檔案。',
+    cachedVerified: '已在這台裝置的快取中找到所需模型檔案。',
+    cacheMissing: '這台裝置的快取中沒有完整模型檔案。',
+    memoryOnly:
+      '模型已載入，但無法確認模型檔案已存入裝置快取。釋放模型後需要重新下載。',
     source: '模型資訊',
     caution: '這個小型本機模型可能給出錯誤的答案。',
     modelDetails: '模型詳細資訊',
@@ -202,7 +246,21 @@ export const localAIMessages: Record<UILocale, Messages> = {
     sourceFiles: 'Runtime 程式與權重取自 jsDelivr 與 Hugging Face。',
     evictionNote: '瀏覽器可能清除快取，因此不保證可離線使用。',
     requirements: '需要支援 shader-f16 的 WebGPU，且不會改用雲端或 CPU。',
-    budget: '單輪 · 輸入上限 1,024 tokens · 輸出上限 256 tokens。',
+    budget:
+      '單輪 · 輸入上限 1,024 tokens · 輸出上限 256 tokens。另有 6,000 字元的傳輸安全上限。',
+    tokenCountUnknown: '載入模型後會顯示 token 數量。',
+    inputCap: '另有 6,000 字元的傳輸安全上限。',
+    storageChecking: '正在檢查瀏覽器儲存空間…',
+    storageUnavailable: '無法取得儲存空間估算。',
+    storageSummary:
+      '儲存空間估算：可用 {{available}}／總額 {{quota}}；持久儲存：{{persisted}}。',
+    storagePersistent: '是',
+    storageTemporary: '否',
+    storageUnknown: '未知',
+    lowStorage:
+      '估算可用空間小於模型下載大小，瀏覽器可能無法保留完整模型檔案。',
+    generationStats:
+      '輸出 {{tokens}} tokens · {{rate}} tokens/s · 首個可見 token {{ttft}} ms',
     memoryNote: '分頁切到背景時，會在進行中的下載或回答完成後釋放 GPU 記憶體。',
     telemetryNote: '本次瀏覽期間都會停用使用統計。',
     stoppedNote: '已停止，上面的輸出並不完整。',
@@ -235,9 +293,10 @@ export const localAIMessages: Record<UILocale, Messages> = {
       load: '模型初始化失敗，已釋放 Worker。請檢查網路或裝置資源後重試。',
       generation: '生成失敗，已釋放 Worker。請重新載入模型，並縮短輸入後重試。',
       inputLimit:
-        '輸入超過字元或 1,024-token 預算（包含系統指令），請縮短後重試。',
+        '輸入超過 6,000 字元傳輸上限或 1,024-token 預算（包含系統指令），請縮短後重試。',
       invalidRequest: '請輸入文字，並選擇支援的任務與語言。',
       timeout: '操作逾時，已停止。請檢查網路或縮短輸入後重試。',
+      busy: '其他分頁可能正在使用本地 AI，或此瀏覽器無法協調模型使用權。請釋放其他工作階段後再試。',
     },
   },
 };

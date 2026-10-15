@@ -27,7 +27,7 @@ export const MODEL = {
 export const MODEL_CACHE = `magic-box-local-ai-${RUNTIME_VERSION}-${MODEL.revision}-${MODEL.dtype}`;
 export const RUNTIME_CACHE = 'magic-box-local-ai-runtime-v2';
 
-export const MAX_INPUT_CHARS = 6000;
+export const MAX_TRANSPORT_INPUT_CHARS = 6000;
 export const MAX_PROMPT_TOKENS = 1024;
 export const MAX_NEW_TOKENS = 256;
 

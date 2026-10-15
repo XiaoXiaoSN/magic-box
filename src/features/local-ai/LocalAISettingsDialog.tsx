@@ -1,13 +1,14 @@
 import { Select, Toggle } from '@components/Controls';
 import ModalShell from '@components/MagicBox/ModalShell';
-import { useId } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { aiLanguageOptions, aiTaskOptions, formatModelSize } from './labels';
 import { localAIMessages } from './messages';
 import { MODEL } from './modelCatalog';
 import { describePhase, phaseTone } from './setupStep';
-import type { AIState } from './types';
+import { type LocalAIStorageStatus, readLocalAIStorageStatus } from './storage';
+import { type AIState, isBusy } from './types';
 
 interface Props {
   open: boolean;
@@ -23,6 +24,7 @@ interface Props {
   promptFromInput: boolean;
   onRelease: () => void;
   onRemove: () => void;
+  onInspect?: () => void;
 }
 
 // Everything the box does not need on screen while you read an answer: the
@@ -38,15 +40,67 @@ const LocalAISettingsDialog = ({
   promptFromInput,
   onRelease,
   onRemove,
+  onInspect,
 }: Props): React.JSX.Element => {
   const { locale } = useLocale();
   const m = localAIMessages[locale];
   const { prefs, setPref } = usePreferences();
   const taskId = useId();
   const languageId = useId();
+  const inspectRequested = useRef(false);
+  const [storageStatus, setStorageStatus] =
+    useState<LocalAIStorageStatus | null>(null);
   // A request is snapshotted when it is submitted, so only a running
   // generation makes a changed choice ambiguous; a check or a download does not.
   const generating = state.phase === 'generating' || state.phase === 'stopping';
+
+  useEffect(() => {
+    if (!open) {
+      inspectRequested.current = false;
+      return;
+    }
+    if (!inspectRequested.current) {
+      inspectRequested.current = true;
+      if (!state.loaded && !isBusy(state.phase)) onInspect?.();
+    }
+  }, [onInspect, open, state.loaded, state.phase]);
+
+  useEffect(() => {
+    if (!open) return;
+    let current = true;
+    setStorageStatus(null);
+    void readLocalAIStorageStatus().then((status) => {
+      if (current) setStorageStatus(status);
+    });
+    return () => {
+      current = false;
+    };
+  }, [open]);
+
+  const availableBytes =
+    storageStatus?.quotaBytes !== null &&
+    storageStatus?.quotaBytes !== undefined &&
+    storageStatus.usageBytes !== null
+      ? Math.max(0, storageStatus.quotaBytes - storageStatus.usageBytes)
+      : null;
+  const storageMessage = !storageStatus
+    ? m.storageChecking
+    : availableBytes === null || storageStatus.quotaBytes === null
+      ? m.storageUnavailable
+      : m.storageSummary
+          .replace('{{available}}', formatModelSize(availableBytes, locale))
+          .replace(
+            '{{quota}}',
+            formatModelSize(storageStatus.quotaBytes, locale),
+          )
+          .replace(
+            '{{persisted}}',
+            storageStatus.persisted === null
+              ? m.storageUnknown
+              : storageStatus.persisted
+                ? m.storagePersistent
+                : m.storageTemporary,
+          );
 
   return (
     <ModalShell
@@ -102,6 +156,34 @@ const LocalAISettingsDialog = ({
                   : m.firstUse}
             </p>
           )}
+          {state.info ? (
+            <p className="local-ai-note" data-testid="local-ai-cache-state">
+              {state.info.cached ? m.cachedVerified : m.cacheMissing}
+            </p>
+          ) : null}
+          {state.loaded && state.info?.cached === false ? (
+            <p
+              className="local-ai-error"
+              data-testid="local-ai-cache-warning"
+              role="alert"
+            >
+              {m.memoryOnly}
+            </p>
+          ) : null}
+          <p className="local-ai-note" data-testid="local-ai-storage-status">
+            {storageMessage}
+          </p>
+          {availableBytes !== null &&
+          state.info &&
+          availableBytes < state.info.bytes ? (
+            <p
+              className="local-ai-error"
+              data-testid="local-ai-storage-warning"
+              role="alert"
+            >
+              {m.lowStorage}
+            </p>
+          ) : null}
           <details className="local-ai-details">
             <summary>{m.modelDetails}</summary>
             <p className="local-ai-note">{m.checkDetail}</p>

@@ -1,5 +1,12 @@
 import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../../contexts/LocaleContext';
@@ -53,14 +60,14 @@ const closeSettings = () => {
 // Drives the panel to a loaded model the way a user does: one button, one
 // click per step. Nothing here touches the settings dialog, which is the point
 // of the split — the dialog configures, the box acts.
-const loadModel = (workers: FakeWorker[]) => {
+const loadModel = (workers: FakeWorker[], cached = true) => {
   // The box checks itself open, so only the step that costs bytes is a click.
   workers[0].reply({
     type: 'available',
     info: { bytes: 490_035_255, cached: false },
   });
   fireEvent.click(screen.getByTestId('local-ai-setup'));
-  workers[0].reply({ type: 'ready' });
+  workers[0].reply({ type: 'ready', cached });
 };
 
 describe('LocalAIPanel', () => {
@@ -122,7 +129,11 @@ describe('LocalAIPanel', () => {
     expect(workers[0].commands).toHaveLength(1);
 
     fireEvent.click(screen.getByTestId('local-ai-setup'));
-    expect(workers[0].commands.at(-1)).toEqual({ type: 'prepare', id: 2 });
+    expect(workers[0].commands.at(-1)).toEqual({
+      type: 'prepare',
+      id: 2,
+      cacheOnly: false,
+    });
   });
 
   it('names the sources on every download, not only the first', () => {
@@ -160,6 +171,36 @@ describe('LocalAIPanel', () => {
     );
   });
 
+  it('reverifies a cached model before loading and returns to download on eviction', () => {
+    const workers = setup();
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 490_035_255, cached: true },
+    });
+    fireEvent.click(screen.getByTestId('local-ai-setup'));
+    expect(workers[0].commands.at(-1)).toEqual({
+      type: 'prepare',
+      id: 2,
+      cacheOnly: true,
+    });
+    workers[0].reply({
+      type: 'available',
+      info: { bytes: 490_035_255, cached: false },
+    });
+    expect(screen.getByTestId('local-ai-setup')).toHaveTextContent(
+      'Download model · 467.3 MiB',
+    );
+    expect(workers[0].commands).toHaveLength(2);
+  });
+
+  it('warns when the model is ready in memory but its cache was not verified', () => {
+    const workers = setup();
+    loadModel(workers, false);
+    expect(screen.getByTestId('local-ai-cache-warning')).toHaveTextContent(
+      'files could not be verified in the device cache',
+    );
+  });
+
   it('requires a loaded model and non-empty text before generating', () => {
     const workers = setup();
     fireEvent.change(screen.getByTestId('local-ai-input'), {
@@ -185,7 +226,7 @@ describe('LocalAIPanel', () => {
       target: { value: 'Summarize this' },
     });
     fireEvent.click(screen.getByTestId('local-ai-run'));
-    const command = workers[0].commands.at(-1);
+    const command = workers[0].generates().at(-1);
     expect(command?.type === 'generate' && command.request.input).toBe(
       'Summarize this',
     );
@@ -197,6 +238,37 @@ describe('LocalAIPanel', () => {
     workers[0].reply({ type: 'complete' });
     expect(onOutput).toHaveBeenCalledTimes(1);
     expect(onOutput).toHaveBeenCalledWith('Partial');
+  });
+
+  it('counts the full task and language request after the tokenizer is ready', async () => {
+    const workers = setup();
+    fireEvent.change(screen.getByTestId('local-ai-input'), {
+      target: { value: 'Summarize this' },
+    });
+    expect(screen.getByTestId('local-ai-token-count')).toHaveTextContent(
+      'available after the model is loaded',
+    );
+    loadModel(workers);
+    await waitFor(() =>
+      expect(
+        workers[0].commands.some((command) => command.type === 'count'),
+      ).toBe(true),
+    );
+    const countCommand = workers[0].commands
+      .filter((command) => command.type === 'count')
+      .at(-1);
+    expect(countCommand?.type === 'count' && countCommand.request).toEqual({
+      input: 'Summarize this',
+      task: 'ask',
+      language: 'en',
+    });
+    workers[0].reply({ type: 'counted', tokens: 42 });
+    expect(screen.getByTestId('local-ai-token-count')).toHaveTextContent(
+      '42 / 1,024 tokens',
+    );
+    workers[0].reply({ type: 'counted', tokens: 1_025 });
+    expect(screen.getByTestId('local-ai-run')).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('1,024-token');
   });
 
   it('shows a sanitized, actionable message for a worker error code', () => {
@@ -371,6 +443,104 @@ describe('LocalAIPanel', () => {
       workers.unmount();
       vi.advanceTimersByTime(30_000);
       expect(workers[0].terminated).toBe(true);
+    });
+
+    it('uses a hidden-tab grace period and reloads only a verified cache', () => {
+      vi.useFakeTimers();
+      const previousHidden = Object.getOwnPropertyDescriptor(
+        document,
+        'hidden',
+      );
+      const setHidden = (hidden: boolean) =>
+        Object.defineProperty(document, 'hidden', {
+          configurable: true,
+          value: hidden,
+        });
+      const workers = setup();
+      loadModel(workers);
+
+      setHidden(true);
+      fireEvent(document, new Event('visibilitychange'));
+      act(() => vi.advanceTimersByTime(29_999));
+      expect(workers[0].terminated).toBe(false);
+      act(() => vi.advanceTimersByTime(1));
+      expect(workers[0].terminated).toBe(true);
+
+      setHidden(false);
+      fireEvent(document, new Event('visibilitychange'));
+      expect(workers).toHaveLength(2);
+      expect(workers[1].commands.at(-1)).toEqual({
+        type: 'prepare',
+        id: 3,
+        cacheOnly: true,
+      });
+
+      if (previousHidden) {
+        Object.defineProperty(document, 'hidden', previousHidden);
+      } else {
+        Reflect.deleteProperty(document, 'hidden');
+      }
+    });
+
+    it('does not auto-reload a model that was only available in memory', () => {
+      vi.useFakeTimers();
+      const previousHidden = Object.getOwnPropertyDescriptor(
+        document,
+        'hidden',
+      );
+      const setHidden = (hidden: boolean) =>
+        Object.defineProperty(document, 'hidden', {
+          configurable: true,
+          value: hidden,
+        });
+      const workers = setup();
+      loadModel(workers, false);
+
+      setHidden(true);
+      fireEvent(document, new Event('visibilitychange'));
+      act(() => vi.advanceTimersByTime(30_000));
+      expect(workers[0].terminated).toBe(true);
+      setHidden(false);
+      fireEvent(document, new Event('visibilitychange'));
+      expect(workers).toHaveLength(1);
+      expect(workers[0].commands).toHaveLength(2);
+
+      if (previousHidden) {
+        Object.defineProperty(document, 'hidden', previousHidden);
+      } else {
+        Reflect.deleteProperty(document, 'hidden');
+      }
+    });
+
+    it('cleans up a hidden model after its last surface unmounts', () => {
+      vi.useFakeTimers();
+      const previousHidden = Object.getOwnPropertyDescriptor(
+        document,
+        'hidden',
+      );
+      const setHidden = (hidden: boolean) =>
+        Object.defineProperty(document, 'hidden', {
+          configurable: true,
+          value: hidden,
+        });
+      const workers = setup();
+      loadModel(workers);
+
+      setHidden(true);
+      fireEvent(document, new Event('visibilitychange'));
+      workers.unmount();
+      act(() => vi.advanceTimersByTime(30_000));
+      expect(workers[0].terminated).toBe(true);
+
+      setHidden(false);
+      fireEvent(document, new Event('visibilitychange'));
+      expect(workers).toHaveLength(1);
+
+      if (previousHidden) {
+        Object.defineProperty(document, 'hidden', previousHidden);
+      } else {
+        Reflect.deleteProperty(document, 'hidden');
+      }
     });
   });
 
