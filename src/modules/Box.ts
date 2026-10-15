@@ -49,6 +49,7 @@ export interface BoxProps {
   ) => void;
   priority?: number;
   showExpandButton?: boolean;
+  disabled?: boolean;
   largeModal?: boolean;
   onClose?: () => void;
   selected?: boolean;
@@ -67,7 +68,8 @@ export type BoxView =
   | 'keyValue'
   | 'qrCode'
   | 'diceRoll'
-  | 'localAI';
+  | 'localAI'
+  | 'shortenURL';
 
 export interface Box {
   props: BoxProps;

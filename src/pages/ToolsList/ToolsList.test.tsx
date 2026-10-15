@@ -187,7 +187,14 @@ describe('/list preview input state', () => {
     });
 
     expect(generateBoxes).toHaveBeenCalledTimes(1);
-    expect(generateBoxes).toHaveBeenCalledWith('ab', {});
+    expect(generateBoxes).toHaveBeenCalledWith(
+      'ab',
+      {},
+      expect.objectContaining({
+        preview: true,
+        signal: expect.any(AbortSignal),
+      }),
+    );
   });
 
   it('renders and remains interactive when storage access is blocked', () => {

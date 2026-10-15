@@ -710,6 +710,11 @@ pre,
 }
 
 /* ---------- Box card shell ---------- */
+.boxes-stale {
+  opacity: 0.55;
+  transition: opacity 140ms;
+}
+
 .box-card {
   background: var(--bg-elev);
   border: 1px solid var(--line);
@@ -736,6 +741,11 @@ pre,
   box-shadow:
     0 0 0 3px var(--accent-soft),
     var(--shadow-sm);
+}
+
+.box-card.is-stale {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .box-head {

@@ -1,4 +1,5 @@
 import { mount } from 'cypress/react';
+import { LocaleProvider } from '../../contexts/LocaleContext';
 
 import { ShortenURLBoxTemplate } from './index';
 
@@ -14,18 +15,21 @@ describe('<ShortenURLBoxTemplate />', () => {
     }).as('shortenUrl');
 
     mount(
-      <ShortenURLBoxTemplate
-        name="TITLE"
-        onClick={stubOnClick}
-        options={null}
-        plaintextOutput="https://example.com"
-      />,
+      <LocaleProvider>
+        <ShortenURLBoxTemplate
+          name="TITLE"
+          onClick={stubOnClick}
+          options={null}
+          plaintextOutput="https://example.com"
+        />
+      </LocaleProvider>,
     );
 
-    const SHORTEN_URL = 'https://tool.10oz.tw';
+    const SHORTEN_URL = 'https://10oz.tw';
 
+    cy.get('[data-testid="shorten-url-action"]').click();
     cy.wait('@shortenUrl');
-    cy.get('[data-testid="magic-box-result-text"]')
+    cy.get('[data-testid="shorten-url-result"]')
       .contains(new RegExp(`^${SHORTEN_URL}`))
       .click();
     cy.wrap(stubOnClick).should('have.been.called');

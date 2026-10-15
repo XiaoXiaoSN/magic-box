@@ -5,6 +5,7 @@ import {
   CodeBoxTemplate,
   DefaultBoxTemplate,
   KeyValueBoxTemplate,
+  ShortenURLBoxTemplate,
 } from '../index';
 import { resolveBoxTemplate } from '../resolveBoxTemplate';
 
@@ -24,6 +25,11 @@ describe('web semantic view resolver', () => {
         new BoxBuilder('Pairs', '').setView('keyValue').build(),
       ),
     ).toBe(KeyValueBoxTemplate);
+    expect(
+      resolveBoxTemplate(
+        new BoxBuilder('Shorten URL', '').setView('shortenURL').build(),
+      ),
+    ).toBe(ShortenURLBoxTemplate);
   });
   it('retains custom template support', () => {
     const custom = () => null;

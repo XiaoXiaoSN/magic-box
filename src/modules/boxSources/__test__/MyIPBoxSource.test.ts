@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { expect, vi } from 'vitest';
-import { MyIPBoxSource } from '../MyIPBoxSource';
+import { clearMyIPCache, MyIPBoxSource } from '../MyIPBoxSource';
 
 // Mock fetch
 global.fetch = vi.fn();
@@ -19,7 +19,8 @@ describe('MyIPBoxSource', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    (global.fetch as Mock).mockReset();
+    clearMyIPCache();
   });
 
   describe('checkMatch', () => {
@@ -34,6 +35,8 @@ describe('MyIPBoxSource', () => {
 
     it('should return IP info when API call is successful', async () => {
       (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
         json: async () => Promise.resolve(mockIPInfo),
       });
 
@@ -45,7 +48,11 @@ describe('MyIPBoxSource', () => {
     });
 
     it('should return undefined when API call fails', async () => {
-      (global.fetch as Mock).mockRejectedValueOnce(new Error('API Error'));
+      (global.fetch as Mock).mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: async () => Promise.resolve({ error: 'rate limited' }),
+      });
 
       const result = await MyIPBoxSource.checkMatch('ip');
       expect(result).toBeUndefined();
@@ -54,9 +61,13 @@ describe('MyIPBoxSource', () => {
     it('should work with both "ip" and "myip" inputs', async () => {
       (global.fetch as Mock)
         .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
           json: async () => Promise.resolve(mockIPInfo),
         })
         .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
           json: async () => Promise.resolve(mockIPInfo),
         });
 
@@ -65,6 +76,7 @@ describe('MyIPBoxSource', () => {
 
       expect(result1).toEqual(result2);
       expect(result1?.ip).toBe('116.12.57.176');
+      expect(global.fetch).toHaveBeenCalledOnce();
     });
   });
 
@@ -76,6 +88,8 @@ describe('MyIPBoxSource', () => {
 
     it('should generate box with correct display text', async () => {
       (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
         json: async () => Promise.resolve(mockIPInfo),
       });
 
@@ -87,6 +101,75 @@ describe('MyIPBoxSource', () => {
       );
       expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].view).toBe('default');
+    });
+
+    it('rejects malformed successful responses', async () => {
+      (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => Promise.resolve({ ip: 123 }),
+      });
+
+      await expect(MyIPBoxSource.generateBoxes('ip')).resolves.toHaveLength(0);
+    });
+
+    it('keeps preview generation network-free', async () => {
+      const boxes = await MyIPBoxSource.generateBoxes('ip', null, {
+        preview: true,
+        signal: new AbortController().signal,
+      });
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toContain(
+        'Network lookup is disabled',
+      );
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('shares in-flight work without letting one cancelled caller poison another', async () => {
+      let resolveFetch!: (value: unknown) => void;
+      (global.fetch as Mock).mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+      );
+      const cancelled = new AbortController();
+      const survivor = new AbortController();
+
+      const cancelledResult = MyIPBoxSource.checkMatch('ip', cancelled.signal);
+      const survivorResult = MyIPBoxSource.checkMatch('myip', survivor.signal);
+      cancelled.abort();
+      resolveFetch({
+        ok: true,
+        status: 200,
+        json: async () => mockIPInfo,
+      });
+
+      await expect(cancelledResult).resolves.toBeUndefined();
+      await expect(survivorResult).resolves.toMatchObject({
+        ip: '116.12.57.176',
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache a failed request so a later call can retry', async () => {
+      (global.fetch as Mock)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 503,
+          json: async () => ({ error: 'unavailable' }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockIPInfo,
+        });
+
+      await expect(MyIPBoxSource.checkMatch('ip')).resolves.toBeUndefined();
+      await expect(MyIPBoxSource.checkMatch('ip')).resolves.toMatchObject({
+        ip: '116.12.57.176',
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
     });
   });
 });

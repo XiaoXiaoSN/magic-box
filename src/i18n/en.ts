@@ -110,6 +110,7 @@ const en = {
   'magicBox.emptyNoMatchesTitle': 'No matches',
   'magicBox.emptyNoMatchesSub':
     'Try a different format — JSON, JWT, timestamp, cron, base64, math…',
+  'magicBox.loading': 'Checking matches…',
 
   'time.justNow': 'just now',
   'time.minutesAgo': '{{n}}m ago',
@@ -124,6 +125,12 @@ const en = {
 
   'boxModal.close': 'Close',
   'boxModal.closeBackdrop': 'Close modal backdrop',
+
+  'shortenURL.action': 'Shorten URL',
+  'shortenURL.loading': 'Shortening…',
+  'shortenURL.invalidUrl': 'Enter a valid HTTP(S) URL.',
+  'shortenURL.requestFailed': 'The short URL request failed.',
+  'shortenURL.preview': 'Preview only — no request will be sent.',
 
   'errorBoundary.boxTitle': 'This box could not be rendered',
   'errorBoundary.boxMessage': 'Try again or change the input.',

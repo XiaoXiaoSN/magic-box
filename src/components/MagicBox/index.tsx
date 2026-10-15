@@ -5,7 +5,7 @@ import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
 import { parseInput } from '@functions/parseOptions';
 import type { Box as BoxType } from '@modules/Box';
-import type { BoxSource } from '@modules/BoxSource';
+import type { BoxSource, BoxSourceContext } from '@modules/BoxSource';
 import React, {
   useCallback,
   useEffect,
@@ -13,6 +13,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useIsBoxPreview } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -21,9 +22,29 @@ import BoxModal from './BoxModal';
 
 interface Props {
   input: string;
+  liveInput?: string;
   sources?: BoxSource[];
   onPasteInput?: (value: string) => void;
   resetTrigger?: number;
+}
+
+type RunState = 'idle' | 'pending' | 'settled';
+
+interface SourceResultSlot {
+  boxes: BoxType[];
+  runKey: string;
+}
+
+interface BoxEntry {
+  box: BoxType;
+  key: string;
+  stale: boolean;
+}
+
+interface KeyboardState {
+  copyMode: 'enter' | 'paste' | 'off';
+  entries: BoxEntry[];
+  selectedKey: string | null;
 }
 
 const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
@@ -46,25 +67,96 @@ const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
   );
 };
 
+const PendingState = (): React.JSX.Element => {
+  const { t } = useLocale();
+  return (
+    <div aria-live="polite" className="empty" data-testid="magic-box-pending">
+      <div aria-hidden="true" className="empty-mark" />
+      <div className="empty-title">{t('magicBox.loading')}</div>
+    </div>
+  );
+};
+
 const MagicBox = ({
   input: magicIn,
+  liveInput,
   sources,
   onPasteInput,
   resetTrigger,
 }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState<SnackbarNotification | null>(null);
-  const [boxes, setBoxes] = useState([] as BoxType[]);
+  const [sourceResults, setSourceResults] = useState<
+    Array<SourceResultSlot | null>
+  >([]);
+  const [runState, setRunState] = useState<RunState>('idle');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const itemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const itemRefCallbacks = useRef<
+    Map<string, (element: HTMLDivElement | null) => void>
+  >(new Map());
   const copySequence = useRef(0);
   const notificationId = useRef(0);
+  const runIdRef = useRef(0);
+  const onPasteInputRef = useRef(onPasteInput);
   const { filteredBoxSources } = useSettings();
   const {
     prefs: { copyMode },
   } = usePreferences();
+  const { t } = useLocale();
+  const preview = useIsBoxPreview();
+
+  onPasteInputRef.current = onPasteInput;
+
+  const isStale = liveInput !== undefined && liveInput !== magicIn;
+  const displayInput = liveInput ?? magicIn;
+  const currentRunKey = `${preview ? 'preview' : 'live'}:${magicIn}`;
+
+  const boxEntries = useMemo<BoxEntry[]>(() => {
+    const entries: BoxEntry[] = [];
+    sourceResults.forEach((slot, sourceIndex) => {
+      const seenNames = new Map<string, number>();
+      slot?.boxes.forEach((box) => {
+        const name = box.props.name || 'box';
+        const occurrence = seenNames.get(name) ?? 0;
+        seenNames.set(name, occurrence + 1);
+        entries.push({
+          box,
+          key: `${sourceIndex}:${name}:${occurrence}`,
+          stale: isStale || slot.runKey !== currentRunKey,
+        });
+      });
+    });
+    return entries;
+  }, [currentRunKey, isStale, sourceResults]);
+
+  const boxes = useMemo(() => boxEntries.map(({ box }) => box), [boxEntries]);
+  const selectableEntries = useMemo(
+    () => boxEntries.filter(({ stale }) => !stale),
+    [boxEntries],
+  );
+  const selectedIndex = useMemo(
+    () =>
+      selectedKey === null
+        ? -1
+        : boxEntries.findIndex(
+            ({ key, stale }) => key === selectedKey && !stale,
+          ),
+    [boxEntries, selectedKey],
+  );
+
+  const latestKeyboardState = useRef<KeyboardState>({
+    copyMode,
+    entries: [],
+    selectedKey: null,
+  });
+  latestKeyboardState.current = {
+    copyMode,
+    entries: selectableEntries,
+    selectedKey,
+  };
 
   useEffect(() => {
     return () => {
@@ -74,7 +166,7 @@ const MagicBox = ({
 
   useEffect(() => {
     if (resetTrigger !== undefined) {
-      setSelectedIndex(-1);
+      setSelectedKey(null);
     }
   }, [resetTrigger]);
 
@@ -99,92 +191,199 @@ const MagicBox = ({
     return copied;
   }, []);
 
-  const handleOpenModal = useCallback((box: BoxType) => {
-    setModalBox(box);
-    setModalOpen(true);
-  }, []);
+  const handleOpenModal = useCallback(
+    (box: BoxType): void => {
+      if (isStale) return;
+      setModalBox(box);
+      setModalOpen(true);
+    },
+    [isStale],
+  );
 
-  const handleCloseModal = useCallback(() => {
+  const handleCloseModal = useCallback((): void => {
     setModalOpen(false);
     setModalBox(null);
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    const boxSources = sources ?? filteredBoxSources;
+    const controller = new AbortController();
+    const runId = ++runIdRef.current;
 
     if (trim(magicIn) === '') {
-      setBoxes([]);
-      setSelectedIndex(-1);
+      setSourceResults([]);
+      setRunState('idle');
+      setSelectedKey(null);
+      setModalOpen(false);
+      setModalBox(null);
       return () => {
-        cancelled = true;
+        controller.abort();
+        if (runIdRef.current === runId) runIdRef.current += 1;
       };
     }
 
-    const boxSources = sources ?? filteredBoxSources;
     const [input, options] = parseInput(magicIn);
+    const context: BoxSourceContext = {
+      preview,
+      signal: controller.signal,
+    };
+    setSourceResults((current) =>
+      Array.from(
+        { length: boxSources.length },
+        (_, sourceIndex) => current[sourceIndex] ?? null,
+      ),
+    );
+    setRunState('pending');
+    setSelectedKey(null);
+    setModalOpen(false);
+    setModalBox(null);
 
-    const promises = boxSources.map(async (boxSource) => {
-      // isolate each source so one failure never suppresses results from others
+    const tasks = boxSources.map(async (boxSource, sourceIndex) => {
       try {
-        const generated = await boxSource.generateBoxes(input, options);
-        // enrich each box with its source's tag/kind so the chrome can render them
-        return generated.map((b) => ({
-          ...b,
+        const generated = await boxSource.generateBoxes(
+          input,
+          options,
+          context,
+        );
+        if (controller.signal.aborted || runIdRef.current !== runId) return;
+
+        const enriched = generated.map((box) => ({
+          ...box,
           props: {
-            ...b.props,
-            tag: b.props.tag ?? boxSource.tag,
-            kind: b.props.kind ?? boxSource.kind,
+            ...box.props,
+            tag: box.props.tag ?? boxSource.tag,
+            kind: box.props.kind ?? boxSource.kind,
           },
         }));
-      } catch (err) {
-        console.error(`[MagicBox] boxSource "${boxSource.name}" threw:`, err);
-        return [];
+        setSourceResults((current) => {
+          if (controller.signal.aborted || runIdRef.current !== runId) {
+            return current;
+          }
+          const next = current.slice();
+          next[sourceIndex] = { boxes: enriched, runKey: currentRunKey };
+          return next;
+        });
+      } catch (error) {
+        if (controller.signal.aborted || runIdRef.current !== runId) return;
+        console.error(`[MagicBox] boxSource "${boxSource.name}" threw:`, error);
+        setSourceResults((current) => {
+          if (runIdRef.current !== runId) return current;
+          const next = current.slice();
+          next[sourceIndex] = { boxes: [], runKey: currentRunKey };
+          return next;
+        });
       }
     });
 
-    Promise.all(promises).then((resultBoxes) => {
-      if (cancelled) return;
-
-      // Path B: respect source order from SettingsContext (already sorted by
-      // secondaryOrder); preserve each source's emission order.
-      const newBoxes = resultBoxes.filter((box) => box).flat();
-
-      setBoxes(newBoxes);
-      setSelectedIndex(-1);
+    void Promise.all(tasks).then(() => {
+      if (!controller.signal.aborted && runIdRef.current === runId) {
+        setRunState('settled');
+      }
     });
 
     return () => {
-      cancelled = true;
+      controller.abort();
+      if (runIdRef.current === runId) runIdRef.current += 1;
     };
-  }, [magicIn, sources, filteredBoxSources]);
+  }, [currentRunKey, filteredBoxSources, magicIn, preview, sources]);
 
   useEffect(() => {
-    if (boxes.length === 0) {
-      setSelectedIndex(-1);
-      return;
+    if (selectedKey === null) return;
+    const selectedEntry = boxEntries.find(({ key }) => key === selectedKey);
+    if (!selectedEntry || selectedEntry.stale) {
+      setSelectedKey(null);
     }
-    if (selectedIndex >= boxes.length) {
-      setSelectedIndex(boxes.length - 1);
-    }
-  }, [boxes, selectedIndex]);
+  }, [boxEntries, selectedKey]);
 
   useEffect(() => {
-    const el = itemRefs.current.get(selectedIndex);
-    if (el) {
+    if (
+      !modalBox ||
+      isStale ||
+      !boxEntries.some(({ box, stale }) => box === modalBox && !stale)
+    ) {
+      setModalOpen(false);
+      setModalBox(null);
+    }
+  }, [boxEntries, isStale, modalBox]);
+
+  useEffect(() => {
+    if (selectedIndex < 0) return;
+    const entry = boxEntries[selectedIndex];
+    if (!entry || entry.stale) return;
+    const element = entry ? itemRefs.current.get(entry.key) : null;
+    if (element) {
       try {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch {
         /* noop */
       }
     }
-  }, [selectedIndex]);
+  }, [boxEntries, selectedIndex]);
 
-  // Keyboard shortcuts: Ctrl+N (next), Ctrl+Shift+N / Ctrl+P (prev),
-  // Enter (copy), Cmd/Ctrl+Enter (copy + paste back into input).
+  const getItemRef = useCallback(
+    (key: string): ((element: HTMLDivElement | null) => void) => {
+      const current = itemRefCallbacks.current.get(key);
+      if (current) return current;
+
+      const callback = (element: HTMLDivElement | null): void => {
+        if (element) {
+          itemRefs.current.set(key, element);
+        } else {
+          itemRefs.current.delete(key);
+        }
+      };
+      itemRefCallbacks.current.set(key, callback);
+      return callback;
+    },
+    [],
+  );
+
+  const handleSelect = useCallback(
+    (index: number): void => {
+      if (isStale) return;
+      const entry = boxEntries[index];
+      if (!entry || entry.stale) return;
+      setSelectedKey(entry.key);
+    },
+    [boxEntries, isStale],
+  );
+
+  const handleResultChange = useCallback(
+    (
+      target: BoxType,
+      result: Pick<BoxType['props'], 'options' | 'plaintextOutput'>,
+    ): void => {
+      setSourceResults((current) => {
+        let changed = false;
+        const next = current.map((slot) => {
+          if (slot === null || slot.runKey !== currentRunKey) return slot;
+          const boxes = slot.boxes.map((box) => {
+            if (box !== target) return box;
+            if (
+              box.props.plaintextOutput === result.plaintextOutput &&
+              box.props.options === result.options
+            ) {
+              return box;
+            }
+            changed = true;
+            return {
+              ...box,
+              props: { ...box.props, ...result },
+            };
+          });
+          return changed ? { ...slot, boxes } : slot;
+        });
+        return changed ? next : current;
+      });
+    },
+    [currentRunKey],
+  );
+
   useEffect(() => {
-    const pasteAsInput = (value: string) => {
-      if (onPasteInput) {
-        onPasteInput(value);
+    const pasteAsInput = (value: string): void => {
+      const callback = onPasteInputRef.current;
+      if (callback) {
+        callback(value);
         return;
       }
       const input = document.querySelector(
@@ -194,29 +393,35 @@ const MagicBox = ({
       input.focus();
       input.value = value;
       try {
-        const evt = new Event('input', { bubbles: true });
-        input.dispatchEvent(evt);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
       } catch {
         /* noop */
       }
     };
 
-    const handler = (e: KeyboardEvent) => {
-      const isCtrl = e.ctrlKey || e.metaKey;
-      const tag = (e.target as HTMLElement | null)?.tagName?.toUpperCase?.();
-      const isTypingField = tag === 'INPUT' || tag === 'TEXTAREA';
+    const handler = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented || event.isComposing) return;
 
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        e.stopPropagation();
+      const target = event.target instanceof Element ? event.target : null;
+      const interactive = target?.closest('a, button, [role="button"]');
+      if (interactive && !target?.closest('.box-card')) return;
 
-        if (boxes.length === 0) return;
-        const selected = boxes[selectedIndex];
+      const state = latestKeyboardState.current;
+      if (state.entries.length === 0) return;
+
+      const isCtrl = event.ctrlKey || event.metaKey;
+      const selectedPosition = state.entries.findIndex(
+        ({ key }) => key === state.selectedKey,
+      );
+      const selected = state.entries[selectedPosition]?.box;
+
+      if (event.key === 'Enter' && isCtrl) {
+        event.preventDefault();
+        event.stopPropagation();
         if (!selected) return;
 
         const stdout = selected.props.plaintextOutput ?? '';
         if (stdout) {
-          // copy feedback is fire-and-forget; the selected action and paste-back stay immediate.
           void copyText(stdout).catch(() => undefined);
           selected.props.onClick(stdout);
           pasteAsInput(stdout);
@@ -224,119 +429,107 @@ const MagicBox = ({
         return;
       }
 
-      if (isCtrl && (e.key === 'n' || e.key === 'N')) {
-        e.preventDefault();
-        if (boxes.length === 0) return;
-
-        setSelectedIndex((prev) => {
-          const next = e.shiftKey ? prev - 1 : prev + 1;
-          if (next < 0) return 0;
-          if (next >= boxes.length) return boxes.length - 1;
-          return next;
+      if (isCtrl && (event.key === 'n' || event.key === 'N')) {
+        event.preventDefault();
+        setSelectedKey((previous) => {
+          const previousPosition = state.entries.findIndex(
+            ({ key }) => key === previous,
+          );
+          const next = event.shiftKey
+            ? previousPosition - 1
+            : previousPosition + 1;
+          if (next < 0) return state.entries[0]?.key ?? null;
+          if (next >= state.entries.length) {
+            return state.entries[state.entries.length - 1]?.key ?? null;
+          }
+          return state.entries[next]?.key ?? null;
         });
         return;
       }
 
-      if (e.ctrlKey && !e.metaKey && (e.key === 'p' || e.key === 'P')) {
-        e.preventDefault();
-        if (boxes.length === 0) return;
-        setSelectedIndex((prev) => Math.max(prev - 1, 0));
+      if (
+        event.ctrlKey &&
+        !event.metaKey &&
+        (event.key === 'p' || event.key === 'P')
+      ) {
+        event.preventDefault();
+        setSelectedKey((previous) => {
+          const previousPosition = state.entries.findIndex(
+            ({ key }) => key === previous,
+          );
+          const next = Math.max(previousPosition - 1, 0);
+          return state.entries[next]?.key ?? null;
+        });
         return;
       }
 
-      if (e.key === 'Enter' && !isCtrl) {
-        // honor the configured enter behavior: copy, copy & paste, or off.
-        if (copyMode === 'off') return;
-        if (boxes.length === 0) return;
-        const selected = boxes[selectedIndex];
-        if (!selected) return;
+      if (event.key !== 'Enter' || isCtrl || state.copyMode === 'off') return;
+      if (!selected) return;
 
-        if (isTypingField) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        const stdout = selected.props.plaintextOutput ?? '';
-        if (stdout) {
-          void copyText(stdout).catch(() => undefined);
-          selected.props.onClick(stdout);
-          if (copyMode === 'paste') {
-            pasteAsInput(stdout);
-          }
-        }
+      const tag = target?.tagName?.toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA') {
+        event.preventDefault();
+        event.stopPropagation();
       }
+
+      const stdout = selected.props.plaintextOutput ?? '';
+      if (!stdout) return;
+      void copyText(stdout).catch(() => undefined);
+      selected.props.onClick(stdout);
+      if (state.copyMode === 'paste') pasteAsInput(stdout);
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [boxes, selectedIndex, copyText, onPasteInput, copyMode]);
+    // the handler reads refs so this listener is registered once per mount.
+  }, [copyText]);
 
-  const setItemRef = useCallback(
-    (idx: number) => (el: HTMLDivElement | null) => {
-      if (el) {
-        itemRefs.current.set(idx, el);
-      } else {
-        itemRefs.current.delete(idx);
+  const renderedBoxes = boxEntries.map(({ box, key, stale }, index) => (
+    <BoxCard
+      key={key}
+      ref={getItemRef(key)}
+      box={box}
+      index={index}
+      onCopy={copyText}
+      onExpand={
+        box.props.showExpandButton !== false ? handleOpenModal : undefined
       }
-    },
-    [],
-  );
+      onResultChange={handleResultChange}
+      onSelect={handleSelect}
+      selected={!stale && index === selectedIndex}
+      stale={stale}
+    />
+  ));
 
-  // Keyed by name plus its occurrence WITHIN that name, never by position in
-  // the list. A box that appears or disappears above another one must not
-  // change its key: editing the input changes which sources match, and a
-  // position-based key would remount every box below the change. For a
-  // stateful box that means losing what it holds — the Local AI panel would
-  // drop a loaded model and its in-flight answer on an unrelated keystroke.
-  const renderedBoxes = useMemo(() => {
-    const seen = new Map<string, number>();
-    return boxes.map((src, idx) => {
-      const name = src?.props?.name ?? '';
-      const occurrence = seen.get(name) ?? 0;
-      seen.set(name, occurrence + 1);
-      return (
-        <BoxCard
-          key={name ? `${name}-${occurrence}` : idx}
-          ref={setItemRef(idx)}
-          box={src}
-          onCopy={copyText}
-          onResultChange={(result) =>
-            setBoxes((current) => {
-              // An unchanged result keeps the same array, so React bails out
-              // instead of re-rendering the whole list for a no-op publish.
-              if (
-                src.props.plaintextOutput === result.plaintextOutput &&
-                src.props.options === result.options
-              ) {
-                return current;
-              }
-              return current.map((box) =>
-                box === src
-                  ? { ...box, props: { ...box.props, ...result } }
-                  : box,
-              );
-            })
-          }
-          onExpand={
-            src.props.showExpandButton !== false
-              ? () => handleOpenModal(src)
-              : undefined
-          }
-          onSelect={() => setSelectedIndex(idx)}
-          selected={idx === selectedIndex}
-        />
-      );
-    });
-  }, [boxes, selectedIndex, copyText, handleOpenModal, setItemRef]);
+  const pending =
+    runState === 'pending' || (isStale && trim(displayInput) !== '');
+  const modalIsActive =
+    modalOpen &&
+    !isStale &&
+    modalBox !== null &&
+    boxEntries.some(({ box, stale }) => box === modalBox && !stale);
 
   return (
     <React.Fragment>
-      {boxes.length > 0 ? renderedBoxes : <EmptyState input={magicIn} />}
+      {boxes.length > 0 ? (
+        <>
+          <div>{renderedBoxes}</div>
+          {pending ? (
+            <div aria-live="polite" data-testid="magic-box-pending">
+              {t('magicBox.loading')}
+            </div>
+          ) : null}
+        </>
+      ) : pending ? (
+        <PendingState />
+      ) : (
+        <EmptyState input={displayInput} />
+      )}
       <BoxModal
         box={modalBox}
         onClose={handleCloseModal}
         onCopy={copyText}
-        open={modalOpen}
+        open={modalIsActive}
       />
       <CustomizedSnackbar notify={notify} />
     </React.Fragment>
