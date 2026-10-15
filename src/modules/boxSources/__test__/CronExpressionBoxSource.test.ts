@@ -99,9 +99,17 @@ describe('CronExpressionBoxSource', () => {
 
     it('should return a box for valid cron expression', async () => {
       vi.useFakeTimers();
-      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      vi.setSystemTime(new Date('2026-10-15T00:00:00Z'));
       setRuntimePrefs({ timezoneMode: 'fixed', timezoneOffset: 0 });
-      const boxes = await CronExpressionBoxSource.generateBoxes('* * * * *');
+      const boxes = await CronExpressionBoxSource.generateBoxes(
+        '* * * * *',
+        null,
+        {
+          signal: new AbortController().signal,
+          preview: false,
+          now: new Date('2024-01-01T00:00:00Z').getTime(),
+        },
+      );
       expect(boxes).toHaveLength(2);
       expect(boxes[0].props.name).toBe('Cron Expression');
       expect(boxes[0].props.plaintextOutput).toBe('Every minute');

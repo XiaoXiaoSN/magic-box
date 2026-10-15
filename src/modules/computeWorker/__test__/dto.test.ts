@@ -58,6 +58,7 @@ describe('compute worker DTOs', () => {
       input: 'input',
       options: { locale: 'en', preview: true },
       sourceIds: ['a', 'b'],
+      now: 1_704_067_200_000,
       locale: 'en-US',
       timezone: 'Asia/Taipei',
       timezoneOffset: 8,
@@ -80,6 +81,9 @@ describe('compute worker DTOs', () => {
     expect(
       isComputeWorkerRunRequest({ ...request, options: { bad: { value: 1 } } }),
     ).toBe(false);
+    expect(isComputeWorkerRunRequest({ ...request, now: Number.NaN })).toBe(
+      false,
+    );
   });
 
   it('rejects output that exceeds the transferable string budget', () => {

@@ -3,6 +3,7 @@ import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
 import { toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, keyValueBox } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
 import {
   isCronExpressionSyntax,
   nextCronOccurrences,
@@ -123,8 +124,9 @@ export const CronExpressionBoxSource = {
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
-    const capturedNow = new Date();
+    const capturedNow = new Date(context?.now ?? Date.now());
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];

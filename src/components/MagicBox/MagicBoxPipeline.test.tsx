@@ -153,6 +153,7 @@ describe('MagicBox source pipeline', () => {
       expect(FakeComputeWorker.requests).toHaveLength(1);
       expect(FakeComputeWorker.requests[0]).toMatchObject({
         sourceIds: ['worker-source'],
+        now: expect.any(Number),
         locale: 'en',
         timezoneOffset: 8,
         timezoneMode: 'fixed',

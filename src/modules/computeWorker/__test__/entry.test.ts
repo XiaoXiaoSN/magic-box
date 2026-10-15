@@ -14,6 +14,7 @@ const request: ComputeWorkerRunRequest = {
   input: 'input',
   options: null,
   sourceIds: ['fast', 'throws', 'last'],
+  now: 1_704_067_200_000,
   locale: 'en-US',
   timezone: 'UTC',
   timezoneOffset: 0,
@@ -108,6 +109,7 @@ describe('compute worker entry', () => {
     const seen: Array<{
       contextLocale: string | undefined;
       contextOffset: number | undefined;
+      contextNow: number | undefined;
       runtimeLocale: string;
       runtimeOffset: number;
     }> = [];
@@ -126,6 +128,7 @@ describe('compute worker entry', () => {
             seen.push({
               contextLocale: context?.locale,
               contextOffset: context?.timezoneOffset,
+              contextNow: context?.now,
               runtimeLocale: getLocale(),
               runtimeOffset: getTimezoneOffset(new Date(0)),
             });
@@ -146,6 +149,7 @@ describe('compute worker entry', () => {
       {
         contextLocale: 'zh_TW',
         contextOffset: -5,
+        contextNow: 1_704_067_200_000,
         runtimeLocale: 'zh_TW',
         runtimeOffset: -5,
       },

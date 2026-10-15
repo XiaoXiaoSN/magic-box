@@ -5,6 +5,7 @@ export type CheckFunction = (input: string, options: BoxOptions) => Box[];
 export interface BoxSourceContext {
   signal: AbortSignal;
   preview: boolean;
+  now?: number;
   locale?: string;
   timezone?: string;
   timezoneOffset?: number;

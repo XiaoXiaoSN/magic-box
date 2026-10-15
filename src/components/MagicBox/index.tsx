@@ -261,9 +261,11 @@ const MagicBox = ({
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     const timezoneOffset = prefs.timezoneOffset;
     const timezoneMode = prefs.timezoneMode;
+    const now = Date.now();
     const context: BoxSourceContext = {
       preview,
       signal: controller.signal,
+      now,
       locale: runtimeLocale,
       timezone,
       timezoneOffset,
@@ -409,6 +411,7 @@ const MagicBox = ({
           input,
           options,
           sourceIds: workerEntries.map(({ sourceId }) => sourceId),
+          now,
           locale: runtimeLocale,
           timezone,
           timezoneOffset,

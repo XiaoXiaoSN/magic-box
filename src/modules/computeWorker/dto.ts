@@ -28,6 +28,7 @@ export interface ComputeWorkerRunRequest {
   input: string;
   options: Record<string, string | boolean> | null;
   sourceIds: string[];
+  now: number;
   locale: string;
   timezone: string;
   timezoneOffset: number;
@@ -219,6 +220,9 @@ export function isComputeWorkerRunRequest(
     value.sourceIds.length > MAX_WORKER_SOURCE_COUNT ||
     value.sourceIds.some((sourceId) => !isNonEmptyBoundedString(sourceId, 256))
   ) {
+    return false;
+  }
+  if (typeof value.now !== 'number' || !Number.isSafeInteger(value.now)) {
     return false;
   }
   if (!isNonEmptyBoundedString(value.locale, 128)) return false;

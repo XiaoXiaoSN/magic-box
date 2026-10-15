@@ -91,6 +91,7 @@ export async function executeComputeWorkerRun(
       const context = {
         signal,
         preview: false,
+        now: request.now,
         locale: request.locale,
         timezone: request.timezone,
         timezoneOffset: request.timezoneOffset,
