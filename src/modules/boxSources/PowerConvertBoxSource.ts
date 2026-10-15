@@ -5,15 +5,15 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // watts per unit — used for all conversions via W as intermediate
-const TO_W: Record<string, number> = {
-  w: 1,
-  kw: 1000,
-  mw: 1e6,
-  hp: 745.6998715822702, // mechanical horsepower (NIST)
-  ps: 735.49875, // metric horsepower
-  'btu/h': 0.29307107017,
-  btuh: 0.29307107017,
-};
+const TO_W = new Map<string, number>([
+  ['w', 1],
+  ['kw', 1000],
+  ['mw', 1e6],
+  ['hp', 745.6998715822702], // mechanical horsepower (NIST)
+  ['ps', 735.49875], // metric horsepower
+  ['btu/h', 0.29307107017],
+  ['btuh', 0.29307107017],
+]);
 
 // display labels for each output unit, in order
 const OUTPUT_UNITS: { key: string; label: string }[] = [
@@ -76,7 +76,7 @@ export const PowerConvertBoxSource = {
 
     const value = Number.parseFloat(match[1]);
     const unitKey = match[2].toLowerCase();
-    const factor = TO_W[unitKey];
+    const factor = TO_W.get(unitKey);
 
     if (factor === undefined) {
       // unknown unit — return a box listing supported units
@@ -101,7 +101,9 @@ export const PowerConvertBoxSource = {
     };
 
     for (const { key, label } of OUTPUT_UNITS) {
-      kvPairs[label] = formatValue(watts / TO_W[key]);
+      const outputFactor = TO_W.get(key);
+      if (outputFactor === undefined) continue;
+      kvPairs[label] = formatValue(watts / outputFactor);
     }
 
     const plaintext = kvToPlaintext(kvPairs);

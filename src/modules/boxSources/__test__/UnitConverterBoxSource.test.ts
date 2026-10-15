@@ -107,6 +107,18 @@ describe('UnitConverterBoxSource', () => {
       );
       expect(boxes).toHaveLength(0);
     });
+
+    it.each([
+      'constructor',
+      'toString',
+      '__proto__',
+    ])('returns empty array for inherited property name %s', async (unit) => {
+      const boxes = await UnitConverterBoxSource.generateBoxes(
+        `5 ${unit}`,
+        null,
+      );
+      expect(boxes).toHaveLength(0);
+    });
   });
 
   describe('option trigger ::unit', () => {

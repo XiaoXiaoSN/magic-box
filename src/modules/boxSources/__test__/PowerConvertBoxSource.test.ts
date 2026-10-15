@@ -86,6 +86,16 @@ describe('PowerConvertBoxSource', () => {
       expect(opts['Supported units']).toContain('PS');
     });
 
+    it('treats constructor as an unknown unit', async () => {
+      const boxes = await PowerConvertBoxSource.generateBoxes('5 constructor', {
+        power: true,
+      });
+      expect(boxes).toHaveLength(1);
+      const opts = boxes[0].props.options as Record<string, string>;
+      expect(opts.Error).toContain('constructor');
+      expect(boxes[0].props.plaintextOutput).not.toContain('NaN');
+    });
+
     it('should produce a non-empty plaintextOutput', async () => {
       const boxes = await PowerConvertBoxSource.generateBoxes('1 hp', {
         power: true,

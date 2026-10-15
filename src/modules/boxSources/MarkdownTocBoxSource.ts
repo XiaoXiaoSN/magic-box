@@ -63,13 +63,13 @@ function parseHeadings(input: string): Heading[] {
 /** builds the nested bullet list string with github-style duplicate slug disambiguation */
 function buildToc(headings: Heading[]): string {
   const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
-  const slugCount: Record<string, number> = {};
+  const slugCount = new Map<string, number>();
   const lines: string[] = [];
 
   for (const { level, text } of headings) {
     const baseSlug = slugify(text);
-    const count = slugCount[baseSlug] ?? 0;
-    slugCount[baseSlug] = count + 1;
+    const count = slugCount.get(baseSlug) ?? 0;
+    slugCount.set(baseSlug, count + 1);
 
     // first occurrence uses the base slug; subsequent ones append -1, -2, …
     const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;

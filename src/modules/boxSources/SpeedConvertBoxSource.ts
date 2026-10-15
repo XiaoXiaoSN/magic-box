@@ -12,19 +12,19 @@ function kvToPlaintext(kv: Record<string, string>): string {
 }
 
 // unit alias -> m/s conversion factor
-const TO_MS: Record<string, number> = {
-  'm/s': 1,
-  mps: 1,
-  'km/h': 1000 / 3600,
-  kmh: 1000 / 3600,
-  kph: 1000 / 3600,
-  mph: 1609.344 / 3600,
-  knot: 1852 / 3600,
-  kn: 1852 / 3600,
-  knots: 1852 / 3600,
-  'ft/s': 0.3048,
-  fps: 0.3048,
-};
+const TO_MS = new Map<string, number>([
+  ['m/s', 1],
+  ['mps', 1],
+  ['km/h', 1000 / 3600],
+  ['kmh', 1000 / 3600],
+  ['kph', 1000 / 3600],
+  ['mph', 1609.344 / 3600],
+  ['knot', 1852 / 3600],
+  ['kn', 1852 / 3600],
+  ['knots', 1852 / 3600],
+  ['ft/s', 0.3048],
+  ['fps', 0.3048],
+]);
 
 // canonical output units in display order
 const OUTPUT_UNITS: Array<[string, number]> = [
@@ -41,7 +41,7 @@ function formatValue(n: number): string {
   return String(Number.parseFloat(n.toFixed(6)));
 }
 
-const SUPPORTED_UNITS = Object.keys(TO_MS).join(', ');
+const SUPPORTED_UNITS = [...TO_MS.keys()].join(', ');
 
 export const SpeedConvertBoxSource = {
   defaultDisabled: true,
@@ -79,7 +79,7 @@ export const SpeedConvertBoxSource = {
     const value = Number.parseFloat(match[1]);
     const unitRaw = match[2].trim().toLowerCase();
 
-    const factor = TO_MS[unitRaw];
+    const factor = TO_MS.get(unitRaw);
     if (factor === undefined) {
       const errorOutput: Record<string, string> = {
         Input: trimmed,
