@@ -94,6 +94,28 @@ describe('ReadableBytesBoxSource', () => {
       expect(ReadableBytesBoxSource.checkMatch('[32]')).toBeUndefined();
     });
 
+    it('should not decode control characters followed by a space', () => {
+      expect(ReadableBytesBoxSource.checkMatch('[0, 32]')).toBeUndefined();
+    });
+
+    it('should not decode a non-breaking space followed by a control character', () => {
+      expect(
+        ReadableBytesBoxSource.checkMatch('[194, 160, 0]'),
+      ).toBeUndefined();
+    });
+
+    it('should not decode a zero-width space followed by a space', () => {
+      expect(
+        ReadableBytesBoxSource.checkMatch('[226, 128, 139, 32]'),
+      ).toBeUndefined();
+    });
+
+    it('should decode letters surrounded by whitespace', () => {
+      const result = ReadableBytesBoxSource.checkMatch('[32, 65, 32]');
+      expect(result).toBeDefined();
+      expect(result?.decodedText).toBe(' A ');
+    });
+
     for (const input of ['200', 'be', 'ad', 'fa', '65', '42', '32']) {
       it(`should not decode a single bare token: ${input}`, () => {
         expect(ReadableBytesBoxSource.checkMatch(input)).toBeUndefined();

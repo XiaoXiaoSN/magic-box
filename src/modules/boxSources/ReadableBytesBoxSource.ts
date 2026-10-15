@@ -12,7 +12,7 @@ interface Match {
 }
 
 function hasDisplayableChar(str: string): boolean {
-  return /\P{C}/u.test(str);
+  return /(?:(?!\s)\P{C})/u.test(str);
 }
 
 export const ReadableBytesBoxSource = {
@@ -73,7 +73,7 @@ export const ReadableBytesBoxSource = {
     try {
       const decodedText = utf8Decoder.decode(new Uint8Array(bytes));
 
-      if (decodedText.trim().length === 0 || !hasDisplayableChar(decodedText)) {
+      if (!hasDisplayableChar(decodedText)) {
         return undefined;
       }
 
