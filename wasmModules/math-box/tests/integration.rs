@@ -308,6 +308,15 @@ fn shared_budget_includes_compilation_and_execution_work() {
 #[test]
 #[cfg(feature = "bigint")]
 fn bigint_growth_is_bounded_before_large_results_or_display() {
+    let expected = num_bigint::BigInt::from(3).pow(8193).to_string();
+    assert_eval("3n^8193", &expected);
+
+    assert!(
+        math_box::evaluate("3n^11000")
+            .unwrap_err()
+            .contains("numeric bit length limit")
+    );
+
     let square_chain = format!("x=10n;{}x", "x=x*x;".repeat(20));
     assert!(
         math_box::evaluate(&square_chain)

@@ -139,6 +139,7 @@ export default defineConfig(({ command }) => {
         workbox: {
           globIgnores: ['sw.js'],
           globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
+          ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^recovery$/],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
           runtimeCaching: [
             {

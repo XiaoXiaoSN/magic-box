@@ -54,12 +54,37 @@ fn big_multiply_growth_bits(lhs: &BigInt, rhs: &BigInt) -> u64 {
 }
 
 #[cfg(feature = "bigint")]
-fn big_power_growth_bits(value: &BigInt, exponent: u32) -> u64 {
-    if let Some(shift) = big_power_of_two_exponent(value) {
-        shift.saturating_mul(u64::from(exponent)).saturating_add(1)
+fn bounded_big_multiply(lhs: &BigInt, rhs: &BigInt) -> Result<BigInt> {
+    let minimum_bits = if lhs.bits() == 0 || rhs.bits() == 0 {
+        0
     } else {
-        value.bits().saturating_mul(u64::from(exponent))
+        lhs.bits().saturating_add(rhs.bits()).saturating_sub(1)
+    };
+    check_big_growth(minimum_bits)?;
+    let result = lhs * rhs;
+    check_big_size(&result)?;
+    Ok(result)
+}
+
+#[cfg(feature = "bigint")]
+fn bounded_big_power(value: &BigInt, exponent: u32) -> Result<BigInt> {
+    let mut remaining = exponent;
+    if remaining == 0 {
+        return Ok(BigInt::from(1));
     }
+
+    let mut factor = value.clone();
+    let mut result = BigInt::from(1);
+    while remaining > 0 {
+        if remaining & 1 == 1 {
+            result = bounded_big_multiply(&result, &factor)?;
+        }
+        remaining >>= 1;
+        if remaining > 0 {
+            factor = bounded_big_multiply(&factor, &factor)?;
+        }
+    }
+    Ok(result)
 }
 
 // promote a numeric f64 to BigInt only when the value is an exact
@@ -426,11 +451,7 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
         #[cfg(feature = "bigint")]
         (Big(x), Num(y)) if y.fract() == 0.0 && *y >= 0.0 && *y <= u32::MAX as f64 => {
             let exponent = *y as u32;
-            if x != &BigInt::from(0) && x != &BigInt::from(1) && x != &BigInt::from(-1) {
-                check_big_growth(big_power_growth_bits(x, exponent))?;
-            }
-            let result = x.pow(exponent);
-            check_big_size(&result)?;
+            let result = bounded_big_power(x, exponent)?;
             Big(result)
         }
 
@@ -438,11 +459,7 @@ pub fn pow(a: Value, b: Value) -> Result<Value> {
         (Big(x), Big(y)) => {
             use num_traits::ToPrimitive;
             if let Some(exponent) = y.to_u32() {
-                if x != &BigInt::from(0) && x != &BigInt::from(1) && x != &BigInt::from(-1) {
-                    check_big_growth(big_power_growth_bits(x, exponent))?;
-                }
-                let result = x.pow(exponent);
-                check_big_size(&result)?;
+                let result = bounded_big_power(x, exponent)?;
                 Big(result)
             } else {
                 Num(a
