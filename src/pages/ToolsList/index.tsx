@@ -3,6 +3,7 @@ import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
   isPrivateInput,
+  isSensitiveInput,
 } from '@functions/localAIPrivacy';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
@@ -355,11 +356,12 @@ const PreviewPane = ({
   const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
   const privateInput = useMemo(() => isPrivateInput(input), [input]);
+  const sensitiveInput = useMemo(() => isSensitiveInput(input), [input]);
   const sources = useMemo(() => [source], [source]);
 
   useEffect(() => {
-    if (privateInput) activateLocalAIPrivacy();
-  }, [privateInput]);
+    if (sensitiveInput) activateLocalAIPrivacy();
+  }, [sensitiveInput]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setMagicIn(input), 400);
