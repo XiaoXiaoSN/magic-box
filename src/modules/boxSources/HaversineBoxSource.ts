@@ -1,16 +1,17 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const Priority = 10;
 
 // mean earth radius per IUGG
 const EARTH_RADIUS_KM = 6371.0088;
-const KM_TO_MILES = 0.621371;
+const KM_TO_MILES = 1 / 1.609344;
 const KM_TO_NM = 1 / 1.852;
 
 // coordinate separators: ' to ', ';', '|'
 const PAIR_SEP = /\s+to\s+|;|\|/i;
+const COORDINATE_REGEX = /^[+-]?\d+(?:\.\d+)?$/;
 
 interface Coord {
   lat: number;
@@ -30,9 +31,15 @@ function formatCoord(c: Coord): string {
 function parseCoord(s: string): Coord | null {
   const parts = s.split(',');
   if (parts.length !== 2) return null;
-  const lat = Number.parseFloat(parts[0].trim());
-  const lng = Number.parseFloat(parts[1].trim());
-  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+  const latText = parts[0].trim();
+  const lngText = parts[1].trim();
+  if (!COORDINATE_REGEX.test(latText) || !COORDINATE_REGEX.test(lngText)) {
+    return null;
+  }
+
+  const lat = Number(latText);
+  const lng = Number(lngText);
   if (lat < -90 || lat > 90) return null;
   if (lng < -180 || lng > 180) return null;
   return { lat, lng };
@@ -62,13 +69,6 @@ function initialBearing(a: Coord, b: Coord): number {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-/** renders key-value record as plaintext for headless consumers */
-function kvToPlaintext(kv: Record<string, string>): string {
-  return Object.entries(kv)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join('\n');
-}
-
 const FORMAT_ERROR_BOX_NAME = 'Distance';
 const FORMAT_ERROR_MSG =
   'Invalid input. Expected format: lat1,lng1 to lat2,lng2\n' +
@@ -93,20 +93,18 @@ export const HaversineBoxSource = {
     const raw = trim(input);
     if (raw.length > 100) {
       return [
-        new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setView('keyValue')
-          .setPriority(this.priority)
-          .build(),
+        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
+          priority: this.priority,
+        }),
       ];
     }
 
     const parts = raw.split(PAIR_SEP);
     if (parts.length !== 2) {
       return [
-        new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setView('keyValue')
-          .setPriority(this.priority)
-          .build(),
+        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
+          priority: this.priority,
+        }),
       ];
     }
 
@@ -115,10 +113,9 @@ export const HaversineBoxSource = {
 
     if (!coordA || !coordB) {
       return [
-        new BoxBuilder(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)
-          .setView('keyValue')
-          .setPriority(this.priority)
-          .build(),
+        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
+          priority: this.priority,
+        }),
       ];
     }
 
@@ -140,11 +137,9 @@ export const HaversineBoxSource = {
     };
 
     return [
-      new BoxBuilder(FORMAT_ERROR_BOX_NAME, kvToPlaintext(kv))
-        .setView('keyValue')
-        .setOptions(kv)
-        .setPriority(this.priority)
-        .build(),
+      keyValueBox('keyValue', FORMAT_ERROR_BOX_NAME, kv, {
+        priority: this.priority,
+      }),
     ];
   },
 };

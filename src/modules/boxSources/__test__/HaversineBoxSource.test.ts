@@ -83,7 +83,7 @@ describe('HaversineBoxSource', () => {
       expect(boxes[0].props.priority).toBe(10);
     });
 
-    it('Miles ≈ km * 0.621371', async () => {
+    it('Miles uses the exact kilometers-to-miles conversion factor', async () => {
       const boxes = await HaversineBoxSource.generateBoxes(
         '40.7128,-74.0060 to 51.5074,-0.1278',
         { haversine: true },
@@ -91,7 +91,15 @@ describe('HaversineBoxSource', () => {
       const kv = boxes[0].props.options as Record<string, string>;
       const km = Number.parseFloat(kv.Kilometers);
       const miles = Number.parseFloat(kv.Miles);
-      expect(miles).toBeCloseTo(km * 0.621371, 2);
+      expect(miles).toBeCloseTo(km / 1.609344, 2);
+    });
+
+    it('converts the equator half circumference to 12436.816 miles', async () => {
+      const boxes = await HaversineBoxSource.generateBoxes('0,0 to 0,180', {
+        haversine: true,
+      });
+      const kv = boxes[0].props.options as Record<string, string>;
+      expect(kv.Miles).toBe('12436.816');
     });
 
     it('kv options contain all expected keys', async () => {
@@ -175,7 +183,29 @@ describe('HaversineBoxSource', () => {
         haversine: true,
       });
       expect(boxes).toHaveLength(1);
+      expect(boxes[0].view).toBeUndefined();
       expect(boxes[0].props.plaintextOutput).toMatch(/invalid input/i);
+    });
+
+    it('rejects coordinates with partial numeric parses', async () => {
+      const boxes = await HaversineBoxSource.generateBoxes(
+        '12abc,34xyz to 1,1',
+        { haversine: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid input/i);
+    });
+
+    it('accepts valid signed decimal coordinates', async () => {
+      const boxes = await HaversineBoxSource.generateBoxes(
+        '+12.5,-34.25 to -1.5,+1.75',
+        { haversine: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        From: '12.5, -34.25',
+        To: '-1.5, 1.75',
+      });
     });
 
     it('returns an error box for bad lat (91,0 to 0,0)', async () => {

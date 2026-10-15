@@ -1,6 +1,6 @@
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const Priority = 10;
 const MAX_INPUT = 100_000;
@@ -59,11 +59,9 @@ export const Crc32BoxSource = {
     };
 
     return [
-      new BoxBuilder('CRC-32', hex)
-        .setView('keyValue')
-        .setOptions(output)
-        .setPriority(this.priority)
-        .build(),
+      keyValueBox('keyValue', 'CRC-32', output, {
+        priority: this.priority,
+      }),
     ];
   },
 };
