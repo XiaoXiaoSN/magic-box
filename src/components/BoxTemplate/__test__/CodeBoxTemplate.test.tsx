@@ -40,6 +40,10 @@ describe('<CodeBoxTemplate />', () => {
     await renderHighlighter('<root><item>1</item></root>', 'xml');
   });
 
+  it('renders diff content', async () => {
+    await renderHighlighter('@@ -1 +1 @@\n-old\n+new', 'diff');
+  });
+
   it('renders toml content (falls back to plaintext)', async () => {
     await renderHighlighter('key = "value"', 'toml');
   });
