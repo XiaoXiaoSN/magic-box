@@ -27,7 +27,7 @@ export function decodeBase64(base64String: string): DecodingResult {
   let readableText = null;
   try {
     // Explicitly specify UTF-8 encoding for proper handling of international characters
-    readableText = new TextDecoder('utf-8').decode(bytes);
+    readableText = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 
     // If the decoded text only contains non-printable characters, set it to null
     if (!/[\p{L}\p{N}\p{P}\p{Z}]/u.test(readableText)) {

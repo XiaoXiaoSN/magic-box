@@ -1,13 +1,134 @@
 import { decodeBase64 } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
-import { keyValueBox } from '@modules/Box';
-import { parse } from 'yaml';
+import { errorBox, keyValueBox } from '@modules/Box';
 
 const PriorityK8sSecret = 10;
+const InvalidBase64 = '<invalid-base64>';
+const InvalidValue = '<invalid-value>';
+const UnreadableString = '<unreadable-string>';
+
+const yamlKindLine =
+  /^[ \t]*(?:-[ \t]*)?(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?:[ \t]*(?:#.*)?\r?$)/m;
+const flowYamlKindProperty =
+  /(?:^|[,{}])[ \t]*(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?=[ \t]*(?:[,}]|$))/m;
+const jsonKindProperty =
+  /["']kind["'][ \t]*:[ \t]*["'](?:Secret|List)["'](?=[ \t]*[,}])/;
+
+type UnknownRecord = Record<string, unknown>;
 
 interface Match {
   data: Record<string, string>;
+  name?: string;
+}
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isSecretResource(value: unknown): value is UnknownRecord {
+  if (
+    !isRecord(value) ||
+    value.apiVersion !== 'v1' ||
+    value.kind !== 'Secret'
+  ) {
+    return false;
+  }
+
+  return (
+    (value.metadata === undefined || isRecord(value.metadata)) &&
+    (value.data === undefined || isRecord(value.data)) &&
+    (value.stringData === undefined || isRecord(value.stringData))
+  );
+}
+
+function extractSecretResources(value: unknown): UnknownRecord[] {
+  if (isSecretResource(value)) {
+    return [value];
+  }
+
+  if (
+    !isRecord(value) ||
+    value.apiVersion !== 'v1' ||
+    value.kind !== 'List' ||
+    !Array.isArray(value.items)
+  ) {
+    return [];
+  }
+
+  return value.items.filter(isSecretResource);
+}
+
+function decodeDataValue(value: unknown): string {
+  if (typeof value !== 'string') {
+    return InvalidBase64;
+  }
+
+  try {
+    const { readableText } = decodeBase64(value.replace(/\s/g, ''));
+    return readableText ?? UnreadableString;
+  } catch {
+    return InvalidBase64;
+  }
+}
+
+function decodeSecret(resource: UnknownRecord): Match {
+  const data = Object.create(null) as Record<string, string>;
+
+  if (isRecord(resource.data)) {
+    for (const [key, value] of Object.entries(resource.data)) {
+      data[key] = decodeDataValue(value);
+    }
+  }
+
+  if (isRecord(resource.stringData)) {
+    for (const [key, value] of Object.entries(resource.stringData)) {
+      data[key] = typeof value === 'string' ? value : InvalidValue;
+    }
+  }
+
+  const metadata = resource.metadata;
+  const name =
+    isRecord(metadata) && typeof metadata.name === 'string'
+      ? metadata.name
+      : undefined;
+
+  return { data, name };
+}
+
+function isPlausibleSecretInput(input: string): boolean {
+  return (
+    yamlKindLine.test(input) ||
+    flowYamlKindProperty.test(input) ||
+    jsonKindProperty.test(input)
+  );
+}
+
+async function parseMatches(input: string): Promise<Match[]> {
+  if (
+    !isString(input) ||
+    trim(input) === '' ||
+    !isPlausibleSecretInput(input)
+  ) {
+    return [];
+  }
+
+  try {
+    const { parseAllDocuments } = await import('yaml');
+    const documents = parseAllDocuments(input);
+    const resources: UnknownRecord[] = [];
+
+    for (const document of documents) {
+      if (document.errors.length > 0) {
+        return [];
+      }
+      resources.push(...extractSecretResources(document.toJS()));
+    }
+
+    return resources.map(decodeSecret);
+  } catch {
+    return [];
+  }
 }
 
 export const K8sSecretBoxSource = {
@@ -25,57 +146,40 @@ data:
   password: cGFzc3dvcmQ=`,
   priority: PriorityK8sSecret,
 
-  checkMatch(input: string): Match | undefined {
-    if (!isString(input)) {
-      return undefined;
-    }
-    if (input === '' || trim(input) === '') {
-      return undefined;
-    }
-
-    try {
-      const resource = parse(input);
-      if (resource.apiVersion !== 'v1' || resource.kind !== 'Secret') {
-        return undefined;
-      }
-
-      const data: Record<string, string> = {};
-
-      if (resource.data) {
-        Object.entries(resource.data).forEach(([key, rawValue]) => {
-          try {
-            const { readableText } = decodeBase64(rawValue as string);
-            data[key] = readableText ?? '<unreadable-string>';
-          } catch {
-            data[key] = '<invalid-base64>';
-          }
-        });
-      }
-      if (resource.stringData) {
-        Object.entries(resource.stringData).forEach(([key, value]) => {
-          data[key] = value as string;
-        });
-      }
-
-      return { data };
-    } catch {
-      /* */
-    }
-
-    return undefined;
+  async checkMatch(input: string): Promise<Match | undefined> {
+    const matches = await parseMatches(input);
+    return matches[0];
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const match = this.checkMatch(input);
-    if (!match) {
+    const matches = await parseMatches(input);
+    if (matches.length === 0) {
       return [];
     }
 
-    return [
-      keyValueBox('keyValue', 'Kubernetes Secret', match.data, {
+    const multiple = matches.length > 1;
+    return matches.map((match, index) => {
+      const name =
+        multiple && match.name
+          ? `Kubernetes Secret: ${match.name}`
+          : multiple
+            ? `Kubernetes Secret #${index + 1}`
+            : 'Kubernetes Secret';
+
+      if (Object.keys(match.data).length === 0) {
+        return errorBox(
+          name,
+          'Secret contains no data or stringData entries.',
+          {
+            priority: this.priority,
+          },
+        );
+      }
+
+      return keyValueBox('keyValue', name, match.data, {
         priority: this.priority,
-      }),
-    ];
+      });
+    });
   },
 };
 

@@ -8,7 +8,7 @@ const KeyValueBoxTemplateComponent = ({
   largeModal = false,
 }: BoxProps): React.JSX.Element => {
   const data = useMemo(() => {
-    const result: Record<string, string> = {};
+    const result = Object.create(null) as Record<string, string>;
 
     if (options) {
       Object.entries(options).forEach(([key, value]) => {
