@@ -4,8 +4,13 @@ import CustomizedSnackbar, {
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
 import { parseInput } from '@functions/parseOptions';
-import type { Box as BoxType } from '@modules/Box';
+import { type Box as BoxType, errorBox } from '@modules/Box';
 import type { BoxSource, BoxSourceContext } from '@modules/BoxSource';
+import {
+  ComputeWorkerClient,
+  type ComputeWorkerRunHandle,
+} from '@modules/computeWorker/client';
+import { MAX_WORKER_INPUT_LENGTH } from '@modules/computeWorker/dto';
 import React, {
   useCallback,
   useEffect,
@@ -19,6 +24,33 @@ import { usePreferences } from '../../contexts/PreferencesContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import BoxCard from './BoxCard';
 import BoxModal from './BoxModal';
+
+const WORKER_AUTO_INPUT_LIMIT = 256 * 1024;
+
+function decorateBoxes(boxes: BoxType[], source: BoxSource): BoxType[] {
+  return boxes.map((box) => ({
+    ...box,
+    props: {
+      ...box.props,
+      tag: box.props.tag ?? source.tag,
+      kind: box.props.kind ?? source.kind,
+    },
+  }));
+}
+
+function sourceErrorBox(source: BoxSource, message: string): BoxType {
+  return errorBox(source.name, message, { priority: source.priority });
+}
+
+function hasExplicitSourceOption(
+  source: BoxSource,
+  options: Record<string, string | boolean> | null,
+): boolean {
+  return (
+    options !== null &&
+    source.optionKeys?.some((key) => Object.hasOwn(options, key)) === true
+  );
+}
 
 interface Props {
   input: string;
@@ -101,11 +133,11 @@ const MagicBox = ({
   const notificationId = useRef(0);
   const runIdRef = useRef(0);
   const onPasteInputRef = useRef(onPasteInput);
+  const workerClientRef = useRef<ComputeWorkerClient | null>(null);
   const { filteredBoxSources } = useSettings();
-  const {
-    prefs: { copyMode },
-  } = usePreferences();
-  const { t } = useLocale();
+  const { prefs } = usePreferences();
+  const { copyMode } = prefs;
+  const { locale, t } = useLocale();
   const preview = useIsBoxPreview();
 
   onPasteInputRef.current = onPasteInput;
@@ -161,6 +193,8 @@ const MagicBox = ({
   useEffect(() => {
     return () => {
       copySequence.current += 1;
+      workerClientRef.current?.release();
+      workerClientRef.current = null;
     };
   }, []);
 
@@ -223,9 +257,19 @@ const MagicBox = ({
     }
 
     const [input, options] = parseInput(magicIn);
+    const runtimeLocale = locale === 'tw' ? 'zh_TW' : 'en';
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const timezoneOffset = prefs.timezoneOffset;
+    const timezoneMode = prefs.timezoneMode;
+    const now = Date.now();
     const context: BoxSourceContext = {
       preview,
       signal: controller.signal,
+      now,
+      locale: runtimeLocale,
+      timezone,
+      timezoneOffset,
+      timezoneMode,
     };
     setSourceResults((current) =>
       Array.from(
@@ -238,42 +282,178 @@ const MagicBox = ({
     setModalOpen(false);
     setModalBox(null);
 
-    const tasks = boxSources.map(async (boxSource, sourceIndex) => {
-      try {
-        const generated = await boxSource.generateBoxes(
-          input,
-          options,
-          context,
-        );
-        if (controller.signal.aborted || runIdRef.current !== runId) return;
+    const commitSlot = (sourceIndex: number, generated: BoxType[]): void => {
+      if (controller.signal.aborted || runIdRef.current !== runId) return;
+      setSourceResults((current) => {
+        if (controller.signal.aborted || runIdRef.current !== runId) {
+          return current;
+        }
+        const next = current.slice();
+        next[sourceIndex] = {
+          boxes: generated,
+          runKey: currentRunKey,
+        };
+        return next;
+      });
+    };
 
-        const enriched = generated.map((box) => ({
-          ...box,
-          props: {
-            ...box.props,
-            tag: box.props.tag ?? boxSource.tag,
-            kind: box.props.kind ?? boxSource.kind,
-          },
-        }));
-        setSourceResults((current) => {
-          if (controller.signal.aborted || runIdRef.current !== runId) {
-            return current;
-          }
-          const next = current.slice();
-          next[sourceIndex] = { boxes: enriched, runKey: currentRunKey };
-          return next;
-        });
+    const largeInput = input.length > WORKER_AUTO_INPUT_LIMIT;
+    const workerEntries: Array<{
+      source: BoxSource;
+      sourceId: string;
+      sourceIndex: number;
+    }> = [];
+    const mainEntries: Array<{
+      source: BoxSource;
+      sourceIndex: number;
+    }> = [];
+
+    for (const [sourceIndex, boxSource] of boxSources.entries()) {
+      const sourceId = boxSource.id;
+      const matches = boxSource.canHandle?.(input, options) ?? true;
+      const explicitlyRequested = hasExplicitSourceOption(boxSource, options);
+      const supportsInputSize =
+        !largeInput ||
+        (explicitlyRequested &&
+          boxSource.supportsLargeInput === true &&
+          input.length <= MAX_WORKER_INPUT_LENGTH);
+      const canUseWorker =
+        supportsInputSize &&
+        input.length <= MAX_WORKER_INPUT_LENGTH &&
+        sourceId !== undefined &&
+        boxSource.workerSafe === true &&
+        matches;
+
+      if (canUseWorker && sourceId !== undefined) {
+        workerEntries.push({ source: boxSource, sourceId, sourceIndex });
+        continue;
+      }
+
+      if (boxSource.workerSafe === true && boxSource.canHandle && !matches) {
+        commitSlot(sourceIndex, []);
+        continue;
+      }
+
+      if (supportsInputSize) {
+        mainEntries.push({ source: boxSource, sourceIndex });
+        continue;
+      }
+
+      if (explicitlyRequested) {
+        const limit =
+          input.length > MAX_WORKER_INPUT_LENGTH
+            ? MAX_WORKER_INPUT_LENGTH
+            : WORKER_AUTO_INPUT_LIMIT;
+        commitSlot(
+          sourceIndex,
+          decorateBoxes(
+            [
+              sourceErrorBox(
+                boxSource,
+                `Input is too large for this source (limit ${limit} characters).`,
+              ),
+            ],
+            boxSource,
+          ),
+        );
+      } else {
+        commitSlot(sourceIndex, []);
+      }
+    }
+
+    const mainTasks = mainEntries.map(async ({ source, sourceIndex }) => {
+      try {
+        const generated = await source.generateBoxes(input, options, context);
+        if (controller.signal.aborted || runIdRef.current !== runId) return;
+        commitSlot(sourceIndex, decorateBoxes(generated, source));
       } catch (error) {
         if (controller.signal.aborted || runIdRef.current !== runId) return;
-        console.error(`[MagicBox] boxSource "${boxSource.name}" threw:`, error);
-        setSourceResults((current) => {
-          if (runIdRef.current !== runId) return current;
-          const next = current.slice();
-          next[sourceIndex] = { boxes: [], runKey: currentRunKey };
-          return next;
-        });
+        console.error(`[MagicBox] boxSource "${source.name}" threw:`, error);
+        commitSlot(sourceIndex, []);
       }
     });
+
+    const workerSourceIndexes = new Map(
+      workerEntries.map(({ sourceId, sourceIndex }) => [sourceId, sourceIndex]),
+    );
+    const completedWorkerSources = new Set<string>();
+    const reportWorkerError = (sourceId: string, message: string): void => {
+      completedWorkerSources.add(sourceId);
+      const sourceIndex = workerSourceIndexes.get(sourceId);
+      const source = workerEntries.find(
+        (entry) => entry.sourceId === sourceId,
+      )?.source;
+      if (sourceIndex === undefined || source === undefined) return;
+      commitSlot(
+        sourceIndex,
+        decorateBoxes([sourceErrorBox(source, message)], source),
+      );
+    };
+
+    let workerHandle: ComputeWorkerRunHandle | null = null;
+    if (workerEntries.length > 0) {
+      if (workerClientRef.current === null) {
+        workerClientRef.current = new ComputeWorkerClient({
+          createWorker: () =>
+            new Worker(
+              new URL(
+                '../../modules/computeWorker/compute.worker.ts',
+                import.meta.url,
+              ),
+              { type: 'module' },
+            ),
+        });
+      }
+      workerHandle = workerClientRef.current.run(
+        {
+          type: 'run',
+          runId: `magic-box-${runId}`,
+          input,
+          options,
+          sourceIds: workerEntries.map(({ sourceId }) => sourceId),
+          now,
+          locale: runtimeLocale,
+          timezone,
+          timezoneOffset,
+          timezoneMode,
+        },
+        {
+          onSourceResult: (_workerRunId, sourceId, generated) => {
+            completedWorkerSources.add(sourceId);
+            const sourceIndex = workerSourceIndexes.get(sourceId);
+            const source = workerEntries.find(
+              (entry) => entry.sourceId === sourceId,
+            )?.source;
+            if (sourceIndex === undefined || source === undefined) return;
+            commitSlot(sourceIndex, decorateBoxes(generated, source));
+          },
+          onSourceError: (_workerRunId, sourceId, message) => {
+            reportWorkerError(sourceId, message);
+          },
+          onSourceLoadTimeout: (_workerRunId, sourceId) => {
+            reportWorkerError(
+              sourceId,
+              'Worker source loading timed out before computation started.',
+            );
+          },
+          onSourceTimeout: (_workerRunId, sourceId) => {
+            reportWorkerError(sourceId, 'Worker computation timed out.');
+          },
+          onFailure: (_workerRunId, message) => {
+            for (const { sourceId } of workerEntries) {
+              if (!completedWorkerSources.has(sourceId)) {
+                reportWorkerError(sourceId, message);
+              }
+            }
+          },
+        },
+      );
+    }
+
+    const tasks: Promise<unknown>[] = [...mainTasks];
+    if (workerHandle !== null) {
+      tasks.push(workerHandle.promise.catch(() => undefined));
+    }
 
     void Promise.all(tasks).then(() => {
       if (!controller.signal.aborted && runIdRef.current === runId) {
@@ -283,9 +463,19 @@ const MagicBox = ({
 
     return () => {
       controller.abort();
+      workerHandle?.cancel();
       if (runIdRef.current === runId) runIdRef.current += 1;
     };
-  }, [currentRunKey, filteredBoxSources, magicIn, preview, sources]);
+  }, [
+    currentRunKey,
+    filteredBoxSources,
+    locale,
+    magicIn,
+    prefs.timezoneMode,
+    prefs.timezoneOffset,
+    preview,
+    sources,
+  ]);
 
   useEffect(() => {
     if (selectedKey === null) return;

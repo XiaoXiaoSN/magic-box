@@ -111,7 +111,7 @@ describe('source manifest', () => {
 
     const validDocuments = [
       '{"ok":true}',
-      'name: value',
+      'name: value\nkind: demo',
       '[section]\nname = "value"',
       '"max-body"=100',
       "'literal key'=100",
@@ -123,6 +123,10 @@ describe('source manifest', () => {
       expect(converter?.canHandle?.(input, options)).toBe(true);
       await converter?.generateBoxes(input, options);
     }
+    const [singleLineYaml, singleLineOptions] = parseInput('name: value');
+    expect(converter?.canHandle?.(singleLineYaml, singleLineOptions)).toBe(
+      false,
+    );
     expect(imported).toBe(1);
 
     vi.doUnmock('../DataConverterBoxSource');

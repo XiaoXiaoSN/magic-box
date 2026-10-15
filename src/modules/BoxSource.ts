@@ -5,6 +5,11 @@ export type CheckFunction = (input: string, options: BoxOptions) => Box[];
 export interface BoxSourceContext {
   signal: AbortSignal;
   preview: boolean;
+  now?: number;
+  locale?: string;
+  timezone?: string;
+  timezoneOffset?: number;
+  timezoneMode?: 'fixed' | 'system';
 }
 
 export interface BoxSource {
@@ -19,6 +24,10 @@ export interface BoxSource {
   defaultDisabled?: boolean;
   optionKeys?: readonly string[];
   headless?: boolean;
+  /** explicitly permits execution in the browser compute worker. */
+  workerSafe?: boolean;
+  /** permits worker execution beyond the automatic input-size threshold. */
+  supportsLargeInput?: boolean;
   sideEffects?: 'network';
   canHandle?: (input: string, options: BoxOptions) => boolean;
   load?: () => Promise<BoxSource>;

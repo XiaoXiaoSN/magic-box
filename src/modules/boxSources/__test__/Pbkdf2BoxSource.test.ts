@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Pbkdf2BoxSource } from '../Pbkdf2BoxSource';
 
@@ -292,6 +292,82 @@ describe('Pbkdf2BoxSource', () => {
         'Key Length (bytes)',
         'PRF',
       ]);
+    });
+  });
+
+  describe('aggregate work budget and memoization', () => {
+    it('caps total HMAC blocks across PRFs before calling Web Crypto', async () => {
+      const originalCrypto = globalThis.crypto;
+      const iterations: number[] = [];
+      const subtle = {
+        importKey: vi.fn(async () => ({})),
+        deriveBits: vi.fn(async (params: { iterations: number }) => {
+          iterations.push(params.iterations);
+          return new ArrayBuffer(256);
+        }),
+      };
+      Object.defineProperty(globalThis, 'crypto', {
+        value: { subtle },
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        const boxes = await Pbkdf2BoxSource.generateBoxes('budget-password', {
+          pbkdf2: 'salt',
+          iterations: '999999',
+          dklen: '256',
+          sha1: true,
+          sha256: true,
+          sha512: true,
+        });
+        expect(boxes).toHaveLength(3);
+        expect(iterations).toEqual([40000, 40000, 40000]);
+        expect(optionsOf(boxes, 0).Iterations).toBe('40000');
+      } finally {
+        Object.defineProperty(globalThis, 'crypto', {
+          value: originalCrypto,
+          configurable: true,
+          writable: true,
+        });
+      }
+    });
+
+    it('reuses only the exact latest derivation result', async () => {
+      const originalCrypto = globalThis.crypto;
+      const deriveBits = vi.fn(async () => new ArrayBuffer(32));
+      const subtle = {
+        importKey: vi.fn(async () => ({})),
+        deriveBits,
+      };
+      Object.defineProperty(globalThis, 'crypto', {
+        value: { subtle },
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        await Pbkdf2BoxSource.generateBoxes('memo-password', {
+          pbkdf2: 'salt',
+          iterations: '1',
+        });
+        await Pbkdf2BoxSource.generateBoxes('memo-password', {
+          pbkdf2: 'salt',
+          iterations: '1',
+        });
+        expect(deriveBits).toHaveBeenCalledTimes(1);
+        await Pbkdf2BoxSource.generateBoxes('memo-password-2', {
+          pbkdf2: 'salt',
+          iterations: '1',
+        });
+        expect(deriveBits).toHaveBeenCalledTimes(2);
+      } finally {
+        Object.defineProperty(globalThis, 'crypto', {
+          value: originalCrypto,
+          configurable: true,
+          writable: true,
+        });
+      }
     });
   });
 

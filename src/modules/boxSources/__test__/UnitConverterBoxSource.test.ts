@@ -298,4 +298,27 @@ describe('UnitConverterBoxSource', () => {
       Pascals: '101,325.014435 Pa',
     });
   });
+
+  it('rejects oversized input before running the unit expression regex', async () => {
+    const boxes = await UnitConverterBoxSource.generateBoxes(
+      `1 ${'in'.repeat(40)}!`,
+      null,
+    );
+    expect(boxes).toHaveLength(0);
+  });
+
+  it('requires whitespace around word separators while keeping compact operators', async () => {
+    expect(
+      await UnitConverterBoxSource.generateBoxes('100 km to mi', null),
+    ).toHaveLength(1);
+    expect(
+      await UnitConverterBoxSource.generateBoxes('100 kmto mi', null),
+    ).toHaveLength(0);
+    expect(
+      await UnitConverterBoxSource.generateBoxes('100 km->mi', null),
+    ).toHaveLength(1);
+    expect(
+      await UnitConverterBoxSource.generateBoxes('100 km=mi', null),
+    ).toHaveLength(1);
+  });
 });

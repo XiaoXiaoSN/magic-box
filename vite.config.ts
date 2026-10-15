@@ -27,6 +27,11 @@ const buildId = buildVersion.replace(/[^a-zA-Z0-9_-]/g, '-');
 const serviceWorkerFileName = `sw-${buildId}.js`;
 const serviceWorkerUrl = `/${serviceWorkerFileName}`;
 
+const clientManualChunks = (id: string): string | undefined =>
+  id.replaceAll('\\', '/').includes('/node_modules/cronstrue/locales/')
+    ? 'cron-locales-fallback'
+    : undefined;
+
 interface WorkboxManifestEntry {
   url: string;
   revision: string | null;
@@ -164,6 +169,13 @@ export default defineConfig(({ command }) => {
       outDir: 'build',
       manifest: 'build-manifest.json',
       sourcemap: withSentry ? 'hidden' : false,
+      rollupOptions: {
+        output: {
+          // browser Cron runs in the worker; consolidate its retained main-thread
+          // locale fallback without changing the worker's per-locale lazy imports.
+          manualChunks: clientManualChunks,
+        },
+      },
     },
     test: {
       globals: true,
