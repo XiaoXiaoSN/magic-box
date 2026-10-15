@@ -1,6 +1,7 @@
 import MagicBox from '@components/MagicBox';
 import ShareLinkButton from '@components/ShareLinkButton';
 import { buildShareLink } from '@functions/shareLink';
+import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -107,23 +108,23 @@ const ToolsListPage = (): React.JSX.Element => {
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(COLLAPSED_KEY) === '1',
+    () => readStorageItem(COLLAPSED_KEY) === '1',
   );
   const { filteredBoxSources } = useSettings();
 
   const [selectedName, setSelectedName] = useState<string | null>(() => {
     const fromUrl = searchParams.get('box');
-    return fromUrl ?? localStorage.getItem(SELECTION_KEY);
+    return fromUrl ?? readStorageItem(SELECTION_KEY);
   });
 
   // Persist sidebar collapsed state.
   useEffect(() => {
-    localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0');
+    writeStorageItem(COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
   // Persist selected box.
   useEffect(() => {
-    if (selectedName) localStorage.setItem(SELECTION_KEY, selectedName);
+    if (selectedName) writeStorageItem(SELECTION_KEY, selectedName);
   }, [selectedName]);
 
   // Sync URL ?box= param ↔ state when URL changes externally.

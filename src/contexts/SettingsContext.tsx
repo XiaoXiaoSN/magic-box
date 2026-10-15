@@ -1,5 +1,5 @@
+import { readJson, writeJson } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
-
 import { boxSources } from '@modules/boxSources';
 import {
   createContext,
@@ -107,20 +107,11 @@ const normalizeSettings = (value: unknown): Settings => {
 
 export const SettingsStorage = {
   get(): Settings {
-    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!stored) return buildDefaultSettings();
-
-    try {
-      return normalizeSettings(JSON.parse(stored) as unknown);
-    } catch {
-      return buildDefaultSettings();
-    }
+    const stored = readJson(SETTINGS_STORAGE_KEY, isRecord);
+    return stored ? normalizeSettings(stored) : buildDefaultSettings();
   },
   save(settings: Settings): void {
-    localStorage.setItem(
-      SETTINGS_STORAGE_KEY,
-      JSON.stringify(normalizeSettings(settings)),
-    );
+    writeJson(SETTINGS_STORAGE_KEY, normalizeSettings(settings));
   },
 };
 

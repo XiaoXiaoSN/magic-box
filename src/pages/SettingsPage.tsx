@@ -25,6 +25,7 @@ import {
 import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { buildDefaultSettings, useSettings } from '../contexts/SettingsContext';
 import { aiLanguageOptions, aiTaskOptions } from '../features/local-ai/labels';
+import { clearLocalStorage } from '../functions/storage';
 import {
   DEFAULT_TIMEZONE_OFFSET,
   formatOffsetLabel,
@@ -332,7 +333,7 @@ const SettingsPage = (): React.JSX.Element => {
     ) {
       return;
     }
-    window.localStorage.clear();
+    clearLocalStorage();
     setLocale(DEFAULT_LOCALE);
     resetPrefs();
     resetSettings();

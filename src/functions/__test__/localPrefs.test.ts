@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   LOCAL_PREFS_KEY,
   patchLocalPrefs,
@@ -31,5 +31,20 @@ describe('local preferences', () => {
       theme: 'dark',
       density: 'compact',
     });
+  });
+
+  it('keeps preference operations usable when storage is unavailable', () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+
+    expect(readLocalPrefs()).toEqual({});
+    expect(() => patchLocalPrefs({ density: 'compact' })).not.toThrow();
+
+    getItem.mockRestore();
+    setItem.mockRestore();
   });
 });

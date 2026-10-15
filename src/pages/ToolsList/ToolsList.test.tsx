@@ -184,4 +184,39 @@ describe('/list preview input state', () => {
     expect(generateBoxes).toHaveBeenCalledTimes(1);
     expect(generateBoxes).toHaveBeenCalledWith('ab', {});
   });
+
+  it('renders and remains interactive when storage access is blocked', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    });
+
+    try {
+      renderPage(['/list?box=Word%20Count']);
+
+      expect(
+        screen.getByRole('heading', { name: 'Word Count' }),
+      ).toBeInTheDocument();
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'localStorage', descriptor);
+    }
+  });
+
+  it('keeps sidebar state interactive when storage writes fail', () => {
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+
+    renderPage(['/list?box=Word%20Count']);
+    fireEvent.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+
+    expect(document.querySelector('.list-page')).toHaveAttribute(
+      'data-sidebar-collapsed',
+      'true',
+    );
+    setItem.mockRestore();
+  });
 });

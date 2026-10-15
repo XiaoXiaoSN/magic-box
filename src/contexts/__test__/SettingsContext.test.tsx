@@ -1,5 +1,5 @@
-import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { boxSources } from '../../modules/boxSources';
 import { DurationBoxSource } from '../../modules/boxSources/DurationBoxSource';
@@ -127,12 +127,71 @@ describe('SettingsStorage', () => {
     expect(settings.version).toBe(1);
   });
 
-  it('returns fresh defaults for malformed storage', () => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, '{"boxes":null}');
+  it.each([
+    '{}',
+    'not json',
+    'null',
+    '{"boxes":null}',
+    '[]',
+  ])('returns fresh defaults for malformed storage: %s', (stored) => {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, stored);
 
-    const settings = SettingsStorage.get();
+    expect(SettingsStorage.get()).toEqual(buildDefaultSettings());
+  });
 
-    expect(settings).toEqual(buildDefaultSettings());
+  it('uses defaults when the localStorage property is unavailable', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    });
+
+    try {
+      expect(SettingsStorage.get()).toEqual(buildDefaultSettings());
+    } finally {
+      if (descriptor) Object.defineProperty(window, 'localStorage', descriptor);
+    }
+  });
+
+  it('updates settings in memory when persistence fails', () => {
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError');
+    });
+    let enabled = true;
+    const Probe = (): React.JSX.Element => {
+      const { settings, updateSettings } = useSettings();
+      enabled = settings.boxes.Color?.enabled ?? true;
+      return (
+        <button
+          onClick={() =>
+            updateSettings({
+              ...settings,
+              boxes: {
+                ...settings.boxes,
+                Color: { ...settings.boxes.Color, enabled: false },
+              },
+            })
+          }
+          type="button"
+        >
+          disable
+        </button>
+      );
+    };
+
+    render(
+      <SettingsProvider>
+        <Probe />
+      </SettingsProvider>,
+    );
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'disable' }));
+    });
+
+    expect(enabled).toBe(false);
+    setItem.mockRestore();
   });
 
   it('hydrates stored settings before the provider first render', () => {
