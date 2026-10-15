@@ -266,9 +266,14 @@ fn modulo_checks_exact_zero_and_rejects_complex_big_mix() {
     assert_eval("1.5 % 0n", "1.5");
     assert_eval("frac(3, 2) % 0n", "3/2");
     assert_eval("1.5 % frac(0, 1)", "1.5");
+    assert_eval("(5n % frac(0, 1)) / 2", "2");
+    assert_eval("(-5n % frac(0, 1)) / 2", "-2");
+    assert_eval("5n % frac(3, 2)", "1/2");
     assert_eval("-1.5 % -0", "-1.5");
     assert_eval("frac(-7, 2) % 3", "5/2");
     assert_eval("frac(7, 2) % -3", "-5/2");
+    assert!(math_box::evaluate("(0n % frac(0, 1)) + 0.5").is_err());
+    assert!(math_box::evaluate("(9007199254740993n % frac(0, 1)) + 0.5").is_err());
     assert!(math_box::evaluate("1n % 0.5").is_err());
     assert!(math_box::evaluate("9007199254740993n % complex(10, 0)").is_err());
     assert!(math_box::evaluate("complex(10, 0) % 9007199254740993n").is_err());

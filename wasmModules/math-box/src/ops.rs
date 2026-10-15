@@ -626,7 +626,13 @@ pub fn rem(a: Value, b: Value) -> Result<Value> {
             Ok(Frac(fraction_from_num(x)?.rem(&y)?))
         }
         #[cfg(all(feature = "bigint", feature = "fraction"))]
-        (Big(x), Frac(y)) => Ok(Frac(Fraction::raw_from_int_backend(x).rem(&y)?)),
+        (Big(x), Frac(y)) => {
+            use num_traits::Zero;
+            if y.0.numer().is_zero() {
+                return Ok(Big(x));
+            }
+            Ok(Frac(Fraction::raw_from_int_backend(x).rem(&y)?))
+        }
         #[cfg(all(feature = "bigint", feature = "fraction"))]
         (Frac(x), Big(y)) => Ok(Frac(x.rem(&Fraction::raw_from_int_backend(y))?)),
 
