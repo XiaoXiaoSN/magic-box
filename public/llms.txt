@@ -1,0 +1,1227 @@
+# Magic Box
+
+> Browser and terminal tools for converting, decoding, generating and inspecting text.
+
+- [Interactive tool list](https://mb.10oz.tw/list)
+- [Usage and examples](https://github.com/XiaoXiaoSN/magic-box/blob/main/README.md)
+- [Complete tool reference](https://github.com/XiaoXiaoSN/magic-box/blob/main/docs/tools.md)
+- [Developer guide](https://github.com/XiaoXiaoSN/magic-box/blob/main/DEVELOPER.md)
+- [Terminal UI](https://github.com/XiaoXiaoSN/magic-box/blob/main/docs/terminal-ui.md)
+
+## Tools
+
+### Color (color)
+
+Convert HEX, RGB, and HSL colors; use ::cmyk, ::lighten, ::darken, or ::colormix for more formats and adjustments.
+
+Category: Convert. Enabled by default on the web: true.
+Option keys: ::cmyk, ::lighten, ::darken, ::colormix, ::mixcolor, ::blend.
+
+Example (each ::option starts a new line):
+~~~~text
+#ff6347
+~~~~
+
+### Color Contrast (color-contrast)
+
+WCAG contrast ratio between two hex colors (space- or newline-separated).
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::contrast.
+
+Example (each ::option starts a new line):
+~~~~text
+#000000 #ffffff
+::contrast
+~~~~
+
+### Escape String (escape-string)
+
+Unescape JSON-escaped strings (\") and strip ANSI color codes.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+"{\"message\":\"something here\"}"
+~~~~
+
+### Base64 Decode (base64-decode)
+
+Decode a Base64 encoded string back into readable text.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: ::language, ::lang, ::l.
+
+Example (each ::option starts a new line):
+~~~~text
+SGVsbG8gV29ybGQK
+~~~~
+
+### Cron Expression (cron-expression)
+
+Translate cron expressions into human-readable schedules.
+
+Category: Time. Enabled by default on the web: true.
+Option keys: ::l, ::lang, ::locale.
+
+Example (each ::option starts a new line):
+~~~~text
+*/5 0 12 * * ?
+~~~~
+
+### Data Converter (data-converter)
+
+Pretty-print and convert between JSON, YAML, TOML and XML.
+
+Category: Format. Enabled by default on the web: true.
+Option keys: ::json, ::tojson, ::yaml, ::yml, ::toyaml, ::toyml, ::toml, ::totoml, ::xml, ::toxml.
+
+Example (each ::option starts a new line):
+~~~~text
+{"name":"John Doe","age":30,"isStudent":false,"courses":[{"name":"History","credits":3},{"name":"Math","credits":4}]}
+
+::toYAML
+::toTOML
+::toXML
+~~~~
+
+### JSON Tools (json-tools)
+
+Merge, pick/omit, query (RFC 6901 JSON Pointer) and JSONL-convert JSON. ::jsonmerge (objects separated by a --- line), ::jsonpick=a,b, ::jsonomit=a,b, ::jsonpointer=/a/0, ::tojsonl, ::fromjsonl, ::jsonl (auto).
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::jsonmerge, ::jsonpick, ::jsonomit, ::jsonpointer, ::tojsonl, ::fromjsonl, ::jsonl.
+
+Example (each ::option starts a new line):
+~~~~text
+{"a":1,"b":{"x":1}}
+---
+{"b":{"y":2},"c":3}
+::jsonmerge
+~~~~
+
+### Date Calculate (date-calculate)
+
+Add or subtract calendar or time units from a date, or compute the duration between two dates.
+
+Category: Time. Enabled by default on the web: true.
+Option keys: ::relative, ::timeago, ::timelater, ::relativetime.
+
+Example (each ::option starts a new line):
+~~~~text
+now + 7d
+~~~~
+
+### Duration (duration)
+
+Convert numeric seconds/milliseconds or human duration formats (e.g. 10s, 8789sec, 1m48s, 1h3s) to/from human durations and clock formats.
+
+Category: Convert. Enabled by default on the web: true.
+Option keys: ::duration, ::humantime, ::parseduration, ::duration2s, ::humanize.
+
+Example (each ::option starts a new line):
+~~~~text
+3661
+::duration
+~~~~
+
+### Generate QR Code (generate-qr-code)
+
+Turn any input into a scannable QR code.
+
+Category: Transform. Enabled by default on the web: true.
+Option keys: ::qr, ::qrcode.
+
+Example (each ::option starts a new line):
+~~~~text
+https://mb.10oz.tw/list
+::qrcode
+
+~~~~
+
+### Hash (hash)
+
+Compute SHA hashes via Web Crypto and MD5 as a legacy checksum.
+
+Category: Hash. Enabled by default on the web: true.
+Option keys: ::hash, ::md5, ::sha1, ::sha256, ::sha384, ::sha512.
+
+Example (each ::option starts a new line):
+~~~~text
+hello world
+::sha256
+~~~~
+
+### JWT Decode (jwt-decode)
+
+Decode a JWT, render NumericDate claims in the preferred timezone, and optionally verify HS256/HS384/HS512 with ::secret.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: ::secret.
+
+Example (each ::option starts a new line):
+~~~~text
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+~~~~
+
+### ObjectId (objectid)
+
+Decode a MongoDB ObjectId timestamp, random value, and counter with ::objectid.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::objectid, ::object-id.
+
+Example (each ::option starts a new line):
+~~~~text
+507f1f77bcf86cd799439011
+::objectid
+~~~~
+
+### KSUID (ksuid)
+
+Decode a KSUID timestamp and 128-bit payload with ::ksuid.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::ksuid.
+
+Example (each ::option starts a new line):
+~~~~text
+0ujtsYcgvSTl8PAuAdqWYSMnLOv
+::ksuid
+~~~~
+
+### K8s Secret (k8s-secret)
+
+Base64-decode all values inside a Kubernetes Secret YAML.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  username: dXNlcg==
+  password: cGFzc3dvcmQ=
+~~~~
+
+### Math Expression (math-expression)
+
+Evaluate mathematical expressions with standard operators.
+
+Category: Compute. Enabled by default on the web: true.
+Option keys: ::math.
+
+Example (each ::option starts a new line):
+~~~~text
+1 + 2 * (3 + 4) / 5
+~~~~
+
+### My IP (my-ip)
+
+Show your public IP address along with geolocation.
+
+Category: Info. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+ip
+~~~~
+
+### Now (now)
+
+Display the current time in UTC, the preferred timezone, and Unix timestamp.
+
+Category: Time. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+now
+~~~~
+
+### Password Generator (password-generator)
+
+Generates a secure random password.
+
+Category: Generate. Enabled by default on the web: true.
+Option keys: ::password, ::pwd, ::pass, ::len, ::noupper, ::nolower, ::nonumbers, ::nosymbols.
+
+Example (each ::option starts a new line):
+~~~~text
+::password
+~~~~
+
+### Random Integer (random-integer)
+
+Generate a random integer in a range of your choosing.
+
+Category: Generate. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+random 1-6
+~~~~
+
+### Readable Bytes (readable-bytes)
+
+Turn a comma-separated byte array into a readable string.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115
+~~~~
+
+### Shorten URL (shorten-url)
+
+Generate a short URL with an optional custom alias.
+
+Category: Transform. Enabled by default on the web: true.
+Option keys: ::surl, ::shorten.
+
+Example (each ::option starts a new line):
+~~~~text
+https://github.com/XiaoXiaoSN/magic-box
+::surl
+
+~~~~
+
+### Time Format (time-format)
+
+Convert an RFC 3339 timestamp into Unix seconds and milliseconds.
+
+Category: Time. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+2025-06-21T19:34:57.530+08:00
+~~~~
+
+### URL Decode (url-decode)
+
+Decode percent-encoded strings.
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+https%3A%2F%2Fgithub.com%2FXiaoXiaoSN%2Fmagic-box%3Ftab%3Dreadme
+~~~~
+
+### UUID (uuid)
+
+Generate UUID v4 or v7 values, or inspect RFC 9562 version, variant, and embedded timestamps.
+
+Category: Generate. Enabled by default on the web: true.
+Option keys: ::uppercase, ::upper.
+
+Example (each ::option starts a new line):
+~~~~text
+uuid
+~~~~
+
+### Timestamp (timestamp)
+
+Convert a Unix timestamp back to a human-readable date.
+
+Category: Time. Enabled by default on the web: true.
+Option keys: ::timestamp, ::unix, ::ts.
+
+Example (each ::option starts a new line):
+~~~~text
+1735794245
+~~~~
+
+### Base64 Encode (base64-encode)
+
+Encode a string to Base64.
+
+Category: Encode. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+Hello World
+~~~~
+
+### Word Wrap (word-wrap)
+
+Wrap text to a column width at word boundaries. Use ::wrap=N for width N (default 80).
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::wrap, ::wordwrap.
+
+Example (each ::option starts a new line):
+~~~~text
+The quick brown fox jumps over the lazy dog
+::wrap=20
+~~~~
+
+### A1Z26 (a1z26)
+
+Encode letters to their position numbers (A=1..Z=26) or decode numbers back to letters.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::a1z26, ::a1z26encode, ::a1z26decode.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::a1z26
+~~~~
+
+### ASCII Code (ascii-code)
+
+Look up a character or a code point: decimal, hex, octal, binary, and the glyph.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::ascii, ::charcode.
+
+Example (each ::option starts a new line):
+~~~~text
+A
+::ascii
+~~~~
+
+### Aspect Ratio (aspect-ratio)
+
+Simplify width x height into an aspect ratio (e.g. 1920x1080 → 16:9).
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::ratio, ::aspect.
+
+Example (each ::option starts a new line):
+~~~~text
+1920x1080
+::ratio
+~~~~
+
+### Base32 (base32)
+
+RFC 4648 Base32 encode/decode. ::base32 to encode, ::base32decode to decode.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::base32, ::base32encode, ::base32decode.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::base32
+~~~~
+
+### Base58 (base58)
+
+Encode text to Base58 (Bitcoin alphabet) or decode Base58 back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::base58, ::base58encode, ::base58decode.
+
+Example (each ::option starts a new line):
+~~~~text
+Hello World!
+::base58
+~~~~
+
+### Base62 (base62)
+
+Encode a non-negative integer to Base62, or decode a Base62 string to a number.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::base62, ::base62encode, ::base62decode.
+
+Example (each ::option starts a new line):
+~~~~text
+123456789
+::base62
+~~~~
+
+### Base85 (base85)
+
+Encode text to Ascii85 (Base85) or decode Ascii85 back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::base85, ::base85encode, ::base85decode, ::ascii85.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::base85
+~~~~
+
+### basE91 (base91)
+
+Encode text to basE91 or decode a basE91 string.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::base91, ::base91encode, ::base91decode.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::base91
+~~~~
+
+### Text to Binary (text-to-binary)
+
+Convert text to space-separated 8-bit binary (UTF-8), or binary back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::binary, ::tobinary, ::binarydecode, ::frombinary.
+
+Example (each ::option starts a new line):
+~~~~text
+Hi
+::binary
+~~~~
+
+### BMI (bmi)
+
+Compute Body Mass Index. Input: "<weight>kg <height>m" or "<weight>lb <height>in".
+
+Category: Calculate. Enabled by default on the web: false.
+Option keys: ::bmi.
+
+Example (each ::option starts a new line):
+~~~~text
+70kg 1.75m
+::bmi
+~~~~
+
+### Dice Roll (dice-roll)
+
+Roll six-sided dice. Specify a count from 1 to 20; defaults to 1. ::roll or ::dice=3.
+
+Category: Generate. Enabled by default on the web: false.
+Option keys: ::roll, ::dice.
+
+Example (each ::option starts a new line):
+~~~~text
+::roll
+~~~~
+
+### Easter (easter)
+
+Compute the date of Easter Sunday (Gregorian) and Lunar New Year for a given year.
+
+Category: Calculate. Enabled by default on the web: false.
+Option keys: ::easter, ::lny, ::cny, ::lunarnewyear.
+
+Example (each ::option starts a new line):
+~~~~text
+2025
+::easter
+~~~~
+
+### Fraction (fraction)
+
+Convert a decimal to a simplified fraction, or a fraction (a/b) to a decimal.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::fraction, ::tofraction.
+
+Example (each ::option starts a new line):
+~~~~text
+0.75
+::fraction
+~~~~
+
+### Frequency (frequency)
+
+Count character frequencies in the input, sorted by count.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::freq, ::frequency.
+
+Example (each ::option starts a new line):
+~~~~text
+hello world
+::freq
+~~~~
+
+### GCD / LCM (gcd-lcm)
+
+Compute the GCD and LCM of a list of integers (comma or space separated).
+
+Category: Calculate. Enabled by default on the web: false.
+Option keys: ::gcd, ::lcm.
+
+Example (each ::option starts a new line):
+~~~~text
+12, 18, 24
+::gcd
+~~~~
+
+### Distance (distance)
+
+Great-circle distance between two coordinates. Input: "lat1,lng1 to lat2,lng2".
+
+Category: Calculate. Enabled by default on the web: false.
+Option keys: ::haversine, ::distance.
+
+Example (each ::option starts a new line):
+~~~~text
+40.7128,-74.0060 to 51.5074,-0.1278
+::haversine
+~~~~
+
+### Line Tools (line-tools)
+
+De-duplicate or reverse the lines of a text block.
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::uniquelines, ::reverselines.
+
+Example (each ::option starts a new line):
+~~~~text
+banana
+apple
+cherry
+apple
+::uniquelines
+~~~~
+
+### Power Convert (power-convert)
+
+Convert power between W, kW, mW, MW, hp, PS, BTU/h.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::power.
+
+Example (each ::option starts a new line):
+~~~~text
+100 hp
+::power
+~~~~
+
+### Semver (semver)
+
+Parse and validate a Semantic Version string into its components.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::semver.
+
+Example (each ::option starts a new line):
+~~~~text
+1.2.3-beta.1+build.5
+::semver
+~~~~
+
+### Snowflake (snowflake)
+
+Parse a Snowflake ID (Discord/Twitter) into its timestamp and components.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::snowflake, ::epoch.
+
+Example (each ::option starts a new line):
+~~~~text
+175928847299117063
+::snowflake
+~~~~
+
+### Sort Lines (sort-lines)
+
+Sort the lines of text. ::sortlines (asc), modifiers ::desc, ::numeric, ::unique, ::ci (case-insensitive).
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::sortlines, ::sort, ::numeric, ::ci, ::caseinsensitive, ::desc, ::reverse, ::unique, ::uniq.
+
+Example (each ::option starts a new line):
+~~~~text
+banana
+apple
+cherry
+::sortlines
+~~~~
+
+### Soundex (soundex)
+
+Compute the American Soundex phonetic code for each word in the input.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::soundex.
+
+Example (each ::option starts a new line):
+~~~~text
+Robert
+::soundex
+~~~~
+
+### Speed Convert (speed-convert)
+
+Convert a speed between m/s, km/h, mph, knots, and ft/s.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::speed.
+
+Example (each ::option starts a new line):
+~~~~text
+100 km/h
+::speed
+~~~~
+
+### Subnet (subnet)
+
+Calculate IPv4 CIDR or IP/netmask subnets, split a network, and test membership with ::subnet.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::subnet, ::cidr, ::split, ::contains.
+
+Example (each ::option starts a new line):
+~~~~text
+192.168.1.10/24
+::subnet
+~~~~
+
+### Temperature (temperature)
+
+Convert a temperature between Celsius, Fahrenheit and Kelvin. e.g. "100C ::temp".
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::temp, ::temperature.
+
+Example (each ::option starts a new line):
+~~~~text
+100C
+::temp
+~~~~
+
+### Text Diff (text-diff)
+
+Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.
+
+Category: Analyze. Enabled by default on the web: true.
+Option keys: ::diff, ::textdiff, ::linediff, ::lang, ::language, ::l.
+
+Example (each ::option starts a new line):
+~~~~text
+foo
+bar
+---
+foo
+baz
+::textdiff
+~~~~
+
+### Text Reverse (text-reverse)
+
+Reverse the characters of the input string without splitting grapheme clusters.
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::reverse, ::reversetext.
+
+Example (each ::option starts a new line):
+~~~~text
+hello 😀
+::reverse
+~~~~
+
+### Two's Complement (twos-complement)
+
+Show the two's-complement binary/hex of an integer at a bit width. ::twos=<bits> (default 8).
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::twos, ::twoscomplement.
+
+Example (each ::option starts a new line):
+~~~~text
+-42
+::twos=8
+~~~~
+
+### ULID (ulid)
+
+Generate a ULID (::ulid) or decode the timestamp of an existing ULID (::ulid=<ulid> or ::ulidparse).
+
+Category: Generate. Enabled by default on the web: false.
+Option keys: ::ulid, ::ulidparse.
+
+Example (each ::option starts a new line):
+~~~~text
+::ulid
+~~~~
+
+### Unicode Normalize (unicode-normalize)
+
+Normalize text to a Unicode form (NFC/NFD/NFKC/NFKD). ::normalize=nfc (default NFC).
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::normalize, ::unicodenormalize.
+
+Example (each ::option starts a new line):
+~~~~text
+café
+::normalize=nfd
+~~~~
+
+### Unit Converter (unit-converter)
+
+Convert units automatically for length, area, volume, mass, temperature, speed, pressure, power, energy, data size, data rate, and time (e.g. 100 km, 50 MB to GB, 37 C).
+
+Category: Convert. Enabled by default on the web: true.
+Option keys: ::unit, ::convert.
+
+Example (each ::option starts a new line):
+~~~~text
+100 km to mi
+~~~~
+
+### Week Number (week-number)
+
+Compute the ISO 8601 week number (and weekday, day-of-year) for a date.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::weeknum, ::isoweek.
+
+Example (each ::option starts a new line):
+~~~~text
+2024-01-01
+::weeknum
+~~~~
+
+### Whitespace Clean (whitespace-clean)
+
+Trim each line, collapse internal whitespace runs, and remove blank lines.
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::clean, ::cleanws.
+
+Example (each ::option starts a new line):
+~~~~text
+  hello   world  
+
+
+  foo  bar
+::clean
+~~~~
+
+### Words to Number (words-to-number)
+
+Parse English number words into an integer (e.g. "one thousand two hundred" → 1200).
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::wordstonum, ::wordstonumber.
+
+Example (each ::option starts a new line):
+~~~~text
+one million two hundred thirty-four thousand
+::wordstonum
+~~~~
+
+### Zodiac Sign (zodiac-sign)
+
+Determine the Western zodiac sign for a date (MM-DD or YYYY-MM-DD).
+
+Category: Calculate. Enabled by default on the web: false.
+Option keys: ::zodiac, ::starsign.
+
+Example (each ::option starts a new line):
+~~~~text
+03-21
+::zodiac
+~~~~
+
+### Word Count (word-count)
+
+Count the lines, words and characters in any input.
+
+Category: Analyze. Enabled by default on the web: true.
+Option keys: none.
+
+Example (each ::option starts a new line):
+~~~~text
+There are so many sounds in the world.
+i'mdifficult
+
+~~~~
+
+### Markdown TOC (markdown-toc)
+
+Generate a table of contents (nested bullet list with anchor links) from Markdown headings.
+
+Category: Transform. Enabled by default on the web: false.
+Option keys: ::toc, ::tableofcontents.
+
+Example (each ::option starts a new line):
+~~~~text
+# Title
+## Section A
+### Sub
+## Section B
+::toc
+~~~~
+
+### Punycode (punycode)
+
+Convert an internationalized domain name to/from its Punycode (xn--) ASCII form.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::punycode, ::punycodeencode, ::idn, ::punycodedecode, ::idndecode.
+
+Example (each ::option starts a new line):
+~~~~text
+münchen.de
+::punycode
+~~~~
+
+### Radix Convert (radix-convert)
+
+Convert an integer between arbitrary bases (2-36). e.g. ::radix=16:2 for hex→binary.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::radix, ::baseconvert.
+
+Example (each ::option starts a new line):
+~~~~text
+ff
+::radix=16:2
+~~~~
+
+### Query String (query-string)
+
+Convert a URL query string to JSON, or a flat JSON object to a query string.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::qs, ::querystring.
+
+Example (each ::option starts a new line):
+~~~~text
+a=1&b=2&b=3
+::qs
+~~~~
+
+### Hex Dump (hex-dump)
+
+Produce a canonical hex + ASCII dump of the input (like hexdump -C).
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::hexdump, ::xxd.
+
+Example (each ::option starts a new line):
+~~~~text
+Hello, World!
+::hexdump
+~~~~
+
+### Text to Hex (text-to-hex)
+
+Convert text to a hex string (UTF-8) or decode a hex string back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::hex, ::tohex, ::hexdecode, ::fromhex.
+
+Example (each ::option starts a new line):
+~~~~text
+Hi
+::hex
+~~~~
+
+### URL Parse (url-parse)
+
+Break a URL into protocol, host, port, path, query, and hash.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::urlparse, ::parseurl.
+
+Example (each ::option starts a new line):
+~~~~text
+https://user:pass@example.com:8080/a/b?x=1&y=2#frag
+::urlparse
+~~~~
+
+### Readable Text Color (readable-text-color)
+
+Given a background hex color, pick the readable foreground (black or white) and the WCAG contrast.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::oncolor, ::textcolor.
+
+Example (each ::option starts a new line):
+~~~~text
+#3498db
+::oncolor
+~~~~
+
+### Credit Card Info (credit-card-info)
+
+Detect the card brand from a number and check Luhn validity (masks the number).
+
+Category: Validate. Enabled by default on the web: false.
+Option keys: ::cardtype, ::creditcard, ::cardinfo.
+
+Example (each ::option starts a new line):
+~~~~text
+4111111111111111
+::cardinfo
+~~~~
+
+### Glob to Regex (glob-to-regex)
+
+Convert a shell glob pattern (*, ?, [...], **) into an anchored regular expression.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::glob2regex, ::globregex.
+
+Example (each ::option starts a new line):
+~~~~text
+src/**/*.ts
+::glob2regex
+~~~~
+
+### HSV (hsv)
+
+Convert a color between hex/RGB and HSV (HSB).
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::hsv, ::hsb.
+
+Example (each ::option starts a new line):
+~~~~text
+#ff6347
+::hsv
+~~~~
+
+### IPv6 (ipv6)
+
+Expand and compress an IPv6 address (RFC 5952).
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::ipv6.
+
+Example (each ::option starts a new line):
+~~~~text
+2001:db8::1
+::ipv6
+~~~~
+
+### IEEE 754 (ieee-754)
+
+Show the IEEE-754 (double + single) bit representation of a number, or decode a hex pattern back to a float.
+
+Category: Analyze. Enabled by default on the web: false.
+Option keys: ::ieee754, ::floatbits.
+
+Example (each ::option starts a new line):
+~~~~text
+3.14
+::ieee754
+~~~~
+
+### MAC Address (mac-address)
+
+Normalize a MAC address and show its formats, OUI prefix, and flags.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::mac, ::macaddress.
+
+Example (each ::option starts a new line):
+~~~~text
+01:23:45:67:89:ab
+::mac
+~~~~
+
+### Morse Code (morse-code)
+
+Encode text to Morse code or decode Morse code back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::morse, ::morseencode, ::morsedecode.
+
+Example (each ::option starts a new line):
+~~~~text
+SOS
+::morse
+~~~~
+
+### Port Lookup (port-lookup)
+
+Look up a well-known port number or service name. ::port
+
+Category: Decode. Enabled by default on the web: false.
+Option keys: ::port, ::portlookup.
+
+Example (each ::option starts a new line):
+~~~~text
+443
+::port
+~~~~
+
+### Unicode Escape (unicode-escape)
+
+Escape text to \uXXXX sequences, or unescape \uXXXX / \u{...} back to text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::unicodeescape, ::uescape, ::unicodeunescape, ::uunescape.
+
+Example (each ::option starts a new line):
+~~~~text
+héllo 😀
+::unicodeescape
+~~~~
+
+### HMAC (hmac)
+
+Compute HMAC of the input with a key: ::hmac=<key>. Select algorithms with ::sha256, ::sha1, ::sha512 (default: all); each also accepts the key, e.g. ::sha512=<key>.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::hmac, ::hmacsha1, ::hmacsha256, ::hmacsha512, ::sha1, ::sha256, ::sha512.
+
+Example (each ::option starts a new line):
+~~~~text
+The quick brown fox jumps over the lazy dog
+::hmac=key
+~~~~
+
+### PBKDF2 (pbkdf2)
+
+Derive a key from the input password: ::pbkdf2=<salt>. Options ::iterations=<n>, ::dklen=<bytes>, and the PRF via ::prf=sha256|sha1|sha512 or bare ::sha256/::sha1/::sha512 (default HMAC-SHA256).
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::pbkdf2, ::prf, ::iterations, ::dklen, ::sha1, ::sha256, ::sha512.
+
+Example (each ::option starts a new line):
+~~~~text
+password
+::pbkdf2=salt
+~~~~
+
+### Local AI (local-ai)
+
+Run a small language model entirely in this browser with WebGPU: ask, translate, rewrite or summarize. Nothing is downloaded or generated until you ask for it, and prompts never leave the device. ::ai
+
+Category: Generate. Enabled by default on the web: true.
+Option keys: ::ai, ::localai.
+
+Example (each ::option starts a new line):
+~~~~text
+::ai
+~~~~
+
+### CRC-32 (crc-32)
+
+Compute the CRC-32 (IEEE 802.3) checksum of the input text.
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::crc32.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::crc32
+~~~~
+
+### Crockford Base32 (crockford-base32)
+
+Encode text to Crockford's Base32 or decode it back (case-insensitive, no padding).
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::crockford, ::crockfordencode, ::crockforddecode.
+
+Example (each ::option starts a new line):
+~~~~text
+hello
+::crockford
+~~~~
+
+### Case Converter (case-converter)
+
+Convert each line between camelCase, PascalCase, snake_case, CONSTANT_CASE, kebab-case, Title Case, dot.case, path/case, Sentence case, lowercase and UPPERCASE. Use ::case to list formats or ::case=<format> to select one.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::case, ::camel, ::camelcase, ::pascal, ::pascalcase, ::snake, ::snakecase, ::kebab, ::kebabcase, ::constant, ::constantcase, ::dot, ::dotcase, ::path, ::pathcase, ::title, ::titlecase, ::sentence, ::sentencecase, ::lower, ::lowercase, ::upper, ::uppercase.
+
+Example (each ::option starts a new line):
+~~~~text
+XMLHttpRequest userID v2ApiKey
+::case
+~~~~
+
+### Certificate Decode (certificate-decode)
+
+Decode PEM X.509 certificates and CA bundles locally. ::cert
+
+Category: Decode. Enabled by default on the web: true.
+Option keys: ::cert, ::certificate, ::ca.
+
+Example (each ::option starts a new line):
+~~~~text
+Paste a PEM certificate here
+::cert
+~~~~
+
+### Cheat Sheet (cheat-sheet)
+
+Offline command examples. Enter curl, cheat:git, or ::cheat=jq.
+
+Category: Reference. Enabled by default on the web: true.
+Option keys: ::cheat, ::cheatsheet.
+
+Example (each ::option starts a new line):
+~~~~text
+curl
+~~~~
+
+### Coordinates (coordinates)
+
+Convert a coordinate between decimal degrees, DDM, DMS, Plus Code, Geohash, UTM, MGRS and geo URI. ::coord shows every format; ::dms, ::pluscode, ::geohash, ::utm, … show just that one. Accepts lat/lng in any of the angle formats, a full Plus Code or a Geohash.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::coord, ::coords, ::latlng, ::latlon, ::dd, ::decimal, ::ddm, ::dms, ::pluscode, ::olc, ::geohash, ::utm, ::mgrs, ::geo, ::geouri.
+
+Example (each ::option starts a new line):
+~~~~text
+40.446195, -79.948862
+::coord
+~~~~
+
+### HTML Entities (html-entities)
+
+Decode HTML5 character references without parsing markup, or encode text with ::htmlencode (add =all to encode non-ASCII characters).
+
+Category: Encode. Enabled by default on the web: false.
+Option keys: ::htmlencode, ::htmldecode.
+
+Example (each ::option starts a new line):
+~~~~text
+&amp;lt; &#x1F600;
+::htmldecode
+~~~~
+
+### HTTP Status (http-status)
+
+Look up an IANA-assigned HTTP status by code or exact reason phrase with ::http, http 502, or status 404.
+
+Category: Decode. Enabled by default on the web: false.
+Option keys: ::http.
+
+Example (each ::option starts a new line):
+~~~~text
+404
+::http
+~~~~
+
+### chmod Calculator (chmod-calculator)
+
+Convert absolute octal, rwx symbolic, and u/g/o permission modes with ::chmod. Use ::umask=022 for standard new-file and directory permissions.
+
+Category: Convert. Enabled by default on the web: false.
+Option keys: ::chmod, ::umask.
+
+Example (each ::option starts a new line):
+~~~~text
+4755
+::chmod
+~~~~

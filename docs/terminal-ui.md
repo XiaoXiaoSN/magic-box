@@ -1,49 +1,103 @@
 # Terminal UI
 
-Build the WASM packages and install dependencies using the normal repository
-setup, then run:
+The terminal interface uses the same tool registry as the web application.
+It includes 89 headless sources from the 93-source registry, excluding
+Generate QR Code and Local AI (browser APIs), and My IP and Shorten URL
+(network side effects). Web Settings do not disable terminal sources;
+directive-driven sources are available even when disabled by default on the web.
+Use `--list` to inspect the current inventory and `--only` to select sources.
+
+## Build, install and run
+
+Follow the [local setup](../DEVELOPER.md#local-setup) first: build both WASM
+packages, then install dependencies. From the repository root:
 
 ```sh
 bun run tui                         # interactive, with a real terminal
-bun run tui '1 + 2 * 3'
-bun run tui --json 'SGVsbG8='
-printf '{"hello":"world"}' | bun run tui --json
-bun run tui --timezone -5 '1700000000'
-bun run tui --prefs ./preferences.json 'now'
-bun run tui -- --literal-input
+bun run tui --json '1 + 2 * 3'        # one conversion, then exit
+bun run tui:build
+./dist-tui/magic-box-tui --json '2 * 3'
+bun run tui:install -- --bin-dir "$HOME/.local/bin"
 ```
 
-`--json` emits only a JSON array to stdout (Bun's script banner is on stderr),
-with `name`, `output`, `tag` and `kind`. Empty piped input exits immediately;
-it never tries to start a raw-mode prompt. Positional arguments take precedence
-over piped stdin. The shared `::option` parser works in all input modes.
+The build produces `dist-tui/magic-box-tui`, a standalone executable containing
+the Bun runtime, bundled TUI code and both WASM packages. The installer copies
+that executable into the chosen directory. Add that directory to `PATH`, then
+run `magic-box-tui` from any working directory. No adjacent repository,
+`node_modules`, WASM files, Bun or Node installation is required at runtime.
+Build on each target host; local standalone verification currently covers
+macOS arm64 only. There is no separate Node bundle or `tui:node` script.
 
-For Node, compile the TypeScript/JSX entry point once:
+## CLI input and output
+
+The examples below use the installed binary. `bun run tui` accepts the same
+arguments when working from source.
 
 ```sh
-bun run tui:build
-bun run tui:node --json '2 * 3'
-# or: node dist-tui/index.mjs --json '2 * 3'
+magic-box-tui --help
+magic-box-tui --list
+magic-box-tui --list --json
+magic-box-tui --only math-expression --json '1 + 2 * 3'
+printf 'SGVsbG8=' | magic-box-tui --only base64-decode --json
+magic-box-tui --only uuid --raw uuid ::uppercase
+magic-box-tui --only cron-expression --json '* * * * *' --opt locale=tw
+magic-box-tui --json --timezone -5 '1700000000'
+magic-box-tui --prefs ./preferences.json 'now'
+magic-box-tui -- --literal-input
 ```
 
-Dependencies and WASM assets must remain installed alongside this build. This
-is not a standalone executable; raw Node cannot execute the source JSX/path
-aliases. Both WASM loaders read package-resolved bytes in Node/Bun, use browser
-fetch on the web, share in-flight initialization, and allow retries on failure.
+- Positional arguments are joined with spaces and take precedence over stdin.
+  Quote multiline input to preserve its line breaks. Without positional input,
+  non-interactive mode reads stdin to EOF, with a 1 MiB limit. Empty piped stdin
+  without directives is a usage error; it never starts an interactive prompt.
+- Put each shared `::option` on its own line in piped or multiline input.
+  Separate arguments beginning with `::` become directive lines automatically.
+  `--opt key=value` (or `-o key=value`) adds a directive and can be repeated.
+  After `--`, flag-looking arguments become input, but arguments starting with
+  `::` still become directives.
+- `--only` accepts a source ID or an unambiguous source name, ignoring case.
+  Repeat it or comma-separate selectors. Selections are deduplicated and run in
+  selection order; without a filter, results follow registry order.
+- `--json` writes a JSON array of successful results to stdout, with `name`,
+  `output`, `tag` and `kind`. With `--list`, it instead emits source metadata,
+  including IDs, descriptions, default inputs and option keys. Source errors
+  go to stderr, outside the JSON. Bun's source-script banner is also on stderr.
+- `--raw` writes only the first matching plaintext result, without an added
+  newline. It cannot be combined with `--json` or `--list`.
+- Without `--json` or `--raw`, Ink renders named results. Input-derived control
+  characters are removed from terminal display and raw output; JSON and copied
+  output retain the original text.
+
+Source failures are reported separately and do not discard other successful
+conversions. One-shot execution exits with status 0 when at least one result
+matches, even if another source fails; no matches or an unexpected execution
+failure exits with status 1. Invalid arguments/preferences, unknown or ambiguous
+source selectors, empty piped input and oversized stdin exit with status 2.
+`--help` and a valid `--list` exit with status 0 without converting input.
+`--list` cannot be combined with positional input or directives.
 
 ## Interaction and preferences
 
-- Enter converts the current input.
-- Ctrl+N / Ctrl+P moves through results, wrapping at either end.
-- Ctrl+Y copies the selected output using OSC 52. Your terminal must allow
-  clipboard operations; this also works over SSH in supported terminals.
-  Copy is never automatic. Payloads above 100 KB are rejected.
-- Ctrl+C exits. Newer submissions win over late async results.
+Running with a real terminal and no input, directives, `--json` or `--raw`
+opens the interactive prompt:
 
-Timezone defaults to UTC+8, using the same runtime preferences and offset
-validation as the web. `--timezone` overrides `--prefs`; `--locale en|tw`
-overrides an optional file locale. The preferences file accepts the web
-`mb_prefs` JSON object, for example:
+- Typing updates results after a 200 ms debounce; input edits cancel the prior
+  request and late results cannot replace the newer query.
+- Up / Down selects results, wrapping at either end and focusing the result list.
+- Enter copies the selected output. With results focused, `y` also copies;
+  Ctrl+Y copies from either the input or results. Tab returns focus to input;
+  typing another character while results are focused resumes editing.
+- Esc or Ctrl+C exits. Clipboard copying is always an explicit action.
+
+On macOS, copying uses `pbcopy` when available. Otherwise it uses OSC 52, which
+requires clipboard support in the terminal and can work over SSH. The OSC 52
+fallback rejects payloads above 100,000 UTF-8 bytes; that limit does not apply
+to the macOS system clipboard path.
+
+Timezone defaults to UTC+8, using the same supported offsets as the web.
+`--timezone` overrides the preferences file; `--locale en|tw` overrides its
+locale (`zh_TW` is also accepted). Without a file or override, locale is `en`.
+The preferences file accepts the web `mb_prefs` JSON object, for example:
 
 ```json
 {"timezoneOffset": -5, "locale": "tw"}
@@ -51,30 +105,28 @@ overrides an optional file locale. The preferences file accepts the web
 
 To transfer browser preferences, copy the `mb_prefs` localStorage value in
 browser developer tools into a local JSON file and pass `--prefs`. The terminal
-cannot directly read a browser's storage. Theme, AI and network/telemetry
-settings are not imported. CLI errors go to stderr with a nonzero exit code.
+cannot directly read browser storage. Only timezone and locale are imported;
+theme, AI and other web settings are ignored, and terminal analytics is disabled.
+The CLI validates saved timezone and locale values even when overrides are given.
 
-## Sources and renderer boundary
+## Execution and renderer boundary
 
-Sources now use semantic `Box.view` hints (`code`, `keyValue`, etc.) instead of
-importing React/MUI. Plaintext is always available to terminals and clipboard
-consumers; structured options remain available to the web resolver. Existing
-custom `boxTemplate` extensions continue to work.
+Sources run concurrently, while results retain source order. Only successful,
+nonempty plaintext results enter the output list; source errors appear on stderr
+in one-shot mode and alongside results in interactive mode. The registry lazily
+loads selected implementations, so listing metadata does not execute tools.
 
-The TUI derives its source list from the shared registry, including Base64,
-Math, JWT, DataConverter and K8sSecret. It excludes Local AI and QR generation
-(browser worker/canvas), My IP and Shorten URL (network side effects).
-Directive-driven sources are available even if disabled by default on the web.
-A failing source yields an error result without discarding other conversions.
-Input-derived control characters are removed from terminal display, not from
-the original copy/JSON output.
-
-`TerminalRenderer` separates entry-point orchestration from Ink. An alternative
-adapter implements `showResults` and `startInteractive`, consumes the same
-renderer-neutral `terminalResults` model, and does not modify box sources.
-Only Ink is shipped; there is no misleading OpenTUI selector without an adapter.
+The shared `Box` model provides plaintext and semantic `view` hints such as
+`code` and `keyValue`; web rendering resolves these hints and custom
+`boxTemplate` extensions. The terminal consumes plaintext through the
+renderer-neutral `terminalResults` model. `TerminalRenderer` separates CLI
+orchestration from Ink through `showResults` and `startInteractive`. Ink is the
+only shipped adapter.
 
 ## Ink vs OpenTUI evaluation
+
+The following records the isolated evaluation for issue #499. Its environment
+and timings are historical, separate from the current standalone verification.
 
 Keep Ink, as recommended in issue #499's discussion. It already has the input
 and testing components this conversion-oriented CLI needs. No measured

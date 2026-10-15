@@ -19,26 +19,24 @@
 
 ---
 
+Convert, decode, generate and inspect text in one place.
+[Open Magic Box](https://mb.10oz.tw/) · [Browse tools](https://mb.10oz.tw/list)
+
 ## Usage 🏁
 
 Magic Box parses user input into two parts: `input` and `options`.
 
-For example, when Magic Box receives the following user input:
-The input will be `https://youtu.be/dQw4w9WgXcQ` and the option key is `shorten` with the value `document`.
+For example, this input shortens a URL using the alias `document`:
 
 ```
 https://youtu.be/dQw4w9WgXcQ
 ::shorten=document
 ```
 
-Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. Keys start with a letter or underscore and may contain letters, digits, underscores, and hyphens. Values are trimmed at the edges while preserving internal whitespace and `=` characters. `::option=` with nothing after `=` is the same as a bare `::option`; a valid IPv6 literal such as `::1` remains input, including when it has trailing spaces or tabs. The existing bare aliases `::dd` (coordinate decimal degrees) and `::ca` (certificate decode) take precedence over IPv6 shorthand; use `::ipv6=::dd` or `::ipv6=[::dd]` when that address is intended.
+Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. `::option=` with nothing after `=` is the same as a bare `::option`.
 
-Based on matching methods, we can roughly classify Boxes into two types:
-
-1. match by the `input` string
-2. match by `options`
-
-The optional Case Converter, HTML Entities, HTTP Status, and chmod tools use explicit commands such as `::case`, `::htmldecode`, `::http`, and `::chmod`. See [text and reference tools](docs/text-reference-tools.md) for their formats and limits.
+Tools match either the input itself (such as a color or timestamp) or an
+explicit option (such as `::sha256`).
 
 ### Keyboard Shortcuts ⌨️
 
@@ -48,19 +46,13 @@ The optional Case Converter, HTML Entities, HTTP Status, and chmod tools use exp
 - Enter: copy the selected Box output to clipboard
 - Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
 
-### CI and release policy
+## Tools 🧰
 
-CI uses Bun 1.3.4 and the committed Cargo lockfiles. WASM packages are built
-once per run, then the same frozen shipping artifact is used by the unit,
-component, E2E, offline, budget, preview, and production gates. Pull requests
-run every gate; same-repository pull requests receive a Firebase preview after
-the gates pass, while fork previews are skipped because repository secrets are
-unavailable. Only a fully green push to `main` can deploy the live channel.
+Browse the [interactive tool list](https://mb.10oz.tw/list) or the
+[complete tool reference](docs/tools.md) for every tool's description, example
+and options. Tools disabled by default can be enabled in Settings.
 
-The bundle budget report records the measured entry gzip size, precache
-manifest size, and JavaScript file count. Thresholds live in
-`scripts/bundle-budget.json` and must be updated deliberately when a product
-change needs more headroom.
+Expand the examples below for usage tips and screenshots.
 
 <details>
 <summary> <b>ColorBox</b> </summary>
@@ -92,31 +84,10 @@ change needs more headroom.
 
 | options                          | description                             | example     |
 | -------------------------------- | --------------------------------------- | ----------- |
-| `l`, `lang`, `locale`            | select the human language               | ::locale=tw |
-| ~~`tz`, `timezone`, `tzOffset`~~ | (deprecated) shift to the base timezone | ::tz=8      |
+| `l`, `lang`, `locale`            | select the output language             | ::locale=tw |
 
-Cron descriptions accept five-field UNIX expressions, six-field expressions
-with a leading seconds field, and seven-field expressions with a trailing year
-field. Month and weekday names are case-insensitive (`JAN`–`DEC`,
-`SUN`–`SAT`), and the supported macros are `@yearly`, `@annually`,
-`@monthly`, `@weekly`, `@daily`, `@midnight`, and `@hourly`.
-
-Each valid expression also produces a **Next executions** box containing up to
-five RFC 3339 timestamps strictly after the input was evaluated. Fixed timezone
-preferences are rendered with their configured offset, including quarter-hour
-offsets; system timezone preferences use the offset at each candidate. Spring
-DST gaps are skipped, while both valid instants in a repeated fall-back hour
-are retained. Five-field expressions use UNIX day-of-month/day-of-week OR
-semantics when both fields are restricted. Six- and seven-field expressions
-use `?` as the unrestricted day field and require both restricted fields.
-
-The next-time search checks calendar fields directly within a bounded 20-year
-horizon, so impossible dates such as February 31 produce no occurrences. The
-description remains available for `L`, `W`, and `#` expressions, but their next
-times are labelled unavailable because those advanced forms are not calculated.
-Descending ranges are rejected for seconds, minutes, hours, day-of-month,
-months, and years; day-of-week ranges wrap across Sunday (for example,
-`FRI-MON`).
+Cron uses the app locale unless overridden by one of these options. It does
+not shift schedules with a timezone option.
 
 </details>
 
@@ -183,16 +154,18 @@ Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a 
 
 | match rule                               | description                           | output           |
 | ---------------------------------------- | ------------------------------------- | ---------------- |
-| contains option `hash`, `sha1`, `sha256`, or `sha512` | compute cryptographic hash of the input | lowercase hex digest |
+| contains option `hash`, `md5`, `sha1`, `sha256`, `sha384`, or `sha512` | compute cryptographic hash of the input | lowercase hex digest |
 
 | options  | description                              | example      |
 | -------- | ---------------------------------------- | ------------ |
-| `hash`   | compute SHA-1, SHA-256, and SHA-512      | `::hash`     |
+| `hash`   | compute MD5, SHA-1, SHA-256, SHA-384, and SHA-512 | `::hash`     |
+| `md5`    | compute MD5 digest                       | `::md5`      |
 | `sha1`   | compute SHA-1 digest                     | `::sha1`     |
 | `sha256` | compute SHA-256 digest                   | `::sha256`   |
+| `sha384` | compute SHA-384 digest                   | `::sha384`   |
 | `sha512` | compute SHA-512 digest                   | `::sha512`   |
 
-MD5 is intentionally omitted — it is not available in Web Crypto, and adding an npm dependency for a broken algorithm is not worthwhile.
+The `hash` option returns all five digests; individual options select one.
 
 </details>
 
@@ -217,44 +190,24 @@ MD5 is intentionally omitted — it is not available in Web Crypto, and adding a
 <details>
 <summary> <b>LocalAIBox</b> (experimental) </summary>
 
-Runs a small language model entirely in the browser with WebGPU. Opening the box
-measures the real download by itself, so setup is a single button already
-labelled with what it costs: **Download model · <size>** — or **Load model ·
-<size>** when the files are cached. That click is the consent, and no weights are
-fetched before it, on any visit. Turn **Check the model automatically** off in
-**Settings → Local AI** to make the check a click too. You can also download it
-ahead of time from **Settings → Local AI**. Prompts and answers stay in the
-page: they never reach a server or the search history, and telemetry is muted
-for the rest of the visit once the box is open. See [docs/local-ai.md](docs/local-ai.md).
+Ask, translate, rewrite or summarize with a model running locally in your
+browser. Open it with `::ai` or `::localai`, then choose **Download model**
+to get started. Requires HTTPS and a WebGPU browser with `shader-f16`.
 
-Text written in front of the directive — or after it on the same line, as in
-`::ai what is WebGPU?` — is the prompt, so `say hello` + `::ai` runs as soon as
-the model is loaded in that tab — the box says when a
-prompt came from the input, and a share link you create would carry it. Turn
-**Auto-run input prompts** off in Settings → Local AI to always press **Run
-locally** yourself.
+```text
+Explain what WebGPU is
+::ai
+```
 
-| match rule                         | description                                   | example      |
-| ---------------------------------- | --------------------------------------------- | ------------ |
-| contains option `ai` or `localai`  | open the on-device assistant panel            | `::ai`       |
-
-| options            | description                                                   | example      |
-| ------------------ | ------------------------------------------------------------- | ------------ |
-| `ai`, `localai`    | ask, translate, rewrite or summarize with a local model        | `say hello\n::ai` |
-
-Requires HTTPS and a WebGPU browser with `shader-f16`. The model is
-Qwen2.5-0.5B-Instruct (`q4f16`, 467.3 MiB) at a pinned revision; prompts are
-capped at 1,024 tokens and answers at 256 tokens. Small-model answers can be
-wrong, and there is no cloud or CPU fallback.
+Prompts stay on the device. A prompt supplied with the input runs when the
+model is loaded unless **Auto-run input prompts** is disabled in Settings.
+See the [Local AI guide](docs/local-ai.md) for model size, setup and privacy
+controls.
 
 </details>
 
 <details>
 <summary> <b>MathExpressionBox</b> </summary>
-
-Powered by the in-tree [`math-box`](wasmModules/math-box/) WASM module —
-a clean-room expression evaluator written in Rust, replacing `mathjs` since
-v0.2 to keep the bundle small and the licence pure MIT/Apache-2.0.
 
 | match rule         | description               | output                       |
 | ------------------ | ------------------------- | ---------------------------- |
@@ -263,16 +216,19 @@ v0.2 to keep the bundle small and the licence pure MIT/Apache-2.0.
 Supported syntax (highlights):
 
 - arithmetic `+ - * / % ^`, factorial `5!`, function calls `sin(PI/2)`
+- comparisons, boolean literals, short-circuiting `&&`/`||`, and `!true`
+- implicit multiplication (`2 pi`, `2(3 + 4)`) and percentages (`10% of 200`)
 - variables and statement chaining: `x = 5; y = 7; x*y + x^2`
 - user-defined functions: `sq(x) = x^2; sq(11) + sq(13)`
-- BigInt literals via `n` suffix: `9007199254740993n + 1n`
+- BigInt literals via `n` suffix or automatic promotion of large integers:
+  `9007199254740993 + 1`
 - fractions: `frac(1, 3) + frac(1, 4)` → `7/12`
 - complex numbers: `(2 + 3*i) * (2 - 3*i)` → `13`
-- units: `1 km + 500 m to m` → `1500 m` (length / mass / time SI)
+- units: `(1 km + 500 m) to m` → `1500 m` (length, mass, time, temperature,
+  data and derived SI units)
 
-See [wasmModules/math-box/NOTES.md](wasmModules/math-box/NOTES.md) for the
-full design and roadmap, and
-[BENCHMARK.md](wasmModules/math-box/BENCHMARK.md) for performance vs `mathjs`.
+See the [math-box README](wasmModules/math-box/README.md) for the
+implemented syntax, numeric behavior and limits.
 
 </details>
 
@@ -290,7 +246,7 @@ full design and roadmap, and
 
 | match rule          | description                                                                                    | output            |
 | ------------------- | ---------------------------------------------------------------------------------------------- | ----------------- |
-| input matches `now` | show current time in 3 difference formats: `RFC 3339`, `RFC 3339 (UTC+8)`, and `Timestamp (s)` | ![](docs/Now.png) |
+| input matches `now` | show RFC 3339 in UTC and the preferred timezone (default UTC+8), plus Unix timestamp | ![](docs/Now.png) |
 
 </details>
 
@@ -337,9 +293,15 @@ full design and roadmap, and
 <details>
 <summary> <b>TimestampBox</b> </summary>
 
-| match rule                                                                               | description                                | output                  |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------- |
-| valid timestamp. to avoid match all of number string, it only receive 1600 AD to 2500 AD | the time of timestamp in `RFC 3339` format | ![](docs/Timestamp.png) |
+| match rule | description | output |
+| ---------- | ----------- | ------ |
+| signed integer with 9–22 significant digits | convert a Unix timestamp to RFC 3339 in UTC and the preferred timezone | ![](docs/Timestamp.png) |
+
+Up to 11 digits means seconds, 12–14 milliseconds, 15–17 microseconds and
+18–22 nanoseconds; leading zeros do not count toward these lengths.
+Use `::timestamp`, `::unix` or `::ts` on its own line to also accept shorter
+integers, including `0`. Dates must fit JavaScript's supported date range;
+microseconds and nanoseconds are truncated to milliseconds.
 
 </details>
 
@@ -394,92 +356,49 @@ full design and roadmap, and
 
 </details>
 
-## Development ⛑️
+<details>
+<summary> <b>DiceRollBox</b> (disabled by default) </summary>
 
-It is recommended to use Node.js version 22.x
+Enable **Dice Roll** in Settings, then enter `::roll` on its own line for one
+six-sided die, or `::roll=3` for three dice (up to 20).
 
-```bash
-pnpm build:wasm
-pnpm install
-pnpm start
-```
+![Dice Roll output](docs/DiceRoll.png)
 
-### Development Commands
-
-- `pnpm build:wasm` - Build WASM modules before development/deployment (required for base64-box dependency)
-- `pnpm start` - Start development server on port 3000
-- `pnpm build` - Build for production (runs TypeScript compiler + Vite build)
-- `pnpm test` - Run unit tests with Vitest
-- `pnpm test:ui` - Run tests with Vitest UI
-- `pnpm lint` - Run Biome check
-- `pnpm lint:fix` - Run Biome check with auto-fix
-- `pnpm test:e2e` - Run Cypress E2E tests
-- `pnpm cypress` - Open Cypress test runner
-
-### Testing
-
-- Unit tests use Vitest with jsdom environment
-- E2E tests use Cypress with custom commands in `cypress/support/`
-
-### Prepare Deploy
-
-Initial Deployment Preparation
-
-```bash
-npm install -g firebase-tools
-
-firebase login
-firebase init
-```
-
-```bash
-firebase deploy
-```
+</details>
 
 ## Terminal UI (TUI) 🖥️
 
-Magic Box ships a terminal UI built with [ink](https://github.com/vadimdemedes/ink) (React for the terminal). It shares the headless source registry with the web app, including Base64 and Math WASM tools, while excluding network and browser-only sources.
-
-### Usage
+Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup).
+The registry contains 93 sources; 89 headless sources without network side
+effects are available in the TUI. The four browser-only or network-backed
+sources are Generate QR Code, My IP, Shorten URL and Local AI.
 
 ```bash
-# pass input as CLI arguments
 bun run tui "uuid"
-
-# pipe input via stdin
-echo "1700000000" | bun run tui
-
-# ::option directives passed as arguments are placed on their own lines
-bun run tui uuid ::uppercase
-
-# request structured or plain output for scripts
-bun run tui --json "1 + 2"
-bun run tui --raw "1 + 2"
-
-# run one source and inspect available sources with their example inputs
-bun run tui --only math-expression "1 + 2"
+printf 'uuid\n::uppercase' | bun run tui
+bun run tui --json '1 + 2 * 3'
 bun run tui --list
 bun run tui --list --json
-
-# no argument and a TTY → interactive prompt (type and press Enter)
-bun run tui
 ```
 
-`--only` accepts a stable source id or an unambiguous name; repeat it or provide comma-separated names to run multiple sources. Use `--opt key=value` (or `-o key=value`) to add option directives, for example `bun run tui --opt uppercase=true uuid`. JSON output includes successful matches; source errors go to stderr. The command exits with status 1 when it has no successful matches.
-
-To build and install a standalone executable for the current Bun host, choose a local bin directory explicitly:
+Build a standalone `magic-box-tui` binary for the current host, then install it
+where it is on your `PATH`:
 
 ```bash
 bun run tui:build
 bun run tui:install -- --bin-dir "$HOME/.local/bin"
-magic-box-tui --json "1 + 2"
+magic-box-tui --json '1 + 2 * 3'
 ```
 
-The executable embeds its Bun runtime and the Math/Base64 WASM assets. It runs without the repository checkout or `node_modules`. Build it on each target platform where it will run; this command produces a binary for the current host.
+The standalone binary embeds the Bun runtime, the TUI and the WASM packages.
+Build it on each target host; the repository currently has runtime proof on
+macOS arm64 only. See the [terminal guide](docs/terminal-ui.md) for interactive mode,
+preferences and supported tools.
 
-The headless source registry marks which sources can produce plaintext without browser UI. TUI runs are isolated per source, so one conversion failure does not suppress other results. Network-backed sources, QR rendering, and Local AI remain unavailable in the terminal.
+## Development ⛑️
 
-Interactive mode refreshes matches as you type. Use Up/Down to select a result, Enter or `y` to copy it, Tab to return to the input after selecting, and Esc to exit. Copy uses `pbcopy` on macOS when available and OSC 52 otherwise; OSC 52 support depends on the terminal.
+See [DEVELOPER.md](DEVELOPER.md) for setup, development commands, testing,
+documentation maintenance and deployment.
 
 ## License 📃
 
