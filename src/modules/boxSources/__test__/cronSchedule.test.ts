@@ -287,14 +287,48 @@ describe('cron schedule calculation', () => {
     });
   });
 
-  it('keeps high-frequency search bounded', () => {
+  it('keeps dense six-field work bounded at the end of a UTC day', () => {
+    const offset = vi.fn(fixedOffset(0));
     const result = nextCronOccurrences(
       '* * * * * *',
-      new Date('2024-01-01T00:00:00.000Z'),
-      fixedOffset(0),
+      new Date('2024-01-01T23:59:59.500Z'),
+      offset,
     );
 
     expect(result.status).toBe('ok');
-    expect(result.checkedCandidates).toBeLessThan(10);
+    if (result.status !== 'ok') return;
+    expect(result.occurrences.map((date) => date.toISOString())).toEqual([
+      '2024-01-02T00:00:00.000Z',
+      '2024-01-02T00:00:01.000Z',
+      '2024-01-02T00:00:02.000Z',
+      '2024-01-02T00:00:03.000Z',
+      '2024-01-02T00:00:04.000Z',
+    ]);
+    expect(result.checkedCandidates).toBe(5);
+    expect(offset.mock.calls.length).toBeLessThan(20);
+  });
+
+  it('keeps dense six-field work bounded through fall-back', () => {
+    vi.stubEnv('TZ', 'America/New_York');
+    const offset = vi.fn(
+      (date: Date): number => -date.getTimezoneOffset() / 60,
+    );
+    const result = nextCronOccurrences(
+      '* * * * * *',
+      new Date('2024-11-03T05:59:59.500Z'),
+      offset,
+    );
+
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.occurrences.map((date) => date.toISOString())).toEqual([
+      '2024-11-03T06:00:00.000Z',
+      '2024-11-03T06:00:01.000Z',
+      '2024-11-03T06:00:02.000Z',
+      '2024-11-03T06:00:03.000Z',
+      '2024-11-03T06:00:04.000Z',
+    ]);
+    expect(result.checkedCandidates).toBeLessThanOrEqual(10);
+    expect(offset.mock.calls.length).toBeLessThan(64);
   });
 });

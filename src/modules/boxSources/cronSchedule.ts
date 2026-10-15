@@ -451,32 +451,140 @@ const wallAsUtc = (parts: WallParts): number =>
     parts.second,
   );
 
-const wallDateCandidates = (
-  parts: WallParts,
+const offsetsForWallDate = (
+  wallTimestamp: number,
   getTimezoneOffset: TimezoneOffsetResolver,
-): Date[] => {
-  const wallTimestamp = wallAsUtc(parts);
-  if (!Number.isFinite(wallTimestamp)) return [];
-
+): readonly number[] => {
   const offsets = new Set<number>();
   for (const delta of [-7 * DAY_MS, -DAY_MS, 0, DAY_MS, 7 * DAY_MS]) {
     const offset = getTimezoneOffset(new Date(wallTimestamp + delta));
     if (Number.isFinite(offset)) offsets.add(offset);
   }
+  return [...offsets];
+};
 
-  const candidates = new Map<number, Date>();
-  for (const offset of offsets) {
-    const candidate = new Date(wallTimestamp - offset * HOUR_MS);
-    if (!Number.isFinite(candidate.getTime())) continue;
-    const actualOffset = getTimezoneOffset(candidate);
-    if (!Number.isFinite(actualOffset)) continue;
-    if (sameWallParts(parts, partsFromShiftedDate(candidate, actualOffset))) {
-      candidates.set(candidate.getTime(), candidate);
+const firstInstantWithOffset = (
+  wallTimestamp: number,
+  offset: number,
+  getTimezoneOffset: TimezoneOffsetResolver,
+): number | null => {
+  const start = wallTimestamp - offset * HOUR_MS;
+  const end = start + DAY_MS;
+  if (getTimezoneOffset(new Date(start)) === offset) return start;
+
+  let previous = start;
+  for (let probe = start + HOUR_MS; probe <= end; probe += HOUR_MS) {
+    if (getTimezoneOffset(new Date(probe)) !== offset) {
+      previous = probe;
+      continue;
+    }
+
+    let lowerSecond = Math.floor(previous / 1_000);
+    let upperSecond = Math.floor(probe / 1_000);
+    while (lowerSecond + 1 < upperSecond) {
+      const middleSecond = Math.floor((lowerSecond + upperSecond) / 2);
+      if (getTimezoneOffset(new Date(middleSecond * 1_000)) === offset) {
+        upperSecond = middleSecond;
+      } else {
+        lowerSecond = middleSecond;
+      }
+    }
+    return upperSecond * 1_000;
+  }
+  return null;
+};
+
+const scheduledSecondsFrom = (
+  hours: CronField,
+  minutes: CronField,
+  seconds: CronField,
+  minimum: number,
+  limit: number,
+): readonly number[] => {
+  const matches: number[] = [];
+  for (const hour of hours.values) {
+    if ((hour + 1) * 3_600 <= minimum) continue;
+    for (const minute of minutes.values) {
+      if (hour * 3_600 + (minute + 1) * 60 <= minimum) continue;
+      for (const second of seconds.values) {
+        const secondOfDay = hour * 3_600 + minute * 60 + second;
+        if (secondOfDay < minimum) continue;
+        matches.push(secondOfDay);
+        if (matches.length === limit) return matches;
+      }
     }
   }
-  return [...candidates.values()].sort(
-    (left, right) => left.getTime() - right.getTime(),
-  );
+  return matches;
+};
+
+const wallDateCandidates = (
+  year: number,
+  month: number,
+  day: number,
+  hours: CronField,
+  minutes: CronField,
+  seconds: CronField,
+  capturedNow: Date,
+  getTimezoneOffset: TimezoneOffsetResolver,
+): { dates: readonly Date[]; checkedCandidates: number } => {
+  const wallTimestamp = Date.UTC(year, month - 1, day);
+  if (!Number.isFinite(wallTimestamp))
+    return { dates: [], checkedCandidates: 0 };
+
+  const candidates = new Map<number, Date>();
+  let checkedCandidates = 0;
+  for (const offset of offsetsForWallDate(wallTimestamp, getTimezoneOffset)) {
+    const firstValidInstant = firstInstantWithOffset(
+      wallTimestamp,
+      offset,
+      getTimezoneOffset,
+    );
+    if (firstValidInstant === null) continue;
+
+    const minimumFromOffset = Math.ceil(
+      (firstValidInstant + offset * HOUR_MS - wallTimestamp) / 1_000,
+    );
+    const minimumAfterNow =
+      Math.floor(
+        (capturedNow.getTime() + offset * HOUR_MS - wallTimestamp) / 1_000,
+      ) + 1;
+    const scheduledSeconds = scheduledSecondsFrom(
+      hours,
+      minutes,
+      seconds,
+      Math.max(0, minimumFromOffset, minimumAfterNow),
+      5,
+    );
+    checkedCandidates += scheduledSeconds.length;
+
+    for (const secondOfDay of scheduledSeconds) {
+      const candidateParts = {
+        year,
+        month,
+        day,
+        hour: Math.floor(secondOfDay / 3_600),
+        minute: Math.floor((secondOfDay % 3_600) / 60),
+        second: secondOfDay % 60,
+      };
+      const candidate = new Date(wallAsUtc(candidateParts) - offset * HOUR_MS);
+      const actualOffset = getTimezoneOffset(candidate);
+      if (
+        Number.isFinite(actualOffset) &&
+        sameWallParts(
+          candidateParts,
+          partsFromShiftedDate(candidate, actualOffset),
+        )
+      ) {
+        candidates.set(candidate.getTime(), candidate);
+      }
+    }
+  }
+  return {
+    dates: [...candidates.values()].sort(
+      (left, right) => left.getTime() - right.getTime(),
+    ),
+    checkedCandidates,
+  };
 };
 
 const isWallDateBefore = (
@@ -585,47 +693,29 @@ export function nextCronOccurrences(
           !matchesCalendarDay(schedule, year, month, day)
         )
           continue;
-        // finish a fall-back date before selecting its absolute next times.
-        let dayHasRepeatedInstants = false;
-        for (const hour of hours.values) {
-          for (const minute of minutes.values) {
-            for (const second of seconds.values) {
-              checkedCandidates += 1;
-              if (checkedCandidates > MAX_WALL_CANDIDATES) {
-                return {
-                  status: 'unavailable',
-                  occurrences: [],
-                  checkedCandidates,
-                  reason: 'search-budget-exceeded',
-                };
-              }
-              const candidateParts = { year, month, day, hour, minute, second };
-              const candidates = wallDateCandidates(
-                candidateParts,
-                getTimezoneOffset,
-              );
-              if (candidates.length > 1) dayHasRepeatedInstants = true;
-              for (const candidate of candidates) {
-                if (
-                  candidate.getTime() <= capturedNow.getTime() ||
-                  seen.has(candidate.getTime())
-                )
-                  continue;
-                seen.add(candidate.getTime());
-                occurrences.push(candidate);
-              }
-              if (occurrences.length >= 5 && !dayHasRepeatedInstants) {
-                occurrences.sort(
-                  (left, right) => left.getTime() - right.getTime(),
-                );
-                return {
-                  status: 'ok',
-                  occurrences: occurrences.slice(0, 5),
-                  checkedCandidates,
-                };
-              }
-            }
-          }
+        const dayCandidates = wallDateCandidates(
+          year,
+          month,
+          day,
+          hours,
+          minutes,
+          seconds,
+          capturedNow,
+          getTimezoneOffset,
+        );
+        checkedCandidates += dayCandidates.checkedCandidates;
+        if (checkedCandidates > MAX_WALL_CANDIDATES) {
+          return {
+            status: 'unavailable',
+            occurrences: [],
+            checkedCandidates,
+            reason: 'search-budget-exceeded',
+          };
+        }
+        for (const candidate of dayCandidates.dates) {
+          if (seen.has(candidate.getTime())) continue;
+          seen.add(candidate.getTime());
+          occurrences.push(candidate);
         }
         if (occurrences.length >= 5) {
           occurrences.sort((left, right) => left.getTime() - right.getTime());
