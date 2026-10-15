@@ -47,4 +47,29 @@ describe('local preferences', () => {
     getItem.mockRestore();
     setItem.mockRestore();
   });
+
+  it('does not discard existing fields after a transient merge-read failure', () => {
+    const stored = { theme: 'dark', unknown: 'keep' };
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(stored));
+    const storage = window.localStorage;
+    const originalGetItem = storage.getItem.bind(storage);
+    const getItem = vi
+      .spyOn(storage, 'getItem')
+      .mockImplementationOnce(() => {
+        throw new DOMException('blocked', 'SecurityError');
+      })
+      .mockImplementation(originalGetItem);
+
+    patchLocalPrefs({ density: 'compact' });
+    expect(JSON.parse(originalGetItem(LOCAL_PREFS_KEY) ?? '{}')).toEqual(
+      stored,
+    );
+
+    patchLocalPrefs({ density: 'compact' });
+    expect(JSON.parse(originalGetItem(LOCAL_PREFS_KEY) ?? '{}')).toEqual({
+      ...stored,
+      density: 'compact',
+    });
+    getItem.mockRestore();
+  });
 });

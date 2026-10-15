@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearLocalStorage,
   readJson,
+  readJsonResult,
   readStorageItem,
+  readStorageItemResult,
   removeStorageItem,
   writeJson,
   writeStorageItem,
@@ -41,6 +43,10 @@ describe('best effort local storage access', () => {
       throw new DOMException('blocked', 'SecurityError');
     });
     expect(readStorageItem('key')).toBeNull();
+    expect(readStorageItemResult('key')).toEqual({
+      status: 'unavailable',
+      value: null,
+    });
     getItem.mockRestore();
 
     const setItem = vi.spyOn(storage, 'setItem').mockImplementation(() => {
@@ -88,5 +94,11 @@ describe('best effort local storage access', () => {
         );
       }),
     ).toBeNull();
+    expect(
+      readJsonResult(
+        'missing',
+        (value): value is object => typeof value === 'object',
+      ),
+    ).toEqual({ status: 'missing', value: null });
   });
 });

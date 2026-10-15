@@ -1,6 +1,6 @@
 import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
 import { act, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DEFAULT_PREFS,
@@ -149,5 +149,47 @@ describe('PreferencesContext', () => {
     expect(screen.getByTestId('tz').textContent).toBe('-5');
     const stored = JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}');
     expect(stored.timezoneOffset).toBe(-5);
+  });
+
+  it('preserves stored preferences after a transient mount read failure', () => {
+    const stored = {
+      theme: 'dark',
+      density: 'compact',
+      timezoneOffset: 3,
+      unknown: 'keep',
+    };
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify(stored));
+    const storage = window.localStorage;
+    const originalGetItem = storage.getItem.bind(storage);
+    const getItem = vi
+      .spyOn(storage, 'getItem')
+      .mockImplementationOnce(() => {
+        throw new DOMException('blocked', 'SecurityError');
+      })
+      .mockImplementation(originalGetItem);
+
+    try {
+      render(
+        <PreferencesProvider>
+          <Probe />
+        </PreferencesProvider>,
+      );
+
+      expect(screen.getByTestId('tz').textContent).toBe('8');
+      expect(JSON.parse(originalGetItem(LOCAL_PREFS_KEY) ?? '{}')).toEqual(
+        stored,
+      );
+
+      act(() => {
+        screen.getByText('set-tz').click();
+      });
+
+      expect(JSON.parse(originalGetItem(LOCAL_PREFS_KEY) ?? '{}')).toEqual({
+        ...stored,
+        timezoneOffset: -5,
+      });
+    } finally {
+      getItem.mockRestore();
+    }
   });
 });

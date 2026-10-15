@@ -3,7 +3,7 @@ import ShareLinkButton from '@components/ShareLinkButton';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -110,20 +110,30 @@ const ToolsListPage = (): React.JSX.Element => {
   const [collapsed, setCollapsed] = useState(
     () => readStorageItem(COLLAPSED_KEY) === '1',
   );
+  const collapsedMountedRef = useRef(false);
   const { filteredBoxSources } = useSettings();
 
   const [selectedName, setSelectedName] = useState<string | null>(() => {
     const fromUrl = searchParams.get('box');
     return fromUrl ?? readStorageItem(SELECTION_KEY);
   });
+  const selectedMountedRef = useRef(false);
 
   // Persist sidebar collapsed state.
   useEffect(() => {
+    if (!collapsedMountedRef.current) {
+      collapsedMountedRef.current = true;
+      return;
+    }
     writeStorageItem(COLLAPSED_KEY, collapsed ? '1' : '0');
   }, [collapsed]);
 
   // Persist selected box.
   useEffect(() => {
+    if (!selectedMountedRef.current) {
+      selectedMountedRef.current = true;
+      return;
+    }
     if (selectedName) writeStorageItem(SELECTION_KEY, selectedName);
   }, [selectedName]);
 

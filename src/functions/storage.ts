@@ -8,15 +8,31 @@ export const getLocalStorage = (): Storage | null => {
   }
 };
 
-export const readStorageItem = (key: string): string | null => {
+export type StorageReadStatus = 'ok' | 'missing' | 'unavailable' | 'invalid';
+
+export type StorageReadResult<T> =
+  | { status: 'ok'; value: T }
+  | { status: Exclude<StorageReadStatus, 'ok'>; value: null };
+
+export const readStorageItemResult = (
+  key: string,
+): StorageReadResult<string> => {
   const storage = getLocalStorage();
-  if (!storage) return null;
+  if (!storage) return { status: 'unavailable', value: null };
 
   try {
-    return storage.getItem(key);
+    const value = storage.getItem(key);
+    return value === null
+      ? { status: 'missing', value: null }
+      : { status: 'ok', value };
   } catch {
-    return null;
+    return { status: 'unavailable', value: null };
   }
+};
+
+export const readStorageItem = (key: string): string | null => {
+  const result = readStorageItemResult(key);
+  return result.status === 'ok' ? result.value : null;
 };
 
 export const writeStorageItem = (key: string, value: string): void => {
@@ -52,19 +68,29 @@ export const clearLocalStorage = (): void => {
   }
 };
 
+export const readJsonResult = <T>(
+  key: string,
+  validate: (value: unknown) => value is T,
+): StorageReadResult<T> => {
+  const rawResult = readStorageItemResult(key);
+  if (rawResult.status !== 'ok') return rawResult;
+
+  try {
+    const parsed: unknown = JSON.parse(rawResult.value);
+    return validate(parsed)
+      ? { status: 'ok', value: parsed }
+      : { status: 'invalid', value: null };
+  } catch {
+    return { status: 'invalid', value: null };
+  }
+};
+
 export const readJson = <T>(
   key: string,
   validate: (value: unknown) => value is T,
 ): T | null => {
-  const raw = readStorageItem(key);
-  if (raw === null) return null;
-
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return validate(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
+  const result = readJsonResult(key, validate);
+  return result.status === 'ok' ? result.value : null;
 };
 
 export const writeJson = (key: string, value: unknown): void => {

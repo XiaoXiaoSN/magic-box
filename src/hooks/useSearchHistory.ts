@@ -1,5 +1,9 @@
-import { readJson, writeJson } from '@functions/storage';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  readJsonResult,
+  type StorageReadStatus,
+  writeJson,
+} from '@functions/storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'mb_search_history';
 const DEFAULT_MAX_ITEMS = 50;
@@ -24,11 +28,20 @@ const isHistoryItem = (value: unknown): value is HistoryItem => {
   );
 };
 
-function loadHistory(): HistoryItem[] {
-  const parsed = readJson<unknown[]>(STORAGE_KEY, (value): value is unknown[] =>
-    Array.isArray(value),
+interface LoadedHistory {
+  items: HistoryItem[];
+  status: StorageReadStatus;
+}
+
+function loadHistory(): LoadedHistory {
+  const parsed = readJsonResult<unknown[]>(
+    STORAGE_KEY,
+    (value): value is unknown[] => Array.isArray(value),
   );
-  return parsed?.filter(isHistoryItem) ?? [];
+  return {
+    items: parsed.status === 'ok' ? parsed.value.filter(isHistoryItem) : [],
+    status: parsed.status,
+  };
 }
 
 function persistHistory(items: HistoryItem[]): void {
@@ -66,10 +79,31 @@ export function useSearchHistory(
   opts?: UseSearchHistoryOptions,
 ): UseSearchHistoryReturn {
   const maxItems = opts?.maxItems ?? DEFAULT_MAX_ITEMS;
-  const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
+  const [loaded] = useState<LoadedHistory>(loadHistory);
+  const [history, setHistory] = useState<HistoryItem[]>(loaded.items);
+  const readFailedOnMountRef = useRef(loaded.status === 'unavailable');
+  const mountedRef = useRef(false);
+
+  const historyForMutation = useCallback((current: HistoryItem[]) => {
+    if (!readFailedOnMountRef.current) return current;
+
+    const retry = loadHistory();
+    if (retry.status === 'unavailable') return current;
+
+    readFailedOnMountRef.current = false;
+    const currentIds = new Set(current.map((item) => item.id));
+    return [
+      ...current,
+      ...retry.items.filter((item) => !currentIds.has(item.id)),
+    ];
+  }, []);
 
   // Persist whenever history changes.
   useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
     persistHistory(history);
   }, [history]);
 
@@ -79,9 +113,10 @@ export function useSearchHistory(
       if (!trimmed) return;
 
       setHistory((prev) => {
+        const current = historyForMutation(prev);
         // De-duplicate: if input already exists, remove the old entry so the
         // new one goes to the top with an updated timestamp.
-        const deduplicated = prev.filter((item) => item.input !== trimmed);
+        const deduplicated = current.filter((item) => item.input !== trimmed);
 
         const entry: HistoryItem = {
           id: createHistoryId(),
@@ -93,20 +128,31 @@ export function useSearchHistory(
         return [entry, ...deduplicated].slice(0, maxItems);
       });
     },
-    [maxItems],
+    [historyForMutation, maxItems],
   );
 
-  const removeEntry = useCallback((id: string) => {
-    setHistory((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+  const removeEntry = useCallback(
+    (id: string) => {
+      setHistory((prev) =>
+        historyForMutation(prev).filter((item) => item.id !== id),
+      );
+    },
+    [historyForMutation],
+  );
 
-  const removeInputs = useCallback((inputs: readonly string[]) => {
-    if (!inputs.length) return;
-    const doomed = new Set(inputs);
-    setHistory((prev) => prev.filter((item) => !doomed.has(item.input)));
-  }, []);
+  const removeInputs = useCallback(
+    (inputs: readonly string[]) => {
+      if (!inputs.length) return;
+      const doomed = new Set(inputs);
+      setHistory((prev) =>
+        historyForMutation(prev).filter((item) => !doomed.has(item.input)),
+      );
+    },
+    [historyForMutation],
+  );
 
   const clearHistory = useCallback(() => {
+    readFailedOnMountRef.current = false;
     setHistory([]);
   }, []);
 

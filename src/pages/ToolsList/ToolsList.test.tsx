@@ -205,6 +205,43 @@ describe('/list preview input state', () => {
     }
   });
 
+  it('preserves stored list state after a transient mount read failure', () => {
+    localStorage.setItem('mb:list:collapsed', '1');
+    localStorage.setItem('mb:list:selected', 'Word Count');
+    const storage = window.localStorage;
+    const originalGetItem = storage.getItem.bind(storage);
+    let failed = false;
+    const getItem = vi.spyOn(storage, 'getItem').mockImplementation((key) => {
+      if (key === 'mb:list:collapsed' && !failed) {
+        failed = true;
+        throw new DOMException('blocked', 'SecurityError');
+      }
+      return originalGetItem(key);
+    });
+
+    try {
+      renderPage(['/list']);
+
+      expect(document.querySelector('.list-page')).toHaveAttribute(
+        'data-sidebar-collapsed',
+        'false',
+      );
+      expect(originalGetItem('mb:list:collapsed')).toBe('1');
+      expect(originalGetItem('mb:list:selected')).toBe('Word Count');
+
+      fireEvent.click(
+        screen.getByRole('button', { name: /collapse sidebar/i }),
+      );
+
+      expect(originalGetItem('mb:list:collapsed')).toBe('1');
+      fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
+
+      expect(originalGetItem('mb:list:selected')).toBe('UUID');
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   it('keeps sidebar state interactive when storage writes fail', () => {
     const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError');

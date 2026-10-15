@@ -168,21 +168,22 @@ export const PreferencesProvider: React.FC<PreferencesProviderProps> = ({
 }) => {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
 
-  // keep storage, document and the runtime singleton in sync with state.
+  // apply document and runtime state after initialization and updates.
   useEffect(() => {
-    patchLocalPrefs(prefs);
     applyDocumentPrefs(prefs);
     syncRuntimePrefs(prefs);
   }, [prefs]);
 
   const setPref = useCallback(
     <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
+      patchLocalPrefs({ [key]: value });
       setPrefs((p) => ({ ...p, [key]: value }));
     },
     [],
   );
 
   const resetPrefs = useCallback(() => {
+    patchLocalPrefs(DEFAULT_PREFS);
     setPrefs(DEFAULT_PREFS);
   }, []);
 
