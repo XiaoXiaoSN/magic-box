@@ -13,6 +13,10 @@ import { memo, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
+import type {
+  ComputeWorkerEvent,
+  ComputeWorkerRunRequest,
+} from '../../modules/computeWorker/dto';
 import MagicBox from './index';
 
 const { noSources } = vi.hoisted(() => ({ noSources: [] }));
@@ -22,7 +26,9 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: () => ({ filteredBoxSources: noSources }),
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
-  usePreferences: () => ({ prefs: { copyMode: 'copy' } }),
+  usePreferences: () => ({
+    prefs: { copyMode: 'copy', timezoneOffset: 8, timezoneMode: 'fixed' },
+  }),
 }));
 
 interface Deferred<T> {
@@ -55,6 +61,55 @@ const sourceWithResult = (name: string, result: Promise<Box[]>): BoxSource => ({
 const box = (name: string): Box =>
   new BoxBuilder(name, `${name} output`).setShowExpandButton(false).build();
 
+class FakeComputeWorker {
+  static requests: ComputeWorkerRunRequest[] = [];
+  onmessage: ((event: MessageEvent<unknown>) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
+  onmessageerror: ((event: MessageEvent<unknown>) => void) | null = null;
+  terminated = false;
+
+  postMessage(
+    message: ComputeWorkerRunRequest | { type: 'cancel'; runId: string },
+  ): void {
+    if (message.type === 'cancel') return;
+    FakeComputeWorker.requests.push(message);
+    const event = (next: ComputeWorkerEvent): void => {
+      if (!this.terminated)
+        this.onmessage?.({ data: next } as MessageEvent<unknown>);
+    };
+    queueMicrotask(() => {
+      event({ type: 'started', runId: message.runId });
+      event({
+        type: 'source-load-start',
+        runId: message.runId,
+        sourceId: message.sourceIds[0],
+      });
+      event({
+        type: 'source-start',
+        runId: message.runId,
+        sourceId: message.sourceIds[0],
+      });
+      event({
+        type: 'source-result',
+        runId: message.runId,
+        sourceId: message.sourceIds[0],
+        boxes: [
+          {
+            name: 'Worker Result',
+            plaintextOutput: 'worker output',
+            options: null,
+          },
+        ],
+      });
+      event({ type: 'finished', runId: message.runId });
+    });
+  }
+
+  terminate(): void {
+    this.terminated = true;
+  }
+}
+
 const tree = (input: string, sources: BoxSource[], liveInput = input) => (
   <LocaleProvider>
     <MagicBox input={input} liveInput={liveInput} sources={sources} />
@@ -68,9 +123,44 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
+  FakeComputeWorker.requests = [];
 });
 
 describe('MagicBox source pipeline', () => {
+  it('runs worker-safe sources through the worker batch and preserves source slots', async () => {
+    vi.stubGlobal('Worker', FakeComputeWorker);
+    const main = sourceWithResult('main', Promise.resolve([box('Main')]));
+    const generateBoxes = vi
+      .fn()
+      .mockRejectedValue(new Error('main path used'));
+    const workerSource: BoxSource = {
+      id: 'worker-source',
+      workerSafe: true,
+      name: 'Worker Source',
+      description: '',
+      defaultInput: '',
+      tag: '#',
+      kind: 'Compute',
+      generateBoxes,
+    };
+
+    try {
+      render(tree('input', [workerSource, main]));
+      expect(await screen.findByText('worker output')).toBeInTheDocument();
+      expect(await screen.findByText('Main output')).toBeInTheDocument();
+      expect(generateBoxes).not.toHaveBeenCalled();
+      expect(FakeComputeWorker.requests).toHaveLength(1);
+      expect(FakeComputeWorker.requests[0]).toMatchObject({
+        sourceIds: ['worker-source'],
+        locale: 'en',
+        timezoneOffset: 8,
+        timezoneMode: 'fixed',
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('renders each source as it settles while preserving source order', async () => {
     const first = deferred<Box[]>();
     const second = deferred<Box[]>();

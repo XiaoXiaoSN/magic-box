@@ -10,6 +10,7 @@ import {
   JsonToolError,
   parseJson,
   parseJsonObject,
+  stringifyJson,
 } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox } from '@modules/Box';
@@ -24,7 +25,7 @@ interface JsonToolResult {
 }
 
 function pretty(value: unknown): string {
-  return JSON.stringify(value, null, 2);
+  return stringifyJson(value, 2);
 }
 
 function keyList(tool: RequestedJsonTool): string[] {

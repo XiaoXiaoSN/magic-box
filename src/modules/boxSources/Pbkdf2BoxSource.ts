@@ -15,12 +15,17 @@ const MAX_ITERATIONS = 1_000_000;
 const DEFAULT_ITERATIONS = 100_000;
 const DEFAULT_DKLEN = 32;
 const MAX_DKLEN = 256;
+// bound the aggregate HMAC work across every requested PRF and derived block.
+// the previous per-call iteration cap allowed three PRFs and 256 bytes to
+// schedule roughly 24 million HMAC blocks for one keystroke.
+const MAX_HMAC_BLOCKS = 1_000_000;
 
 // pseudo-random functions supported by Web Crypto PBKDF2
 type PrfHash = 'SHA-1' | 'SHA-256' | 'SHA-512';
 
 interface PrfEntry {
   hash: PrfHash;
+  digestBytes: number;
   // bare option keys that select this PRF (`::sha512`)
   keys: string[];
   // accepted values for `::prf=<name>` after normalisation (lowercase, alnum)
@@ -32,24 +37,38 @@ interface PrfEntry {
 const PRFS: PrfEntry[] = [
   {
     hash: 'SHA-256',
+    digestBytes: 32,
     keys: ['sha256'],
     aliases: ['sha256', 'hmacsha256'],
     label: 'HMAC-SHA256',
   },
   {
     hash: 'SHA-1',
+    digestBytes: 20,
     keys: ['sha1'],
     aliases: ['sha1', 'hmacsha1'],
     label: 'HMAC-SHA1',
   },
   {
     hash: 'SHA-512',
+    digestBytes: 64,
     keys: ['sha512'],
     aliases: ['sha512', 'hmacsha512'],
     label: 'HMAC-SHA512',
   },
 ];
 const DEFAULT_PRF = PRFS[0];
+
+interface DerivationCache {
+  input: string;
+  salt: string;
+  iterations: number;
+  dklen: number;
+  prfs: readonly PrfHash[];
+  promise: Promise<string[]>;
+}
+
+let lastDerivation: DerivationCache | null = null;
 
 function bufToHex(buf: ArrayBuffer): string {
   return Array.from(new Uint8Array(buf))
@@ -85,6 +104,35 @@ function selectPrfs(options: BoxOptions): PrfEntry[] | null {
 
   const selected = PRFS.filter((p) => hasOptionKeys(options, ...p.keys));
   return selected.length > 0 ? selected : [DEFAULT_PRF];
+}
+
+function maxIterationsFor(prfs: readonly PrfEntry[], dklen: number): number {
+  const hmacBlocks = prfs.reduce(
+    (total, prf) => total + Math.ceil(dklen / prf.digestBytes),
+    0,
+  );
+  return Math.max(
+    1,
+    Math.min(MAX_ITERATIONS, Math.floor(MAX_HMAC_BLOCKS / hmacBlocks)),
+  );
+}
+
+function hasSameParameters(
+  cache: DerivationCache,
+  input: string,
+  salt: string,
+  iterations: number,
+  dklen: number,
+  prfs: readonly PrfEntry[],
+): boolean {
+  return (
+    cache.input === input &&
+    cache.salt === salt &&
+    cache.iterations === iterations &&
+    cache.dklen === dklen &&
+    cache.prfs.length === prfs.length &&
+    cache.prfs.every((hash, index) => hash === prfs[index].hash)
+  );
 }
 
 async function derive(
@@ -167,7 +215,7 @@ export const Pbkdf2BoxSource = {
       ];
     }
 
-    const iterations = clampNumericOption(
+    const requestedIterations = clampNumericOption(
       extractOptionKeys(options, 'iterations'),
       DEFAULT_ITERATIONS,
       1,
@@ -179,17 +227,39 @@ export const Pbkdf2BoxSource = {
       1,
       MAX_DKLEN,
     );
+    const iterations = Math.min(
+      requestedIterations,
+      maxIterationsFor(prfs, dklen),
+    );
 
     const encoder = new TextEncoder();
     const passwordBytes = encoder.encode(input);
     const saltBytes = encoder.encode(salt);
 
+    let derivationPromise: Promise<string[]> | null = null;
     try {
-      const keys = await Promise.all(
-        prfs.map((prf) =>
-          derive(prf, passwordBytes, saltBytes, iterations, dklen),
-        ),
-      );
+      const cached = lastDerivation;
+      const promise =
+        cached &&
+        hasSameParameters(cached, input, salt, iterations, dklen, prfs)
+          ? cached.promise
+          : Promise.all(
+              prfs.map((prf) =>
+                derive(prf, passwordBytes, saltBytes, iterations, dklen),
+              ),
+            );
+      derivationPromise = promise;
+      if (promise !== cached?.promise) {
+        lastDerivation = {
+          input,
+          salt,
+          iterations,
+          dklen,
+          prfs: prfs.map((prf) => prf.hash),
+          promise,
+        };
+      }
+      const keys = await promise;
 
       // the password is intentionally excluded from the output — it's a secret
       return prfs.map((prf, i) =>
@@ -207,6 +277,12 @@ export const Pbkdf2BoxSource = {
         ),
       );
     } catch (err) {
+      if (
+        derivationPromise !== null &&
+        lastDerivation?.promise === derivationPromise
+      ) {
+        lastDerivation = null;
+      }
       const message = err instanceof Error ? err.message : String(err);
       return [
         errorBox('PBKDF2', `Key derivation failed: ${message}`, {

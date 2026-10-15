@@ -1,18 +1,34 @@
 import { isString, trim } from '@functions/helper';
 import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
+import { parseJson, stringifyJson } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
-import { XMLBuilder, XMLParser } from 'fast-xml-parser';
+import { XMLBuilder, XMLParser, XMLValidator } from 'fast-xml-parser';
+import {
+  isInteger,
+  isLosslessNumber,
+  isSafeNumber,
+  LosslessNumber,
+} from 'lossless-json';
 import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
 import {
+  type Document,
+  isMap,
+  isScalar,
+  isSeq,
   type ParseOptions,
   parseAllDocuments,
+  Scalar,
   type SchemaOptions,
   stringify as stringifyYaml,
   type ToJSOptions,
 } from 'yaml';
 
-import { hasTomlDocumentShape } from './dataConverterShape';
+import {
+  hasTomlDocumentShape,
+  hasXmlDocumentShape,
+  hasYamlDocumentShape,
+} from './dataConverterShape';
 
 const PriorityDataConverter = 10;
 
@@ -35,14 +51,18 @@ enum DataFormat {
 const yamlParseOptions: ParseOptions & SchemaOptions & ToJSOptions = {
   merge: true,
   maxAliasCount: 2500,
+  intAsBigInt: true,
 };
 
+const AUTO_INPUT_LIMIT = 256 * 1024;
+const EXPLICIT_INPUT_LIMIT = 1024 * 1024;
 interface DetectedData {
   format: DataFormat;
   data: unknown;
   // true when the source was a YAML stream of several `---`-separated
   // documents, in which case `data` is the array of their values.
   multiDocument: boolean;
+  yamlDocuments?: readonly Document[];
 }
 
 interface FormatError {
@@ -62,6 +82,8 @@ const errorMessage = (e: unknown): string =>
 const xmlParser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
+  parseTagValue: false,
+  parseAttributeValue: false,
 });
 const xmlBuilder = new XMLBuilder({
   ignoreAttributes: false,
@@ -70,7 +92,204 @@ const xmlBuilder = new XMLBuilder({
   indentBy: '    ',
 });
 
-function detectFormat(input: string): DetectResult {
+function isEmptyYamlDocument(document: Document): boolean {
+  return (
+    isScalar(document.contents) &&
+    document.contents.value === null &&
+    document.contents.source === ''
+  );
+}
+
+function yamlScalarValue(source: string, value: unknown): unknown {
+  if (typeof value === 'bigint') return new LosslessNumber(value.toString());
+  if (typeof value !== 'number' || !Number.isFinite(value)) return value;
+  if (!source || !isSafeNumber(source))
+    return new LosslessNumber(String(value));
+  try {
+    return new LosslessNumber(source);
+  } catch {
+    return new LosslessNumber(String(value));
+  }
+}
+
+function setLosslessYamlScalars(node: unknown): Array<[Scalar, unknown]> {
+  const changed: Array<[Scalar, unknown]> = [];
+  if (isScalar(node)) {
+    if (
+      node.type === Scalar.PLAIN &&
+      (typeof node.value === 'number' || typeof node.value === 'bigint')
+    ) {
+      changed.push([node, node.value]);
+      node.value = yamlScalarValue(node.source ?? '', node.value);
+    }
+    return changed;
+  }
+  if (isMap(node)) {
+    for (const pair of node.items) {
+      changed.push(...setLosslessYamlScalars(pair.key));
+      changed.push(...setLosslessYamlScalars(pair.value));
+    }
+  } else if (isSeq(node)) {
+    for (const item of node.items)
+      changed.push(...setLosslessYamlScalars(item));
+  }
+  return changed;
+}
+
+function yamlDocumentsToLosslessData(
+  documents: readonly Document[],
+  multiDocument: boolean,
+): unknown {
+  const values = documents.map((document) => {
+    const changed = setLosslessYamlScalars(document.contents);
+    try {
+      return document.toJS(yamlParseOptions);
+    } finally {
+      for (const [node, value] of changed.reverse()) node.value = value;
+    }
+  });
+  return multiDocument ? values : values[0];
+}
+
+function stringifyYamlDocuments(documents: readonly Document[]): string {
+  return documents
+    .map((document, index) => {
+      const output = document.toString();
+      return index === 0 ? output : output.replace(/^---\s*\r?\n/, '');
+    })
+    .join('---\n');
+}
+
+function yamlCompatibleValue(value: unknown): unknown {
+  if (isLosslessNumber(value)) {
+    const raw = value.toString();
+    if (isInteger(raw)) return BigInt(raw);
+    if (!isSafeNumber(raw)) {
+      throw new Error(`number ${raw} cannot be represented losslessly in YAML`);
+    }
+    const scalar = new Scalar(Number(raw));
+    const fraction = raw.match(/^[+-]?\d+\.(\d+)(?:[eE][+-]?\d+)?$/)?.[1];
+    if (fraction) scalar.minFractionDigits = fraction.length;
+    return scalar;
+  }
+  if (Array.isArray(value)) return value.map(yamlCompatibleValue);
+  if (value !== null && typeof value === 'object') {
+    const result: Record<string, unknown> = Object.create(null) as Record<
+      string,
+      unknown
+    >;
+    for (const key of Object.keys(value)) {
+      result[key] = yamlCompatibleValue(
+        (value as Record<string, unknown>)[key],
+      );
+    }
+    return result;
+  }
+  return value;
+}
+
+interface TomlNumberPlaceholders {
+  values: Map<string, string>;
+  used: Set<string>;
+}
+
+function collectTomlStrings(value: unknown, used: Set<string>): void {
+  if (typeof value === 'string') {
+    used.add(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectTomlStrings(item, used);
+    return;
+  }
+  if (value !== null && typeof value === 'object') {
+    for (const key of Object.keys(value)) {
+      used.add(key);
+      collectTomlStrings((value as Record<string, unknown>)[key], used);
+    }
+  }
+}
+
+function tomlNumberPlaceholder(
+  raw: string,
+  placeholders: TomlNumberPlaceholders,
+): string {
+  let index = placeholders.values.size;
+  let placeholder = `__magic_box_number_${index}__`;
+  while (placeholders.used.has(placeholder)) {
+    index += 1;
+    placeholder = `__magic_box_number_${index}__`;
+  }
+  placeholders.values.set(placeholder, raw);
+  placeholders.used.add(placeholder);
+  return placeholder;
+}
+
+function tomlCompatibleValue(
+  value: unknown,
+  placeholders: TomlNumberPlaceholders,
+): unknown {
+  if (isLosslessNumber(value)) {
+    const raw = value.toString();
+    return tomlNumberPlaceholder(raw, placeholders);
+  }
+  if (value === null) throw new Error('TOML cannot represent null values');
+  if (Array.isArray(value)) {
+    return value.map((item) => tomlCompatibleValue(item, placeholders));
+  }
+  if (typeof value === 'bigint') return value;
+  if (typeof value === 'object') {
+    const result: Record<string, unknown> = Object.create(null) as Record<
+      string,
+      unknown
+    >;
+    for (const key of Object.keys(value)) {
+      result[key] = tomlCompatibleValue(
+        (value as Record<string, unknown>)[key],
+        placeholders,
+      );
+    }
+    return result;
+  }
+  return value;
+}
+
+function stringifyTomlLossless(value: unknown): string {
+  const placeholders: TomlNumberPlaceholders = {
+    values: new Map(),
+    used: new Set(),
+  };
+  collectTomlStrings(value, placeholders.used);
+  const prepared = tomlCompatibleValue(value, placeholders);
+  let output = stringifyToml(prepared as Record<string, unknown>);
+  for (const [placeholder, raw] of placeholders.values) {
+    output = output.replaceAll(JSON.stringify(placeholder), raw);
+  }
+  return output;
+}
+
+function xmlCompatibleValue(value: unknown): unknown {
+  if (isLosslessNumber(value)) return value.toString();
+  if (typeof value === 'bigint') return value.toString();
+  if (value === null) throw new Error('XML cannot represent null values');
+  if (Array.isArray(value)) return value.map(xmlCompatibleValue);
+  if (typeof value === 'object') {
+    const result: Record<string, unknown> = Object.create(null) as Record<
+      string,
+      unknown
+    >;
+    for (const key of Object.keys(value)) {
+      result[key] = xmlCompatibleValue((value as Record<string, unknown>)[key]);
+    }
+    return result;
+  }
+  return value;
+}
+
+function detectFormat(
+  input: string,
+  allowSingleLineYaml: boolean,
+): DetectResult {
   const trimmed = trim(input);
   const errors: FormatError[] = [];
   if (!trimmed) return { ok: false, errors };
@@ -81,7 +300,7 @@ function detectFormat(input: string): DetectResult {
     (trimmed.startsWith('[') && trimmed.endsWith(']'))
   ) {
     try {
-      const data = JSON.parse(trimmed);
+      const data = parseJson(trimmed);
       if (data && typeof data === 'object') {
         return {
           ok: true,
@@ -94,8 +313,15 @@ function detectFormat(input: string): DetectResult {
   }
 
   // Try XML
-  if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+  if (
+    hasXmlDocumentShape(trimmed) ||
+    (allowSingleLineYaml && trimmed.startsWith('<') && trimmed.endsWith('>'))
+  ) {
     try {
+      const validation = XMLValidator.validate(trimmed);
+      if (validation !== true) {
+        throw new Error(validation.err.msg);
+      }
       const data = xmlParser.parse(trimmed);
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         return {
@@ -124,6 +350,9 @@ function detectFormat(input: string): DetectResult {
   }
 
   // Try YAML
+  if (!allowSingleLineYaml && !hasYamlDocumentShape(trimmed)) {
+    return { ok: false, errors };
+  }
   try {
     // parseAllDocuments rather than parse, so a `---`-separated stream is not
     // rejected outright. It collects syntax errors instead of throwing, while
@@ -133,11 +362,12 @@ function detectFormat(input: string): DetectResult {
     const failed = documents.find((doc) => doc.errors.length > 0);
     if (failed) throw failed.errors[0];
 
-    // A trailing `---` yields an empty document; dropping the empty ones keeps
-    // a stray separator from turning one document into a two-element array.
-    const values = documents
-      .map((doc) => doc.toJS(yamlParseOptions))
-      .filter((value) => value !== null && value !== undefined);
+    // a trailing `---` yields an empty document; drop only those markers while
+    // retaining explicit null documents for conversions that can represent them.
+    const retainedDocuments = documents.filter(
+      (document) => !isEmptyYamlDocument(document),
+    );
+    const values = retainedDocuments.map((doc) => doc.toJS(yamlParseOptions));
 
     const multiDocument = values.length > 1;
     const data = multiDocument ? values : values[0];
@@ -145,7 +375,12 @@ function detectFormat(input: string): DetectResult {
     if (data && typeof data === 'object' && Object.keys(data).length > 0) {
       return {
         ok: true,
-        detected: { format: DataFormat.YAML, data, multiDocument },
+        detected: {
+          format: DataFormat.YAML,
+          data,
+          multiDocument,
+          yamlDocuments: retainedDocuments,
+        },
       };
     }
   } catch (e) {
@@ -190,7 +425,7 @@ const FORMATS: readonly OutputFormat[] = [
     id: DataFormat.JSON,
     name: 'JSON',
     keys: ['json', 'tojson'],
-    stringify: (d) => JSON.stringify(d, null, '    '),
+    stringify: (d) => stringifyJson(d, '    '),
   },
   {
     id: DataFormat.YAML,
@@ -200,25 +435,26 @@ const FORMATS: readonly OutputFormat[] = [
     // rather than collapsing into a single sequence node
     stringify: (d, multiDocument) =>
       multiDocument && Array.isArray(d)
-        ? d.map((doc) => stringifyYaml(doc)).join('---\n')
-        : stringifyYaml(d),
+        ? d.map((doc) => stringifyYaml(yamlCompatibleValue(doc))).join('---\n')
+        : stringifyYaml(yamlCompatibleValue(d)),
   },
   {
     id: DataFormat.TOML,
     name: 'TOML',
     keys: ['toml', 'totoml'],
-    stringify: (d) => stringifyToml(d as Record<string, unknown>),
+    stringify: (d) => stringifyTomlLossless(d),
   },
   {
     id: DataFormat.XML,
     name: 'XML',
     keys: ['xml', 'toxml'],
     stringify: (d) => {
-      const wrapData = Array.isArray(d)
-        ? { root: { item: d } }
-        : Object.keys(d as object).length > 1
-          ? { root: d }
-          : d;
+      const xmlData = xmlCompatibleValue(d);
+      const wrapData = Array.isArray(xmlData)
+        ? { root: { item: xmlData } }
+        : Object.keys(xmlData as object).length > 1
+          ? { root: xmlData }
+          : xmlData;
       return xmlBuilder.build(wrapData);
     },
   },
@@ -247,7 +483,21 @@ export const DataConverterBoxSource = {
     if (!hasAnyTargetOption && hasOptionKeys(options, ...JSON_TOOL_OPTION_KEYS))
       return [];
 
-    const result = detectFormat(input);
+    const inputSize = input.length;
+    if (
+      inputSize > (hasAnyTargetOption ? EXPLICIT_INPUT_LIMIT : AUTO_INPUT_LIMIT)
+    ) {
+      if (!hasAnyTargetOption) return [];
+      return [
+        errorBox(
+          'Data Converter',
+          `Input is too large (${inputSize} characters, limit ${hasAnyTargetOption ? EXPLICIT_INPUT_LIMIT : AUTO_INPUT_LIMIT}).`,
+          { priority: PriorityDataConverter },
+        ),
+      ];
+    }
+
+    const result = detectFormat(input, hasAnyTargetOption);
     if (!result.ok) {
       // Silence is right while guessing the format — every unmatched keystroke
       // would otherwise raise an error. Once a `::toJSON`-style target is
@@ -261,7 +511,16 @@ export const DataConverterBoxSource = {
       ];
     }
 
-    const { format: srcFormat, data, multiDocument } = result.detected;
+    const {
+      format: srcFormat,
+      data,
+      multiDocument,
+      yamlDocuments,
+    } = result.detected;
+    const conversionData =
+      srcFormat === DataFormat.YAML && yamlDocuments
+        ? yamlDocumentsToLosslessData(yamlDocuments, multiDocument)
+        : data;
     const boxes: Box[] = [];
 
     for (const fmt of FORMATS) {
@@ -277,7 +536,15 @@ export const DataConverterBoxSource = {
       }
 
       try {
-        const output = fmt.stringify(data, multiDocument);
+        const output =
+          fmt.id === DataFormat.YAML &&
+          srcFormat === DataFormat.YAML &&
+          yamlDocuments
+            ? stringifyYamlDocuments(yamlDocuments)
+            : fmt.stringify(conversionData, multiDocument);
+        if (output.trim() === '') {
+          throw new Error(`${fmt.name} cannot represent this value`);
+        }
 
         // For the source format, only show if it actually changed (formatted) the input
         if (isSourceFormat && trim(output) === trim(input)) {

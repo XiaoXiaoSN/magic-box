@@ -1,5 +1,9 @@
 import type { BoxOptions } from '@modules/Box';
-import { hasTomlDocumentShape } from './dataConverterShape';
+import {
+  hasTomlDocumentShape,
+  hasXmlDocumentShape,
+  hasYamlDocumentShape,
+} from './dataConverterShape';
 import {
   createLazyBoxSource,
   type LazyBoxSource,
@@ -60,17 +64,12 @@ const dataConverterCanHandle = (
   if (
     (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
     (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
-    (trimmed.startsWith('<') && trimmed.endsWith('>'))
+    hasXmlDocumentShape(trimmed)
   ) {
     return true;
   }
 
-  return (
-    hasTomlDocumentShape(trimmed) ||
-    /^(?:---[ \t]*(?:#.*)?$|[ \t]*(?:[-?][ \t]+\S|[^\s:#][^:\n]*:\s*(?:\S|$)))/m.test(
-      trimmed,
-    )
-  );
+  return hasTomlDocumentShape(trimmed) || hasYamlDocumentShape(trimmed);
 };
 
 const certificateCanHandle = (input: string, options: BoxOptions): boolean =>
@@ -131,6 +130,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: ['language', 'lang', 'l'],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./Base64BoxSource').then(
         (module) => module.Base64DecodeBoxSource,
@@ -146,6 +146,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: ['l', 'lang', 'locale'],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./CronExpressionBoxSource').then((module) => module.default),
   },
@@ -160,6 +161,8 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: [...DATA_CONVERTER_OPTION_KEYS],
     headless: true,
+    workerSafe: true,
+    supportsLargeInput: true,
     canHandle: dataConverterCanHandle,
     load: () =>
       import('./DataConverterBoxSource').then((module) => module.default),
@@ -184,6 +187,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'jsonl',
     ],
     headless: true,
+    workerSafe: true,
     canHandle: optionMatcher([
       'jsonmerge',
       'jsonpick',
@@ -206,6 +210,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: ['relative', 'timeago', 'timelater', 'relativetime'],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./DateCalculateBoxSource').then((module) => module.default),
   },
@@ -330,6 +335,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: [],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./MathExpressionBoxSource').then((module) => module.default),
   },
@@ -357,6 +363,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 10,
     optionKeys: [],
     headless: true,
+    workerSafe: true,
     load: () => import('./NowBoxSource').then((module) => module.default),
   },
   {
@@ -482,6 +489,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 9,
     optionKeys: ['timestamp', 'unix', 'ts'],
     headless: true,
+    workerSafe: true,
     canHandle: timestampCanHandle,
     load: () => import('./TimestampBoxSource').then((module) => module.default),
   },
@@ -495,6 +503,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 0,
     optionKeys: [],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./Base64BoxSource').then(
         (module) => module.Base64EncodeBoxSource,
@@ -842,6 +851,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'uniq',
     ],
     headless: true,
+    workerSafe: true,
     canHandle: optionMatcher([
       'sortlines',
       'sort',
@@ -1011,6 +1021,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     priority: 12,
     optionKeys: ['unit', 'convert'],
     headless: true,
+    workerSafe: true,
     load: () =>
       import('./UnitConverterBoxSource').then((module) => module.default),
   },
@@ -1026,6 +1037,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     defaultDisabled: true,
     optionKeys: ['weeknum', 'isoweek'],
     headless: true,
+    workerSafe: true,
     canHandle: optionMatcher(['weeknum', 'isoweek']),
     load: () =>
       import('./WeekNumberBoxSource').then((module) => module.default),
@@ -1416,6 +1428,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'sha512',
     ],
     headless: true,
+    workerSafe: true,
     canHandle: optionMatcher([
       'pbkdf2',
       'prf',
