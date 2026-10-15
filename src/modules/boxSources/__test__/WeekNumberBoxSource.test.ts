@@ -99,6 +99,16 @@ describe('WeekNumberBoxSource', () => {
     });
   });
 
+  it('preserves four-digit calendar and ISO week years', async () => {
+    const boxes = await WeekNumberBoxSource.generateBoxes('0001-01-01', {
+      weeknum: true,
+    });
+    const opts = boxes[0].props.options as Record<string, string>;
+    expect(opts.Date).toBe('0001-01-01');
+    expect(opts['ISO Week']).toBe('0001-W01');
+    expect(opts['ISO Year']).toBe('0001');
+  });
+
   describe('invalid date input', () => {
     it('returns a box explaining the date is invalid', async () => {
       const boxes = await WeekNumberBoxSource.generateBoxes('notadate', {

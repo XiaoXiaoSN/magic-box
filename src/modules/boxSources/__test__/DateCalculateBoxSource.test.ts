@@ -198,6 +198,33 @@ describe('DateCalculateBoxSource', () => {
       ).toBe('2024-01-15');
     });
 
+    it('rejects timestamp and datetime hybrid inputs', () => {
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(
+          '1735794245T12:00:00 + 1h',
+        ),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(
+          '1735794245000 12:00:00 + 1h',
+        ),
+      ).toBeUndefined();
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern('20240101T12:00:00 + 1h')
+          ?.result,
+      ).toBe('2024-01-01T13:00:00.000+08:00');
+    });
+
+    it('preserves four-digit years in date-only results and reparsing', () => {
+      const first =
+        DateCalculateBoxSource.checkAddSubtractPattern('0001-01-01 + 1d');
+      expect(first?.result).toBe('0001-01-02');
+      expect(
+        DateCalculateBoxSource.checkAddSubtractPattern(`${first?.result} + 1d`)
+          ?.result,
+      ).toBe('0001-01-03');
+    });
+
     it('keeps date-only calculations on calendar days across DST boundaries', () => {
       vi.stubEnv('TZ', 'America/Los_Angeles');
       const result = DateCalculateBoxSource.checkDateDiffPattern(

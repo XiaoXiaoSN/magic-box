@@ -210,6 +210,7 @@ function parseDateInput(input: string): ParsedDate | null {
 
   const datetime = DATE_TIME_PATTERN.exec(raw);
   if (datetime) {
+    if (/^\d{9,22}$/.test(datetime[1])) return null;
     const dateParts = parseDateString(datetime[1]);
     const hour = Number(datetime[2]);
     const minute = Number(datetime[3]);
@@ -253,7 +254,7 @@ function parseDateInput(input: string): ParsedDate | null {
 }
 
 function formatDateOnly(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  return `${String(date.getUTCFullYear()).padStart(4, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
 function formatParsedDate(parsed: ParsedDate): string {

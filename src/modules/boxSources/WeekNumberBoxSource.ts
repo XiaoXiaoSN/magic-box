@@ -70,7 +70,7 @@ function dayOfYear(d: Date): number {
 
 // format a UTC date as yyyy-MM-dd
 function formatDate(d: Date): string {
-  const yyyy = d.getUTCFullYear();
+  const yyyy = String(d.getUTCFullYear()).padStart(4, '0');
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(d.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
@@ -133,14 +133,15 @@ export const WeekNumberBoxSource = {
     const { isoYear, week, isoWeekday } = isoWeekData(date);
     const doy = dayOfYear(date);
     const dateStr = formatDate(date);
-    const isoWeekStr = `${isoYear}-W${String(week).padStart(2, '0')}`;
+    const isoYearStr = String(isoYear).padStart(4, '0');
+    const isoWeekStr = `${isoYearStr}-W${String(week).padStart(2, '0')}`;
     const weekdayName = DAY_NAMES[isoWeekday - 1];
 
     const kvOptions: Record<string, string> = {
       Date: dateStr,
       'ISO Week': isoWeekStr,
       Week: String(week),
-      'ISO Year': String(isoYear),
+      'ISO Year': isoYearStr,
       Weekday: weekdayName,
       'Day of Year': String(doy),
     };
