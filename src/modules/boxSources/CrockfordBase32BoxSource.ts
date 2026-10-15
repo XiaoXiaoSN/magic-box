@@ -36,7 +36,7 @@ function crockfordEncode(input: string): string {
 // returns decoded bytes, or null if input contains invalid characters
 function crockfordDecode(input: string): Uint8Array | null {
   // uppercase and strip hyphens (allowed as visual separators per Crockford spec)
-  const normalized = input.toUpperCase().replace(/-/g, '');
+  const normalized = input.toUpperCase().replace(/\s/g, '').replace(/-/g, '');
   let bits = '';
   for (const c of normalized) {
     const val = DECODE_MAP[c];

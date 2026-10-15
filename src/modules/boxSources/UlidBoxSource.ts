@@ -1,6 +1,11 @@
 import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+} from '@modules/Box';
 
 const Priority = 10;
 
@@ -60,7 +65,7 @@ function generateUlid(): string {
 }
 
 // 26-character Crockford base32 ULID pattern (case-insensitive)
-const ULID_REGEX = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i;
 
 export const UlidBoxSource = {
   defaultDisabled: true,
@@ -79,15 +84,25 @@ export const UlidBoxSource = {
     if (!hasOptionKeys(options, 'ulid', 'ulidparse')) return [];
 
     const trimmed = trim(input).toUpperCase();
+    const ulidOption = extractOptionKeys(options, 'ulid');
+    const parseOption = extractOptionKeys(options, 'ulidparse');
+    const optionCandidate =
+      typeof ulidOption === 'string' && ulidOption !== ''
+        ? ulidOption
+        : typeof parseOption === 'string' && parseOption !== ''
+          ? parseOption
+          : null;
+    const candidate = (optionCandidate ?? trimmed).toUpperCase();
+    const explicitParse = parseOption !== null;
 
-    if (ULID_REGEX.test(trimmed)) {
+    if (ULID_REGEX.test(candidate)) {
       // decode path: extract the 48-bit millisecond timestamp from the first 10 chars
-      const tsMs = Number(decodeBase32(trimmed, 10));
+      const tsMs = Number(decodeBase32(candidate, 10));
       const isoTimestamp = new Date(tsMs).toISOString();
 
-      const content = `ULID: ${trimmed}\nTimestamp: ${isoTimestamp}\nUnix (ms): ${tsMs}`;
+      const content = `ULID: ${candidate}\nTimestamp: ${isoTimestamp}\nUnix (ms): ${tsMs}`;
       const kvOptions: Record<string, string> = {
-        ULID: trimmed,
+        ULID: candidate,
         Timestamp: isoTimestamp,
         'Unix (ms)': tsMs.toString(),
       };
@@ -98,6 +113,16 @@ export const UlidBoxSource = {
           .setOptions(kvOptions)
           .setPriority(this.priority)
           .build(),
+      ];
+    }
+
+    if (explicitParse || candidate !== '') {
+      return [
+        errorBox(
+          'ULID',
+          'Invalid ULID: expected 26 Crockford base32 characters with a first character from 0 to 7.',
+          { priority: this.priority },
+        ),
       ];
     }
 

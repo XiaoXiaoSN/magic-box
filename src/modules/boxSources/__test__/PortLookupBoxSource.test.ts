@@ -56,14 +56,42 @@ describe('PortLookupBoxSource', () => {
       expect(opts.Service).toBe('SSH');
     });
 
-    it('valid but unassigned port 12345 returns unassigned service and registered range', async () => {
+    it('valid but unknown port 12345 uses the built-in table label', async () => {
       const boxes = await PortLookupBoxSource.generateBoxes('12345', {
         port: true,
       });
       expect(boxes).toHaveLength(1);
       const opts = boxes[0].props.options as Record<string, string>;
-      expect(opts.Service).toMatch(/unassigned/i);
+      expect(opts.Service).toBe('not in built-in table');
       expect(opts.Range).toBe('registered');
+    });
+
+    it.each([
+      ['69', 'TFTP'],
+      ['88', 'Kerberos'],
+      ['179', 'BGP'],
+      ['514', 'Syslog'],
+      ['2049', 'NFS'],
+      ['2379', 'etcd'],
+      ['5900', 'VNC'],
+      ['6443', 'Kubernetes API'],
+      ['9092', 'Kafka'],
+      ['11211', 'Memcached'],
+    ])('looks up port %s as %s', async (port, service) => {
+      const boxes = await PortLookupBoxSource.generateBoxes(port, {
+        port: true,
+      });
+      expect(boxes[0].props.options?.Service).toBe(service);
+    });
+
+    it('accepts an optional TCP or UDP suffix', async () => {
+      const boxes = await PortLookupBoxSource.generateBoxes('443/tcp', {
+        port: true,
+      });
+      expect(boxes[0].props.options).toMatchObject({
+        Service: 'HTTPS',
+        Protocol: 'TCP',
+      });
     });
 
     it('out-of-range port 70000 returns an invalid box', async () => {

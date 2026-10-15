@@ -46,8 +46,22 @@ function base32Encode(input: string): string {
 
 /** Decode RFC 4648 Base32 back to bytes, or throw on invalid input. */
 function base32Decode(input: string): Uint8Array {
-  // strip whitespace, uppercase, and trailing padding
-  const normalised = input.replace(/\s/g, '').toUpperCase().replace(/=+$/, '');
+  // strip whitespace and validate RFC 4648 quantum length before decoding
+  const compact = input.replace(/\s/g, '').toUpperCase();
+  if (!/^[A-Z2-7]*={0,6}$/.test(compact)) {
+    throw new Error('invalid Base32 character');
+  }
+  const paddingMatch = /=+$/.exec(compact);
+  const paddingLength = paddingMatch?.[0].length ?? 0;
+  const normalised = paddingLength ? compact.slice(0, -paddingLength) : compact;
+  const remainder = normalised.length % 8;
+  if (remainder === 1 || remainder === 3 || remainder === 6) {
+    throw new Error('invalid Base32 length');
+  }
+  const expectedPadding = (8 - remainder) % 8;
+  if (paddingLength > 0 && paddingLength !== expectedPadding) {
+    throw new Error('invalid Base32 length');
+  }
 
   let bits = 0;
   let accumulator = 0;

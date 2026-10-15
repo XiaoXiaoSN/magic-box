@@ -8,7 +8,7 @@ const CANONICAL_TS_MS = 1469922850259;
 const CANONICAL_ISO = '2016-07-30T23:54:10.259Z';
 
 // valid Crockford base32 alphabet (26 chars, uppercase)
-const ULID_REGEX = /^[0-9A-HJKMNP-TV-Z]{26}$/;
+const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
 describe('UlidBoxSource', () => {
   describe('no matching option', () => {
@@ -56,14 +56,40 @@ describe('UlidBoxSource', () => {
       expect(u1).not.toBe(u2);
     });
 
-    it('Timestamp is a valid ISO string', async () => {
+    it('rejects an empty explicit parse instead of generating a ULID', async () => {
       const boxes = await UlidBoxSource.generateBoxes('', { ulidparse: true });
-      const ts = (boxes[0].props.options as Record<string, string>).Timestamp;
-      expect(() => new Date(ts).toISOString()).not.toThrow();
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid ulid/i);
     });
   });
 
   describe('decode path', () => {
+    it('decodes a ULID supplied as the option value', async () => {
+      const boxes = await UlidBoxSource.generateBoxes('', {
+        ulid: CANONICAL_ULID,
+      });
+      expect(boxes[0].props.options?.['Unix (ms)']).toBe(
+        CANONICAL_TS_MS.toString(),
+      );
+    });
+
+    it('rejects a first digit above 7', async () => {
+      const boxes = await UlidBoxSource.generateBoxes(
+        'ZZZZZZZZZZZZZZZZZZZZZZZZZZ',
+        { ulid: true },
+      );
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid ulid/i);
+    });
+
+    it('rejects a non-empty invalid input instead of generating a new ULID', async () => {
+      const boxes = await UlidBoxSource.generateBoxes('not-a-ulid', {
+        ulid: true,
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.plaintextOutput).toMatch(/invalid ulid/i);
+    });
+
     it('decodes the canonical ULID timestamp to 1469922850259 ms', async () => {
       const boxes = await UlidBoxSource.generateBoxes(CANONICAL_ULID, {
         ulid: true,

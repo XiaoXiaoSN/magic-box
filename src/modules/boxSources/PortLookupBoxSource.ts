@@ -14,12 +14,16 @@ const PORTS: Record<number, { name: string; desc: string }> = {
   53: { name: 'DNS', desc: 'Domain Name System' },
   67: { name: 'DHCP', desc: 'DHCP server' },
   68: { name: 'DHCP', desc: 'DHCP client' },
+  69: { name: 'TFTP', desc: 'Trivial File Transfer Protocol' },
+  88: { name: 'Kerberos', desc: 'Kerberos authentication' },
   80: { name: 'HTTP', desc: 'Hypertext Transfer' },
   110: { name: 'POP3', desc: 'Post Office Protocol v3' },
   123: { name: 'NTP', desc: 'Network Time Protocol' },
   143: { name: 'IMAP', desc: 'Internet Message Access' },
   161: { name: 'SNMP', desc: 'Simple Network Management' },
   389: { name: 'LDAP', desc: 'Lightweight Directory Access' },
+  179: { name: 'BGP', desc: 'Border Gateway Protocol' },
+  514: { name: 'Syslog', desc: 'System logging' },
   443: { name: 'HTTPS', desc: 'HTTP over TLS' },
   445: { name: 'SMB', desc: 'Microsoft-DS / SMB' },
   465: { name: 'SMTPS', desc: 'SMTP over TLS' },
@@ -29,13 +33,19 @@ const PORTS: Record<number, { name: string; desc: string }> = {
   995: { name: 'POP3S', desc: 'POP3 over TLS' },
   1433: { name: 'MSSQL', desc: 'Microsoft SQL Server' },
   1521: { name: 'Oracle', desc: 'Oracle database' },
+  2049: { name: 'NFS', desc: 'Network File System' },
+  2379: { name: 'etcd', desc: 'etcd client communication' },
   3306: { name: 'MySQL', desc: 'MySQL database' },
   3389: { name: 'RDP', desc: 'Remote Desktop' },
   5432: { name: 'PostgreSQL', desc: 'PostgreSQL database' },
   5672: { name: 'AMQP', desc: 'RabbitMQ / AMQP' },
+  5900: { name: 'VNC', desc: 'Virtual Network Computing' },
   6379: { name: 'Redis', desc: 'Redis' },
   8080: { name: 'HTTP-alt', desc: 'HTTP alternate' },
   8443: { name: 'HTTPS-alt', desc: 'HTTPS alternate' },
+  6443: { name: 'Kubernetes API', desc: 'Kubernetes API server' },
+  9092: { name: 'Kafka', desc: 'Apache Kafka' },
+  11211: { name: 'Memcached', desc: 'Memcached' },
   9200: { name: 'Elasticsearch', desc: 'Elasticsearch' },
   27017: { name: 'MongoDB', desc: 'MongoDB' },
 };
@@ -71,16 +81,20 @@ export const PortLookupBoxSource = {
 
     const query = trim(input).slice(0, 32);
 
-    if (/^\d+$/.test(query)) {
+    const numericMatch =
+      /^(?:(tcp|udp)\s*[/ ]\s*)?(\d+)(?:\s*[/ ]\s*(tcp|udp))?$/i.exec(query);
+    if (numericMatch && !(numericMatch[1] && numericMatch[3])) {
       // number → service lookup
-      const n = Number.parseInt(query, 10);
+      const n = Number(numericMatch[2]);
+      const protocol = (numericMatch[1] ?? numericMatch[3])?.toLowerCase();
 
-      if (n < 0 || n > 65535) {
+      if (!Number.isSafeInteger(n) || n < 0 || n > 65535) {
         const kv: Record<string, string> = {
           Port: query,
           Service: 'invalid — out of range (0–65535)',
           Description: '',
           Range: 'n/a',
+          ...(protocol ? { Protocol: protocol.toUpperCase() } : {}),
         };
         return [
           new BoxBuilder('Port Lookup', kvToPlaintext(kv))
@@ -100,12 +114,14 @@ export const PortLookupBoxSource = {
             Service: entry.name,
             Description: entry.desc,
             Range: range,
+            ...(protocol ? { Protocol: protocol.toUpperCase() } : {}),
           }
         : {
             Port: String(n),
-            Service: 'unassigned / not a well-known port',
+            Service: 'not in built-in table',
             Description: '',
             Range: range,
+            ...(protocol ? { Protocol: protocol.toUpperCase() } : {}),
           };
 
       return [

@@ -35,6 +35,7 @@ function luhnCheck(digits: string): boolean {
 function detectBrand(digits: string): CardBrand {
   const len = digits.length;
   const prefix4 = Number.parseInt(digits.slice(0, 4), 10);
+  const prefix6 = Number.parseInt(digits.slice(0, 6), 10);
   const prefix2 = Number.parseInt(digits.slice(0, 2), 10);
   const prefix3 = Number.parseInt(digits.slice(0, 3), 10);
 
@@ -59,13 +60,28 @@ function detectBrand(digits: string): CardBrand {
     return { name: 'American Express', validLength: len === 15 };
   }
 
-  // Discover: 6011, 65, or 644-649, lengths 16/19
+  // discover: 6011, 65, 644-649, and the 622126-622925 range, lengths 16/19
   if (
     digits.startsWith('6011') ||
     prefix2 === 65 ||
-    (prefix3 >= 644 && prefix3 <= 649)
+    (prefix3 >= 644 && prefix3 <= 649) ||
+    (prefix6 >= 622126 && prefix6 <= 622925)
   ) {
     return { name: 'Discover', validLength: len === 16 || len === 19 };
+  }
+
+  // unionpay uses the 62 range and supports 16-19 digit PANs.
+  if (prefix2 === 62) {
+    return { name: 'UnionPay', validLength: len >= 16 && len <= 19 };
+  }
+
+  // common maestro ranges documented by the card network, 12-19 digits.
+  if (
+    (prefix6 >= 500000 && prefix6 <= 509999) ||
+    (prefix6 >= 560000 && prefix6 <= 589999) ||
+    (prefix6 >= 600000 && prefix6 <= 699999)
+  ) {
+    return { name: 'Maestro', validLength: len >= 12 && len <= 19 };
   }
 
   // Diners Club: 36, 38, 39, or 300-305, length 14
@@ -132,6 +148,7 @@ export const CreditCardInfoBoxSource = {
       Masked: masked,
       Brand: brand.name,
       Length: String(cleaned.length),
+      'Length Valid': String(brand.validLength),
       'Luhn Valid': String(luhnValid),
     };
 

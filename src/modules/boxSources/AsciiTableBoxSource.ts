@@ -93,6 +93,16 @@ function buildInfoBox(message: string, priority: number): Box {
     .build();
 }
 
+function invalidCodePointMessage(cp: number): string {
+  if (cp > 0x10ffff || !Number.isSafeInteger(cp)) {
+    return `Code point ${cp} is outside the Unicode range (0..0x10FFFF).`;
+  }
+  if (cp >= 0xd800 && cp <= 0xdfff) {
+    return `Code point 0x${cp.toString(16).toUpperCase()} is a UTF-16 surrogate and is not a Unicode scalar value.`;
+  }
+  return '';
+}
+
 export const AsciiTableBoxSource = {
   defaultDisabled: true,
   name: 'ASCII Code',
@@ -121,22 +131,22 @@ export const AsciiTableBoxSource = {
       ];
     }
 
-    // single unicode character branch
-    if ([...trimmed].length === 1) {
+    // a bare digit is treated as a decimal code point so low code points remain reachable.
+    if ([...trimmed].length === 1 && !/^\d$/.test(trimmed)) {
       const cp = trimmed.codePointAt(0) as number;
+      const invalidMessage = invalidCodePointMessage(cp);
+      if (invalidMessage) {
+        return [buildInfoBox(invalidMessage, Priority)];
+      }
       return [buildCodePointBox(cp, Priority)];
     }
 
     // numeric code point branch
     const cp = parseCodePoint(trimmed);
     if (cp >= 0) {
-      if (cp > 0x10ffff) {
-        return [
-          buildInfoBox(
-            `Code point 0x${cp.toString(16).toUpperCase()} is outside the Unicode range (0..0x10FFFF).`,
-            Priority,
-          ),
-        ];
+      const invalidMessage = invalidCodePointMessage(cp);
+      if (invalidMessage) {
+        return [buildInfoBox(invalidMessage, Priority)];
       }
       return [buildCodePointBox(cp, Priority)];
     }

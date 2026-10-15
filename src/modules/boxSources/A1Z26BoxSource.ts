@@ -52,8 +52,8 @@ function decodeA1Z26(input: string): string {
     const parts = word.split('-');
     return parts
       .map((part) => {
-        const n = Number.parseInt(part, 10);
-        if (Number.isNaN(n)) return '?';
+        if (!/^\d+$/.test(part)) return '?';
+        const n = Number(part);
         return numberToLetter(n) ?? '?';
       })
       .join('');

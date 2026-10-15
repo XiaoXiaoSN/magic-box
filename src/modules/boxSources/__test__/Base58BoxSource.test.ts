@@ -24,6 +24,28 @@ describe('Base58BoxSource', () => {
     });
   });
 
+  it('returns no box for empty or whitespace-only input', async () => {
+    for (const input of ['', '   ']) {
+      await expect(
+        Base58BoxSource.generateBoxes(input, { base58: true }),
+      ).resolves.toEqual([]);
+      await expect(
+        Base58BoxSource.generateBoxes(input, { base58decode: true }),
+      ).resolves.toEqual([]);
+    }
+  });
+
+  it('preserves meaningful spaces in encoded payloads', async () => {
+    const encoded = await Base58BoxSource.generateBoxes(' hello ', {
+      base58: true,
+    });
+    const decoded = await Base58BoxSource.generateBoxes(
+      encoded[0].props.plaintextOutput,
+      { base58decode: true },
+    );
+    expect(decoded[0].props.plaintextOutput).toBe(' hello ');
+  });
+
   describe('generateBoxes - encode known vector', () => {
     it('encodes "Hello World!" to canonical base58', async () => {
       // canonical vector: base58(ASCII bytes of "Hello World!")

@@ -1,4 +1,5 @@
 import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
+import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -35,9 +36,33 @@ function encodeAscii85(input: string): string {
   return out;
 }
 
-// decodes Ascii85 back to bytes; returns null on invalid input
-function decodeAscii85(input: string): Uint8Array | null {
-  const s = input.replace(/\s/g, '');
+interface Ascii85DecodeResult {
+  ok: true;
+  bytes: Uint8Array;
+}
+
+interface Ascii85DecodeError {
+  ok: false;
+  message: string;
+}
+
+// decodes Ascii85 back to bytes and reports the first format failure
+function decodeAscii85(
+  input: string,
+): Ascii85DecodeResult | Ascii85DecodeError {
+  const compact = input.replace(/\s/g, '');
+  const hasStart = compact.includes('<~');
+  const hasEnd = compact.includes('~>');
+  if (hasStart || hasEnd) {
+    if (!compact.startsWith('<~') || !compact.endsWith('~>')) {
+      return {
+        ok: false,
+        message:
+          'Invalid Ascii85 input: Adobe delimiters must appear as a pair.',
+      };
+    }
+  }
+  const s = hasStart && hasEnd ? compact.slice(2, -2) : compact;
   const bytes: number[] = [];
 
   let i = 0;
@@ -53,12 +78,22 @@ function decodeAscii85(input: string): Uint8Array | null {
     const partialLen = group.length;
 
     // a partial group must have at least 2 chars
-    if (partialLen === 1) return null;
+    if (partialLen === 1) {
+      return {
+        ok: false,
+        message: 'Invalid Ascii85 input: incomplete final group.',
+      };
+    }
 
     // validate all chars are in range '!' (33) to 'u' (117)
     for (const ch of group) {
       const code = ch.charCodeAt(0);
-      if (code < 33 || code > 117) return null;
+      if (code < 33 || code > 117) {
+        return {
+          ok: false,
+          message: 'Invalid Ascii85 input: contains out-of-range characters.',
+        };
+      }
     }
 
     // pad partial group with 'u' (84 + 33 = 117) to reach 5 chars
@@ -72,7 +107,12 @@ function decodeAscii85(input: string): Uint8Array | null {
     }
 
     // clamp to uint32 range (overflow means invalid input)
-    if (val > 0xffffffff) return null;
+    if (val > 0xffffffff) {
+      return {
+        ok: false,
+        message: 'Invalid Ascii85 input: group value overflows 32 bits.',
+      };
+    }
 
     const b0 = (val >>> 24) & 0xff;
     const b1 = (val >>> 16) & 0xff;
@@ -84,7 +124,7 @@ function decodeAscii85(input: string): Uint8Array | null {
     bytes.push(...emit);
   }
 
-  return new Uint8Array(bytes);
+  return { ok: true, bytes: new Uint8Array(bytes) };
 }
 
 export const Base85BoxSource = {
@@ -109,7 +149,12 @@ export const Base85BoxSource = {
     );
     const wantDecode = hasOptionKeys(options, 'base85decode');
     if (!wantEncode && !wantDecode) return [];
-    if (input.length > MAX_INPUT) return [];
+    if (
+      !isString(input) ||
+      trim(input).length === 0 ||
+      input.length > MAX_INPUT
+    )
+      return [];
 
     const boxes: Box[] = [];
 
@@ -125,19 +170,17 @@ export const Base85BoxSource = {
     }
 
     if (wantDecode) {
-      const decodedBytes = decodeAscii85(input);
-      if (decodedBytes === null) {
+      const decodedResult = decodeAscii85(input);
+      if (!decodedResult.ok) {
         boxes.push(
-          new BoxBuilder(
-            'Base85 (Decode)',
-            'Invalid Ascii85 input: contains out-of-range characters.',
-          )
+          new BoxBuilder('Base85 (Decode)', decodedResult.message)
             .setView('default')
             .setShowExpandButton(false)
             .setPriority(this.priority)
             .build(),
         );
       } else {
+        const decodedBytes = decodedResult.bytes;
         const decoded =
           decodeUtf8Strict(decodedBytes) ?? formatBinaryFallback(decodedBytes);
         boxes.push(

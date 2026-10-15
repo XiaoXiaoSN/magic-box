@@ -37,6 +37,13 @@ describe('Base64BoxSource', () => {
     expect(boxes[0].props.options).toEqual({ language: 'plaintext' });
   });
 
+  it('decodes MIME, URL-safe, and missing-padding input', async () => {
+    const mime = await Base64DecodeBoxSource.generateBoxes('SGVs\r\nbG8', null);
+    const urlSafe = await Base64DecodeBoxSource.generateBoxes('PDw_Pz4-', null);
+    expect(mime[0].props.plaintextOutput).toBe('Hello');
+    expect(urlSafe[0].props.plaintextOutput).toBe('<<??>>');
+  });
+
   it('shares one initialization across concurrent encode and decode calls', async () => {
     vi.resetModules();
     const init = vi.fn(async () => {});

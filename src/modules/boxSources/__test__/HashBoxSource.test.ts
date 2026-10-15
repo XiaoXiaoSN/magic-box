@@ -61,14 +61,16 @@ describe('HashBoxSource', () => {
   });
 
   describe('generateBoxes - ::hash produces all algorithms', () => {
-    it('returns three boxes for ::hash option', async () => {
+    it('returns all supported boxes for ::hash option', async () => {
       const boxes = await HashBoxSource.generateBoxes('abc', { hash: true });
-      expect(boxes).toHaveLength(3);
+      expect(boxes).toHaveLength(5);
 
       const names = boxes.map((b) => b.props.name);
       expect(names).toContain('SHA-1');
       expect(names).toContain('SHA-256');
       expect(names).toContain('SHA-512');
+      expect(names).toContain('SHA-384');
+      expect(names).toContain('MD5');
     });
 
     it('sha256 digest inside ::hash output matches standalone result', async () => {
@@ -80,6 +82,36 @@ describe('HashBoxSource', () => {
       expect(sha256box?.props.plaintextOutput).toBe(
         standalone[0].props.plaintextOutput,
       );
+    });
+  });
+
+  describe('generateBoxes - SHA-384 and MD5 known vectors', () => {
+    it('produces the SHA-384 digest for "abc"', async () => {
+      const boxes = await HashBoxSource.generateBoxes('abc', { sha384: true });
+      expect(boxes[0].props.plaintextOutput).toBe(
+        'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7',
+      );
+    });
+
+    it('produces the MD5 checksum for "abc"', async () => {
+      const boxes = await HashBoxSource.generateBoxes('abc', { md5: true });
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '900150983cd24fb0d6963f7d28e17f72',
+      );
+    });
+
+    it('produces the MD5 checksum for an empty string', async () => {
+      const boxes = await HashBoxSource.generateBoxes('', { md5: true });
+      expect(boxes[0].props.plaintextOutput).toBe(
+        'd41d8cd98f00b204e9800998ecf8427e',
+      );
+    });
+
+    it('rejects oversized input before hashing', async () => {
+      const boxes = await HashBoxSource.generateBoxes('x'.repeat(100_001), {
+        md5: true,
+      });
+      expect(boxes).toHaveLength(0);
     });
   });
 

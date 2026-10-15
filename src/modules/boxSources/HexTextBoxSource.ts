@@ -1,3 +1,4 @@
+import { decodeUtf8Strict, formatBinaryFallback } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
@@ -23,39 +24,46 @@ interface DecodeError {
   message: string;
 }
 
-// parses a hex string (optional leading 0x, optional whitespace) into text
+// parses a hex string with optional byte separators and repeated prefixes
 function decodeHexToText(hex: string): DecodeResult | DecodeError {
-  const cleaned = hex.replace(/\s+/g, '').replace(/^0x/i, '').toLowerCase();
+  const cleaned = trim(hex);
+  let byteTokens: string[] | null = null;
 
-  if (!/^[0-9a-f]*$/.test(cleaned)) {
+  if (/^(?:\\x[0-9a-f]{2})(?:\s*\\x[0-9a-f]{2})*$/i.test(cleaned)) {
+    byteTokens =
+      cleaned.match(/\\x([0-9a-f]{2})/gi)?.map((token) => token.slice(2)) ??
+      null;
+  } else if (
+    /^(?:0x)?[0-9a-f]{2}(?:(?:\s+|:)(?:0x)?[0-9a-f]{2})*$/i.test(cleaned)
+  ) {
+    byteTokens = cleaned.match(/(?:0x)?[0-9a-f]{2}/gi) ?? null;
+  } else if (/^(?:0x)?[0-9a-f]+$/i.test(cleaned)) {
+    const compact = cleaned.replace(/^0x/i, '');
+    if (compact.length % 2 !== 0) {
+      return {
+        ok: false,
+        message: 'Invalid hex input: odd number of characters',
+      };
+    }
+    byteTokens = compact.match(/[0-9a-f]{2}/gi);
+  }
+
+  if (byteTokens === null) {
     return {
       ok: false,
       message: `Invalid hex input: contains non-hex characters`,
     };
   }
-  if (cleaned.length % 2 !== 0) {
-    return {
-      ok: false,
-      message: `Invalid hex input: odd number of characters`,
-    };
+
+  const bytes = new Uint8Array(byteTokens.length);
+  for (let i = 0; i < byteTokens.length; i += 1) {
+    bytes[i] = Number.parseInt(byteTokens[i].replace(/^0x/i, ''), 16);
   }
 
-  const bytes = new Uint8Array(cleaned.length / 2);
-  for (let i = 0; i < cleaned.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(cleaned.slice(i, i + 2), 16);
-  }
-
-  try {
-    return {
-      ok: true,
-      text: new TextDecoder('utf-8', { fatal: true }).decode(bytes),
-    };
-  } catch {
-    return {
-      ok: false,
-      message: 'Invalid hex input: bytes are not valid UTF-8',
-    };
-  }
+  return {
+    ok: true,
+    text: decodeUtf8Strict(bytes) ?? formatBinaryFallback(bytes),
+  };
 }
 
 export const HexTextBoxSource = {

@@ -5,7 +5,7 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const Priority = 10;
 
 // token regex: a number followed by a unit label
-const TOKEN_RE = /(\d+(?:\.\d+)?)\s*(kg|lb|lbs|cm|m|in|"|ft)/gi;
+const TOKEN_RE = /(\d+(?:\.\d+)?)\s*(kg|lb|lbs|cm|m|in|"|ft|')/gi;
 
 interface ParsedMeasurements {
   weightKg: number;
@@ -44,30 +44,49 @@ function parseMeasurements(input: string): ParsedMeasurements | null {
 
   let weightKg: number | null = null;
   let heightM: number | null = null;
+  let metricHeightUnit: 'm' | 'cm' | null = null;
+  let feet: number | null = null;
+  let inches: number | null = null;
+  let hasImperialHeight = false;
 
   for (const { value, unit } of tokens) {
     switch (unit) {
       case 'kg':
+        if (weightKg !== null) return null;
         weightKg = value;
         break;
       case 'lb':
       case 'lbs':
+        if (weightKg !== null) return null;
         weightKg = value * 0.453592;
         break;
       case 'm':
+        if (metricHeightUnit !== null || hasImperialHeight) return null;
+        metricHeightUnit = 'm';
         heightM = value;
         break;
       case 'cm':
+        if (metricHeightUnit !== null || hasImperialHeight) return null;
+        metricHeightUnit = 'cm';
         heightM = value / 100;
         break;
       case 'in':
       case '"':
-        heightM = value * 0.0254;
+        if (inches !== null || metricHeightUnit !== null) return null;
+        hasImperialHeight = true;
+        inches = value;
         break;
       case 'ft':
-        heightM = value * 0.3048;
+      case "'":
+        if (feet !== null || metricHeightUnit !== null) return null;
+        hasImperialHeight = true;
+        feet = value;
         break;
     }
+  }
+
+  if (hasImperialHeight) {
+    heightM = (feet ?? 0) * 0.3048 + (inches ?? 0) * 0.0254;
   }
 
   if (weightKg === null || heightM === null || heightM === 0) return null;
@@ -101,8 +120,8 @@ export const BmiBoxSource = {
       const guideData: Record<string, string> = {
         'Weight units': 'kg  or  lb / lbs',
         'Height units': 'm  or  cm  or  in / "  or  ft',
-        'Example (metric)': '70kg 1.75m ::bmi',
-        'Example (imperial)': '154lb 69in ::bmi',
+        'Example (metric)': '70kg 1.75m\n::bmi',
+        'Example (imperial)': '154lb 69in\n::bmi',
       };
       return [
         new BoxBuilder('BMI', kvToPlaintext(guideData))

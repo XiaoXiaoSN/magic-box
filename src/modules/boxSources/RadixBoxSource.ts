@@ -4,20 +4,6 @@ import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
 const Priority = 10;
 
-// converts a non-negative BigInt value to a string in the given base (2-36).
-function bigintToBase(value: bigint, base: number): string {
-  if (value === 0n) return '0';
-  const digits = '0123456789abcdefghijklmnopqrstuvwxyz';
-  const b = BigInt(base);
-  let result = '';
-  let n = value;
-  while (n > 0n) {
-    result = digits[Number(n % b)] + result;
-    n = n / b;
-  }
-  return result;
-}
-
 // parses a string as a non-negative integer in the given base using BigInt arithmetic.
 // returns null if any character is not a valid digit for the base.
 function parseBaseString(str: string, base: number): bigint | null {
@@ -75,9 +61,18 @@ export const RadixBoxSource = {
       ];
     }
 
-    const [fromStr, toStr] = rawSpec.split(':');
-    const fromBase = Number.parseInt(fromStr, 10);
-    const toBase = Number.parseInt(toStr, 10);
+    const specParts = rawSpec.split(':');
+    if (
+      specParts.length !== 2 ||
+      !specParts.every((part) => /^\d+$/.test(part))
+    ) {
+      return [
+        makeErrorBox('Both FROM and TO bases must be integers in range 2-36.'),
+      ];
+    }
+    const [fromStr, toStr] = specParts;
+    const fromBase = Number(fromStr);
+    const toBase = Number(toStr);
 
     if (
       Number.isNaN(fromBase) ||
@@ -94,7 +89,29 @@ export const RadixBoxSource = {
 
     const rawInput = trim(input);
     const negative = rawInput.startsWith('-');
-    const digits = (negative ? rawInput.slice(1) : rawInput).toLowerCase();
+    const unsignedInput = negative ? rawInput.slice(1) : rawInput;
+    const prefix = unsignedInput.slice(0, 2).toLowerCase();
+    const expectedPrefix =
+      fromBase === 16
+        ? '0x'
+        : fromBase === 2
+          ? '0b'
+          : fromBase === 8
+            ? '0o'
+            : null;
+    const hasPrefix = /^0[xbo]/i.test(unsignedInput);
+    if (hasPrefix && prefix !== expectedPrefix) {
+      return [
+        makeErrorBox(`Input prefix ${prefix} does not match base ${fromBase}.`),
+      ];
+    }
+
+    const withoutPrefix = expectedPrefix
+      ? unsignedInput.slice(0, 2).toLowerCase() === expectedPrefix
+        ? unsignedInput.slice(2)
+        : unsignedInput
+      : unsignedInput;
+    const digits = withoutPrefix.replace(/\s+/g, '').toLowerCase();
 
     if (!digits) {
       return [
@@ -113,8 +130,7 @@ export const RadixBoxSource = {
 
     const decimal = negative ? -magnitude : magnitude;
     const resultStr =
-      (negative && magnitude !== 0n ? '-' : '') +
-      bigintToBase(magnitude, toBase);
+      (negative && magnitude !== 0n ? '-' : '') + magnitude.toString(toBase);
     const decimalStr = decimal.toString();
 
     const box = new BoxBuilder('Radix Convert', resultStr)

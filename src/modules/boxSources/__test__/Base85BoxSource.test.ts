@@ -90,6 +90,20 @@ describe('Base85BoxSource', () => {
   });
 
   describe('generateBoxes - decode (::base85decode)', () => {
+    it('decodes Adobe-delimited input', async () => {
+      const boxes = await Base85BoxSource.generateBoxes('<~BOu!rDZ~>', {
+        base85decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('hello');
+    });
+
+    it('rejects mismatched Adobe delimiters with a specific reason', async () => {
+      const boxes = await Base85BoxSource.generateBoxes('<~BOu!rDZ', {
+        base85decode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toMatch(/delimiters/i);
+    });
+
     it('decodes "BOu!rDZ" back to "hello"', async () => {
       const boxes = await Base85BoxSource.generateBoxes('BOu!rDZ', {
         base85decode: true,
@@ -168,6 +182,28 @@ describe('Base85BoxSource', () => {
       expect(names).toContain('Base85 (Encode)');
       expect(names).toContain('Base85 (Decode)');
     });
+  });
+
+  it('returns no box for empty or whitespace-only input', async () => {
+    for (const input of ['', '   ']) {
+      await expect(
+        Base85BoxSource.generateBoxes(input, { base85: true }),
+      ).resolves.toEqual([]);
+      await expect(
+        Base85BoxSource.generateBoxes(input, { base85decode: true }),
+      ).resolves.toEqual([]);
+    }
+  });
+
+  it('preserves meaningful spaces in encoded payloads', async () => {
+    const encoded = await Base85BoxSource.generateBoxes(' hello ', {
+      base85: true,
+    });
+    const decoded = await Base85BoxSource.generateBoxes(
+      encoded[0].props.plaintextOutput,
+      { base85decode: true },
+    );
+    expect(decoded[0].props.plaintextOutput).toBe(' hello ');
   });
 
   describe('metadata', () => {

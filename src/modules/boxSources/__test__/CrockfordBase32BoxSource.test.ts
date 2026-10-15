@@ -66,6 +66,13 @@ describe('CrockfordBase32BoxSource', () => {
       expect(boxes[0].props.plaintextOutput).toBe('hello');
     });
 
+    it('ignores whitespace in encoded input', async () => {
+      const boxes = await CrockfordBase32BoxSource.generateBoxes('D1JP RV3F', {
+        crockforddecode: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('hello');
+    });
+
     it('decode normalizes alias I→1: DIJPRV3F decodes as hello', async () => {
       // replace '1' with 'I' (alias for 1 per Crockford spec)
       const boxes = await CrockfordBase32BoxSource.generateBoxes('DIJPRV3F', {
