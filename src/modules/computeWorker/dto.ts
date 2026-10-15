@@ -18,6 +18,7 @@ export interface WorkerBoxDTO {
   disabled?: boolean;
   largeModal?: boolean;
   selected?: boolean;
+  isError?: boolean;
   tag?: string;
   kind?: string;
 }
@@ -196,6 +197,7 @@ export function isWorkerBoxDTO(value: unknown): value is WorkerBoxDTO {
     'disabled',
     'largeModal',
     'selected',
+    'isError',
   ] as const) {
     if (value[key] !== undefined && typeof value[key] !== 'boolean')
       return false;
@@ -314,6 +316,7 @@ export function toWorkerBox(box: Box): WorkerBoxDTO | null {
   if (props.disabled !== undefined) dto.disabled = props.disabled;
   if (props.largeModal !== undefined) dto.largeModal = props.largeModal;
   if (props.selected !== undefined) dto.selected = props.selected;
+  if (props.isError !== undefined) dto.isError = props.isError;
   if (props.tag !== undefined) dto.tag = props.tag;
   if (props.kind !== undefined) dto.kind = props.kind;
   return isWorkerBoxDTO(dto) ? dto : null;
@@ -354,6 +357,7 @@ export function rehydrateWorkerBox(dto: WorkerBoxDTO): Box {
     disabled: dto.disabled,
     largeModal: dto.largeModal,
     selected: dto.selected,
+    isError: dto.isError,
     tag: dto.tag,
     kind: dto.kind,
   };
@@ -371,5 +375,6 @@ export function createWorkerErrorBox(
     options: null,
     sourceInput,
     showExpandButton: false,
+    isError: true,
   };
 }

@@ -9,6 +9,7 @@ import {
 import type { BoxSourceContext } from '@modules/BoxSource';
 import mathBoxGlueUrl from 'math-box/math_box.js?url';
 import mathBoxWasmUrl from 'math-box/math_box_bg.wasm?url';
+import { createFreshMathBox, loadRuntimeWasm } from './runtimeAssets';
 
 const PriorityMathExpression = 10;
 
@@ -125,6 +126,8 @@ function isNodeRuntime(): boolean {
 async function loadWasmBytes(): Promise<Uint8Array> {
   if (!wasmBytesPromise) {
     wasmBytesPromise = (async () => {
+      const embeddedBytes = loadRuntimeWasm('math');
+      if (embeddedBytes) return embeddedBytes;
       if (isNodeRuntime()) {
         const fsName = 'node:fs/promises';
         const modName = 'node:module';
@@ -174,6 +177,12 @@ async function loadMathBox(): Promise<MathBoxModule> {
 
 async function recoverMathBox(): Promise<MathBoxModule> {
   const recovery = (async () => {
+    const freshEmbeddedModule = createFreshMathBox();
+    if (freshEmbeddedModule) {
+      freshEmbeddedModule.initSync({ module: await loadWasmBytes() });
+      return freshEmbeddedModule;
+    }
+
     let freshUrl: string;
     if (isNodeRuntime()) {
       const modName = 'node:module';

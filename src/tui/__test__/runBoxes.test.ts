@@ -1,6 +1,7 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { runBoxes } from '../runBoxes';
+import { runBoxes, runTerminalSources } from '../runBoxes';
 import { tuiBoxSources } from '../sources';
 
 // proves the headless generation path: the TUI source list runs and produces
@@ -59,13 +60,21 @@ describe('headless box generation', () => {
       'Local AI',
     );
     expect(tuiBoxSources.map((source) => source.name)).not.toContain('My IP');
+    expect(
+      tuiBoxSources.every(
+        (source) =>
+          source.headless === true && source.sideEffects !== 'network',
+      ),
+    ).toBe(true);
     for (const source of tuiBoxSources) {
-      // through runBoxes so `::option` directives in defaultInput are parsed;
-      // calling generateBoxes(defaultInput, null) left the loop below empty
-      // for every directive-driven source
-      const boxes = await runBoxes(source.defaultInput, [source]);
-      expect(boxes.length, source.name).toBeGreaterThan(0);
-      for (const box of boxes) {
+      const result = await runTerminalSources(source.defaultInput, [source]);
+      if (source.id === 'certificate-decode') {
+        expect(result.errors, source.name).toHaveLength(1);
+        continue;
+      }
+      expect(result.errors, source.name).toHaveLength(0);
+      expect(result.boxes.length, source.name).toBeGreaterThan(0);
+      for (const box of result.boxes) {
         expect(box.boxTemplate).toBeUndefined();
       }
     }
@@ -111,8 +120,50 @@ describe('headless box generation', () => {
         throw new Error('unavailable');
       },
     };
-    const boxes = await runBoxes('uuid', [failing, ...tuiBoxSources]);
-    expect(boxes[0].props.plaintextOutput).toBe('unavailable');
-    expect(boxes.some((box) => box.props.name === 'UUID')).toBe(true);
+    const result = await runTerminalSources('uuid', [
+      failing,
+      ...tuiBoxSources,
+    ]);
+    expect(result.errors).toEqual([
+      {
+        id: failing.id ?? failing.name,
+        name: 'Broken source',
+        message: 'unavailable',
+      },
+    ]);
+    expect(result.boxes.some((box) => box.props.name === 'UUID')).toBe(true);
+    await expect(runBoxes('uuid', [failing])).resolves.toHaveLength(1);
+  });
+
+  it.each([
+    ['math-expression', 'notmath\n::math'],
+    ['pbkdf2', 'password\n::pbkdf2'],
+  ])('reports explicit %s errors separately from results', async (id, input) => {
+    const source = tuiBoxSources.find((candidate) => candidate.id === id);
+    if (!source) throw new Error(`${id} missing from TUI registry`);
+
+    const result = await runTerminalSources(input, [source]);
+    expect(result.boxes).toHaveLength(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).not.toBe('');
+  });
+
+  it('keeps valid non-expandable HMAC and Base85 output as success', async () => {
+    const hmac = tuiBoxSources.find((source) => source.id === 'hmac');
+    const base85 = tuiBoxSources.find((source) => source.id === 'base85');
+    if (!hmac || !base85)
+      throw new Error('HMAC or Base85 missing from TUI registry');
+
+    const hmacResult = await runTerminalSources('message\n::hmac=secret', [
+      hmac,
+    ]);
+    expect(hmacResult.errors).toHaveLength(0);
+    expect(hmacResult.boxes[0].props.showExpandButton).toBe(false);
+    expect(hmacResult.boxes[0].props.isError).toBeUndefined();
+
+    const base85Result = await runTerminalSources('hello\n::base85', [base85]);
+    expect(base85Result.errors).toHaveLength(0);
+    expect(base85Result.boxes[0].props.showExpandButton).toBe(false);
+    expect(base85Result.boxes[0].props.plaintextOutput).not.toBe('');
   });
 });

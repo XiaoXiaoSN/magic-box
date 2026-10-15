@@ -1,13 +1,11 @@
 import { BoxBuilder } from '@modules/Box';
 import { render } from 'ink-testing-library';
-import { createElement } from 'react';
+import { act, createElement } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { App, ResultList } from '../App';
-import { runBoxes } from '../runBoxes';
+import { runBoxes, type TerminalRunResult } from '../runBoxes';
 
-// render smoke test: confirms the ink layer paints a box's name and plaintext
-// output to the (virtual) terminal frame.
 describe('<ResultList />', () => {
   it('renders box name and plaintext output', async () => {
     const boxes = await runBoxes('uuid');
@@ -17,57 +15,74 @@ describe('<ResultList />', () => {
     expect(frame).toContain(boxes[0].props.plaintextOutput);
   });
 
-  it('renders a placeholder when there are no boxes', () => {
+  it('renders a placeholder when a completed query has no boxes', () => {
     const { lastFrame } = render(createElement(ResultList, { boxes: [] }));
     expect(lastFrame()).toContain('no matching boxes');
   });
 });
 
-describe('interactive navigation', () => {
-  it('selects results with Ctrl+N/P and copies only on Ctrl+Y', async () => {
+describe('interactive search', () => {
+  it('shows instructions before input and debounces live generation', async () => {
+    const generate = vi.fn(async () => ({ boxes: [], errors: [] }));
+    const screen = render(createElement(App, { generate }));
+    expect(screen.lastFrame()).toContain('Type input to see matching boxes');
+    expect(screen.lastFrame()).not.toContain('no matching boxes');
+
+    act(() => {
+      screen.stdin.write('u');
+      screen.stdin.write('u');
+    });
+    await vi.waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
+    screen.unmount();
+  });
+
+  it('selects with arrows and Enter copies the selected result', async () => {
     const boxes = [
       new BoxBuilder('First', 'one').build(),
       new BoxBuilder('Second', 'two').build(),
     ];
     const copy = vi.fn();
-    const generate = vi.fn().mockResolvedValue(boxes);
+    const generate = vi.fn(
+      async (): Promise<TerminalRunResult> => ({
+        boxes,
+        errors: [],
+      }),
+    );
     const screen = render(
       createElement(App, { initialInput: 'query', generate, copy }),
     );
-    screen.stdin.write('\r');
     await vi.waitFor(() => expect(screen.lastFrame()).toContain('First'));
-    expect(copy).not.toHaveBeenCalled();
-    screen.stdin.write('\u000e');
+    act(() => screen.stdin.write('\u001b[B'));
     await vi.waitFor(() => expect(screen.lastFrame()).toContain('› Second'));
-    screen.stdin.write('\u0019');
+    act(() => screen.stdin.write('\r'));
     await vi.waitFor(() => expect(copy).toHaveBeenCalledWith('two'));
-    screen.stdin.write('\u0010');
-    await vi.waitFor(() => expect(screen.lastFrame()).toContain('› First'));
     screen.unmount();
   });
 
-  it('keeps the latest result when an earlier request finishes late', async () => {
-    let finish:
-      | ((boxes: ReturnType<BoxBuilder['build']>[]) => void)
-      | undefined;
-    const generate = vi
-      .fn()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            finish = resolve;
-          }),
-      )
-      .mockResolvedValueOnce([new BoxBuilder('Latest', 'fresh').build()]);
+  it('copies on Ctrl+Y and ignores a late result after the query changes', async () => {
+    const first = new BoxBuilder('Stale', 'old').build();
+    const latest = new BoxBuilder('Latest', 'fresh').build();
+    const firstRequest: {
+      resolve: ((result: TerminalRunResult) => void) | null;
+    } = { resolve: null };
+    const generate = vi.fn((input: string) => {
+      if (input === 'first')
+        return new Promise<TerminalRunResult>((resolve) => {
+          firstRequest.resolve = resolve;
+        });
+      return Promise.resolve({ boxes: [latest], errors: [] });
+    });
+    const copy = vi.fn();
     const screen = render(
-      createElement(App, { initialInput: 'query', generate }),
+      createElement(App, { initialInput: 'first', generate, copy }),
     );
-    screen.stdin.write('\r');
     await vi.waitFor(() => expect(generate).toHaveBeenCalledTimes(1));
-    screen.stdin.write('\r');
+    act(() => screen.stdin.write('x'));
     await vi.waitFor(() => expect(screen.lastFrame()).toContain('Latest'));
-    finish?.([new BoxBuilder('Stale', 'old').build()]);
-    await vi.waitFor(() => expect(screen.lastFrame()).not.toContain('Stale'));
+    act(() => screen.stdin.write('\u0019'));
+    await vi.waitFor(() => expect(copy).toHaveBeenCalledWith('fresh'));
+    firstRequest.resolve?.({ boxes: [first], errors: [] });
+    expect(screen.lastFrame()).not.toContain('Stale');
     screen.unmount();
   });
 });

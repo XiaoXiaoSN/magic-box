@@ -6,6 +6,7 @@ import {
 import { isBase64, isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys } from '@modules/Box';
+import { loadRuntimeWasm } from './runtimeAssets';
 
 // Base64 Encode can match almost all cases, so we need to set a lower priority
 const PriorityBase64Encode = 0;
@@ -19,6 +20,11 @@ async function initBase64Box(): Promise<Base64BoxModule> {
   if (!initPromise) {
     initPromise = (async () => {
       const base64Box = await import('base64-box');
+      const embeddedBytes = loadRuntimeWasm('base64');
+      if (embeddedBytes) {
+        await base64Box.default({ module_or_path: await embeddedBytes });
+        return base64Box;
+      }
       const isNode =
         typeof process !== 'undefined' && process.versions?.node !== undefined;
       if (isNode) {

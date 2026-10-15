@@ -47,16 +47,18 @@ const ensureLocalStorage = () => {
   });
 };
 
-ensureLocalStorage();
-
 // extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
-// clean up DOM and browser storage between tests
-afterEach(() => {
-  cleanup();
-  window.localStorage.clear();
-});
+if (typeof window !== 'undefined') {
+  ensureLocalStorage();
+
+  // clean up DOM and browser storage between tests
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+  });
+}
 
 // add TextEncoder and TextDecoder to global
 global.TextEncoder = TextEncoder;

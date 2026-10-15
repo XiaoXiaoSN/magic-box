@@ -438,44 +438,48 @@ firebase deploy
 
 ## Terminal UI (TUI) 🖥️
 
-Magic Box ships an experimental terminal UI built with [ink](https://github.com/vadimdemedes/ink) (React for the terminal). It runs a subset of boxes headlessly in Node — no browser, no WASM, no network.
+Magic Box ships a terminal UI built with [ink](https://github.com/vadimdemedes/ink) (React for the terminal). It shares the headless source registry with the web app, including Base64 and Math WASM tools, while excluding network and browser-only sources.
 
 ### Usage
 
 ```bash
-# pass input as a CLI argument
+# pass input as CLI arguments
 bun run tui "uuid"
 
 # pipe input via stdin
 echo "1700000000" | bun run tui
 
-# inline ::option directives work too (newline-separated)
-printf 'uuid\n::uppercase' | bun run tui
+# ::option directives passed as arguments are placed on their own lines
+bun run tui uuid ::uppercase
+
+# request structured or plain output for scripts
+bun run tui --json "1 + 2"
+bun run tui --raw "1 + 2"
+
+# run one source and inspect available sources with their example inputs
+bun run tui --only math-expression "1 + 2"
+bun run tui --list
+bun run tui --list --json
 
 # no argument and a TTY → interactive prompt (type and press Enter)
 bun run tui
 ```
 
-A `magic-box-tui` bin is also exposed via `package.json`'s `bin` field.
+`--only` accepts a stable source id or an unambiguous name; repeat it or provide comma-separated names to run multiple sources. Use `--opt key=value` (or `-o key=value`) to add option directives, for example `bun run tui --opt uppercase=true uuid`. JSON output includes successful matches; source errors go to stderr. The command exits with status 1 when it has no successful matches.
 
-### How it works
+To build and install a standalone executable for the current Bun host, choose a local bin directory explicitly:
 
-The box-generation core (`src/modules/Box.ts`, `BoxBuilder`, `BoxSource`) is framework-agnostic: it no longer imports any React/MUI template. Each box carries `name` / `plaintextOutput` / `tag` / `kind` / `options` and leaves `boxTemplate` undefined; the web layer (`BoxCard` / `BoxModal`) falls back to `DefaultBoxTemplate`, while the TUI simply renders `plaintextOutput`. This lets the headless sources import cleanly under Node with zero MUI in the module graph (`src/tui/`).
+```bash
+bun run tui:build
+bun run tui:install -- --bin-dir "$HOME/.local/bin"
+magic-box-tui --json "1 + 2"
+```
 
-### Foundation limitations
+The executable embeds its Bun runtime and the Math/Base64 WASM assets. It runs without the repository checkout or `node_modules`. Build it on each target platform where it will run; this command produces a binary for the current host.
 
-This is a foundation, not full parity. The TUI runs only node-safe sources (`src/tui/sources.ts`):
+The headless source registry marks which sources can produce plaintext without browser UI. TUI runs are isolated per source, so one conversion failure does not suppress other results. Network-backed sources, QR rendering, and Local AI remain unavailable in the terminal.
 
-| Enabled | Excluded | Reason for exclusion |
-| --- | --- | --- |
-| Escape String, Cron, Date Calculate, Now, Random Integer, Readable Bytes, Time Format, Timestamp, URL Decode, UUID | Base64 (encode/decode) | depends on the `base64-box` WASM module |
-| | Math Expression | depends on the `math-box` WASM module |
-| | Data Converter, JWT | render via `CodeBoxTemplate` (React/MUI) |
-| | Generate QR Code | renders via `QRCodeBoxTemplate` (React/MUI, browser canvas) |
-| | K8s Secret, Word Count | render via `KeyValueBoxTemplate` (React/MUI) |
-| | My IP, Shorten URL | perform network `fetch` |
-
-Excluded sources can be added later by giving them plaintext-only headless paths (e.g. WASM bindings loaded from disk, or rendering their `plaintextOutput` without the React template).
+Interactive mode refreshes matches as you type. Use Up/Down to select a result, Enter or `y` to copy it, Tab to return to the input after selecting, and Esc to exit. Copy uses `pbcopy` on macOS when available and OSC 52 otherwise; OSC 52 support depends on the terminal.
 
 ## License 📃
 

@@ -1,7 +1,9 @@
+import { errorBox } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
 
 import {
   type ComputeWorkerRunRequest,
+  createWorkerErrorBox,
   isComputeWorkerRunRequest,
   isWorkerBoxDTO,
   rehydrateWorkerBox,
@@ -49,6 +51,20 @@ describe('compute worker DTOs', () => {
       boxTemplate: () => null,
     });
     expect(dto).toBeNull();
+  });
+
+  it('preserves the explicit error marker across worker DTOs', () => {
+    const dto = toWorkerBox(errorBox('Math', 'Invalid expression.'));
+    expect(dto?.isError).toBe(true);
+    expect(dto).not.toBeNull();
+    expect(isWorkerBoxDTO(dto)).toBe(true);
+    expect(
+      rehydrateWorkerBox(dto as NonNullable<typeof dto>).props.isError,
+    ).toBe(true);
+
+    const workerError = createWorkerErrorBox('Worker', 'Unavailable.');
+    expect(workerError.isError).toBe(true);
+    expect(isWorkerBoxDTO(workerError)).toBe(true);
   });
 
   it('validates bounded run input and primitive options', () => {
