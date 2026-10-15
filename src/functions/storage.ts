@@ -8,6 +8,8 @@ export const getLocalStorage = (): Storage | null => {
   }
 };
 
+export const LOCAL_DATA_CLEARED_EVENT = 'magic-box:local-data-cleared';
+
 export type StorageReadStatus = 'ok' | 'missing' | 'unavailable' | 'invalid';
 
 export type StorageReadResult<T> =
@@ -59,12 +61,16 @@ export const removeStorageItem = (key: string): void => {
 
 export const clearLocalStorage = (): void => {
   const storage = getLocalStorage();
-  if (!storage) return;
+  if (storage) {
+    try {
+      storage.clear();
+    } catch {
+      // storage is best effort; callers keep their in-memory state
+    }
+  }
 
-  try {
-    storage.clear();
-  } catch {
-    // storage is best effort; callers keep their in-memory state
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(LOCAL_DATA_CLEARED_EVENT));
   }
 };
 

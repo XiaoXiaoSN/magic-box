@@ -3,7 +3,7 @@ import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
   isPrivateInput,
-  isSensitiveOptionKey,
+  isPrivateOptionKey,
 } from '@functions/localAIPrivacy';
 import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
@@ -16,12 +16,37 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useInputDraft } from '../../contexts/InputDraftContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
-import { useSearchHistory } from '../../hooks/useSearchHistory';
+import {
+  MAX_HISTORY_PREVIEW_CHARS,
+  useSearchHistory,
+} from '../../hooks/useSearchHistory';
 import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
+
+interface SeededInput {
+  present: boolean;
+  value: string;
+}
+
+const readSeededInput = (search: string): SeededInput => {
+  const params = new URLSearchParams(search);
+  const key = params.has('input') ? 'input' : params.has('i') ? 'i' : null;
+  if (!key) return { present: false, value: '' };
+  const value = params.get(key) ?? '';
+  if (isPrivateInput(value)) activateLocalAIPrivacy();
+  return { present: true, value };
+};
+
+const historyPreview = (input: string): string => {
+  const characters = Array.from(input);
+  if (characters.length <= MAX_HISTORY_PREVIEW_CHARS) return input;
+  return `${characters.slice(0, MAX_HISTORY_PREVIEW_CHARS - 1).join('')}…`;
+};
 
 const formatRelativeTime = (
   timestamp: number,
@@ -43,20 +68,27 @@ const formatRelativeTime = (
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
+  const location = useLocation();
   const { locale, t } = useLocale();
-  const [userInput, setUserInput] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('input') ?? params.get('i') ?? '';
-  });
-  const [magicIn, setMagicIn] = useState('');
+  const { clearVersion, draft, updateDraft } = useInputDraft();
+  const seededInput = useMemo(
+    () => readSeededInput(location.search),
+    [location.search],
+  );
+  const initialInput = seededInput.present ? seededInput.value : draft;
+  const [userInput, setUserInput] = useState(initialInput);
+  const [magicIn, setMagicIn] = useState(initialInput);
   const [resetCounter, setResetCounter] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastRecordedRef = useRef<string>('');
+  const editedRef = useRef(false);
+  const handledClearVersionRef = useRef(clearVersion);
   // History entries this edit session created (not ones it merely moved to the
   // top). A session ends when the input is emptied or replaced wholesale.
   const sessionAddedRef = useRef<string[]>([]);
+  const appliedSearchRef = useRef(location.search);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
@@ -78,47 +110,101 @@ const MagicBoxPage = (): React.JSX.Element => {
 
   const privateInput = useMemo(() => isPrivateInput(userInput), [userInput]);
 
-  // Revoke this edit session as soon as a private directive appears, before
-  // the debounced source run settles. This closes the window where a partial
-  // JWT key or local prompt could otherwise reach history.
+  useEffect(() => {
+    if (!seededInput.present) return;
+    updateDraft(seededInput.value, { persist: false });
+  }, [seededInput, updateDraft]);
+
+  useEffect(() => {
+    if (handledClearVersionRef.current === clearVersion) return;
+    handledClearVersionRef.current = clearVersion;
+    sessionAddedRef.current = [];
+    lastRecordedRef.current = '';
+    editedRef.current = false;
+    pendingCaretRef.current = null;
+    setUserInput('');
+    setMagicIn('');
+    setResetCounter((counter) => counter + 1);
+  }, [clearVersion]);
+
+  const resetEditSession = useCallback((): void => {
+    sessionAddedRef.current = [];
+    lastRecordedRef.current = '';
+  }, []);
+
+  const applySeededInput = useCallback(
+    (value: string): void => {
+      if (isPrivateInput(value)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+      }
+      resetEditSession();
+      editedRef.current = false;
+      pendingCaretRef.current = value.length;
+      updateDraft(value, { persist: false });
+      setUserInput(value);
+      setMagicIn(value);
+    },
+    [removeInputs, resetEditSession, updateDraft],
+  );
+
+  useLayoutEffect(() => {
+    if (appliedSearchRef.current === location.search) return;
+    appliedSearchRef.current = location.search;
+    if (!seededInput.present) return;
+    applySeededInput(seededInput.value);
+  }, [applySeededInput, location.search, seededInput]);
+
+  const applyInput = useCallback(
+    (value: string, wholesale: boolean): void => {
+      if (wholesale || value === '') resetEditSession();
+      editedRef.current = !wholesale && value !== '';
+
+      if (isPrivateInput(value)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+        resetEditSession();
+      }
+
+      updateDraft(value);
+      setUserInput(value);
+    },
+    [removeInputs, resetEditSession, updateDraft],
+  );
+
+  const recordInput = useCallback(
+    (rawInput: string): void => {
+      const trimmed = rawInput.trim();
+      if (!trimmed) {
+        resetEditSession();
+        return;
+      }
+
+      if (isPrivateInput(trimmed)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+        resetEditSession();
+        updateDraft(rawInput);
+        return;
+      }
+
+      if (trimmed === lastRecordedRef.current) return;
+      lastRecordedRef.current = trimmed;
+      if (!history.some((item) => item.input === trimmed)) {
+        sessionAddedRef.current.push(trimmed);
+      }
+      addEntry(trimmed);
+    },
+    [addEntry, history, removeInputs, resetEditSession, updateDraft],
+  );
+
   useEffect(() => {
     if (!privateInput) return;
     activateLocalAIPrivacy();
+    if (sessionAddedRef.current.length === 0) return;
     removeInputs(sessionAddedRef.current);
     sessionAddedRef.current = [];
   }, [privateInput, removeInputs]);
-
-  // Record to search history when debounced input settles. Private input
-  // carries a prompt or sensitive option, so it is never recorded: the
-  // privacy promise has to survive the directive being typed in the magic
-  // input rather than inside the box.
-  //
-  // Skipping the final input is not enough. A private value is typed BEFORE
-  // the directive, and every pause longer than the debounce settles on a
-  // partial state — `my question`, `my question\n::`, `…::a` — each an
-  // ordinary input that was recorded. So when a private input settles, the
-  // entries this edit session created are withdrawn too, and the telemetry
-  // gate closes here rather than when a lazy panel chunk mounts.
-  useEffect(() => {
-    if (magicIn !== userInput) return;
-    const trimmed = magicIn.trim();
-    if (!trimmed) {
-      sessionAddedRef.current = [];
-      return;
-    }
-    if (trimmed === lastRecordedRef.current) return;
-    lastRecordedRef.current = trimmed;
-    if (isPrivateInput(trimmed)) {
-      activateLocalAIPrivacy();
-      removeInputs(sessionAddedRef.current);
-      sessionAddedRef.current = [];
-      return;
-    }
-    if (!history.some((item) => item.input === trimmed)) {
-      sessionAddedRef.current.push(trimmed);
-    }
-    addEntry(trimmed);
-  }, [magicIn, userInput, history, addEntry, removeInputs]);
 
   const optionChips = useMemo(
     () => Object.entries(parseOptionsForChips(userInput)),
@@ -147,13 +233,17 @@ const MagicBoxPage = (): React.JSX.Element => {
   // Replaces the whole input programmatically (QR scan, history pick, paste
   // back). Marks the caret to land at the end of the inserted text so the
   // next keystroke continues naturally.
-  const replaceInput = useCallback((value: string): void => {
-    // A wholesale replacement starts a new edit session: what was typed before
-    // it is not part of whatever is built from the new value.
-    sessionAddedRef.current = [];
-    pendingCaretRef.current = value.length;
-    setUserInput(value);
-  }, []);
+  const replaceInput = useCallback(
+    (value: string): void => {
+      // a wholesale replacement starts a new edit session
+      resetEditSession();
+      editedRef.current = false;
+      pendingCaretRef.current = value.length;
+      updateDraft(value);
+      setUserInput(value);
+    },
+    [resetEditSession, updateDraft],
+  );
 
   const handleScannedInput = replaceInput;
 
@@ -164,6 +254,28 @@ const MagicBoxPage = (): React.JSX.Element => {
       inputRef.current?.focus();
     },
     [replaceInput],
+  );
+
+  const handleInputBlur = useCallback(
+    (event: React.FocusEvent<HTMLTextAreaElement>): void => {
+      if (!editedRef.current) return;
+      const target = event.relatedTarget;
+      if (
+        target instanceof Element &&
+        target.closest('button, a, [role="button"]')
+      ) {
+        return;
+      }
+      recordInput(userInput);
+    },
+    [recordInput, userInput],
+  );
+
+  const handleShareCopied = useCallback(
+    (copyKey: string | undefined): void => {
+      if (copyKey === userInput) recordInput(userInput);
+    },
+    [recordInput, userInput],
   );
 
   return (
@@ -178,7 +290,7 @@ const MagicBoxPage = (): React.JSX.Element => {
                 {optionChips.map(([k, v]) => (
                   <span className="opt-chip" key={k}>
                     <span className="opt-k">{k}</span>
-                    {v !== true && !isSensitiveOptionKey(k) ? (
+                    {v !== true && !isPrivateOptionKey(k) ? (
                       <>
                         <span className="opt-eq">=</span>
                         <span className="opt-v">{String(v)}</span>
@@ -195,6 +307,8 @@ const MagicBoxPage = (): React.JSX.Element => {
               getShareLink={() =>
                 buildShareLink({ input: userInput, pathname: '/' })
               }
+              copyKey={userInput}
+              onCopySuccess={handleShareCopied}
             />
             <button
               aria-label={
@@ -229,35 +343,36 @@ const MagicBoxPage = (): React.JSX.Element => {
               {history.length > 0 ? (
                 <>
                   <div className="history-list">
-                    {history.map((item: HistoryItem) => (
-                      <div className="history-item" key={item.id}>
-                        <button
-                          className="history-item-btn"
-                          onClick={() => handleHistorySelect(item.input)}
-                          title={item.input}
-                          type="button"
-                        >
-                          <span className="history-item-input">
-                            {item.input.length > 50
-                              ? `${item.input.slice(0, 50)}…`
-                              : item.input}
-                          </span>
-                          <span className="history-item-time">
-                            {formatRelativeTime(item.timestamp, locale, t)}
-                          </span>
-                        </button>
-                        <button
-                          aria-label={t('magicBox.deleteEntry', {
-                            input: item.input.slice(0, 30),
-                          })}
-                          className="history-item-del"
-                          onClick={() => removeEntry(item.id)}
-                          type="button"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                    {history.map((item: HistoryItem) => {
+                      const preview = historyPreview(item.input);
+                      return (
+                        <div className="history-item" key={item.id}>
+                          <button
+                            className="history-item-btn"
+                            onClick={() => handleHistorySelect(item.input)}
+                            title={preview}
+                            type="button"
+                          >
+                            <span className="history-item-input">
+                              {preview}
+                            </span>
+                            <span className="history-item-time">
+                              {formatRelativeTime(item.timestamp, locale, t)}
+                            </span>
+                          </button>
+                          <button
+                            aria-label={t('magicBox.deleteEntry', {
+                              input: item.input.slice(0, 30),
+                            })}
+                            className="history-item-del"
+                            onClick={() => removeEntry(item.id)}
+                            type="button"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     className="history-clear"
@@ -278,7 +393,8 @@ const MagicBoxPage = (): React.JSX.Element => {
               ref={inputRef}
               data-testid="magic-input"
               name="magicInput"
-              onChange={(e) => setUserInput(e.target.value)}
+              onBlur={handleInputBlur}
+              onChange={(e) => applyInput(e.target.value, false)}
               onFocus={() => setResetCounter((c) => c + 1)}
               placeholder={t('magicBox.placeholder')}
               rows={8}
@@ -308,6 +424,7 @@ const MagicBoxPage = (): React.JSX.Element => {
             <MagicBox
               input={magicIn}
               liveInput={userInput}
+              onInputCommit={recordInput}
               onPasteInput={replaceInput}
               resetTrigger={resetCounter}
             />

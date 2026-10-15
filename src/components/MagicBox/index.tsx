@@ -57,6 +57,7 @@ interface Props {
   liveInput?: string;
   sources?: BoxSource[];
   onPasteInput?: (value: string) => void;
+  onInputCommit?: (input: string) => void;
   resetTrigger?: number;
 }
 
@@ -114,6 +115,7 @@ const MagicBox = ({
   liveInput,
   sources,
   onPasteInput,
+  onInputCommit,
   resetTrigger,
 }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState<SnackbarNotification | null>(null);
@@ -134,6 +136,9 @@ const MagicBox = ({
   const runIdRef = useRef(0);
   const onPasteInputRef = useRef(onPasteInput);
   const workerClientRef = useRef<ComputeWorkerClient | null>(null);
+  const onInputCommitRef = useRef(onInputCommit);
+  const currentInputRef = useRef('');
+  const copyKeyRef = useRef('');
   const { filteredBoxSources } = useSettings();
   const { prefs } = usePreferences();
   const { copyMode } = prefs;
@@ -141,10 +146,17 @@ const MagicBox = ({
   const preview = useIsBoxPreview();
 
   onPasteInputRef.current = onPasteInput;
+  onInputCommitRef.current = onInputCommit;
 
   const isStale = liveInput !== undefined && liveInput !== magicIn;
   const displayInput = liveInput ?? magicIn;
   const currentRunKey = `${preview ? 'preview' : 'live'}:${magicIn}`;
+  const copyKey = `${currentRunKey}:${displayInput}`;
+  if (copyKeyRef.current !== copyKey) {
+    copyKeyRef.current = copyKey;
+    copySequence.current += 1;
+  }
+  currentInputRef.current = displayInput;
 
   const boxEntries = useMemo<BoxEntry[]>(() => {
     const entries: BoxEntry[] = [];
@@ -206,6 +218,7 @@ const MagicBox = ({
 
   const copyText = useCallback(async (text: string): Promise<boolean> => {
     const sequence = ++copySequence.current;
+    const copyKeyAtStart = copyKeyRef.current;
     let copied = false;
 
     if (text) {
@@ -216,13 +229,21 @@ const MagicBox = ({
       }
     }
 
-    if (sequence === copySequence.current) {
-      setNotify({
-        id: ++notificationId.current,
-        severity: copied ? 'success' : 'error',
-      });
+    if (
+      sequence !== copySequence.current ||
+      copyKeyRef.current !== copyKeyAtStart
+    ) {
+      return false;
     }
+    setNotify({
+      id: ++notificationId.current,
+      severity: copied ? 'success' : 'error',
+    });
     return copied;
+  }, []);
+
+  const handleInputCommit = useCallback((): void => {
+    onInputCommitRef.current?.(currentInputRef.current);
   }, []);
 
   const handleOpenModal = useCallback(
@@ -569,26 +590,26 @@ const MagicBox = ({
     [currentRunKey],
   );
 
-  useEffect(() => {
-    const pasteAsInput = (value: string): void => {
-      const callback = onPasteInputRef.current;
-      if (callback) {
-        callback(value);
-        return;
-      }
-      const input = document.querySelector(
-        'input[name="magicInput"], textarea[name="magicInput"]',
-      ) as HTMLInputElement | HTMLTextAreaElement | null;
-      if (!input) return;
-      input.focus();
-      input.value = value;
-      try {
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      } catch {
-        /* noop */
-      }
-    };
+  const pasteAsInput = useCallback((value: string): void => {
+    const callback = onPasteInputRef.current;
+    if (callback) {
+      callback(value);
+      return;
+    }
+    const input = document.querySelector(
+      'input[name="magicInput"], textarea[name="magicInput"]',
+    ) as HTMLInputElement | HTMLTextAreaElement | null;
+    if (!input) return;
+    input.focus();
+    input.value = value;
+    try {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch {
+      /* noop */
+    }
+  }, []);
 
+  useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
       if (event.defaultPrevented || event.isComposing) return;
 
@@ -612,9 +633,15 @@ const MagicBox = ({
 
         const stdout = selected.props.plaintextOutput ?? '';
         if (stdout) {
-          void copyText(stdout).catch(() => undefined);
+          const inputSnapshot = currentInputRef.current;
+          void copyText(stdout)
+            .then((copied) => {
+              if (!copied) return;
+              onInputCommitRef.current?.(inputSnapshot);
+              pasteAsInput(stdout);
+            })
+            .catch(() => undefined);
           selected.props.onClick(stdout);
-          pasteAsInput(stdout);
         }
         return;
       }
@@ -664,15 +691,21 @@ const MagicBox = ({
 
       const stdout = selected.props.plaintextOutput ?? '';
       if (!stdout) return;
-      void copyText(stdout).catch(() => undefined);
+      const inputSnapshot = currentInputRef.current;
+      void copyText(stdout)
+        .then((copied) => {
+          if (!copied) return;
+          onInputCommitRef.current?.(inputSnapshot);
+          if (state.copyMode === 'paste') pasteAsInput(stdout);
+        })
+        .catch(() => undefined);
       selected.props.onClick(stdout);
-      if (state.copyMode === 'paste') pasteAsInput(stdout);
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
     // the handler reads refs so this listener is registered once per mount.
-  }, [copyText]);
+  }, [copyText, pasteAsInput]);
 
   const renderedBoxes = boxEntries.map(({ box, key, stale }, index) => (
     <BoxCard
@@ -681,6 +714,7 @@ const MagicBox = ({
       box={box}
       index={index}
       onCopy={copyText}
+      onInputCommit={handleInputCommit}
       onExpand={
         box.props.showExpandButton !== false ? handleOpenModal : undefined
       }
@@ -719,6 +753,7 @@ const MagicBox = ({
         box={modalBox}
         onClose={handleCloseModal}
         onCopy={copyText}
+        onInputCommit={handleInputCommit}
         open={modalIsActive}
       />
       <CustomizedSnackbar notify={notify} />
