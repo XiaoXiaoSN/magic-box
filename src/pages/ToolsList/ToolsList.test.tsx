@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { MemoryRouter, useNavigate, useSearchParams } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -35,8 +36,9 @@ const RouterState = () => {
 const renderPage = (
   initialEntries: string[] = ['/list'],
   initialIndex = initialEntries.length - 1,
-) =>
-  render(
+  strictMode = false,
+) => {
+  const content = (
     <LocaleProvider>
       <PreferencesProvider>
         <SettingsProvider>
@@ -49,8 +51,11 @@ const renderPage = (
           </MemoryRouter>
         </SettingsProvider>
       </PreferencesProvider>
-    </LocaleProvider>,
+    </LocaleProvider>
   );
+
+  return render(strictMode ? <StrictMode>{content}</StrictMode> : content);
+};
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -205,22 +210,17 @@ describe('/list preview input state', () => {
     }
   });
 
-  it('preserves stored list state after a transient mount read failure', () => {
+  it('preserves stored list state when StrictMode mount reads fail', () => {
     localStorage.setItem('mb:list:collapsed', '1');
     localStorage.setItem('mb:list:selected', 'Word Count');
     const storage = window.localStorage;
     const originalGetItem = storage.getItem.bind(storage);
-    let failed = false;
-    const getItem = vi.spyOn(storage, 'getItem').mockImplementation((key) => {
-      if (key === 'mb:list:collapsed' && !failed) {
-        failed = true;
-        throw new DOMException('blocked', 'SecurityError');
-      }
-      return originalGetItem(key);
+    const getItem = vi.spyOn(storage, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
     });
 
     try {
-      renderPage(['/list']);
+      renderPage(['/list'], 0, true);
 
       expect(document.querySelector('.list-page')).toHaveAttribute(
         'data-sidebar-collapsed',

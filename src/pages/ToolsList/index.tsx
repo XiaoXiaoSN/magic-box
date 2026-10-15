@@ -3,7 +3,7 @@ import ShareLinkButton from '@components/ShareLinkButton';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -110,38 +110,19 @@ const ToolsListPage = (): React.JSX.Element => {
   const [collapsed, setCollapsed] = useState(
     () => readStorageItem(COLLAPSED_KEY) === '1',
   );
-  const collapsedMountedRef = useRef(false);
   const { filteredBoxSources } = useSettings();
 
   const [selectedName, setSelectedName] = useState<string | null>(() => {
     const fromUrl = searchParams.get('box');
     return fromUrl ?? readStorageItem(SELECTION_KEY);
   });
-  const selectedMountedRef = useRef(false);
-
-  // Persist sidebar collapsed state.
-  useEffect(() => {
-    if (!collapsedMountedRef.current) {
-      collapsedMountedRef.current = true;
-      return;
-    }
-    writeStorageItem(COLLAPSED_KEY, collapsed ? '1' : '0');
-  }, [collapsed]);
-
-  // Persist selected box.
-  useEffect(() => {
-    if (!selectedMountedRef.current) {
-      selectedMountedRef.current = true;
-      return;
-    }
-    if (selectedName) writeStorageItem(SELECTION_KEY, selectedName);
-  }, [selectedName]);
 
   // Sync URL ?box= param ↔ state when URL changes externally.
   useEffect(() => {
     const fromUrl = searchParams.get('box');
     if (fromUrl && fromUrl !== selectedName) {
       setSelectedName(fromUrl);
+      writeStorageItem(SELECTION_KEY, fromUrl);
     }
   }, [searchParams, selectedName]);
 
@@ -195,6 +176,7 @@ const ToolsListPage = (): React.JSX.Element => {
 
   const handleSelect = (source: BoxSource) => {
     setSelectedName(source.name);
+    writeStorageItem(SELECTION_KEY, source.name);
     setDrawerOpen(false);
     const next = new URLSearchParams(searchParams);
     next.set('box', source.name);
@@ -251,7 +233,10 @@ const ToolsListPage = (): React.JSX.Element => {
         <button
           aria-label={t('toolsList.expandSidebar')}
           className="browser-expand"
-          onClick={() => setCollapsed(false)}
+          onClick={() => {
+            setCollapsed(false);
+            writeStorageItem(COLLAPSED_KEY, '0');
+          }}
           title={t('toolsList.expandSidebar')}
           type="button"
         >
@@ -268,7 +253,10 @@ const ToolsListPage = (): React.JSX.Element => {
             <button
               aria-label={t('toolsList.collapseSidebar')}
               className="browser-collapse"
-              onClick={() => setCollapsed(true)}
+              onClick={() => {
+                setCollapsed(true);
+                writeStorageItem(COLLAPSED_KEY, '1');
+              }}
               title={t('toolsList.collapseSidebar')}
               type="button"
             >

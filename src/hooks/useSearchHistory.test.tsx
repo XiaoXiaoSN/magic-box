@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useSearchHistory } from './useSearchHistory';
 
@@ -14,6 +15,9 @@ const Probe = (): React.JSX.Element => {
       <button onClick={() => addEntry('new')} type="button">
         add
       </button>
+      <button onClick={() => addEntry('newer')} type="button">
+        add newer
+      </button>
     </>
   );
 };
@@ -23,7 +27,7 @@ describe('useSearchHistory persistence recovery', () => {
     localStorage.clear();
   });
 
-  it('preserves stored entries after a transient mount read failure', () => {
+  it('does not persist fallback state after a StrictMode mount read fails', () => {
     const stored = [{ id: 'old', timestamp: 1, input: 'old' }];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     const storage = window.localStorage;
@@ -36,19 +40,52 @@ describe('useSearchHistory persistence recovery', () => {
       .mockImplementation(originalGetItem);
 
     try {
-      render(<Probe />);
+      render(
+        <StrictMode>
+          <Probe />
+        </StrictMode>,
+      );
 
       expect(screen.getByTestId('history')).toHaveTextContent('');
       expect(JSON.parse(originalGetItem(STORAGE_KEY) ?? '[]')).toEqual(stored);
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
+  it('replays pending entries after repeated read failures', async () => {
+    const stored = [{ id: 'old', timestamp: 1, input: 'old' }];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    const storage = window.localStorage;
+    const originalGetItem = storage.getItem.bind(storage);
+    let failures = 0;
+    const getItem = vi.spyOn(storage, 'getItem').mockImplementation((key) => {
+      if (key === STORAGE_KEY && failures < 2) {
+        failures += 1;
+        throw new DOMException('blocked', 'SecurityError');
+      }
+      return originalGetItem(key);
+    });
+
+    try {
+      render(<Probe />);
 
       fireEvent.click(screen.getByRole('button', { name: 'add' }));
+      expect(screen.getByTestId('history')).toHaveTextContent('new');
+      expect(JSON.parse(originalGetItem(STORAGE_KEY) ?? '[]')).toEqual(stored);
 
-      expect(screen.getByTestId('history')).toHaveTextContent('new|old');
-      expect(
-        JSON.parse(originalGetItem(STORAGE_KEY) ?? '[]').map(
-          (item: { input: string }) => item.input,
-        ),
-      ).toEqual(['new', 'old']);
+      fireEvent.click(screen.getByRole('button', { name: 'add newer' }));
+
+      await vi.waitFor(() => {
+        expect(screen.getByTestId('history')).toHaveTextContent(
+          'newer|new|old',
+        );
+        expect(
+          JSON.parse(originalGetItem(STORAGE_KEY) ?? '[]').map(
+            (item: { input: string }) => item.input,
+          ),
+        ).toEqual(['newer', 'new', 'old']);
+      });
     } finally {
       getItem.mockRestore();
     }

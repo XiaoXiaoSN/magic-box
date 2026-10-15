@@ -3,7 +3,7 @@ import {
   type StorageReadStatus,
   writeJson,
 } from '@functions/storage';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 
 const STORAGE_KEY = 'mb_search_history';
 const DEFAULT_MAX_ITEMS = 50;
@@ -48,6 +48,67 @@ function persistHistory(items: HistoryItem[]): void {
   writeJson(STORAGE_KEY, items);
 }
 
+type HistoryOperation =
+  | { type: 'add'; entry: HistoryItem; maxItems: number }
+  | { type: 'removeEntry'; id: string }
+  | { type: 'removeInputs'; inputs: readonly string[] }
+  | { type: 'clear' };
+
+interface HistoryState extends LoadedHistory {
+  dirty: boolean;
+  pending: HistoryOperation[];
+}
+
+type HistoryAction =
+  | { type: 'mutate'; operation: HistoryOperation }
+  | { type: 'resolve'; loaded: LoadedHistory };
+
+const applyHistoryOperation = (
+  items: HistoryItem[],
+  operation: HistoryOperation,
+): HistoryItem[] => {
+  switch (operation.type) {
+    case 'add':
+      return [
+        operation.entry,
+        ...items.filter((item) => item.input !== operation.entry.input),
+      ].slice(0, operation.maxItems);
+    case 'removeEntry':
+      return items.filter((item) => item.id !== operation.id);
+    case 'removeInputs': {
+      const removed = new Set(operation.inputs);
+      return items.filter((item) => !removed.has(item.input));
+    }
+    case 'clear':
+      return [];
+  }
+};
+
+const reduceHistory = (
+  state: HistoryState,
+  action: HistoryAction,
+): HistoryState => {
+  switch (action.type) {
+    case 'mutate':
+      return {
+        ...state,
+        items: applyHistoryOperation(state.items, action.operation),
+        dirty: state.status !== 'unavailable',
+        pending:
+          state.status === 'unavailable'
+            ? [...state.pending, action.operation]
+            : state.pending,
+      };
+    case 'resolve':
+      return {
+        items: state.pending.reduce(applyHistoryOperation, action.loaded.items),
+        status: action.loaded.status,
+        dirty: true,
+        pending: [],
+      };
+  }
+};
+
 let fallbackIdCounter = 0;
 
 const createHistoryId = (): string => {
@@ -79,82 +140,70 @@ export function useSearchHistory(
   opts?: UseSearchHistoryOptions,
 ): UseSearchHistoryReturn {
   const maxItems = opts?.maxItems ?? DEFAULT_MAX_ITEMS;
-  const [loaded] = useState<LoadedHistory>(loadHistory);
-  const [history, setHistory] = useState<HistoryItem[]>(loaded.items);
-  const readFailedOnMountRef = useRef(loaded.status === 'unavailable');
-  const mountedRef = useRef(false);
+  const [state, dispatch] = useReducer(
+    reduceHistory,
+    undefined,
+    (): HistoryState => ({ ...loadHistory(), dirty: false, pending: [] }),
+  );
 
-  const historyForMutation = useCallback((current: HistoryItem[]) => {
-    if (!readFailedOnMountRef.current) return current;
-
-    const retry = loadHistory();
-    if (retry.status === 'unavailable') return current;
-
-    readFailedOnMountRef.current = false;
-    const currentIds = new Set(current.map((item) => item.id));
-    return [
-      ...current,
-      ...retry.items.filter((item) => !currentIds.has(item.id)),
-    ];
-  }, []);
-
-  // Persist whenever history changes.
   useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
+    if (state.status === 'unavailable') {
+      if (state.pending.length === 0) return;
+
+      const loaded = loadHistory();
+      if (loaded.status !== 'unavailable') {
+        dispatch({ type: 'resolve', loaded });
+      }
       return;
     }
-    persistHistory(history);
-  }, [history]);
+
+    if (state.dirty) {
+      persistHistory(state.items);
+    }
+  }, [state]);
 
   const addEntry = useCallback(
     (input: string) => {
       const trimmed = input.trim();
       if (!trimmed) return;
 
-      setHistory((prev) => {
-        const current = historyForMutation(prev);
-        // De-duplicate: if input already exists, remove the old entry so the
-        // new one goes to the top with an updated timestamp.
-        const deduplicated = current.filter((item) => item.input !== trimmed);
-
-        const entry: HistoryItem = {
-          id: createHistoryId(),
-          timestamp: Date.now(),
-          input: trimmed,
-        };
-
-        // Prepend new entry and cap at maxItems.
-        return [entry, ...deduplicated].slice(0, maxItems);
+      dispatch({
+        type: 'mutate',
+        operation: {
+          type: 'add',
+          entry: {
+            id: createHistoryId(),
+            timestamp: Date.now(),
+            input: trimmed,
+          },
+          maxItems,
+        },
       });
     },
-    [historyForMutation, maxItems],
+    [maxItems],
   );
 
-  const removeEntry = useCallback(
-    (id: string) => {
-      setHistory((prev) =>
-        historyForMutation(prev).filter((item) => item.id !== id),
-      );
-    },
-    [historyForMutation],
-  );
-
-  const removeInputs = useCallback(
-    (inputs: readonly string[]) => {
-      if (!inputs.length) return;
-      const doomed = new Set(inputs);
-      setHistory((prev) =>
-        historyForMutation(prev).filter((item) => !doomed.has(item.input)),
-      );
-    },
-    [historyForMutation],
-  );
-
-  const clearHistory = useCallback(() => {
-    readFailedOnMountRef.current = false;
-    setHistory([]);
+  const removeEntry = useCallback((id: string) => {
+    dispatch({ type: 'mutate', operation: { type: 'removeEntry', id } });
   }, []);
 
-  return { history, addEntry, removeEntry, removeInputs, clearHistory };
+  const removeInputs = useCallback((inputs: readonly string[]) => {
+    if (!inputs.length) return;
+    dispatch({
+      type: 'mutate',
+      operation: { type: 'removeInputs', inputs },
+    });
+  }, []);
+
+  const clearHistory = useCallback(() => {
+    dispatch({ type: 'mutate', operation: { type: 'clear' } });
+  }, []);
+
+  return {
+    history: state.items,
+    addEntry,
+    removeEntry,
+    removeInputs,
+    clearHistory,
+  };
 }
