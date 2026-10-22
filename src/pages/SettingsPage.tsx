@@ -1,37 +1,19 @@
-import { type ControlOption, Select, Toggle } from '@components/Controls';
-import { retryableLazy } from '@components/ErrorBoundary';
-import type {
-  Announcements,
-  DragEndEvent,
-  ScreenReaderInstructions,
-} from '@dnd-kit/core';
 import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+  type ControlOption,
+  Field,
+  Select,
+  Toggle,
+} from '@components/Controls';
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
   usePreferences,
 } from '../contexts/PreferencesContext';
-import type { BoxSetting, Settings } from '../contexts/SettingsContext';
 import { buildDefaultSettings, useSettings } from '../contexts/SettingsContext';
-import { aiLanguageOptions, aiTaskOptions } from '../features/local-ai/labels';
 import { clearLocalStorage } from '../functions/storage';
 import {
   DEFAULT_TIMEZONE_OFFSET,
@@ -39,14 +21,7 @@ import {
   MAX_TIMEZONE_OFFSET,
   MIN_TIMEZONE_OFFSET,
 } from '../functions/timezone';
-import { DEFAULT_LOCALE, getBoxSourceDisplay, type Locale } from '../i18n';
-import { boxSources } from '../modules/boxSources';
-
-// Lazy: the client and its worker-facing modules must not ride along in the
-// eager settings bundle. No worker is spawned until a setup button is clicked.
-const LocalAIModelSettings = retryableLazy(
-  () => import('../features/local-ai/LocalAIModelSettings'),
-);
+import { DEFAULT_LOCALE, type Locale } from '../i18n';
 
 const primaryModifierLabel = (): string => {
   if (
@@ -58,95 +33,6 @@ const primaryModifierLabel = (): string => {
   return 'Ctrl';
 };
 
-const GripIcon = () => (
-  <svg
-    aria-hidden="true"
-    fill="currentColor"
-    height="16"
-    viewBox="0 0 10 16"
-    width="10"
-  >
-    <circle cx="2" cy="3" r="1.3" />
-    <circle cx="2" cy="8" r="1.3" />
-    <circle cx="2" cy="13" r="1.3" />
-    <circle cx="8" cy="3" r="1.3" />
-    <circle cx="8" cy="8" r="1.3" />
-    <circle cx="8" cy="13" r="1.3" />
-  </svg>
-);
-
-interface SortableRowProps {
-  box: BoxSetting;
-  source?: (typeof boxSources)[number];
-  index: number;
-  onToggle: (id: string) => void;
-}
-
-const SortableRow = ({ box, source, index, onToggle }: SortableRowProps) => {
-  const { locale, t } = useLocale();
-  const display = source
-    ? getBoxSourceDisplay(source, locale)
-    : { name: box.id, description: '', kind: '' };
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: box.id });
-
-  const className = [
-    'dnd-row',
-    isDragging ? 'is-dragging' : '',
-    box.enabled ? '' : 'is-off',
-  ]
-    .filter(Boolean)
-    .join(' ');
-  return (
-    <div
-      ref={setNodeRef}
-      className={className}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition: transition ?? 'none',
-      }}
-    >
-      <button
-        aria-label={t('settings.dragReorderLabel', { name: display.name })}
-        className="dnd-grip"
-        ref={setActivatorNodeRef}
-        type="button"
-        {...attributes}
-        {...listeners}
-      >
-        <GripIcon />
-      </button>
-      <span className="dnd-index mono">
-        {String(index + 1).padStart(2, '0')}
-      </span>
-      <span aria-hidden="true" className="dnd-tag">
-        {source?.tag ?? '·'}
-      </span>
-      <span className="dnd-title">{display.name}</span>
-      <span className="dnd-kind">{display.kind}</span>
-      <button
-        aria-label={
-          box.enabled
-            ? t('settings.disableBoxLabel', { name: display.name })
-            : t('settings.enableBoxLabel', { name: display.name })
-        }
-        className={`toggle${box.enabled ? ' on' : ''}`}
-        onClick={() => onToggle(box.id)}
-        type="button"
-      >
-        <span className="toggle-dot" />
-      </button>
-    </div>
-  );
-};
-
 interface SectionProps {
   title: string;
   subtitle?: string;
@@ -156,60 +42,13 @@ interface SectionProps {
 const Section = ({ title, subtitle, children }: SectionProps) => (
   <section className="settings-section">
     <div className="settings-section-head">
-      <h2 className="settings-section-title">{title}</h2>
-      {subtitle ? <p className="settings-section-sub">{subtitle}</p> : null}
+      <h2 className="settings-section-title" title={subtitle}>
+        {title}
+      </h2>
     </div>
     <div className="settings-section-body">{children}</div>
   </section>
 );
-
-interface FieldProps {
-  label: string;
-  hint?: string;
-  controlId?: string;
-  group?: boolean;
-  children: React.ReactNode;
-}
-
-const Field = ({
-  label,
-  hint,
-  controlId,
-  group = false,
-  children,
-}: FieldProps) => {
-  const fieldInfo = (
-    <div className="field-info">
-      {controlId ? (
-        <label className="field-label" htmlFor={controlId}>
-          {label}
-        </label>
-      ) : (
-        <div className="field-label">{label}</div>
-      )}
-      {hint ? <div className="field-hint">{hint}</div> : null}
-    </div>
-  );
-  if (group) {
-    return (
-      <fieldset className="field field-group">
-        <legend className="field-label">{label}</legend>
-        {hint ? (
-          <div className="field-info">
-            <div className="field-hint">{hint}</div>
-          </div>
-        ) : null}
-        <div className="field-control">{children}</div>
-      </fieldset>
-    );
-  }
-  return (
-    <div className="field">
-      {fieldInfo}
-      <div className="field-control">{children}</div>
-    </div>
-  );
-};
 
 interface SegmentedProps<T extends string> {
   value: T;
@@ -321,13 +160,8 @@ const Shortcut = ({ keys, label }: { keys: string[]; label: string }) => (
 
 const SettingsPage = (): React.JSX.Element => {
   const { t, locale, setLocale } = useLocale();
-  const { resetSettings, settings, updateSettings } = useSettings();
+  const { resetSettings, updateSettings } = useSettings();
   const { prefs, setPref, resetPrefs } = usePreferences();
-  const [orderedBoxes, setOrderedBoxes] = useState<BoxSetting[]>(() =>
-    Object.values(settings.boxes).sort(
-      (a, b) => a.secondaryOrder - b.secondaryOrder,
-    ),
-  );
   // draft strings let the user type intermediate/invalid values; we only
   // commit to prefs once the value parses/validates.
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
@@ -376,113 +210,7 @@ const SettingsPage = (): React.JSX.Element => {
     }
   };
 
-  const sourceLookup = useMemo(
-    () => new Map(boxSources.map((s) => [s.id ?? s.name, s])),
-    [],
-  );
-
-  // Mirror settings → local ordered list (sorted by secondaryOrder).
-  useEffect(() => {
-    const arr = Object.values(settings.boxes).sort(
-      (a, b) => a.secondaryOrder - b.secondaryOrder,
-    );
-    setOrderedBoxes(arr);
-  }, [settings]);
-
-  const persistOrder = (next: BoxSetting[]) => {
-    const newSettings: Settings = { ...settings, boxes: { ...settings.boxes } };
-    next.forEach((b, idx) => {
-      newSettings.boxes[b.id] = {
-        ...newSettings.boxes[b.id],
-        secondaryOrder: idx,
-        enabled: b.enabled,
-      };
-    });
-    updateSettings(newSettings);
-  };
-
-  const handleToggle = (id: string) => {
-    const next = orderedBoxes.map((b) =>
-      b.id === id ? { ...b, enabled: !b.enabled } : b,
-    );
-    setOrderedBoxes(next);
-    persistOrder(next);
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
-  const dragAnnouncements = useMemo<Announcements>(
-    () => ({
-      onDragStart: ({ active }) => {
-        const source = sourceLookup.get(String(active.id));
-        return t('settings.dragStart', {
-          name: source
-            ? getBoxSourceDisplay(source, locale).name
-            : String(active.id),
-        });
-      },
-      onDragOver: ({ active, over }) => {
-        if (!over) return undefined;
-        const source = sourceLookup.get(String(active.id));
-        const overSource = sourceLookup.get(String(over.id));
-        return t('settings.dragOver', {
-          name: source
-            ? getBoxSourceDisplay(source, locale).name
-            : String(active.id),
-          over: overSource
-            ? getBoxSourceDisplay(overSource, locale).name
-            : String(over.id),
-        });
-      },
-      onDragEnd: ({ active }) => {
-        const source = sourceLookup.get(String(active.id));
-        return t('settings.dragEnd', {
-          name: source
-            ? getBoxSourceDisplay(source, locale).name
-            : String(active.id),
-        });
-      },
-      onDragCancel: ({ active }) => {
-        const source = sourceLookup.get(String(active.id));
-        return t('settings.dragCancel', {
-          name: source
-            ? getBoxSourceDisplay(source, locale).name
-            : String(active.id),
-        });
-      },
-    }),
-    [locale, sourceLookup, t],
-  );
-  const dragInstructions = useMemo<ScreenReaderInstructions>(
-    () => ({ draggable: t('settings.dragInstructions') }),
-    [t],
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIdx = orderedBoxes.findIndex((b) => b.id === active.id);
-    const newIdx = orderedBoxes.findIndex((b) => b.id === over.id);
-    if (oldIdx === -1 || newIdx === -1) return;
-    const next = arrayMove(orderedBoxes, oldIdx, newIdx).map((b, idx) => ({
-      ...b,
-      secondaryOrder: idx,
-    }));
-    setOrderedBoxes(next);
-    persistOrder(next);
-  };
-
-  const handleResetOrder = () => {
-    const defaults = buildDefaultSettings();
-    const orderedDefaults = Object.values(defaults.boxes);
-    setOrderedBoxes(orderedDefaults);
-    updateSettings(defaults);
-  };
+  const handleResetOrder = () => updateSettings(buildDefaultSettings());
 
   const handleClearLocalData = () => {
     if (
@@ -510,10 +238,10 @@ const SettingsPage = (): React.JSX.Element => {
           <div>
             <h1 className="page-title">{t('settings.title')}</h1>
             <p className="page-sub">{t('settings.subtitle')}</p>
-            <p className="page-sub">{t('settings.defaultsHint')}</p>
           </div>
           <button
             className="btn-subtle"
+            title={t('settings.defaultsHint')}
             onClick={handleResetDefaults}
             type="button"
           >
@@ -539,51 +267,17 @@ const SettingsPage = (): React.JSX.Element => {
           )}
         </Section>
 
-        <Section
-          subtitle={t('settings.section.boxOrderHint')}
-          title={t('settings.section.boxOrder')}
+        <Link
+          className="settings-boxes-link"
+          to="/boxes"
+          title={t('boxes.manageHint')}
         >
-          <DndContext
-            accessibility={{
-              announcements: dragAnnouncements,
-              screenReaderInstructions: dragInstructions,
-            }}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-          >
-            <SortableContext
-              items={orderedBoxes.map((b) => b.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="dnd-list">
-                {orderedBoxes.map((box, idx) => (
-                  <SortableRow
-                    key={box.id}
-                    box={box}
-                    index={idx}
-                    onToggle={handleToggle}
-                    source={sourceLookup.get(box.id)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-          <button
-            className="btn-subtle"
-            onClick={handleResetOrder}
-            type="button"
-          >
-            {t('settings.resetOrder')}
-          </button>
-        </Section>
+          <strong>{t('boxes.manage')}</strong>
+          <span aria-hidden="true">↗</span>
+        </Link>
 
         <Section title={t('settings.section.appearance')}>
-          <Field
-            group
-            hint={t('settings.themeHint')}
-            label={t('settings.theme')}
-          >
+          <Field group label={t('settings.theme')}>
             <Segmented
               label={t('settings.theme')}
               onChange={(v) => setPref('theme', v)}
@@ -597,7 +291,6 @@ const SettingsPage = (): React.JSX.Element => {
           </Field>
           <Field
             group
-            hint={t('settings.densityHint')}
             label={t('settings.density')}
           >
             <Segmented
@@ -733,57 +426,6 @@ const SettingsPage = (): React.JSX.Element => {
               label={t('settings.shortcutPaste')}
             />
           </div>
-        </Section>
-
-        <Section
-          subtitle={t('settings.section.localAIHint')}
-          title={t('settings.section.localAI')}
-        >
-          <Field hint={t('settings.aiTaskHint')} label={t('settings.aiTask')}>
-            <Select
-              label={t('settings.aiTask')}
-              onChange={(v) => setPref('aiTask', v)}
-              options={aiTaskOptions(locale)}
-              value={prefs.aiTask}
-            />
-          </Field>
-          <Field
-            hint={t('settings.aiLanguageHint')}
-            label={t('settings.aiLanguage')}
-          >
-            <Select
-              label={t('settings.aiLanguage')}
-              onChange={(v) => setPref('aiLanguage', v)}
-              options={aiLanguageOptions(locale)}
-              value={prefs.aiLanguage}
-            />
-          </Field>
-          <Field
-            hint={t('settings.aiAutoRunHint')}
-            label={t('settings.aiAutoRun')}
-          >
-            <Toggle
-              checked={prefs.aiAutoRun}
-              label={t('settings.aiAutoRun')}
-              onChange={(v) => setPref('aiAutoRun', v)}
-            />
-          </Field>
-          <Field
-            hint={t('settings.aiAutoCheckHint')}
-            label={t('settings.aiAutoCheck')}
-          >
-            <Toggle
-              checked={prefs.aiAutoCheck}
-              label={t('settings.aiAutoCheck')}
-              onChange={(v) => setPref('aiAutoCheck', v)}
-            />
-          </Field>
-          {/* Cache Storage is not localStorage: clearing local data leaves the
-              weights behind, so downloading and deleting them are their own
-              controls, backed by the same steps the box uses. */}
-          <Suspense fallback={<div className="loader" />}>
-            <LocalAIModelSettings />
-          </Suspense>
         </Section>
 
         <Section title={t('settings.section.privacy')}>

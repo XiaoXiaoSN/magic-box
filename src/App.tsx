@@ -7,6 +7,7 @@ import ErrorBoundary, {
 import PwaUpdatePrompt from '@components/PwaUpdatePrompt';
 import { Suspense } from 'react';
 import {
+  Navigate,
   Route,
   BrowserRouter as Router,
   Routes,
@@ -19,7 +20,12 @@ import { SettingsProvider } from './contexts/SettingsContext';
 
 const MagicBoxPage = retryableLazy(() => import('@pages/MagicBox'));
 const SettingsPage = retryableLazy(() => import('@pages/SettingsPage'));
-const ToolsListPage = retryableLazy(() => import('@pages/ToolsList'));
+const BoxesPage = retryableLazy(() => import('@pages/Boxes'));
+
+function LegacyListRedirect(): React.JSX.Element {
+  const { search, hash } = useLocation();
+  return <Navigate replace to={`/boxes${search}${hash}`} />;
+}
 
 const renderLoader = () => <div className="loader" />;
 
@@ -33,7 +39,8 @@ const FeatureRoutes = (): React.JSX.Element => {
       <Suspense fallback={renderLoader()}>
         <Routes>
           <Route element={<MagicBoxPage />} path="/" />
-          <Route element={<ToolsListPage />} path="/list" />
+          <Route element={<LegacyListRedirect />} path="/list" />
+          <Route element={<BoxesPage />} path="/boxes" />
           <Route element={<SettingsPage />} path="/settings" />
         </Routes>
       </Suspense>

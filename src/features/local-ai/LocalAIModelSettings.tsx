@@ -39,13 +39,17 @@ const LocalAIModelSettings = ({
     <>
       <div className="field">
         <div className="field-info">
-          <div className="field-label">{t('settings.aiModel')}</div>
-          <div className="field-hint">
-            {state.loaded
-              ? state.info?.cached
-                ? m.provisioned
-                : m.memoryOnly
-              : t('settings.aiModelHint')}
+          <div
+            className="field-label"
+            title={
+              state.loaded
+                ? state.info?.cached
+                  ? m.provisioned
+                  : m.memoryOnly
+                : t('settings.aiModelHint')
+            }
+          >
+            {t('settings.aiModel')}
           </div>
           <div className="field-hint" data-testid="settings-ai-status">
             {describePhase(state, locale)}
@@ -118,8 +122,9 @@ const LocalAIModelSettings = ({
 
       <div className="field">
         <div className="field-info">
-          <div className="field-label">{t('settings.aiDelete')}</div>
-          <div className="field-hint">{t('settings.aiDeleteHint')}</div>
+          <div className="field-label" title={t('settings.aiDeleteHint')}>
+            {t('settings.aiDelete')}
+          </div>
         </div>
         <div className="field-control">
           <button

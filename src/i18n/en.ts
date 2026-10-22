@@ -1,4 +1,36 @@
 const en = {
+  'nav.boxes': 'Boxes',
+  'boxes.library': 'Box library',
+  'boxes.total': '{{count}} boxes',
+  'boxes.manage': 'Manage boxes',
+  'boxes.manageHint':
+    'Browse, reorder, enable, and configure your tools in one place.',
+  'boxes.all': 'All',
+  'boxes.enabled': 'Enabled',
+  'boxes.disabled': 'Disabled',
+  'boxes.status': 'Filter by status',
+  'boxes.category': 'Box category',
+  'boxes.allCategories': 'All categories',
+  'boxes.showing': '{{count}} shown',
+  'boxes.reorder': 'Reorder',
+  'boxes.done': 'Done',
+  'boxes.resetOrder': 'Restore original order',
+  'boxes.orderHint': 'This order is used for matching results on Home.',
+  'boxes.moveUp': 'Move {{name}} up',
+  'boxes.moveDown': 'Move {{name}} down',
+  'boxes.noResults': 'No matching boxes',
+  'boxes.noResultsHint': 'Try a different search or clear your filters.',
+  'boxes.clearFilters': 'Clear filters',
+  'boxes.details': 'Box details',
+  'boxes.back': 'All boxes',
+  'boxes.preview': 'Preview',
+  'boxes.showOnHome': 'Show on Home',
+  'boxes.showOnHomeHint':
+    'Include this box when your input matches. You can always try it here.',
+  'boxes.inlineSettingsHint':
+    'Tool-specific options are available in the preview. Shared preferences are in Settings.',
+  'boxes.globalSettings': 'Appearance, language & other preferences',
+
   'brand.title': 'Magic Box',
   'nav.home': 'Home',
   'nav.list': 'List',
@@ -56,19 +88,17 @@ const en = {
     'Could not access the settings backup. Check your connection and try again.',
 
   'settings.title': 'Settings',
-  'settings.subtitle': 'Preferences are saved locally in your browser.',
+  'settings.subtitle': 'Saved on this device.',
   'settings.section.boxOrder': 'Box order',
   'settings.section.boxOrderHint':
     'Drag to reorder. Matches on the home screen appear in this order. Toggle off to hide a box.',
   'settings.resetOrder': 'Reset to default',
   'settings.section.appearance': 'Appearance',
   'settings.theme': 'Theme',
-  'settings.themeHint': 'Match your OS or pick a fixed mode.',
   'settings.themeLight': 'Light',
   'settings.themeDark': 'Dark',
   'settings.themeSystem': 'System',
   'settings.density': 'Density',
-  'settings.densityHint': 'Compact fits more boxes per screen.',
   'settings.densityComfortable': 'Comfortable',
   'settings.densityCompact': 'Compact',
   'settings.section.io': 'Input & Output',
@@ -86,7 +116,7 @@ const en = {
   'settings.default': 'default',
   'settings.resetPreferences': 'Restore all defaults',
   'settings.defaultsHint':
-    'Defaults: system theme, comfortable density, English, Enter copies, UTC+8, default server URLs, anonymous usage enabled, data collection off; Local AI asks, auto language, auto check and auto-run enabled. Restore also resets box order and availability, while preserving input and history.',
+    'Reset preferences, box order and availability. Keep input and history.',
   'settings.section.server': 'Server',
   'settings.section.serverHint':
     'Override backend hosts. Leave blank to use the defaults.',
@@ -166,8 +196,6 @@ const en = {
     'Paste anything — a timestamp, JWT, JSON, cron, math expression…',
   'magicBox.deleteEntry': 'Delete history entry: {{input}}',
   'magicBox.emptyStartTitle': 'Start typing',
-  'magicBox.emptyStartSub':
-    'MagicBox auto-detects formats and shows every useful transformation.',
   'magicBox.emptyNoMatchesTitle': 'No matches',
   'magicBox.emptyNoMatchesSub':
     'Try a different format — JSON, JWT, timestamp, cron, base64, math…',
@@ -240,7 +268,6 @@ const en = {
   'toolsList.collapseSidebar': 'Collapse sidebar',
   'toolsList.previewInput': 'Input',
   'toolsList.previewOutput': 'Output',
-  'toolsList.previewHint': 'try your own — it updates live',
   'toolsList.noMatch': 'No boxes match "{{query}}".',
 
   'shareLink.copy': 'Copy share link',
