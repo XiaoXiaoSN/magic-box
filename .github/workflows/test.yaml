@@ -28,7 +28,7 @@ jobs:
         shell: bash
         run: echo "version=$(rustc -Vv | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -251,7 +251,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -302,7 +302,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -357,7 +357,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -412,7 +412,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/Cypress
           key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
@@ -493,7 +493,7 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
@@ -527,7 +527,7 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
