@@ -24,8 +24,8 @@ const en = {
   'boxes.details': 'Box details',
   'boxes.back': 'All boxes',
   'boxes.preview': 'Preview',
-  'boxes.showOnHome': 'Show on Home',
-  'boxes.showOnHomeHint':
+  'boxes.enable': 'Enable',
+  'boxes.enableHint':
     'Include this box when your input matches. You can always try it here.',
   'boxes.inlineSettingsHint':
     'Tool-specific options are available in the preview. Shared preferences are in Settings.',

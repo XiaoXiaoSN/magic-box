@@ -25,8 +25,8 @@ const zhTW: Translations = {
   'boxes.details': 'Box 詳細資訊',
   'boxes.back': '返回清單',
   'boxes.preview': '預覽',
-  'boxes.showOnHome': '在首頁顯示',
-  'boxes.showOnHomeHint': '輸入符合條件時顯示此 Box。停用後仍可在這裡試用。',
+  'boxes.enable': '啟用',
+  'boxes.enableHint': '輸入符合條件時顯示此 Box。停用後仍可在這裡試用。',
   'boxes.inlineSettingsHint':
     '工具專屬選項可在預覽中調整，共用偏好則位於全域設定。',
   'boxes.globalSettings': '外觀、語言及其他偏好設定',

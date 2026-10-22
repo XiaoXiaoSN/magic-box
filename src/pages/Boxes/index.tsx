@@ -1,10 +1,12 @@
 import { Select, Toggle } from '@components/Controls';
 import {
+  type Announcements,
   closestCenter,
   DndContext,
   type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
+  type ScreenReaderInstructions,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -104,7 +106,7 @@ function SortableBoxRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: (props.source.id ?? props.source.name) });
+  } = useSortable({ id: props.source.id ?? props.source.name });
   return (
     <div
       ref={setNodeRef}
@@ -162,8 +164,10 @@ export default function BoxesPage(): React.JSX.Element {
   const [mobileDetail, setMobileDetail] = useState(() =>
     searchParams.has('box'),
   );
-  const [rememberedName, setRememberedName] = useState(() =>
-    readStorageItem('mb:list:selected'),
+  const [rememberedName, setRememberedName] = useState(
+    () =>
+      getBoxSource(searchParams.get('box') ?? '')?.id ??
+      readStorageItem('mb:list:selected'),
   );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -183,14 +187,14 @@ export default function BoxesPage(): React.JSX.Element {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return ordered.filter((source) => {
-      const enabled = settings.boxes[(source.id ?? source.name)].enabled;
+      const enabled = settings.boxes[source.id ?? source.name].enabled;
       const display = getBoxSourceDisplay(source, locale);
       return (
         (status === 'all' || enabled === (status === 'enabled')) &&
         (kind === 'all' || source.kind === kind) &&
         (!q ||
           [
-            (source.id ?? source.name),
+            source.id ?? source.name,
             source.description,
             source.kind,
             display.name,
@@ -204,41 +208,96 @@ export default function BoxesPage(): React.JSX.Element {
     searchParams.get('box') ?? rememberedName ?? '',
   )?.id;
   const selected =
-    visible.find((source) => (source.id ?? source.name) === selectedName) ?? visible[0];
+    visible.find((source) => (source.id ?? source.name) === selectedName) ??
+    visible[0];
   const enabledCount = ordered.filter(
-    (source) => settings.boxes[(source.id ?? source.name)].enabled,
+    (source) => settings.boxes[source.id ?? source.name].enabled,
   ).length;
 
   const selectSource = (source: BoxSource) => {
-    setRememberedName((source.id ?? source.name));
-    writeStorageItem('mb:list:selected', (source.id ?? source.name));
+    setRememberedName(source.id ?? source.name);
+    writeStorageItem('mb:list:selected', source.id ?? source.name);
     const next = new URLSearchParams(searchParams);
     if (next.get('box') !== (source.id ?? source.name)) next.delete('input');
-    next.set('box', (source.id ?? source.name));
+    next.set('box', source.id ?? source.name);
     setSearchParams(next);
     setMobileDetail(!arranging);
   };
   const toggleSource = (source: BoxSource) => {
-    const box = settings.boxes[(source.id ?? source.name)];
+    const box = settings.boxes[source.id ?? source.name];
     updateSettings({
       ...settings,
       boxes: {
         ...settings.boxes,
-        [(source.id ?? source.name)]: { ...box, enabled: !box.enabled },
+        [source.id ?? source.name]: { ...box, enabled: !box.enabled },
       },
     });
   };
   const persistOrder = (sources: BoxSource[]) => {
     const boxes = { ...settings.boxes };
     sources.forEach((source, index) => {
-      boxes[(source.id ?? source.name)] = { ...boxes[(source.id ?? source.name)], secondaryOrder: index };
+      boxes[source.id ?? source.name] = {
+        ...boxes[source.id ?? source.name],
+        secondaryOrder: index,
+      };
     });
     updateSettings({ ...settings, boxes });
   };
+  const dragAnnouncements = useMemo<Announcements>(
+    () => ({
+      onDragStart: ({ active }) => {
+        const source = getBoxSource(String(active.id));
+        return t('settings.dragStart', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+      onDragOver: ({ active, over }) => {
+        if (!over) return undefined;
+        const source = getBoxSource(String(active.id));
+        const overSource = getBoxSource(String(over.id));
+        return t('settings.dragOver', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+          over: overSource
+            ? getBoxSourceDisplay(overSource, locale).name
+            : String(over.id),
+        });
+      },
+      onDragEnd: ({ active }) => {
+        const source = getBoxSource(String(active.id));
+        return t('settings.dragEnd', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+      onDragCancel: ({ active }) => {
+        const source = getBoxSource(String(active.id));
+        return t('settings.dragCancel', {
+          name: source
+            ? getBoxSourceDisplay(source, locale).name
+            : String(active.id),
+        });
+      },
+    }),
+    [locale, t],
+  );
+  const dragInstructions = useMemo<ScreenReaderInstructions>(
+    () => ({ draggable: t('settings.dragInstructions') }),
+    [t],
+  );
+
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
-    const from = ordered.findIndex((source) => (source.id ?? source.name) === active.id);
-    const to = ordered.findIndex((source) => (source.id ?? source.name) === over.id);
+    const from = ordered.findIndex(
+      (source) => (source.id ?? source.name) === active.id,
+    );
+    const to = ordered.findIndex(
+      (source) => (source.id ?? source.name) === over.id,
+    );
     if (from >= 0 && to >= 0) persistOrder(arrayMove(ordered, from, to));
   };
   const clearFilters = () => {
@@ -247,7 +306,7 @@ export default function BoxesPage(): React.JSX.Element {
     setKind('all');
   };
   const selectedEnabled = selected
-    ? settings.boxes[(selected.id ?? selected.name)].enabled
+    ? settings.boxes[selected.id ?? selected.name].enabled
     : false;
 
   return (
@@ -256,20 +315,41 @@ export default function BoxesPage(): React.JSX.Element {
         <section className="box-library" aria-label={t('boxes.library')}>
           <div className="box-library-toolbar">
             <div className="box-library-summary">
-              <strong>{t('boxes.total', { count: ordered.length })}</strong>
-              <button
-                type="button"
-                className={`btn-subtle${arranging ? ' is-active' : ''}`}
-                title={t('boxes.orderHint')}
-                aria-pressed={arranging}
-                onClick={() => {
-                  if (selected) setRememberedName((selected.id ?? selected.name));
-                  clearFilters();
-                  setArranging(!arranging);
-                }}
-              >
-                {t(arranging ? 'boxes.done' : 'boxes.reorder')}
-              </button>
+              <strong>
+                {visible.length === ordered.length
+                  ? t('boxes.total', { count: ordered.length })
+                  : t('boxes.showing', { count: visible.length })}
+              </strong>
+              <div className="box-library-actions">
+                {!arranging ? (
+                  <Select
+                    label={t('boxes.category')}
+                    value={kind}
+                    onChange={setKind}
+                    options={[
+                      { value: 'all', label: t('boxes.allCategories') },
+                      ...kinds.map((value) => ({
+                        value,
+                        label: getBoxSourceKind(value, locale),
+                      })),
+                    ]}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  className={`btn-subtle${arranging ? ' is-active' : ''}`}
+                  title={t('boxes.orderHint')}
+                  aria-pressed={arranging}
+                  onClick={() => {
+                    if (selected)
+                      setRememberedName(selected.id ?? selected.name);
+                    clearFilters();
+                    setArranging(!arranging);
+                  }}
+                >
+                  {t(arranging ? 'boxes.done' : 'boxes.reorder')}
+                </button>
+              </div>
             </div>
             {arranging ? (
               <div className="box-reorder-note">
@@ -334,34 +414,25 @@ export default function BoxesPage(): React.JSX.Element {
                     </button>
                   ))}
                 </fieldset>
-                <div className="box-library-filter">
-                  <Select
-                    label={t('boxes.category')}
-                    value={kind}
-                    onChange={setKind}
-                    options={[
-                      { value: 'all', label: t('boxes.allCategories') },
-                      ...kinds.map((value) => ({
-                        value,
-                        label: getBoxSourceKind(value, locale),
-                      })),
-                    ]}
-                  />
-                  {visible.length !== ordered.length ? (
-                    <span>{t('boxes.showing', { count: visible.length })}</span>
-                  ) : null}
-                </div>
               </>
             )}
           </div>
           <div className="box-library-list">
             <DndContext
+              accessibility={{
+                announcements: dragAnnouncements,
+                screenReaderInstructions: dragInstructions,
+              }}
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={arranging ? ordered.map((source) => (source.id ?? source.name)) : []}
+                items={
+                  arranging
+                    ? ordered.map((source) => source.id ?? source.name)
+                    : []
+                }
                 strategy={verticalListSortingStrategy}
               >
                 {visible.map((source) => {
@@ -370,14 +441,14 @@ export default function BoxesPage(): React.JSX.Element {
                     source,
                     index,
                     showOrder: arranging,
-                    enabled: settings.boxes[(source.id ?? source.name)].enabled,
+                    enabled: settings.boxes[source.id ?? source.name].enabled,
                     selected: selected?.id === (source.id ?? source.name),
                     onSelect: () => selectSource(source),
                     onToggle: () => toggleSource(source),
                   };
                   return arranging ? (
                     <SortableBoxRow
-                      key={(source.id ?? source.name)}
+                      key={source.id ?? source.name}
                       {...props}
                       count={ordered.length}
                       onMove={(offset) =>
@@ -385,7 +456,7 @@ export default function BoxesPage(): React.JSX.Element {
                       }
                     />
                   ) : (
-                    <BoxRow key={(source.id ?? source.name)} {...props} />
+                    <BoxRow key={source.id ?? source.name} {...props} />
                   );
                 })}
               </SortableContext>
@@ -441,11 +512,14 @@ export default function BoxesPage(): React.JSX.Element {
               </div>
               {panel === 'preview' ? (
                 <PreviewPane
-                  key={`${(selected.id ?? selected.name)}:${searchParams.get('input') ?? ''}`}
+                  key={`${selected.id ?? selected.name}:${searchParams.get('input') ?? ''}`}
                   source={selected}
                 />
               ) : (
-                <div className="box-settings-panel" key={(selected.id ?? selected.name)}>
+                <div
+                  className="box-settings-panel"
+                  key={selected.id ?? selected.name}
+                >
                   <div>
                     <h2 className="preview-title">
                       {getBoxSourceDisplay(selected, locale).name}
@@ -453,15 +527,15 @@ export default function BoxesPage(): React.JSX.Element {
                   </div>
                   <div
                     className="box-availability"
-                    title={t('boxes.showOnHomeHint')}
+                    title={t('boxes.enableHint')}
                   >
                     <div>
-                      <strong>{t('boxes.showOnHome')}</strong>
+                      <strong>{t('boxes.enable')}</strong>
                     </div>
                     <Toggle
                       checked={selectedEnabled}
                       onChange={() => toggleSource(selected)}
-                      label={t('boxes.showOnHome')}
+                      label={t('boxes.enable')}
                     />
                   </div>
                   {(selected.id ?? selected.name) === 'local-ai' ? (

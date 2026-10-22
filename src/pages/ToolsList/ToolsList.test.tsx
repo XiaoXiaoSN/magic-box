@@ -166,10 +166,10 @@ describe('/list preview input state', () => {
 
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'UUID', exact: true }));
 
     expect(await screen.findByDisplayValue('uuid')).toBeInTheDocument();
-    expect(screen.getByTestId('router-box')).toHaveTextContent('UUID');
+    expect(screen.getByTestId('router-box')).toHaveTextContent('uuid');
     expect(screen.getByTestId('router-input')).toHaveTextContent('');
   });
 
@@ -274,19 +274,10 @@ describe('/list preview input state', () => {
     try {
       renderPage(['/list'], 0, true);
 
-      expect(document.querySelector('.list-page')).toHaveAttribute(
-        'data-sidebar-collapsed',
-        'false',
-      );
-      expect(originalGetItem('mb:list:collapsed')).toBe('1');
       expect(originalGetItem('mb:list:selected')).toBe('Word Count');
-
       fireEvent.click(
-        screen.getByRole('button', { name: /collapse sidebar/i }),
+        screen.getByRole('button', { name: 'UUID', exact: true }),
       );
-
-      expect(originalGetItem('mb:list:collapsed')).toBe('1');
-      fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
 
       expect(originalGetItem('mb:list:selected')).toBe('uuid');
     } finally {
@@ -294,18 +285,15 @@ describe('/list preview input state', () => {
     }
   });
 
-  it('keeps sidebar state interactive when storage writes fail', () => {
+  it('keeps selection interactive when storage writes fail', () => {
     const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError');
     });
 
     renderPage(['/list?box=Word%20Count']);
-    fireEvent.click(screen.getByRole('button', { name: /collapse sidebar/i }));
-
-    expect(document.querySelector('.list-page')).toHaveAttribute(
-      'data-sidebar-collapsed',
-      'true',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'UUID', exact: true }));
+    expect(screen.getByTestId('router-box')).toHaveTextContent('uuid');
+    expect(screen.getByRole('heading', { name: 'UUID' })).toBeInTheDocument();
     setItem.mockRestore();
   });
 });

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -52,6 +58,51 @@ function storedSettings() {
 }
 
 describe('Boxes management', () => {
+  it('reorders and persists boxes through the keyboard sensor', async () => {
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
+    const grips = screen.getAllByRole('button', {
+      name: /^Drag to reorder /,
+    });
+    const firstId = boxSources[0].id ?? boxSources[0].name;
+    const secondId = boxSources[1].id ?? boxSources[1].name;
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>('.box-sortable'),
+    );
+    rows.forEach((row, index) => {
+      vi.spyOn(row, 'getBoundingClientRect').mockReturnValue({
+        bottom: (index + 1) * 40,
+        height: 32,
+        left: 0,
+        right: 320,
+        top: index * 40,
+        width: 320,
+        x: 0,
+        y: index * 40,
+        toJSON: () => ({}),
+      } as DOMRect);
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    fireEvent.keyDown(grips[0], { code: 'Space', key: ' ' });
+    await waitFor(() =>
+      expect(grips[0]).toHaveAttribute('aria-pressed', 'true'),
+    );
+    fireEvent.keyDown(grips[0], { code: 'ArrowDown', key: 'ArrowDown' });
+    fireEvent.keyDown(grips[0], { code: 'Space', key: ' ' });
+
+    await waitFor(() => {
+      const settings = JSON.parse(
+        localStorage.getItem('mb_settings') ?? '{}',
+      ) as { boxes: Record<string, { secondaryOrder: number }> };
+      expect(settings.boxes[firstId].secondaryOrder).toBe(1);
+      expect(settings.boxes[secondId].secondaryOrder).toBe(0);
+    });
+  });
+
   it('finds disabled tools and changes only the chosen availability', () => {
     mount();
     const source = boxSources[2];
@@ -85,7 +136,9 @@ describe('Boxes management', () => {
     fireEvent.click(screen.getByText('Reorder', { selector: 'button' }));
     expect(screen.queryByLabelText('Search boxes')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(`Move ${second.name} up`));
-    expect(storedSettings().boxes[second.id ?? second.name].secondaryOrder).toBe(0);
+    expect(
+      storedSettings().boxes[second.id ?? second.name].secondaryOrder,
+    ).toBe(0);
     expect(
       screen.getByRole('heading', { name: first.name }),
     ).toBeInTheDocument();
@@ -100,7 +153,9 @@ describe('Boxes management', () => {
       secondaryOrder: 0,
       enabled: false,
     });
-    expect(storedSettings().boxes[second.id ?? second.name].secondaryOrder).toBe(1);
+    expect(
+      storedSettings().boxes[second.id ?? second.name].secondaryOrder,
+    ).toBe(1);
   });
 
   it('preserves shared input and follows selection through browser history', () => {
@@ -123,11 +178,12 @@ describe('Boxes management', () => {
       library().getByRole('button', { name: 'Disable Local AI' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(
-      screen.getByRole('button', { name: 'Show on Home' }),
-    ).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Enable' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(await screen.findByText('Model preferences')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Show on Home' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enable' }));
     expect(storedSettings().boxes['local-ai'].enabled).toBe(true);
   });
 });

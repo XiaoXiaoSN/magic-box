@@ -7,7 +7,6 @@ import {
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
@@ -267,15 +266,6 @@ const SettingsPage = (): React.JSX.Element => {
           )}
         </Section>
 
-        <Link
-          className="settings-boxes-link"
-          to="/boxes"
-          title={t('boxes.manageHint')}
-        >
-          <strong>{t('boxes.manage')}</strong>
-          <span aria-hidden="true">↗</span>
-        </Link>
-
         <Section title={t('settings.section.appearance')}>
           <Field group label={t('settings.theme')}>
             <Segmented
@@ -289,10 +279,7 @@ const SettingsPage = (): React.JSX.Element => {
               value={prefs.theme}
             />
           </Field>
-          <Field
-            group
-            label={t('settings.density')}
-          >
+          <Field group label={t('settings.density')}>
             <Segmented
               label={t('settings.density')}
               onChange={(v) => setPref('density', v)}

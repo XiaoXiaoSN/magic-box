@@ -1,20 +1,23 @@
 import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../contexts/LocaleContext';
 import { PreferencesProvider } from '../contexts/PreferencesContext';
-import { SettingsProvider } from '../contexts/SettingsContext';
+import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
+import { boxSources } from '../modules/boxSources';
 import SettingsPage from './SettingsPage';
 
 vi.mock('../features/local-ai/LocalAIModelSettings', () => ({
   default: () => null,
 }));
+
+function SettingsProbe(): React.JSX.Element {
+  const { settings } = useSettings();
+  return (
+    <output data-testid="settings-state">{JSON.stringify(settings)}</output>
+  );
+}
 
 function mount() {
   return render(
@@ -23,6 +26,7 @@ function mount() {
         <SettingsProvider>
           <MemoryRouter>
             <SettingsPage />
+            <SettingsProbe />
           </MemoryRouter>
         </SettingsProvider>
       </PreferencesProvider>
@@ -106,7 +110,6 @@ describe('Settings timezone and defaults', () => {
     expect(localStorage.getItem('history-marker')).toBe('keep');
   });
 
-
   it('clears the settings key while applying source defaults in memory', () => {
     localStorage.setItem(
       'mb_settings',
@@ -131,7 +134,10 @@ describe('Settings timezone and defaults', () => {
 
     expect(localStorage.getItem('mb_settings')).toBeNull();
 
-
+    expect(
+      JSON.parse(screen.getByTestId('settings-state').textContent ?? '{}')
+        .boxes['text-diff'].enabled,
+    ).toBe(true);
     confirmSpy.mockRestore();
   });
 
@@ -163,8 +169,11 @@ describe('Settings timezone and defaults', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear' }));
 
-
     clearSpy.mockRestore();
+    expect(
+      JSON.parse(screen.getByTestId('settings-state').textContent ?? '{}')
+        .boxes['text-diff'].enabled,
+    ).toBe(true);
     confirmSpy.mockRestore();
   });
 });
