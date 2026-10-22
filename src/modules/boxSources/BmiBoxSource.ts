@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // token regex: a number followed by a unit label
 const TOKEN_RE = /(\d+(?:\.\d+)?)\s*(kg|lb|lbs|cm|m|in|"|ft|')/gi;
 
@@ -102,7 +100,6 @@ export const BmiBoxSource = {
   defaultInput: '70kg 1.75m\n::bmi',
   tag: '#',
   kind: 'Calculate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -127,7 +124,7 @@ export const BmiBoxSource = {
         new BoxBuilder('BMI', kvToPlaintext(guideData))
           .setOptions(guideData)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -148,7 +145,7 @@ export const BmiBoxSource = {
       new BoxBuilder('BMI', kvToPlaintext(kvData))
         .setOptions(kvData)
         .setView('keyValue')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

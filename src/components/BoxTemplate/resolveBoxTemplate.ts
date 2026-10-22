@@ -1,9 +1,9 @@
 import type { Box, BoxTemplate, BoxView } from '@modules/Box';
-import DiffBoxTemplate from './DiffBoxTemplate';
 import {
   CodeBoxTemplate,
   DefaultBoxTemplate,
   DiceRollBoxTemplate,
+  DiffBoxTemplate,
   KeyValueBoxTemplate,
   LocalAIBoxTemplate,
   QRCodeBoxTemplate,

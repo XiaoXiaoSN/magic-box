@@ -4,7 +4,11 @@ import { useLocale } from '../../contexts/LocaleContext';
 
 interface ShareLinkButtonProps {
   getShareLink: () => string;
+  onCopySuccess?: (copyKey: string | undefined) => void;
+  copyKey?: string;
   'data-testid'?: string;
+  disabled?: boolean;
+  disabledLabel?: string;
 }
 
 const CheckIcon = () => (
@@ -42,12 +46,19 @@ const LinkIcon = () => (
 
 const ShareLinkButton = ({
   getShareLink,
+  onCopySuccess,
+  copyKey,
   'data-testid': testId,
+  disabled = false,
+  disabledLabel,
 }: ShareLinkButtonProps) => {
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
   const copySequence = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const onCopySuccessRef = useRef(onCopySuccess);
+
+  onCopySuccessRef.current = onCopySuccess;
 
   useEffect(() => {
     return () => {
@@ -56,8 +67,19 @@ const ShareLinkButton = ({
     };
   }, []);
 
+  // prop changes invalidate an in-flight copy even though the effect only mutates refs
+  // biome-ignore lint/correctness/useExhaustiveDependencies: copyKey and disabled intentionally fence pending copies
+  useEffect(() => {
+    copySequence.current += 1;
+    setCopied(false);
+    clearTimeout(timerRef.current);
+    timerRef.current = undefined;
+  }, [copyKey, disabled]);
+
   const handleClick = () => {
+    if (disabled) return;
     const sequence = ++copySequence.current;
+    const copyKeyAtStart = copyKey;
     setCopied(false);
     clearTimeout(timerRef.current);
     timerRef.current = undefined;
@@ -71,6 +93,7 @@ const ShareLinkButton = ({
       }
       if (!copied || sequence !== copySequence.current) return;
 
+      onCopySuccessRef.current?.(copyKeyAtStart);
       setCopied(true);
       timerRef.current = setTimeout(() => {
         if (sequence !== copySequence.current) return;
@@ -80,13 +103,20 @@ const ShareLinkButton = ({
     })();
   };
 
+  const label = disabled
+    ? (disabledLabel ?? t('shareLink.copy'))
+    : copied
+      ? t('shareLink.copied')
+      : t('shareLink.copy');
+
   return (
     <button
-      aria-label={copied ? t('shareLink.copied') : t('shareLink.copy')}
+      aria-label={label}
       className="share-link-button"
       data-testid={testId}
+      disabled={disabled}
       onClick={handleClick}
-      title={copied ? t('shareLink.copied') : t('shareLink.copy')}
+      title={label}
       type="button"
     >
       {copied ? <CheckIcon /> : <LinkIcon />}

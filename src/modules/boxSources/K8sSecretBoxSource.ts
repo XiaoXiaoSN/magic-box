@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { errorBox, keyValueBox } from '@modules/Box';
 
-const PriorityK8sSecret = 10;
 const InvalidBase64 = '<invalid-base64>';
 const InvalidValue = '<invalid-value>';
 const UnreadableString = '<unreadable-string>';
@@ -148,7 +147,6 @@ type: Opaque
 data:
   username: dXNlcg==
   password: cGFzc3dvcmQ=`,
-  priority: PriorityK8sSecret,
 
   async checkMatch(input: string): Promise<Match | undefined> {
     const matches = await parseMatches(input);
@@ -171,18 +169,10 @@ data:
             : 'Kubernetes Secret';
 
       if (Object.keys(match.data).length === 0) {
-        return errorBox(
-          name,
-          'Secret contains no data or stringData entries.',
-          {
-            priority: this.priority,
-          },
-        );
+        return errorBox(name, 'Secret contains no data or stringData entries.');
       }
 
-      return keyValueBox('keyValue', name, match.data, {
-        priority: this.priority,
-      });
+      return keyValueBox('keyValue', name, match.data);
     });
   },
 };

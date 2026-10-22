@@ -144,7 +144,6 @@ describe('ZodiacBoxSource', () => {
         });
         const box = boxes[0];
         expect(box.props.name).toBe('Zodiac Sign');
-        expect(box.props.priority).toBe(10);
         const opts = box.props.options as Record<string, string>;
         expect(opts).toHaveProperty('Date', '03-21');
         expect(opts).toHaveProperty('Sign');

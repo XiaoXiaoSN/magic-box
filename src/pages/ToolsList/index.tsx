@@ -1,13 +1,30 @@
 import MagicBox from '@components/MagicBox';
+import DirectiveAutocomplete, {
+  DirectiveChips,
+} from '@components/MagicBox/DirectiveAutocomplete';
 import ShareLinkButton from '@components/ShareLinkButton';
+import {
+  activateLocalAIPrivacy,
+  isPrivateInput,
+  isSensitiveInput,
+} from '@functions/localAIPrivacy';
 import { buildShareLink } from '@functions/shareLink';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { getBoxSourceDisplay, getBoxSourceKind } from '../../i18n';
+import { getBoxSource } from '../../modules/boxSources';
 
 const SELECTION_KEY = 'mb:list:selected';
 const COLLAPSED_KEY = 'mb:list:collapsed';
@@ -22,30 +39,12 @@ const KIND_ORDER = [
   'Generate',
   'Analyze',
   'Info',
+  'Convert',
+  'Calculate',
+  'Hash',
+  'Validate',
+  'Reference',
 ];
-
-type LocaleText = ReturnType<typeof useLocale>['t'];
-
-const getKindLabel = (kind: string | undefined, t: LocaleText) => {
-  if (kind === 'Format') return t('toolsList.kind.format');
-  return kind;
-};
-
-const getSourceDisplay = (source: BoxSource, t: LocaleText) => {
-  if (source.name === 'Data Converter') {
-    return {
-      name: t('toolsList.source.dataConverter.name'),
-      description: t('toolsList.source.dataConverter.description'),
-      kind: getKindLabel(source.kind, t),
-    };
-  }
-
-  return {
-    name: source.name,
-    description: source.description,
-    kind: getKindLabel(source.kind, t),
-  };
-};
 
 const Chevron = ({ direction }: { direction: 'left' | 'right' | 'down' }) => {
   const points =
@@ -103,7 +102,7 @@ const ClearIcon = () => (
 );
 
 const ToolsListPage = (): React.JSX.Element => {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -112,19 +111,21 @@ const ToolsListPage = (): React.JSX.Element => {
   );
   const { filteredBoxSources } = useSettings();
 
-  const [selectedName, setSelectedName] = useState<string | null>(() => {
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
     const fromUrl = searchParams.get('box');
-    return fromUrl ?? readStorageItem(SELECTION_KEY);
+    const stored = fromUrl ?? readStorageItem(SELECTION_KEY);
+    return getBoxSource(stored ?? '')?.id ?? null;
   });
 
   // Sync URL ?box= param ↔ state when URL changes externally.
   useEffect(() => {
     const fromUrl = searchParams.get('box');
-    if (fromUrl && fromUrl !== selectedName) {
-      setSelectedName(fromUrl);
-      writeStorageItem(SELECTION_KEY, fromUrl);
+    const source = fromUrl ? getBoxSource(fromUrl) : null;
+    if (source && source.id !== selectedId) {
+      setSelectedId(source.id);
+      writeStorageItem(SELECTION_KEY, source.id);
     }
-  }, [searchParams, selectedName]);
+  }, [searchParams, selectedId]);
 
   // Drawer Esc-to-close.
   useEffect(() => {
@@ -140,7 +141,7 @@ const ToolsListPage = (): React.JSX.Element => {
     if (!query) return filteredBoxSources;
     const q = query.toLowerCase();
     return filteredBoxSources.filter((b) => {
-      const display = getSourceDisplay(b, t);
+      const display = getBoxSourceDisplay(b, locale);
       return (
         b.name.toLowerCase().includes(q) ||
         b.description?.toLowerCase().includes(q) ||
@@ -150,7 +151,7 @@ const ToolsListPage = (): React.JSX.Element => {
         display.kind?.toLowerCase().includes(q)
       );
     });
-  }, [filteredBoxSources, query, t]);
+  }, [filteredBoxSources, locale, query]);
 
   const grouped = useMemo(() => {
     const byKind: Record<string, BoxSource[]> = {};
@@ -167,16 +168,17 @@ const ToolsListPage = (): React.JSX.Element => {
   }, [filteredSources]);
 
   const selected = useMemo(() => {
-    if (!selectedName) return filteredBoxSources[0];
+    if (!selectedId) return filteredBoxSources[0];
     return (
-      filteredBoxSources.find((b) => b.name === selectedName) ??
+      filteredBoxSources.find((b) => b.id === selectedId) ??
       filteredBoxSources[0]
     );
-  }, [filteredBoxSources, selectedName]);
+  }, [filteredBoxSources, selectedId]);
 
   const handleSelect = (source: BoxSource) => {
-    setSelectedName(source.name);
-    writeStorageItem(SELECTION_KEY, source.name);
+    const id = source.id ?? source.name;
+    setSelectedId(id);
+    writeStorageItem(SELECTION_KEY, id);
     setDrawerOpen(false);
     const next = new URLSearchParams(searchParams);
     next.set('box', source.name);
@@ -196,11 +198,13 @@ const ToolsListPage = (): React.JSX.Element => {
     );
   }
 
-  const selectedDisplay = getSourceDisplay(selected, t);
+  const selectedDisplay = getBoxSourceDisplay(selected, locale);
   const urlBox = searchParams.get('box');
   const urlInput = searchParams.get('input');
   const initialInput =
-    urlBox === selected.name ? (urlInput ?? undefined) : undefined;
+    urlBox && getBoxSource(urlBox)?.id === selected.id
+      ? (urlInput ?? undefined)
+      : undefined;
 
   return (
     <div
@@ -287,15 +291,15 @@ const ToolsListPage = (): React.JSX.Element => {
             {grouped.map(([kind, items]) => (
               <div className="browser-group" key={kind}>
                 <div className="browser-group-head">
-                  <span>{getKindLabel(kind, t)}</span>
+                  <span>{getBoxSourceKind(kind, locale)}</span>
                   <span className="browser-group-count">{items.length}</span>
                 </div>
                 {items.map((b) => {
-                  const display = getSourceDisplay(b, t);
+                  const display = getBoxSourceDisplay(b, locale);
                   return (
                     <button
-                      className={`browser-row${b.name === selected.name ? ' active' : ''}`}
-                      key={b.name}
+                      className={`browser-row${b.id === selected.id ? ' active' : ''}`}
+                      key={b.id}
                       onClick={() => handleSelect(b)}
                       type="button"
                     >
@@ -340,11 +344,19 @@ const PreviewPane = ({
   initialInput,
   source,
 }: PreviewPaneProps): React.JSX.Element => {
-  const { t } = useLocale();
-  const display = getSourceDisplay(source, t);
+  const { locale, t } = useLocale();
+  const display = getBoxSourceDisplay(source, locale);
   const [input, setInput] = useState(initialInput ?? source.defaultInput ?? '');
   const [magicIn, setMagicIn] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCaretRef = useRef<number | null>(null);
+  const privateInput = useMemo(() => isPrivateInput(input), [input]);
+  const sensitiveInput = useMemo(() => isSensitiveInput(input), [input]);
   const sources = useMemo(() => [source], [source]);
+
+  useEffect(() => {
+    if (sensitiveInput) activateLocalAIPrivacy();
+  }, [sensitiveInput]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setMagicIn(input), 400);
@@ -354,6 +366,20 @@ const PreviewPane = ({
   useEffect(() => {
     setInput(initialInput ?? source.defaultInput ?? '');
   }, [initialInput, source.defaultInput]);
+
+  // restore the caret after a directive replacement; input is the deliberate trigger.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: input changes after programmatic replacement
+  useLayoutEffect(() => {
+    const caret = pendingCaretRef.current;
+    if (caret === null || !inputRef.current) return;
+    pendingCaretRef.current = null;
+    inputRef.current.setSelectionRange(caret, caret);
+  }, [input]);
+
+  const replaceDirective = useCallback((value: string, caret: number): void => {
+    pendingCaretRef.current = caret;
+    setInput(value);
+  }, []);
 
   return (
     <div className="preview-stack">
@@ -370,12 +396,15 @@ const PreviewPane = ({
       <div className="preview-col-head">
         <span aria-hidden="true" className="dot" />
         <span>{t('toolsList.previewInput')}</span>
+        <DirectiveChips input={input} onReplace={replaceDirective} />
         <span className="preview-hint">{t('toolsList.previewHint')}</span>
         <ShareLinkButton
           data-testid="copy-tool-share-link"
+          disabled={privateInput}
+          disabledLabel={t('shareLink.privateInput')}
           getShareLink={() =>
             buildShareLink({
-              box: source.name,
+              box: source.id ?? source.name,
               input,
               pathname: '/list',
             })
@@ -383,11 +412,15 @@ const PreviewPane = ({
         />
       </div>
       <div className="preview-input-card">
-        <textarea
+        <DirectiveAutocomplete
+          aria-label={t('toolsList.previewInput')}
           className="mono"
-          onChange={(e) => setInput(e.target.value)}
+          data-magic-input="true"
+          onChange={setInput}
+          onReplace={replaceDirective}
           rows={Math.min(8, Math.max(3, input.split('\n').length + 1))}
           spellCheck={false}
+          textareaRef={inputRef}
           value={input}
         />
       </div>

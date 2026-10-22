@@ -152,7 +152,6 @@ describe('ReadableBytesBoxSource', () => {
       const box = boxes[0];
       expect(box.props.name).toBe('ByteArray to String');
       expect(box.props.plaintextOutput).toBe('Hello');
-      expect(box.props.priority).toBe(10);
       expect(box.boxTemplate).toBeUndefined();
     });
 

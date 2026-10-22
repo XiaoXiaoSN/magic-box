@@ -353,7 +353,6 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('2024-01-21');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 
@@ -453,6 +452,15 @@ describe('DateCalculateBoxSource', () => {
 
     it('formats relative text using the selected locale', async () => {
       setRuntimePrefs({ locale: 'zh-TW' });
+      const boxes = await DateCalculateBoxSource.generateBoxes(
+        '2024-01-04T00:00:00Z',
+        { relative: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('3 天後');
+    });
+
+    it('maps the app Taiwan locale to the Intl locale', async () => {
+      setRuntimePrefs({ locale: 'tw' });
       const boxes = await DateCalculateBoxSource.generateBoxes(
         '2024-01-04T00:00:00Z',
         { relative: true },

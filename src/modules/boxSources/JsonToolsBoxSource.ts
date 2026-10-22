@@ -10,11 +10,11 @@ import {
   JsonToolError,
   parseJson,
   parseJsonObject,
+  stringifyJson,
 } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 const SOURCE_NAME = 'JSON Tools';
 
@@ -24,7 +24,7 @@ interface JsonToolResult {
 }
 
 function pretty(value: unknown): string {
-  return JSON.stringify(value, null, 2);
+  return stringifyJson(value, 2);
 }
 
 function keyList(tool: RequestedJsonTool): string[] {
@@ -86,7 +86,6 @@ export const JsonToolsBoxSource = {
   defaultInput: '{"a":1,"b":{"x":1}}\n---\n{"b":{"y":2},"c":3}\n::jsonmerge',
   tag: '{}',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -99,9 +98,7 @@ export const JsonToolsBoxSource = {
     // nothing typed yet besides the directive — an error here would only flicker
     if (trimmed === '') return [];
 
-    const fail = (message: string): Box[] => [
-      errorBox(SOURCE_NAME, message, { priority: this.priority }),
-    ];
+    const fail = (message: string): Box[] => [errorBox(SOURCE_NAME, message)];
 
     if (tools.length > 1) {
       const given = tools.map((t) => `::${t.key}`).join(', ');
@@ -130,7 +127,7 @@ export const JsonToolsBoxSource = {
       new BoxBuilder(result.name, result.output)
         .setOptions({ language: 'json' })
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

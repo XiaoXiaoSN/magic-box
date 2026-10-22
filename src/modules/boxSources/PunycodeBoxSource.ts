@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 10_000;
 
 // RFC 3492 bootstring constants
@@ -107,7 +106,6 @@ export const PunycodeBoxSource = {
   defaultInput: 'münchen.de\n::punycode',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -126,7 +124,6 @@ export const PunycodeBoxSource = {
         errorBox(
           'Punycode',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -145,7 +142,7 @@ export const PunycodeBoxSource = {
         new BoxBuilder('Punycode (ToASCII)', result)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -161,7 +158,7 @@ export const PunycodeBoxSource = {
         new BoxBuilder('Punycode (ToUnicode)', result)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

@@ -7,8 +7,6 @@ import {
   hasOptionKeys,
 } from '@modules/Box';
 
-const Priority = 10;
-
 // epochs: discord = 2015-01-01T00:00:00Z, twitter = 2010-11-04T01:42:54.657Z
 const DISCORD_EPOCH = 1420070400000n;
 const TWITTER_EPOCH = 1288834974657n;
@@ -25,7 +23,6 @@ export const SnowflakeBoxSource = {
   defaultInput: '175928847299117063\n::snowflake',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -54,7 +51,6 @@ export const SnowflakeBoxSource = {
         errorBox(
           'Snowflake',
           `Unknown epoch "${String(epochValue)}". Use Discord or Twitter.`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -86,7 +82,7 @@ export const SnowflakeBoxSource = {
       new BoxBuilder('Snowflake', plaintext)
         .setOptions(kvOptions)
         .setView('keyValue')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

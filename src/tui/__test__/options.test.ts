@@ -4,7 +4,11 @@ import {
   setRuntimePrefs,
 } from '@functions/runtimePrefs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { applyTerminalPreferences, parseArguments } from '../options';
+import {
+  applyTerminalPreferences,
+  parseArguments,
+  withTerminalDirectives,
+} from '../options';
 
 afterEach(() => setRuntimePrefs({ timezoneOffset: 8, locale: 'en' }));
 
@@ -25,6 +29,58 @@ describe('terminal preferences and argument parsing', () => {
       locale: 'zh_TW',
       json: true,
       input: '--literal',
+      hasInput: true,
+    });
+  });
+  it('places argument directives on separate lines and supports source filters', () => {
+    const options = parseArguments([
+      'uuid',
+      '::uppercase',
+      '--only',
+      'uuid,Color',
+      '--only',
+      'Math Expression',
+      '-o',
+      'locale=tw',
+    ]);
+    expect(options).toMatchObject({
+      input: 'uuid',
+      hasInput: true,
+      only: ['uuid', 'Color', 'Math Expression'],
+      directives: ['uppercase', 'locale=tw'],
+    });
+    expect(withTerminalDirectives(options.input, options.directives)).toBe(
+      'uuid\n::uppercase\n::locale=tw',
+    );
+  });
+  it('does not count directives as input and preserves quoted multiline text', () => {
+    expect(parseArguments(['::uppercase'])).toMatchObject({
+      input: '',
+      hasInput: false,
+      directives: ['uppercase'],
+    });
+    expect(
+      parseArguments(['first line\nsecond line', '::uppercase']),
+    ).toMatchObject({
+      input: 'first line\nsecond line',
+      hasInput: true,
+      directives: ['uppercase'],
+    });
+    expect(parseArguments(['--', '::uppercase'])).toMatchObject({
+      input: '',
+      hasInput: false,
+      directives: ['uppercase'],
+    });
+  });
+  it('parses raw mode and options after the explicit flag boundary as input', () => {
+    expect(
+      parseArguments(['--raw', '--', '--json', '::uppercase']),
+    ).toMatchObject({
+      raw: true,
+      json: false,
+      input: '--json',
+      directives: ['uppercase'],
+      hasInput: true,
     });
   });
   it.each([
@@ -33,6 +89,9 @@ describe('terminal preferences and argument parsing', () => {
     ['--timezone', '15'],
     ['--locale', 'invalid'],
     ['--unknown'],
+    ['--opt', 'bad key=value'],
+    ['--json', '--raw'],
+    ['--only', 'uuid,'],
   ])('rejects invalid arguments %j', (...args) => {
     expect(() => parseArguments(args)).toThrow();
   });

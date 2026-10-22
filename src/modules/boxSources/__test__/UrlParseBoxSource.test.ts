@@ -27,7 +27,6 @@ describe('UrlParseBoxSource', () => {
 
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('URL Parse');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].view).toBe('keyValue');
       expect(boxes[0].props.options).toMatchObject({
         Protocol: 'https',

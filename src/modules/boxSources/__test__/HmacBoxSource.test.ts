@@ -27,7 +27,6 @@ describe('HmacBoxSource', () => {
       expect(HmacBoxSource.name).toBe('HMAC');
       expect(HmacBoxSource.tag).toBe('#');
       expect(HmacBoxSource.kind).toBe('Encode');
-      expect(HmacBoxSource.priority).toBe(10);
       expect(HmacBoxSource.defaultDisabled).toBe(true);
     });
   });
@@ -249,11 +248,6 @@ describe('HmacBoxSource', () => {
           'Key Length: 3',
         ].join('\n'),
       );
-    });
-
-    it('priority is set on the box', async () => {
-      const boxes = await HmacBoxSource.generateBoxes(MESSAGE, { hmac: KEY });
-      expect(boxes[0].props.priority).toBe(10);
     });
   });
 

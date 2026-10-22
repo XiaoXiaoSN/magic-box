@@ -14,10 +14,9 @@ export const TextDiffBoxSource = {
   name: 'Text Diff',
   description:
     'Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.',
-  defaultInput: 'foo\nbar\n::diff\n::lang=yaml',
+  defaultInput: 'foo\nbar\n---\nfoo\nbaz\n::textdiff',
   tag: '#',
   kind: 'Analyze',
-  priority: 10,
 
   async generateBoxes(
     input: string,
@@ -30,7 +29,6 @@ export const TextDiffBoxSource = {
         errorBox(
           'Text Diff',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -44,7 +42,7 @@ export const TextDiffBoxSource = {
             diffTarget: '',
           })
           .setView('diff')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -53,7 +51,7 @@ export const TextDiffBoxSource = {
       new BoxBuilder('Text Diff', result.ok ? result.output : result.message)
         .setOptions({ language: result.ok ? 'diff' : 'plaintext' })
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

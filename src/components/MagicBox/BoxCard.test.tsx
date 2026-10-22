@@ -26,7 +26,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: () => ({ filteredBoxSources: noSources }),
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
-  usePreferences: () => ({ prefs: { copyMode: 'copy' } }),
+  usePreferences: () => ({ prefs: { copyMode: 'enter' } }),
 }));
 // The real panel needs a worker; this stand-in publishes one settled answer
 // once, on mount — like the panel, which publishes on a change of its own
@@ -99,6 +99,13 @@ const stableTemplate = ({ plaintextOutput }: BoxProps): React.JSX.Element => (
   <span data-testid="stable-output">{plaintextOutput}</span>
 );
 
+const second = source(() =>
+  new BoxBuilder('Second', 'second output').setTemplate(stableTemplate).build(),
+);
+const firstSelection = source(() =>
+  new BoxBuilder('First', 'first output').setTemplate(stableTemplate).build(),
+);
+
 const changingTemplate = ({
   onResultChange,
   plaintextOutput,
@@ -118,6 +125,30 @@ const changingTemplate = ({
 );
 
 describe('BoxCard click handling', () => {
+  it('uses a dedicated roving selection button without an outer button role', async () => {
+    render(
+      <LocaleProvider>
+        <MagicBox input="x" sources={[firstSelection, second]} />
+      </LocaleProvider>,
+    );
+
+    const cards = await screen.findAllByTestId('magic-box-result');
+    const selectionButtons = screen.getAllByRole('button', {
+      name: /^Select /,
+    });
+    expect(cards[0].tagName).toBe('ARTICLE');
+    expect(cards[0]).not.toHaveAttribute('role');
+
+    fireEvent.click(selectionButtons[1]);
+    expect(selectionButtons[1]).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.keyDown(selectionButtons[1], { key: 'ArrowUp' });
+
+    expect(selectionButtons[0]).toHaveFocus();
+    await waitFor(() =>
+      expect(selectionButtons[0]).toHaveAttribute('aria-pressed', 'true'),
+    );
+  });
+
   it('leaves clicks on a template’s own controls to those controls', async () => {
     // Regression: clicking into the Local AI textarea to paste overwrote the
     // clipboard with the card's last answer first.
@@ -134,16 +165,23 @@ describe('BoxCard click handling', () => {
   });
 
   it('still copies when the card itself is clicked', async () => {
+    const onInputCommit = vi.fn();
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[interactive]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[interactive]}
+        />
       </LocaleProvider>,
     );
     fireEvent.click(await screen.findByTestId('plain'));
     expect(copyTextToClipboard).toHaveBeenCalledWith('card output');
+    await waitFor(() => expect(onInputCommit).toHaveBeenCalledWith('x'));
   });
 
   it('only shows Copied after the clipboard confirms success', async () => {
+    const onInputCommit = vi.fn();
     let resolveCopy!: (value: boolean) => void;
     const copyPromise = new Promise<boolean>((resolve) => {
       resolveCopy = resolve;
@@ -151,7 +189,11 @@ describe('BoxCard click handling', () => {
     vi.mocked(copyTextToClipboard).mockReturnValue(copyPromise);
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[interactive]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[interactive]}
+        />
       </LocaleProvider>,
     );
 
@@ -160,6 +202,7 @@ describe('BoxCard click handling', () => {
     ).querySelector('button.box-copy') as HTMLButtonElement;
     fireEvent.click(button);
     expect(button).toHaveTextContent('Copy');
+    expect(onInputCommit).not.toHaveBeenCalled();
 
     await act(async () => {
       resolveCopy(false);
@@ -189,6 +232,7 @@ describe('BoxCard click handling', () => {
   });
 
   it('does not mark a new output copied when an old copy resolves later', async () => {
+    const onInputCommit = vi.fn();
     let resolveCopy!: (value: boolean) => void;
     const copyPromise = new Promise<boolean>((resolve) => {
       resolveCopy = resolve;
@@ -202,7 +246,11 @@ describe('BoxCard click handling', () => {
 
     render(
       <LocaleProvider>
-        <MagicBox input="x" sources={[changing]} />
+        <MagicBox
+          input="x"
+          onInputCommit={onInputCommit}
+          sources={[changing]}
+        />
       </LocaleProvider>,
     );
 
@@ -222,6 +270,7 @@ describe('BoxCard click handling', () => {
     });
 
     expect(copyButton).toHaveTextContent('Copy');
+    expect(onInputCommit).not.toHaveBeenCalled();
   });
 
   it('resets Copied when the card output changes', async () => {

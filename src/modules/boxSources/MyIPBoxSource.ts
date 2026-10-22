@@ -11,8 +11,6 @@ interface IPInfoResponse {
   ip: string;
 }
 
-const PriorityMyIP = 10;
-
 interface Match {
   ip: string;
   location?: string;
@@ -41,12 +39,7 @@ const isIPInfoResponse = (value: unknown): value is IPInfoResponse =>
     typeof value.city === 'string' ||
     value.city === undefined);
 
-const getIPInfoURL = (): string => {
-  const token = process.env.IPINFO_TOKEN;
-  return token
-    ? `https://ipinfo.io/json?token=${encodeURIComponent(token)}`
-    : 'https://ipinfo.io/json';
-};
+const getIPInfoURL = (): string => 'https://ipinfo.io/json';
 
 const fetchIPInfo = async (
   url: string,
@@ -113,7 +106,6 @@ export const MyIPBoxSource = {
   defaultInput: 'ip',
   tag: '◉',
   kind: 'Info',
-  priority: PriorityMyIP,
 
   async checkMatch(
     input: string,
@@ -152,7 +144,7 @@ export const MyIPBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -173,7 +165,7 @@ export const MyIPBoxSource = {
       new BoxBuilder('My IP', displayText)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

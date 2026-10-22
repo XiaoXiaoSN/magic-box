@@ -8,7 +8,6 @@ describe('Base58BoxSource', () => {
       expect(Base58BoxSource.name).toBe('Base58');
       expect(Base58BoxSource.tag).toBe('#');
       expect(Base58BoxSource.kind).toBe('Encode');
-      expect(typeof Base58BoxSource.priority).toBe('number');
     });
   });
 

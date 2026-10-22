@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // regex for a valid decimal float literal, including scientific notation and special values
 const FLOAT_LITERAL_RE =
   /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$|^[+-]?Infinity$|^NaN$/;
@@ -104,7 +102,6 @@ export const Ieee754BoxSource = {
   defaultInput: '3.14\n::ieee754',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -115,11 +112,7 @@ export const Ieee754BoxSource = {
     const raw = trim(input);
     if (!raw) return [];
     if (raw.length > 64) {
-      return [
-        errorBox('IEEE 754', 'Input is too long (limit 64 characters).', {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('IEEE 754', 'Input is too long (limit 64 characters).')];
     }
 
     // check for hex bit-pattern decode (must come before float parse to avoid
@@ -133,7 +126,6 @@ export const Ieee754BoxSource = {
           errorBox(
             'IEEE 754',
             'Invalid IEEE 754 hex input: expected exactly 8 or 16 hex digits.',
-            { priority: this.priority },
           ),
         ];
       }
@@ -152,18 +144,14 @@ export const Ieee754BoxSource = {
         new BoxBuilder('IEEE 754', plaintext)
           .setView('keyValue')
           .setOptions(kvOptions)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
 
     // check for a decimal float literal or special values
     if (!FLOAT_LITERAL_RE.test(raw)) {
-      return [
-        errorBox('IEEE 754', 'Invalid IEEE 754 number or hex pattern.', {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox('IEEE 754', 'Invalid IEEE 754 number or hex pattern.')];
     }
 
     const value = Number.parseFloat(raw);
@@ -173,9 +161,7 @@ export const Ieee754BoxSource = {
       !/^[+-]?Infinity$/.test(raw)
     ) {
       return [
-        errorBox('IEEE 754', 'Number is outside the finite IEEE 754 range.', {
-          priority: this.priority,
-        }),
+        errorBox('IEEE 754', 'Number is outside the finite IEEE 754 range.'),
       ];
     }
 
@@ -198,7 +184,7 @@ export const Ieee754BoxSource = {
       new BoxBuilder('IEEE 754', plaintext)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

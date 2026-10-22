@@ -1,4 +1,10 @@
-import { errorMessage, JsonToolError, type JsonValue } from './shared';
+import {
+  errorMessage,
+  JsonToolError,
+  type JsonValue,
+  parseJson,
+  stringifyJson,
+} from './shared';
 
 // 'to'   JSON array → JSONL
 // 'from' JSONL → JSON array
@@ -20,14 +26,14 @@ export function convertJsonl(input: string, mode: JsonlMode): JsonlResult {
     let whole: JsonValue | undefined;
     let wholeError: unknown;
     try {
-      whole = JSON.parse(input) as JsonValue;
+      whole = parseJson(input);
     } catch (err) {
       wholeError = err;
     }
     if (Array.isArray(whole)) {
       return {
         direction: 'to',
-        output: whole.map((item) => JSON.stringify(item)).join('\n'),
+        output: whole.map((item) => stringifyJson(item)).join('\n'),
       };
     }
     if (mode === 'to') {
@@ -40,7 +46,7 @@ export function convertJsonl(input: string, mode: JsonlMode): JsonlResult {
   }
   return {
     direction: 'from',
-    output: JSON.stringify(parseJsonl(input), null, 2),
+    output: stringifyJson(parseJsonl(input), 2),
   };
 }
 
@@ -53,8 +59,9 @@ export function parseJsonl(input: string): JsonValue[] {
     const line = lines[i].trim();
     if (line === '') continue;
     try {
-      values.push(JSON.parse(line) as JsonValue);
+      values.push(parseJson(line, `Line ${i + 1}`));
     } catch (err) {
+      if (err instanceof JsonToolError) throw err;
       throw new JsonToolError(
         `Line ${i + 1} is not valid JSON: ${errorMessage(err)}`,
       );

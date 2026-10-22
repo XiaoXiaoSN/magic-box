@@ -1,96 +1,34 @@
-import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
+import Modal from '@mui/material/Modal';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { logger } from '@sentry/react';
-import type { IDetectedBarcode } from '@yudiel/react-qr-scanner';
-import { Scanner } from '@yudiel/react-qr-scanner';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-interface CloseButtonProps {
-  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-const CloseButton = ({ setShowReader }: CloseButtonProps) => (
-  <Box
-    data-testid="qr-reader-close-button"
-    onClick={() => setShowReader(false)}
-    sx={{
-      position: 'absolute',
-      top: '10px',
-      right: '10px',
-      cursor: 'pointer',
-      zIndex: 1,
-      // sits over the live camera feed, so it needs its own opaque-ish plate
-      // rather than inheriting the icon colour from the surrounding theme.
-      backgroundColor: 'var(--bg-elev)',
-      color: 'var(--ink)',
-      opacity: 0.85,
-      borderRadius: '50%',
-      padding: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      '&:hover': {
-        opacity: 1,
-      },
-    }}
-  >
-    <CloseIcon />
-  </Box>
+const QRCodeReaderWrapper = React.lazy(
+  async () => import('./QRCodeReaderWrapper'),
 );
 
-interface QRCodeReaderWrapperProps {
-  setResult: React.Dispatch<React.SetStateAction<string>>;
-  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
-}
-
-const QRCodeReaderWrapper = ({
-  setResult,
-  setShowReader,
-}: QRCodeReaderWrapperProps) => {
-  const handleScan = (detectedCodes: IDetectedBarcode[]) => {
-    if (detectedCodes.length > 0) {
-      setResult(detectedCodes[0].rawValue);
-    }
-  };
-
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        width: '300px',
-        height: '300px',
-        backgroundColor: 'var(--bg-elev)',
-        borderRadius: '8px',
-        overflow: 'hidden',
-      }}
-    >
-      <CloseButton setShowReader={setShowReader} />
-      <Scanner
-        onError={(error) => logger.error(`failed to scan: ${error}`)}
-        onScan={handleScan}
-        constraints={{
-          facingMode: 'environment',
-        }}
-      />
-    </Box>
-  );
-};
-
 interface QRCodeReaderProps {
+  closeLabel: string;
+  dialogLabel: string;
+  openLabel: string;
   sxReader?: SxProps<Theme>;
   sxIcon?: SxProps<Theme>;
   setUserInput: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const QRCodeReader = ({
-  sxReader,
-  sxIcon,
+  closeLabel,
+  dialogLabel,
+  openLabel,
+  sxReader = {},
+  sxIcon = {},
   setUserInput,
 }: QRCodeReaderProps): React.JSX.Element => {
   const [showReader, setShowReader] = useState(false);
   const [result, setResult] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (showReader && result !== '') {
@@ -99,12 +37,63 @@ const QRCodeReader = ({
     }
   }, [result, showReader, setUserInput]);
 
+  useEffect(() => {
+    if (!showReader) {
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+      return;
+    }
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const frame = window.requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [showReader]);
+
   return (
     <React.Fragment>
-      {showReader ? (
+      <button
+        aria-haspopup="dialog"
+        aria-label={openLabel}
+        className="qr-reader-open"
+        data-testid="qr-reader-open-button"
+        onClick={() => {
+          setShowReader(true);
+          setResult('');
+        }}
+        type="button"
+      >
+        <QrCodeScannerIcon
+          aria-hidden="true"
+          sx={[
+            {
+              '&:hover': {
+                opacity: 0.8,
+              },
+            },
+            ...(Array.isArray(sxIcon) ? sxIcon : [sxIcon]),
+          ]}
+        />
+      </button>
+
+      <Modal
+        aria-labelledby="qr-reader-title"
+        onClose={() => setShowReader(false)}
+        open={showReader}
+      >
         <Box
+          aria-label={dialogLabel}
           data-testid="qr-reader-modal"
-          onClick={() => setShowReader(false)}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowReader(false);
+            event.stopPropagation();
+          }}
+          ref={dialogRef}
+          role="dialog"
           sx={[
             {
               position: 'fixed',
@@ -120,39 +109,24 @@ const QRCodeReader = ({
             },
             ...(Array.isArray(sxReader) ? sxReader : [sxReader]),
           ]}
+          tabIndex={-1}
         >
+          <h2 className="sr-only" id="qr-reader-title">
+            {dialogLabel}
+          </h2>
           <Box data-testid="qr-reader-container">
-            <QRCodeReaderWrapper
-              setResult={setResult}
-              setShowReader={setShowReader}
-            />
+            <React.Suspense fallback={null}>
+              <QRCodeReaderWrapper
+                closeLabel={closeLabel}
+                setResult={setResult}
+                setShowReader={setShowReader}
+              />
+            </React.Suspense>
           </Box>
         </Box>
-      ) : null}
-
-      <QrCodeScannerIcon
-        data-testid="qr-reader-open-button"
-        onClick={() => {
-          setShowReader(true);
-          setResult('');
-        }}
-        sx={[
-          {
-            cursor: 'pointer',
-            '&:hover': {
-              opacity: 0.8,
-            },
-          },
-          ...(Array.isArray(sxIcon) ? sxIcon : [sxIcon]),
-        ]}
-      />
+      </Modal>
     </React.Fragment>
   );
-};
-
-QRCodeReader.defaultProps = {
-  sxReader: {},
-  sxIcon: {},
 };
 
 export default QRCodeReader;

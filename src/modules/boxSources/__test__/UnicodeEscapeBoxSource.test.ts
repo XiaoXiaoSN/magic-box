@@ -63,13 +63,6 @@ describe('UnicodeEscapeBoxSource', () => {
       });
       expect(boxes[0].props.name).toBe('Unicode Escape');
     });
-
-    it('sets priority to 10', async () => {
-      const boxes = await UnicodeEscapeBoxSource.generateBoxes('A', {
-        unicodeescape: true,
-      });
-      expect(boxes[0].props.priority).toBe(10);
-    });
   });
 
   describe('generateBoxes - unescape', () => {
@@ -183,7 +176,6 @@ describe('UnicodeEscapeBoxSource', () => {
       expect(UnicodeEscapeBoxSource.name).toBe('Unicode Escape');
       expect(UnicodeEscapeBoxSource.tag).toBe('#');
       expect(UnicodeEscapeBoxSource.kind).toBe('Encode');
-      expect(UnicodeEscapeBoxSource.priority).toBe(10);
     });
   });
 });

@@ -337,13 +337,6 @@ describe('ColorBoxSource.generateBoxes', () => {
     }
   });
 
-  it('each box carries the correct priority', async () => {
-    const boxes = await ColorBoxSource.generateBoxes('#0000ff');
-    for (const box of boxes) {
-      expect(box.props.priority).toBe(80);
-    }
-  });
-
   it('3-digit shorthand #f00 is equivalent to #ff0000', async () => {
     const boxes = await ColorBoxSource.generateBoxes('#f00');
     const byName = Object.fromEntries(

@@ -2,8 +2,6 @@ import { parseDateString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // max input length to avoid processing arbitrary long strings
 const MAX_INPUT_LENGTH = 45;
 
@@ -91,7 +89,6 @@ export const ZodiacBoxSource = {
   defaultInput: '03-21\n::zodiac',
   tag: '#',
   kind: 'Calculate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -111,7 +108,7 @@ export const ZodiacBoxSource = {
         new BoxBuilder('Zodiac Sign', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -132,7 +129,7 @@ export const ZodiacBoxSource = {
       new BoxBuilder('Zodiac Sign', kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // converts each byte to its 8-bit binary string, joined by spaces
@@ -35,7 +34,6 @@ export const BinaryTextBoxSource = {
   defaultInput: 'Hi\n::binary',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -60,7 +58,7 @@ export const BinaryTextBoxSource = {
         new BoxBuilder('Text to Binary', binary)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -75,7 +73,7 @@ export const BinaryTextBoxSource = {
           )
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       } else {
@@ -85,7 +83,7 @@ export const BinaryTextBoxSource = {
           new BoxBuilder('Binary to Text', text)
             .setView('default')
             .setShowExpandButton(false)
-            .setPriority(this.priority)
+
             .build(),
         );
       }

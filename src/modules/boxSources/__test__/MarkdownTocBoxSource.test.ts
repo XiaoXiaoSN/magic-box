@@ -233,13 +233,6 @@ describe('MarkdownTocBoxSource', () => {
   });
 
   describe('box metadata', () => {
-    it('sets priority from source priority field', async () => {
-      const boxes = await MarkdownTocBoxSource.generateBoxes('# Hi', {
-        toc: true,
-      });
-      expect(boxes[0].props.priority).toBe(MarkdownTocBoxSource.priority);
-    });
-
     it('sets language option to markdown for CodeBoxTemplate', async () => {
       const boxes = await MarkdownTocBoxSource.generateBoxes('# Hi', {
         toc: true,

@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
-const Priority = 10;
-
 // mean earth radius per IUGG
 const EARTH_RADIUS_KM = 6371.0088;
 const KM_TO_MILES = 1 / 1.609344;
@@ -82,7 +80,6 @@ export const HaversineBoxSource = {
   defaultInput: '40.7128,-74.0060 to 51.5074,-0.1278\n::haversine',
   tag: '#',
   kind: 'Calculate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -92,31 +89,19 @@ export const HaversineBoxSource = {
 
     const raw = trim(input);
     if (raw.length > 100) {
-      return [
-        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)];
     }
 
     const parts = raw.split(PAIR_SEP);
     if (parts.length !== 2) {
-      return [
-        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)];
     }
 
     const coordA = parseCoord(parts[0]);
     const coordB = parseCoord(parts[1]);
 
     if (!coordA || !coordB) {
-      return [
-        errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG, {
-          priority: this.priority,
-        }),
-      ];
+      return [errorBox(FORMAT_ERROR_BOX_NAME, FORMAT_ERROR_MSG)];
     }
 
     const km = haversineKm(coordA, coordB);
@@ -136,11 +121,7 @@ export const HaversineBoxSource = {
       'Initial Bearing': `${bearing.toFixed(1)}°`,
     };
 
-    return [
-      keyValueBox('keyValue', FORMAT_ERROR_BOX_NAME, kv, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', FORMAT_ERROR_BOX_NAME, kv)];
   },
 };
 

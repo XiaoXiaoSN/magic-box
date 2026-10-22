@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 5_000;
 
 // standard base62 alphabet: digits, uppercase, then lowercase
@@ -44,7 +43,6 @@ export const Base62BoxSource = {
   defaultInput: '123456789\n::base62',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -59,7 +57,6 @@ export const Base62BoxSource = {
         errorBox(
           'Base62',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -74,9 +71,7 @@ export const Base62BoxSource = {
           new BoxBuilder(
             'Base62',
             'Invalid input: a non-negative integer is required for encoding.',
-          )
-            .setPriority(this.priority)
-            .build(),
+          ).build(),
         );
       } else {
         const decimal = BigInt(raw);
@@ -85,7 +80,7 @@ export const Base62BoxSource = {
           new BoxBuilder('Base62', `Decimal: ${raw}\nBase62: ${encoded}`)
             .setOptions({ Decimal: raw, Base62: encoded })
             .setView('keyValue')
-            .setPriority(this.priority)
+
             .build(),
         );
       }
@@ -97,9 +92,7 @@ export const Base62BoxSource = {
           new BoxBuilder(
             'Base62',
             'Invalid input: only base62 characters (0–9, A–Z, a–z) are allowed.',
-          )
-            .setPriority(this.priority)
-            .build(),
+          ).build(),
         );
       } else {
         const decoded = decodeBase62(raw);
@@ -107,7 +100,7 @@ export const Base62BoxSource = {
           new BoxBuilder('Base62', `Base62: ${raw}\nDecimal: ${decoded}`)
             .setOptions({ Base62: raw, Decimal: decoded.toString() })
             .setView('keyValue')
-            .setPriority(this.priority)
+
             .build(),
         );
       }

@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // official semver 2.0.0 regex from https://semver.org/#is-there-a-suggested-regexp-to-check-a-semver-string
 const SEMVER_REGEX =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
@@ -39,7 +37,6 @@ export const SemverBoxSource = {
   defaultInput: '1.2.3-beta.1+build.5\n::semver',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -57,7 +54,7 @@ export const SemverBoxSource = {
           .setView('keyValue')
           .setOptions({ Valid: 'false', Input: raw })
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -86,7 +83,7 @@ export const SemverBoxSource = {
         .setView('keyValue')
         .setOptions(kvOptions)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

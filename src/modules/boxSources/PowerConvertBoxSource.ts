@@ -11,8 +11,6 @@ import {
   STRICT_NUMBER_TOKEN,
 } from './UnitConversionData';
 
-const Priority = 10;
-
 const UNIT_LOOKUP = createUnitLookup(POWER_UNIT_DEFINITIONS);
 const SUPPORTED_UNITS = POWER_UNIT_DEFINITIONS.map(
   ({ outputSymbol, symbol }) => outputSymbol ?? symbol,
@@ -37,7 +35,6 @@ export const PowerConvertBoxSource = {
   defaultInput: '100 hp\n::power',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -58,7 +55,7 @@ export const PowerConvertBoxSource = {
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
           .setView('keyValue')
           .setOptions(pairs)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -75,7 +72,7 @@ export const PowerConvertBoxSource = {
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
           .setView('keyValue')
           .setOptions(pairs)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -90,7 +87,7 @@ export const PowerConvertBoxSource = {
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
           .setView('keyValue')
           .setOptions(pairs)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -114,7 +111,7 @@ export const PowerConvertBoxSource = {
       new BoxBuilder('Power Convert', plaintext)
         .setView('keyValue')
         .setOptions(kvPairs)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

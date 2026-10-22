@@ -1,9 +1,14 @@
 import { isString, trim } from '@functions/helper';
-import { getLocale } from '@functions/runtimePrefs';
+import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
+import { toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys } from '@modules/Box';
-
-const PriorityCronExpression = 10;
+import { BoxBuilder, extractOptionKeys, keyValueBox } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
+import {
+  isCronExpressionSyntax,
+  nextCronOccurrences,
+  normalizeCronExpression,
+} from './cronSchedule';
 
 interface Match {
   answer: string;
@@ -16,9 +21,46 @@ const localeMap = new Map([
   ['jp', 'ja'],
 ]);
 
-// cheap pre-screen so cronstrue/i18n (~263KB) loads only for cron-shaped inputs.
-// matches 5–7 fields of cron-allowed chars separated by whitespace.
-const CRON_SHAPE = /^[\d*/,?\-LW#]+(\s+[\d*/,?\-LW#]+){4,6}$/i;
+const localeLoaders: Record<string, () => Promise<unknown>> = {
+  af: () => import('cronstrue/locales/af.js'),
+  ar: () => import('cronstrue/locales/ar.js'),
+  be: () => import('cronstrue/locales/be.js'),
+  bg: () => import('cronstrue/locales/bg.js'),
+  ca: () => import('cronstrue/locales/ca.js'),
+  cs: () => import('cronstrue/locales/cs.js'),
+  da: () => import('cronstrue/locales/da.js'),
+  de: () => import('cronstrue/locales/de.js'),
+  es: () => import('cronstrue/locales/es.js'),
+  fa: () => import('cronstrue/locales/fa.js'),
+  fi: () => import('cronstrue/locales/fi.js'),
+  fr: () => import('cronstrue/locales/fr.js'),
+  he: () => import('cronstrue/locales/he.js'),
+  hr: () => import('cronstrue/locales/hr.js'),
+  hu: () => import('cronstrue/locales/hu.js'),
+  id: () => import('cronstrue/locales/id.js'),
+  it: () => import('cronstrue/locales/it.js'),
+  ja: () => import('cronstrue/locales/ja.js'),
+  ko: () => import('cronstrue/locales/ko.js'),
+  my: () => import('cronstrue/locales/my.js'),
+  nb: () => import('cronstrue/locales/nb.js'),
+  nl: () => import('cronstrue/locales/nl.js'),
+  pl: () => import('cronstrue/locales/pl.js'),
+  pt_BR: () => import('cronstrue/locales/pt_BR.js'),
+  pt_PT: () => import('cronstrue/locales/pt_PT.js'),
+  ro: () => import('cronstrue/locales/ro.js'),
+  ru: () => import('cronstrue/locales/ru.js'),
+  sk: () => import('cronstrue/locales/sk.js'),
+  sl: () => import('cronstrue/locales/sl.js'),
+  sr: () => import('cronstrue/locales/sr.js'),
+  sv: () => import('cronstrue/locales/sv.js'),
+  sw: () => import('cronstrue/locales/sw.js'),
+  th: () => import('cronstrue/locales/th.js'),
+  tr: () => import('cronstrue/locales/tr.js'),
+  uk: () => import('cronstrue/locales/uk.js'),
+  vi: () => import('cronstrue/locales/vi.js'),
+  zh_CN: () => import('cronstrue/locales/zh_CN.js'),
+  zh_TW: () => import('cronstrue/locales/zh_TW.js'),
+};
 
 export const CronExpressionBoxSource = {
   name: 'Cron Expression',
@@ -26,7 +68,6 @@ export const CronExpressionBoxSource = {
   defaultInput: '*/5 0 12 * * ?',
   tag: '⏱',
   kind: 'Time',
-  priority: PriorityCronExpression,
 
   async checkMatch(
     input: string,
@@ -41,7 +82,8 @@ export const CronExpressionBoxSource = {
 
     const regularInput = trim(input);
 
-    if (!CRON_SHAPE.test(regularInput)) {
+    // validate names and field count before importing cronstrue or a locale.
+    if (!isCronExpressionSyntax(regularInput)) {
       return undefined;
     }
 
@@ -55,12 +97,16 @@ export const CronExpressionBoxSource = {
         }
       }
 
-      const { default: cronstrue } = await import('cronstrue/i18n');
-      const answer = cronstrue.toString(regularInput, {
+      const { default: cronstrue } = await import('cronstrue');
+      const loadLocale = localeLoaders[locale];
+      if (loadLocale) await loadLocale();
+      const descriptionInput = normalizeCronExpression(regularInput);
+      if (descriptionInput === null) return undefined;
+      const answer = cronstrue.toString(descriptionInput, {
         use24HourTimeFormat: true,
         locale,
       });
-      if (answer === regularInput) {
+      if (answer === descriptionInput) {
         return undefined;
       }
 
@@ -75,18 +121,52 @@ export const CronExpressionBoxSource = {
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
+    const capturedNow = new Date(context?.now ?? Date.now());
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
     }
 
     const { answer } = match;
+    const nextTimes = nextCronOccurrences(
+      input,
+      capturedNow,
+      getTimezoneOffset,
+    );
+    const nextBox =
+      nextTimes.status === 'ok'
+        ? keyValueBox(
+            'keyValue',
+            'Next executions',
+            Object.fromEntries(
+              nextTimes.occurrences.map((date, index) => [
+                String(index + 1),
+                toOffsetISOString(date, getTimezoneOffset(date)),
+              ]),
+            ),
+            { showExpandButton: false },
+          )
+        : new BoxBuilder(
+            'Next executions',
+            nextTimes.reason === 'unsupported-advanced'
+              ? 'Next execution times unavailable: L, W, and # expressions are described but are not calculated.'
+              : nextTimes.status === 'none'
+                ? 'No occurrences found within the 20-year search horizon.'
+                : nextTimes.reason === 'invalid'
+                  ? 'Next execution times unavailable: the schedule syntax is not supported for calculation.'
+                  : 'Next execution times unavailable: the bounded search budget was exceeded.',
+          )
+            .setShowExpandButton(false)
+
+            .build();
     return [
       new BoxBuilder('Cron Expression', answer)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
+      nextBox,
     ];
   },
 };

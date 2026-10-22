@@ -2,8 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
-const PriorityEscapeString = 15;
-
 // real ESC supports both two-character and CSI sequences; caret notation is only CSI.
 const ANSI_REGEX =
   // biome-ignore lint/suspicious/noControlCharactersInRegex: needed to match ANSI escape sequences
@@ -62,7 +60,6 @@ export const EscapeStringBoxSource = {
   defaultInput: '"{\\"message\\":\\"something here\\"}"',
   tag: '\\',
   kind: 'Decode',
-  priority: PriorityEscapeString,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -93,7 +90,7 @@ export const EscapeStringBoxSource = {
     return [
       new BoxBuilder('Escape String', unescapedText)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

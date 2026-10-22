@@ -25,9 +25,8 @@ describe('BmiBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
 
-      const { options, name, priority } = boxes[0].props;
+      const { options, name } = boxes[0].props;
       expect(name).toBe('BMI');
-      expect(priority).toBe(10);
       expect(boxes[0].view).toBe('keyValue');
 
       expect(options?.BMI).toBe('22.9');

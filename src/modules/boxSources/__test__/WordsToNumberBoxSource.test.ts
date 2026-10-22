@@ -125,13 +125,12 @@ describe('WordsToNumberBoxSource', () => {
   });
 
   describe('box metadata', () => {
-    it('sets correct name, priority, template, and showExpandButton', async () => {
+    it('sets correct name, template, and showExpandButton', async () => {
       const boxes = await WordsToNumberBoxSource.generateBoxes('ten', {
         wordstonum: true,
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Words to Number');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.showExpandButton).toBe(false);
       expect(boxes[0].view).toBe('default');
     });

@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../contexts/PreferencesContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
+import { LOCAL_PREFS_KEY } from '../../functions/localPrefs';
 import WordCountBoxSource from '../../modules/boxSources/WordCountBoxSource';
 import ToolsListPage from './index';
 
@@ -116,6 +117,24 @@ describe('/list exposes the Local AI box', () => {
 });
 
 describe('/list preview input state', () => {
+  it('localizes source metadata and searches localized names', async () => {
+    localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify({ locale: 'tw' }));
+    renderPage(['/list?box=Word%20Count']);
+
+    expect(
+      await screen.findByRole('heading', { name: '字數統計' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('分析', { selector: '.preview-kind' }),
+    ).toBeInTheDocument();
+
+    const search = screen.getByRole('textbox', { name: '搜尋 Box' });
+    fireEvent.change(search, { target: { value: '字數' } });
+    expect(
+      screen.getByRole('button', { name: '字數統計' }),
+    ).toBeInTheDocument();
+  });
+
   it('uses a matching shared input and clears it when switching tools', async () => {
     renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
 
@@ -161,7 +180,7 @@ describe('/list preview input state', () => {
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open list' }));
 
-    const input = await screen.findByRole('textbox', { name: '' });
+    const input = await screen.findByRole('combobox', { name: 'Input' });
     expect(input).toHaveValue(WordCountBoxSource.defaultInput);
   });
 
@@ -170,7 +189,7 @@ describe('/list preview input state', () => {
     const generateBoxes = vi.spyOn(WordCountBoxSource, 'generateBoxes');
     renderPage(['/list?box=Word%20Count']);
 
-    const input = screen.getByRole('textbox', { name: '' });
+    const input = screen.getByRole('combobox', { name: 'Input' });
     fireEvent.change(input, { target: { value: 'a' } });
     await act(async () => {
       vi.advanceTimersByTime(100);
@@ -243,7 +262,7 @@ describe('/list preview input state', () => {
       expect(originalGetItem('mb:list:collapsed')).toBe('1');
       fireEvent.click(screen.getByRole('button', { name: /UUID/ }));
 
-      expect(originalGetItem('mb:list:selected')).toBe('UUID');
+      expect(originalGetItem('mb:list:selected')).toBe('uuid');
     } finally {
       getItem.mockRestore();
     }

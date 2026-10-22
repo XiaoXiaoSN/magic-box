@@ -3,8 +3,6 @@ import { formatIPv6Address, parseIPv6Address } from '@functions/parseIPv6';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 const MAX_INPUT_LENGTH = 100;
 
 function kvToPlaintext(pairs: Record<string, string>): string {
@@ -13,7 +11,7 @@ function kvToPlaintext(pairs: Record<string, string>): string {
     .join('\n');
 }
 
-function invalidIPv6Box(raw: string, error: string, priority: number): Box[] {
+function invalidIPv6Box(raw: string, error: string): Box[] {
   const shown =
     raw.length > MAX_INPUT_LENGTH ? `${raw.slice(0, MAX_INPUT_LENGTH)}…` : raw;
   const kv = {
@@ -24,7 +22,7 @@ function invalidIPv6Box(raw: string, error: string, priority: number): Box[] {
     new BoxBuilder('IPv6', kvToPlaintext(kv))
       .setOptions(kv)
       .setView('keyValue')
-      .setPriority(priority)
+
       .build(),
   ];
 }
@@ -36,7 +34,6 @@ export const Ipv6BoxSource = {
   defaultInput: '2001:db8::1\n::ipv6',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -53,7 +50,7 @@ export const Ipv6BoxSource = {
     const result = parseIPv6Address(raw);
     if (!result.ok) {
       // return an explanatory box instead of silently dropping.
-      return invalidIPv6Box(raw, result.error, this.priority);
+      return invalidIPv6Box(raw, result.error);
     }
 
     const { address } = result;
@@ -78,7 +75,7 @@ export const Ipv6BoxSource = {
       new BoxBuilder('IPv6', kvToPlaintext(kv))
         .setOptions(kv)
         .setView('keyValue')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

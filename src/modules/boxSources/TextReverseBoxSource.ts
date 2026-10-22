@@ -3,7 +3,6 @@ import { graphemes } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 export const TextReverseBoxSource = {
@@ -14,7 +13,6 @@ export const TextReverseBoxSource = {
   defaultInput: 'hello 😀\n::reverse',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -30,7 +28,7 @@ export const TextReverseBoxSource = {
       new BoxBuilder('Text Reverse', reversed)
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

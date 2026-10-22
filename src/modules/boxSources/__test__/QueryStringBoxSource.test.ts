@@ -131,7 +131,6 @@ describe('QueryStringBoxSource', () => {
       expect(QueryStringBoxSource.name).toBe('Query String');
       expect(QueryStringBoxSource.tag).toBe('#');
       expect(QueryStringBoxSource.kind).toBe('Convert');
-      expect(typeof QueryStringBoxSource.priority).toBe('number');
     });
 
     it('routes a JSON array to the JSON→qs path and reports an error', async () => {

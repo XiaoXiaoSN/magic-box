@@ -2,7 +2,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { boxSources } from '../../modules/boxSources';
-import { DurationBoxSource } from '../../modules/boxSources/DurationBoxSource';
 import {
   buildDefaultSettings,
   SettingsProvider,
@@ -16,7 +15,7 @@ describe('SettingsStorage', () => {
   it('enables Duration by default so ::duration can run on the home screen', () => {
     const settings = SettingsStorage.get();
 
-    expect(settings.boxes[DurationBoxSource.name]?.enabled).toBe(true);
+    expect(settings.boxes.duration?.enabled).toBe(true);
   });
 
   it('adds Duration as enabled when loading older settings without the source', () => {
@@ -27,7 +26,6 @@ describe('SettingsStorage', () => {
           'Word Count': {
             id: 'Word Count',
             enabled: true,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -36,7 +34,7 @@ describe('SettingsStorage', () => {
 
     const settings = SettingsStorage.get();
 
-    expect(settings.boxes[DurationBoxSource.name]?.enabled).toBe(true);
+    expect(settings.boxes.duration?.enabled).toBe(true);
   });
 
   it('migrates old settings that captured Duration as disabled', () => {
@@ -44,10 +42,9 @@ describe('SettingsStorage', () => {
       SETTINGS_STORAGE_KEY,
       JSON.stringify({
         boxes: {
-          [DurationBoxSource.name]: {
-            id: DurationBoxSource.name,
+          Duration: {
+            id: 'Duration',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -56,8 +53,8 @@ describe('SettingsStorage', () => {
 
     const settings = SettingsStorage.get();
 
-    expect(settings.boxes[DurationBoxSource.name]?.enabled).toBe(true);
-    expect(settings.version).toBe(1);
+    expect(settings.boxes.duration?.enabled).toBe(true);
+    expect(settings.version).toBe(2);
   });
 
   it('preserves a current-version user disable for Duration', () => {
@@ -66,10 +63,9 @@ describe('SettingsStorage', () => {
       JSON.stringify({
         version: 1,
         boxes: {
-          [DurationBoxSource.name]: {
-            id: DurationBoxSource.name,
+          Duration: {
+            id: 'Duration',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -78,7 +74,7 @@ describe('SettingsStorage', () => {
 
     const settings = SettingsStorage.get();
 
-    expect(settings.boxes[DurationBoxSource.name]?.enabled).toBe(false);
+    expect(settings.boxes.duration?.enabled).toBe(false);
   });
 
   it('keeps known settings, migrates the renamed source, and drops unknown ids', () => {
@@ -90,19 +86,16 @@ describe('SettingsStorage', () => {
           'DMS Coordinates': {
             id: 'DMS Coordinates',
             enabled: true,
-            priority: 42,
             secondaryOrder: 7,
           },
           'Text Diff': {
             id: 'Text Diff',
             enabled: false,
-            priority: 3,
             secondaryOrder: 1,
           },
           RemovedSource: {
             id: 'RemovedSource',
             enabled: true,
-            priority: 1,
             secondaryOrder: 0,
           },
         },
@@ -112,19 +105,46 @@ describe('SettingsStorage', () => {
     const settings = SettingsStorage.get();
 
     expect(settings.boxes['DMS Coordinates']).toBeUndefined();
-    expect(settings.boxes.Coordinates).toMatchObject({
-      id: 'Coordinates',
+    expect(settings.boxes.coordinates).toMatchObject({
+      id: 'coordinates',
       enabled: true,
-      priority: 42,
       secondaryOrder: 7,
     });
-    expect(settings.boxes['Text Diff']).toMatchObject({
+    expect(settings.boxes['text-diff']).toMatchObject({
       enabled: false,
-      priority: 3,
       secondaryOrder: 1,
     });
     expect(Object.keys(settings.boxes)).toHaveLength(boxSources.length);
-    expect(settings.version).toBe(1);
+    expect(settings.version).toBe(2);
+  });
+
+  it('prefers a stable id when both the id and legacy name are stored', () => {
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        boxes: {
+          coordinates: {
+            id: 'coordinates',
+            enabled: false,
+            secondaryOrder: 2,
+          },
+          'DMS Coordinates': {
+            id: 'DMS Coordinates',
+            enabled: true,
+            secondaryOrder: 8,
+          },
+        },
+      }),
+    );
+
+    const settings = SettingsStorage.get();
+
+    expect(settings.boxes.coordinates).toMatchObject({
+      enabled: false,
+      secondaryOrder: 2,
+    });
+    expect(settings.boxes['DMS Coordinates']).toBeUndefined();
   });
 
   it.each([
@@ -162,7 +182,7 @@ describe('SettingsStorage', () => {
     let enabled = true;
     const Probe = (): React.JSX.Element => {
       const { settings, updateSettings } = useSettings();
-      enabled = settings.boxes.Color?.enabled ?? true;
+      enabled = settings.boxes.color?.enabled ?? true;
       return (
         <button
           onClick={() =>
@@ -170,7 +190,7 @@ describe('SettingsStorage', () => {
               ...settings,
               boxes: {
                 ...settings.boxes,
-                Color: { ...settings.boxes.Color, enabled: false },
+                color: { ...settings.boxes.color, enabled: false },
               },
             })
           }
@@ -203,7 +223,6 @@ describe('SettingsStorage', () => {
           Color: {
             id: 'Color',
             enabled: false,
-            priority: 10,
             secondaryOrder: 0,
           },
         },
@@ -213,7 +232,7 @@ describe('SettingsStorage', () => {
     let firstEnabled: boolean | undefined;
     const Probe = (): React.JSX.Element => {
       const { settings } = useSettings();
-      firstEnabled ??= settings.boxes.Color?.enabled;
+      firstEnabled ??= settings.boxes.color?.enabled;
       return <div />;
     };
 
@@ -224,5 +243,18 @@ describe('SettingsStorage', () => {
     );
 
     expect(firstEnabled).toBe(false);
+  });
+
+  it('does not rewrite storage during the initial provider read', () => {
+    const setItem = vi.spyOn(localStorage, 'setItem');
+
+    render(
+      <SettingsProvider>
+        <div />
+      </SettingsProvider>,
+    );
+
+    expect(setItem).not.toHaveBeenCalled();
+    setItem.mockRestore();
   });
 });

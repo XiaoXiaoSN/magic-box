@@ -170,7 +170,6 @@ data:
       const boxes = await K8sSecretBoxSource.generateBoxes(validSecretYaml);
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Kubernetes Secret');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toEqual({
         username: 'admin',
         password: 'password123',
@@ -184,7 +183,6 @@ data:
       );
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Kubernetes Secret');
-      expect(boxes[0].props.priority).toBe(10);
       expect(boxes[0].props.options).toEqual({
         data: '<unreadable-string>',
         password: 'password123',

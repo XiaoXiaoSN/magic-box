@@ -2,65 +2,132 @@
 import { readFile } from 'node:fs/promises';
 
 import { inkRenderer } from './inkRenderer';
-import { terminalResults } from './model';
+import { terminalResults, terminalText } from './model';
 import {
   applyTerminalPreferences,
   parseArguments,
+  TerminalUsageError,
   terminalHelp,
+  withTerminalDirectives,
 } from './options';
-import { runBoxes } from './runBoxes';
+import { runTerminalSources } from './runBoxes';
+import {
+  formatTerminalSourceList,
+  selectTerminalSources,
+  terminalSourceInfo,
+} from './sources';
 
-// reads all of stdin when the process is being piped to (non-TTY). returns an
-// empty string when stdin is a TTY so the interactive prompt can take over.
+const MAX_STDIN_BYTES = 1024 * 1024;
+
 async function readStdin(): Promise<string> {
-  if (process.stdin.isTTY) {
-    return '';
-  }
+  if (process.stdin.isTTY) return '';
+
   const chunks: Buffer[] = [];
+  let totalBytes = 0;
   for await (const chunk of process.stdin) {
-    chunks.push(chunk as Buffer);
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += bytes.length;
+    if (totalBytes > MAX_STDIN_BYTES) {
+      process.stdin.destroy();
+      throw new TerminalUsageError('stdin input exceeds 1 MiB');
+    }
+    chunks.push(bytes);
   }
-  return Buffer.concat(chunks).toString('utf8');
+  return Buffer.concat(chunks, totalBytes).toString('utf8');
 }
 
-// entry point for the magic-box terminal UI. input resolves in priority order:
-//   1. CLI args (everything after the bin name), joined by spaces
-//   2. piped stdin
-//   3. interactive ink prompt (when neither is supplied and stdin is a TTY)
 async function main(): Promise<void> {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     process.stdout.write(terminalHelp);
     return;
   }
-  const saved = options.prefsPath
-    ? JSON.parse(await readFile(options.prefsPath, 'utf8'))
-    : {};
-  applyTerminalPreferences(options, saved);
-  const argInput = options.input;
-  const stdinInput = argInput ? '' : await readStdin();
-  const initialInput = argInput || stdinInput;
 
-  // non-interactive: compute results up front, render once, then exit. computing
-  // before render avoids racing ink's reconciler against process teardown.
-  if (initialInput.trim().length > 0) {
-    const boxes = await runBoxes(initialInput);
-    if (options.json)
-      process.stdout.write(
-        `${JSON.stringify(terminalResults(boxes), null, 2)}\n`,
+  const sources = selectTerminalSources(options.only);
+  if (options.list) {
+    const output = options.json
+      ? `${JSON.stringify(terminalSourceInfo(sources), null, 2)}\n`
+      : `${terminalText(formatTerminalSourceList(sources))}\n`;
+    process.stdout.write(output);
+    return;
+  }
+
+  let saved: unknown = {};
+  if (options.prefsPath) {
+    try {
+      saved = JSON.parse(await readFile(options.prefsPath, 'utf8'));
+    } catch (error) {
+      throw new TerminalUsageError(
+        `Could not read preferences file: ${String(error)}`,
       );
-    else await inkRenderer.showResults(boxes);
+    }
+  }
+  applyTerminalPreferences(options, saved);
+
+  if (
+    process.stdin.isTTY &&
+    !options.hasInput &&
+    options.directives.length === 0 &&
+    !options.json &&
+    !options.raw
+  ) {
+    await inkRenderer.startInteractive(sources);
     return;
   }
 
-  if (!process.stdin.isTTY || options.json) {
-    if (options.json) process.stdout.write('[]\n');
-    return;
+  const stdinInput = options.hasInput ? '' : await readStdin();
+  if (
+    !process.stdin.isTTY &&
+    !options.hasInput &&
+    stdinInput.length === 0 &&
+    options.directives.length === 0
+  ) {
+    throw new TerminalUsageError('No input received from stdin');
   }
-  await inkRenderer.startInteractive();
+
+  const input = options.hasInput ? options.input : stdinInput;
+  const result = await runTerminalSources(
+    withTerminalDirectives(input, options.directives),
+    sources,
+  );
+
+  for (const error of result.errors) {
+    process.stderr.write(
+      `Source ${error.id} (${terminalText(error.name)}) failed: ${terminalText(error.message)}\n`,
+    );
+  }
+
+  if (options.json) {
+    process.stdout.write(
+      `${JSON.stringify(terminalResults(result.boxes), null, 2)}\n`,
+    );
+  } else if (options.raw) {
+    const firstResult = result.boxes[0]?.props.plaintextOutput;
+    if (firstResult === undefined) {
+      process.stderr.write('No matching boxes.\n');
+    } else {
+      process.stdout.write(terminalText(firstResult));
+    }
+  } else {
+    await inkRenderer.showResults(result.boxes);
+  }
+
+  if (result.boxes.length === 0) {
+    if (options.json) process.stderr.write('No matching boxes.\n');
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error: unknown) => {
-  process.stderr.write(`magic-box tui failed: ${String(error)}\n`);
+  if (error instanceof TerminalUsageError) {
+    process.stderr.write(
+      `magic-box-tui: ${terminalText(error.message)}\nTry 'magic-box-tui --help' for usage.\n`,
+    );
+    process.exitCode = 2;
+    return;
+  }
+  process.stderr.write(
+    `magic-box-tui failed: ${terminalText(String(error))}\n`,
+  );
   process.exitCode = 1;
 });

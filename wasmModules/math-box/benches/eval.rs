@@ -1,5 +1,8 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use math_box::evaluate;
+use math_box::{Compiled, evaluate};
+
+const USER_FN_EXPR: &str =
+    "f(a, b, c, d) = (a + b) * (c + d) + a^2 + b^2 + c^2 + d^2 + (a - b) * (c - d); f(1, 2, 3, 4)";
 
 fn bench_full_pipeline(c: &mut Criterion) {
     let cases = [
@@ -18,5 +21,14 @@ fn bench_full_pipeline(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_full_pipeline);
+fn bench_compiled_user_fn(c: &mut Criterion) {
+    let compiled = Compiled::new(USER_FN_EXPR).expect("compile benchmark expression");
+    let mut group = c.benchmark_group("compiled");
+    group.bench_function("user_fn", |b| {
+        b.iter(|| black_box(compiled.evaluate().expect("compiled evaluation")))
+    });
+    group.finish();
+}
+
+criterion_group!(benches, bench_full_pipeline, bench_compiled_user_fn);
 criterion_main!(benches);

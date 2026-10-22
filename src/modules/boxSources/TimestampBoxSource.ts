@@ -3,8 +3,6 @@ import { formatOffsetLabel, toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const PriorityRFC3339 = 9;
-
 interface Match {
   date: Date;
 }
@@ -15,7 +13,6 @@ export const TimestampBoxSource = {
   defaultInput: '1735794245',
   tag: '⏱',
   kind: 'Time',
-  priority: PriorityRFC3339,
 
   checkMatch(input: string, options: BoxOptions = null): Match | undefined {
     const raw = input.trim();
@@ -59,14 +56,14 @@ export const TimestampBoxSource = {
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
       new BoxBuilder(
         `RFC 3339 (${formatOffsetLabel(offset)})`,
         toOffsetISOString(date, offset),
       )
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

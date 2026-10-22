@@ -2,8 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 // valid gregorian computus range: 1583–9999
 const MIN_YEAR = 1583;
 const MAX_YEAR = 9999;
@@ -77,7 +75,6 @@ export const EasterBoxSource = {
   defaultInput: '2025\n::easter',
   tag: '#',
   kind: 'Calculate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -110,7 +107,7 @@ export const EasterBoxSource = {
             Error: 'Invalid year. Enter a year between 1583 and 9999.',
           })
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -124,7 +121,7 @@ export const EasterBoxSource = {
           .setView('keyValue')
           .setOptions({ Error: msg })
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -158,7 +155,7 @@ export const EasterBoxSource = {
         .setView('keyValue')
         .setOptions(opts)
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

@@ -1,10 +1,12 @@
 import MagicBox from '@components/MagicBox';
+import DirectiveAutocomplete, {
+  DirectiveChips,
+} from '@components/MagicBox/DirectiveAutocomplete';
 import ShareLinkButton from '@components/ShareLinkButton';
 import {
   activateLocalAIPrivacy,
-  isLocalAIInput,
+  isPrivateInput,
 } from '@functions/localAIPrivacy';
-import { parseOptionsForChips } from '@functions/parseOptions';
 import { buildShareLink } from '@functions/shareLink';
 import React, {
   Suspense,
@@ -15,15 +17,41 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useInputDraft } from '../../contexts/InputDraftContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import type { HistoryItem } from '../../hooks/useSearchHistory';
-import { useSearchHistory } from '../../hooks/useSearchHistory';
-import type { Translations } from '../../i18n';
+import {
+  MAX_HISTORY_PREVIEW_CHARS,
+  useSearchHistory,
+} from '../../hooks/useSearchHistory';
+import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
+interface SeededInput {
+  present: boolean;
+  value: string;
+}
+
+const readSeededInput = (search: string): SeededInput => {
+  const params = new URLSearchParams(search);
+  const key = params.has('input') ? 'input' : params.has('i') ? 'i' : null;
+  if (!key) return { present: false, value: '' };
+  const value = params.get(key) ?? '';
+  if (isPrivateInput(value)) activateLocalAIPrivacy();
+  return { present: true, value };
+};
+
+const historyPreview = (input: string): string => {
+  const characters = Array.from(input);
+  if (characters.length <= MAX_HISTORY_PREVIEW_CHARS) return input;
+  return `${characters.slice(0, MAX_HISTORY_PREVIEW_CHARS - 1).join('')}…`;
+};
+
 const formatRelativeTime = (
   timestamp: number,
+  locale: Locale,
   t: (
     key: keyof Translations,
     params?: Record<string, string | number>,
@@ -37,24 +65,31 @@ const formatRelativeTime = (
   if (hours < 24) return t('time.hoursAgo', { n: hours });
   const days = Math.floor(hours / 24);
   if (days < 7) return t('time.daysAgo', { n: days });
-  return new Date(timestamp).toLocaleDateString();
+  return new Date(timestamp).toLocaleDateString(toIntlLocale(locale));
 };
 
 const MagicBoxPage = (): React.JSX.Element => {
-  const { t } = useLocale();
-  const [userInput, setUserInput] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('input') ?? params.get('i') ?? '';
-  });
-  const [magicIn, setMagicIn] = useState('');
+  const location = useLocation();
+  const { locale, t } = useLocale();
+  const { clearVersion, draft, updateDraft } = useInputDraft();
+  const seededInput = useMemo(
+    () => readSeededInput(location.search),
+    [location.search],
+  );
+  const initialInput = seededInput.present ? seededInput.value : draft;
+  const [userInput, setUserInput] = useState(initialInput);
+  const [magicIn, setMagicIn] = useState(initialInput);
   const [resetCounter, setResetCounter] = useState(0);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const lastRecordedRef = useRef<string>('');
+  const editedRef = useRef(false);
+  const handledClearVersionRef = useRef(clearVersion);
   // History entries this edit session created (not ones it merely moved to the
   // top). A session ends when the input is emptied or replaced wholesale.
   const sessionAddedRef = useRef<string[]>([]);
+  const appliedSearchRef = useRef(location.search);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
@@ -74,40 +109,110 @@ const MagicBoxPage = (): React.JSX.Element => {
     return () => window.clearTimeout(timeoutID);
   }, [userInput]);
 
-  // Record to search history when debounced input settles. A `::ai` input
-  // carries the model prompt, so it is never recorded: the panel's privacy
-  // promise has to survive the prompt being typed in the magic input rather
-  // than inside the box.
-  //
-  // Skipping the final input is not enough. The prompt is typed BEFORE the
-  // directive, and every pause longer than the debounce settles on a partial
-  // state — `my question`, `my question\n::`, `…::a` — each an ordinary
-  // input that was recorded. So when an `::ai` input settles, the entries this
-  // edit session created are withdrawn too, and the telemetry gate closes here
-  // rather than when the lazy panel chunk finally mounts.
-  useEffect(() => {
-    const trimmed = magicIn.trim();
-    if (!trimmed) {
-      sessionAddedRef.current = [];
-      return;
-    }
-    if (trimmed === lastRecordedRef.current) return;
-    lastRecordedRef.current = trimmed;
-    if (isLocalAIInput(trimmed)) {
-      activateLocalAIPrivacy();
-      removeInputs(sessionAddedRef.current);
-      sessionAddedRef.current = [];
-      return;
-    }
-    if (!history.some((item) => item.input === trimmed)) {
-      sessionAddedRef.current.push(trimmed);
-    }
-    addEntry(trimmed);
-  }, [magicIn, history, addEntry, removeInputs]);
+  const privateInput = useMemo(() => isPrivateInput(userInput), [userInput]);
 
-  const optionChips = useMemo(
-    () => Object.entries(parseOptionsForChips(userInput)),
-    [userInput],
+  useEffect(() => {
+    if (!seededInput.present) return;
+    updateDraft(seededInput.value, { persist: false });
+  }, [seededInput, updateDraft]);
+
+  useEffect(() => {
+    if (handledClearVersionRef.current === clearVersion) return;
+    handledClearVersionRef.current = clearVersion;
+    sessionAddedRef.current = [];
+    lastRecordedRef.current = '';
+    editedRef.current = false;
+    pendingCaretRef.current = null;
+    setUserInput('');
+    setMagicIn('');
+    setResetCounter((counter) => counter + 1);
+  }, [clearVersion]);
+
+  const resetEditSession = useCallback((): void => {
+    sessionAddedRef.current = [];
+    lastRecordedRef.current = '';
+  }, []);
+
+  const applySeededInput = useCallback(
+    (value: string): void => {
+      if (isPrivateInput(value)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+      }
+      resetEditSession();
+      editedRef.current = false;
+      pendingCaretRef.current = value.length;
+      updateDraft(value, { persist: false });
+      setUserInput(value);
+      setMagicIn(value);
+    },
+    [removeInputs, resetEditSession, updateDraft],
+  );
+
+  useLayoutEffect(() => {
+    if (appliedSearchRef.current === location.search) return;
+    appliedSearchRef.current = location.search;
+    if (!seededInput.present) return;
+    applySeededInput(seededInput.value);
+  }, [applySeededInput, location.search, seededInput]);
+
+  const applyInput = useCallback(
+    (value: string, wholesale: boolean): void => {
+      if (wholesale || value === '') resetEditSession();
+      editedRef.current = !wholesale && value !== '';
+
+      if (isPrivateInput(value)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+        resetEditSession();
+      }
+
+      updateDraft(value);
+      setUserInput(value);
+    },
+    [removeInputs, resetEditSession, updateDraft],
+  );
+
+  const recordInput = useCallback(
+    (rawInput: string): void => {
+      const trimmed = rawInput.trim();
+      if (!trimmed) {
+        resetEditSession();
+        return;
+      }
+
+      if (isPrivateInput(trimmed)) {
+        activateLocalAIPrivacy();
+        removeInputs(sessionAddedRef.current);
+        resetEditSession();
+        updateDraft(rawInput);
+        return;
+      }
+
+      if (trimmed === lastRecordedRef.current) return;
+      lastRecordedRef.current = trimmed;
+      if (!history.some((item) => item.input === trimmed)) {
+        sessionAddedRef.current.push(trimmed);
+      }
+      addEntry(trimmed);
+    },
+    [addEntry, history, removeInputs, resetEditSession, updateDraft],
+  );
+
+  useEffect(() => {
+    if (!privateInput) return;
+    activateLocalAIPrivacy();
+    if (sessionAddedRef.current.length === 0) return;
+    removeInputs(sessionAddedRef.current);
+    sessionAddedRef.current = [];
+  }, [privateInput, removeInputs]);
+
+  const replaceDirective = useCallback(
+    (value: string, caret: number): void => {
+      pendingCaretRef.current = caret;
+      applyInput(value, false);
+    },
+    [applyInput],
   );
 
   // After a programmatic value replacement, the controlled textarea re-renders
@@ -132,13 +237,17 @@ const MagicBoxPage = (): React.JSX.Element => {
   // Replaces the whole input programmatically (QR scan, history pick, paste
   // back). Marks the caret to land at the end of the inserted text so the
   // next keystroke continues naturally.
-  const replaceInput = useCallback((value: string): void => {
-    // A wholesale replacement starts a new edit session: what was typed before
-    // it is not part of whatever is built from the new value.
-    sessionAddedRef.current = [];
-    pendingCaretRef.current = value.length;
-    setUserInput(value);
-  }, []);
+  const replaceInput = useCallback(
+    (value: string): void => {
+      // a wholesale replacement starts a new edit session
+      resetEditSession();
+      editedRef.current = false;
+      pendingCaretRef.current = value.length;
+      updateDraft(value);
+      setUserInput(value);
+    },
+    [resetEditSession, updateDraft],
+  );
 
   const handleScannedInput = replaceInput;
 
@@ -151,6 +260,28 @@ const MagicBoxPage = (): React.JSX.Element => {
     [replaceInput],
   );
 
+  const handleInputBlur = useCallback(
+    (event: React.FocusEvent<HTMLTextAreaElement>): void => {
+      if (!editedRef.current) return;
+      const target = event.relatedTarget;
+      if (
+        target instanceof Element &&
+        target.closest('button, a, [role="button"]')
+      ) {
+        return;
+      }
+      recordInput(userInput);
+    },
+    [recordInput, userInput],
+  );
+
+  const handleShareCopied = useCallback(
+    (copyKey: string | undefined): void => {
+      if (copyKey === userInput) recordInput(userInput);
+    },
+    [recordInput, userInput],
+  );
+
   return (
     <div className="home">
       <div className="home-inner">
@@ -158,26 +289,16 @@ const MagicBoxPage = (): React.JSX.Element => {
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.input')}</span>
-            {optionChips.length > 0 ? (
-              <span className="input-options" data-testid="input-options">
-                {optionChips.map(([k, v]) => (
-                  <span className="opt-chip" key={k}>
-                    <span className="opt-k">{k}</span>
-                    {v !== true ? (
-                      <>
-                        <span className="opt-eq">=</span>
-                        <span className="opt-v">{String(v)}</span>
-                      </>
-                    ) : null}
-                  </span>
-                ))}
-              </span>
-            ) : null}
+            <DirectiveChips input={userInput} onReplace={replaceDirective} />
             <ShareLinkButton
               data-testid="copy-share-link"
+              disabled={privateInput}
+              disabledLabel={t('shareLink.privateInput')}
               getShareLink={() =>
                 buildShareLink({ input: userInput, pathname: '/' })
               }
+              copyKey={userInput}
+              onCopySuccess={handleShareCopied}
             />
             <button
               aria-label={
@@ -212,35 +333,36 @@ const MagicBoxPage = (): React.JSX.Element => {
               {history.length > 0 ? (
                 <>
                   <div className="history-list">
-                    {history.map((item: HistoryItem) => (
-                      <div className="history-item" key={item.id}>
-                        <button
-                          className="history-item-btn"
-                          onClick={() => handleHistorySelect(item.input)}
-                          title={item.input}
-                          type="button"
-                        >
-                          <span className="history-item-input">
-                            {item.input.length > 50
-                              ? `${item.input.slice(0, 50)}…`
-                              : item.input}
-                          </span>
-                          <span className="history-item-time">
-                            {formatRelativeTime(item.timestamp, t)}
-                          </span>
-                        </button>
-                        <button
-                          aria-label={t('magicBox.deleteEntry', {
-                            input: item.input.slice(0, 30),
-                          })}
-                          className="history-item-del"
-                          onClick={() => removeEntry(item.id)}
-                          type="button"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                    {history.map((item: HistoryItem) => {
+                      const preview = historyPreview(item.input);
+                      return (
+                        <div className="history-item" key={item.id}>
+                          <button
+                            className="history-item-btn"
+                            onClick={() => handleHistorySelect(item.input)}
+                            title={preview}
+                            type="button"
+                          >
+                            <span className="history-item-input">
+                              {preview}
+                            </span>
+                            <span className="history-item-time">
+                              {formatRelativeTime(item.timestamp, locale, t)}
+                            </span>
+                          </button>
+                          <button
+                            aria-label={t('magicBox.deleteEntry', {
+                              input: item.input.slice(0, 30),
+                            })}
+                            className="history-item-del"
+                            onClick={() => removeEntry(item.id)}
+                            type="button"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     className="history-clear"
@@ -257,19 +379,29 @@ const MagicBoxPage = (): React.JSX.Element => {
           ) : null}
 
           <div className="input-card">
-            <textarea
-              ref={inputRef}
+            <DirectiveAutocomplete
+              aria-label={t('magicBox.inputLabel')}
+              className="magic-main-input"
+              data-magic-input="true"
               data-testid="magic-input"
               name="magicInput"
-              onChange={(e) => setUserInput(e.target.value)}
+              onBlur={handleInputBlur}
+              onChange={(value) => applyInput(value, false)}
               onFocus={() => setResetCounter((c) => c + 1)}
+              onReplace={replaceDirective}
               placeholder={t('magicBox.placeholder')}
               rows={8}
               spellCheck={false}
+              textareaRef={inputRef}
               value={userInput}
             />
             <Suspense fallback={<div />}>
-              <QrButton setUserInput={handleScannedInput} />
+              <QrButton
+                closeLabel={t('magicBox.closeQrReader')}
+                dialogLabel={t('magicBox.qrDialog')}
+                openLabel={t('magicBox.openQrReader')}
+                setUserInput={handleScannedInput}
+              />
             </Suspense>
           </div>
         </div>
@@ -279,8 +411,8 @@ const MagicBoxPage = (): React.JSX.Element => {
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.output')}</span>
             <span className="swap">
-              <span className="kbd">⌃</span>
-              <span className="kbd">N</span>
+              <span className="kbd">Alt</span>
+              <span className="kbd">↓</span>
               <span className="swap-label">{t('magicBox.next')}</span>
               <span className="swap-sep" />
               <span className="kbd">↵</span>
@@ -291,6 +423,7 @@ const MagicBoxPage = (): React.JSX.Element => {
             <MagicBox
               input={magicIn}
               liveInput={userInput}
+              onInputCommit={recordInput}
               onPasteInput={replaceInput}
               resetTrigger={resetCounter}
             />
@@ -302,16 +435,27 @@ const MagicBoxPage = (): React.JSX.Element => {
 };
 
 interface QrButtonProps {
+  closeLabel: string;
+  dialogLabel: string;
+  openLabel: string;
   setUserInput: (value: string) => void;
 }
 
 // QR scanner button pinned bottom-right of the input card.
-const QrButton = ({ setUserInput }: QrButtonProps) => (
+const QrButton = ({
+  closeLabel,
+  dialogLabel,
+  openLabel,
+  setUserInput,
+}: QrButtonProps) => (
   <div className="input-qr-btn" data-testid="qr-reader-launcher">
     <QRCodeReader
       setUserInput={
         setUserInput as React.Dispatch<React.SetStateAction<string>>
       }
+      closeLabel={closeLabel}
+      dialogLabel={dialogLabel}
+      openLabel={openLabel}
       sxIcon={{ fontSize: 18, color: 'inherit' }}
     />
   </div>
