@@ -124,11 +124,12 @@ describe('Boxes management', () => {
       library().getByRole('button', { name: 'Disable Local AI' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(
-      screen.getByRole('button', { name: 'Show on Home' }),
-    ).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Enable' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(await screen.findByText('Model preferences')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Show on Home' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Enable' }));
     expect(storedSettings().boxes['Local AI'].enabled).toBe(true);
   });
 });

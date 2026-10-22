@@ -26,6 +26,7 @@
 }
 .box-library-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -101,16 +102,14 @@
   color: var(--accent-ink);
   font-weight: 600;
 }
-.box-library-filter {
+.box-library-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  color: var(--ink-3);
-  font-size: 11px;
+  margin-left: auto;
 }
-.box-library-filter .select {
-  max-width: 65%;
+.box-library-actions .select {
+  max-width: 140px;
 }
 .box-library-list {
   flex: 1;
@@ -313,8 +312,7 @@
   line-height: 1.6;
 }
 .boxes-page button:focus-visible,
-.boxes-page a:focus-visible,
-.settings-boxes-link:focus-visible {
+.boxes-page a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }

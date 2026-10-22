@@ -248,20 +248,40 @@ export default function BoxesPage(): React.JSX.Element {
         <section className="box-library" aria-label={t('boxes.library')}>
           <div className="box-library-toolbar">
             <div className="box-library-summary">
-              <strong>{t('boxes.total', { count: ordered.length })}</strong>
-              <button
-                type="button"
-                className={`btn-subtle${arranging ? ' is-active' : ''}`}
-                title={t('boxes.orderHint')}
-                aria-pressed={arranging}
-                onClick={() => {
-                  if (selected) setRememberedName(selected.name);
-                  clearFilters();
-                  setArranging(!arranging);
-                }}
-              >
-                {t(arranging ? 'boxes.done' : 'boxes.reorder')}
-              </button>
+              <strong>
+                {visible.length === ordered.length
+                  ? t('boxes.total', { count: ordered.length })
+                  : t('boxes.showing', { count: visible.length })}
+              </strong>
+              <div className="box-library-actions">
+                {!arranging ? (
+                  <Select
+                    label={t('boxes.category')}
+                    value={kind}
+                    onChange={setKind}
+                    options={[
+                      { value: 'all', label: t('boxes.allCategories') },
+                      ...kinds.map((value) => ({
+                        value,
+                        label: getKindLabel(value, t),
+                      })),
+                    ]}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  className={`btn-subtle${arranging ? ' is-active' : ''}`}
+                  title={t('boxes.orderHint')}
+                  aria-pressed={arranging}
+                  onClick={() => {
+                    if (selected) setRememberedName(selected.name);
+                    clearFilters();
+                    setArranging(!arranging);
+                  }}
+                >
+                  {t(arranging ? 'boxes.done' : 'boxes.reorder')}
+                </button>
+              </div>
             </div>
             {arranging ? (
               <div className="box-reorder-note">
@@ -326,23 +346,6 @@ export default function BoxesPage(): React.JSX.Element {
                     </button>
                   ))}
                 </fieldset>
-                <div className="box-library-filter">
-                  <Select
-                    label={t('boxes.category')}
-                    value={kind}
-                    onChange={setKind}
-                    options={[
-                      { value: 'all', label: t('boxes.allCategories') },
-                      ...kinds.map((value) => ({
-                        value,
-                        label: getKindLabel(value, t),
-                      })),
-                    ]}
-                  />
-                  {visible.length !== ordered.length ? (
-                    <span>{t('boxes.showing', { count: visible.length })}</span>
-                  ) : null}
-                </div>
               </>
             )}
           </div>
@@ -445,15 +448,15 @@ export default function BoxesPage(): React.JSX.Element {
                   </div>
                   <div
                     className="box-availability"
-                    title={t('boxes.showOnHomeHint')}
+                    title={t('boxes.enableHint')}
                   >
                     <div>
-                      <strong>{t('boxes.showOnHome')}</strong>
+                      <strong>{t('boxes.enable')}</strong>
                     </div>
                     <Toggle
                       checked={selectedEnabled}
                       onChange={() => toggleSource(selected)}
-                      label={t('boxes.showOnHome')}
+                      label={t('boxes.enable')}
                     />
                   </div>
                   {selected.name === 'Local AI' ? (

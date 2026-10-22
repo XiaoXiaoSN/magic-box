@@ -7,7 +7,6 @@ import {
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
@@ -197,15 +196,6 @@ const SettingsPage = (): React.JSX.Element => {
             {t('settings.resetPreferences')}
           </button>
         </header>
-
-        <Link
-          className="settings-boxes-link"
-          to="/boxes"
-          title={t('boxes.manageHint')}
-        >
-          <strong>{t('boxes.manage')}</strong>
-          <span aria-hidden="true">↗</span>
-        </Link>
 
         <Section title={t('settings.section.appearance')}>
           <Field label={t('settings.theme')}>
