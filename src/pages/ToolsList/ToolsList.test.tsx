@@ -38,7 +38,9 @@ describe('/list exposes the Local AI box', () => {
     vi.stubGlobal('Worker', worker);
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Local AI/ }));
+    fireEvent.click(
+      screen.getByText('Local AI', { selector: '.box-library-name strong' }),
+    );
 
     // `::ai` is the source's defaultInput, so selecting the row is enough for
     // the preview to mount the real box through MagicBox.
@@ -64,9 +66,13 @@ describe('/list exposes the Local AI box', () => {
     renderPage();
 
     // Selecting a different tool must not leave the AI panel mounted.
-    fireEvent.click(screen.getByRole('button', { name: /Local AI/ }));
+    fireEvent.click(
+      screen.getByText('Local AI', { selector: '.box-library-name strong' }),
+    );
     await screen.findByTestId('local-ai-panel', {}, { timeout: 3000 });
-    fireEvent.click(screen.getByRole('button', { name: /Word Count/ }));
+    fireEvent.click(
+      screen.getByText('Word Count', { selector: '.box-library-name strong' }),
+    );
     await waitFor(() =>
       expect(screen.queryByTestId('local-ai-panel')).not.toBeInTheDocument(),
     );

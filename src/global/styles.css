@@ -2027,3 +2027,24 @@ pre,
   padding-top: 7px;
   padding-bottom: 7px;
 }
+
+.settings-boxes-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  color: var(--ink);
+  text-decoration: none;
+  gap: 16px;
+}
+.settings-boxes-link strong {
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.settings-boxes-link:hover {
+  border-color: var(--accent);
+}

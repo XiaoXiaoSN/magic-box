@@ -276,14 +276,6 @@ const MagicBoxPage = (): React.JSX.Element => {
           <div className="home-col-head">
             <span aria-hidden="true" className="dot" />
             <span>{t('magicBox.output')}</span>
-            <span className="swap">
-              <span className="kbd">⌃</span>
-              <span className="kbd">N</span>
-              <span className="swap-label">{t('magicBox.next')}</span>
-              <span className="swap-sep" />
-              <span className="kbd">↵</span>
-              <span className="swap-label">{t('magicBox.copy')}</span>
-            </span>
           </div>
           <div className="boxes" data-testid="magic-output">
             <MagicBox

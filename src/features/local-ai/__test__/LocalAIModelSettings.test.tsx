@@ -59,8 +59,10 @@ describe('LocalAIModelSettings', () => {
 
     workers[0].reply({ type: 'ready' });
     expect(screen.getByTestId('settings-ai-setup')).toBeDisabled();
-    // What survives leaving this page is the download, not the session.
-    expect(screen.getByText(/loads it from the local cache/)).toBeVisible();
+    // cache details remain available on hover after setup finishes.
+    expect(
+      screen.getByTitle(/loads it from the local cache/),
+    ).toHaveTextContent('Model');
   });
 
   it('surfaces a sanitized worker error without spawning anything else', () => {

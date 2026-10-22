@@ -3,14 +3,25 @@ import BaseLayout from '@components/BaseLayout';
 import PwaUpdatePrompt from '@components/PwaUpdatePrompt';
 import SettingsPage from '@pages/SettingsPage';
 import { lazy, Suspense } from 'react';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 
 import { LocaleProvider } from './contexts/LocaleContext';
 import { PreferencesProvider } from './contexts/PreferencesContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
 const MagicBoxPage = lazy(async () => import('@pages/MagicBox'));
-const ToolsListPage = lazy(async () => import('@pages/ToolsList'));
+const BoxesPage = lazy(async () => import('@pages/Boxes'));
+
+function LegacyListRedirect(): React.JSX.Element {
+  const { search, hash } = useLocation();
+  return <Navigate replace to={`/boxes${search}${hash}`} />;
+}
 
 const renderLoader = () => <div className="loader" />;
 
@@ -24,7 +35,8 @@ const App = (): React.JSX.Element => (
               <Suspense fallback={renderLoader()}>
                 <Routes>
                   <Route element={<MagicBoxPage />} path="/" />
-                  <Route element={<ToolsListPage />} path="/list" />
+                  <Route element={<LegacyListRedirect />} path="/list" />
+                  <Route element={<BoxesPage />} path="/boxes" />
                   <Route element={<SettingsPage />} path="/settings" />
                 </Routes>
               </Suspense>

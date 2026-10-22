@@ -57,10 +57,10 @@ const BaseLayout = ({ children }: Props): React.JSX.Element => {
         </Link>
         <div className="topbar-right">
           <NavLink
-            aria-label={t('nav.list')}
+            aria-label={t('nav.boxes')}
             className={({ isActive }) => `nav-icon${isActive ? ' active' : ''}`}
-            title={t('nav.list')}
-            to="/list"
+            title={t('nav.boxes')}
+            to="/boxes"
           >
             <ListIcon />
           </NavLink>

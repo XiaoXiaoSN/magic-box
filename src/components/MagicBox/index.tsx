@@ -31,7 +31,6 @@ const EmptyState = ({ input }: { input: string }): React.JSX.Element => {
       <div className="empty" data-testid="magic-box-empty">
         <div aria-hidden="true" className="empty-mark" />
         <div className="empty-title">{t('magicBox.emptyStartTitle')}</div>
-        <div className="empty-sub">{t('magicBox.emptyStartSub')}</div>
       </div>
     );
   }

@@ -67,3 +67,22 @@ export const Select = <T extends string>({
     ))}
   </select>
 );
+
+interface FieldProps {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}
+
+export const Field = ({
+  label,
+  hint,
+  children,
+}: FieldProps): React.JSX.Element => (
+  <div className="field" title={hint}>
+    <div className="field-info">
+      <div className="field-label">{label}</div>
+    </div>
+    <div className="field-control">{children}</div>
+  </div>
+);
