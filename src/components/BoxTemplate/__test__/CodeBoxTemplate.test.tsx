@@ -7,7 +7,7 @@ import CodeBoxTemplate from '../CodeBoxTemplate';
 async function renderHighlighter(
   plaintextOutput: string,
   language: string,
-): Promise<void> {
+): Promise<HTMLElement> {
   act(() => {
     render(
       <CodeBoxTemplate
@@ -19,33 +19,49 @@ async function renderHighlighter(
     );
   });
 
-  await waitFor(
-    () => {
-      expect(screen.getByTestId('magic-box-result-text')).toBeTruthy();
-    },
-    { timeout: 3000 },
-  );
+  return waitFor(() => screen.getByTestId('magic-box-result-text'), {
+    timeout: 3000,
+  });
+}
+
+function expectRenderedCode(
+  result: HTMLElement,
+  plaintextOutput: string,
+  language: string,
+): void {
+  expect(result.textContent).toBe(plaintextOutput);
+  expect(result.querySelector('code')).toHaveClass(`language-${language}`);
 }
 
 describe('<CodeBoxTemplate />', () => {
   it('renders json content', async () => {
-    await renderHighlighter('{"key":1}', 'json');
+    const output = '{"key":1}';
+    expectRenderedCode(await renderHighlighter(output, 'json'), output, 'json');
   });
 
   it('renders yaml content', async () => {
-    await renderHighlighter('key: value', 'yaml');
+    const output = 'key: value';
+    expectRenderedCode(await renderHighlighter(output, 'yaml'), output, 'yaml');
   });
 
   it('renders xml content', async () => {
-    await renderHighlighter('<root><item>1</item></root>', 'xml');
+    const output = '<root><item>1</item></root>';
+    expectRenderedCode(await renderHighlighter(output, 'xml'), output, 'xml');
   });
 
   it('renders diff content', async () => {
-    await renderHighlighter('@@ -1 +1 @@\n-old\n+new', 'diff');
+    const output = '@@ -1 +1 @@\n-old\n+new';
+    const result = await renderHighlighter(output, 'diff');
+    expectRenderedCode(result, output, 'diff');
   });
 
   it('renders toml content (falls back to plaintext)', async () => {
-    await renderHighlighter('key = "value"', 'toml');
+    const output = 'key = "value"';
+    expectRenderedCode(
+      await renderHighlighter(output, 'toml'),
+      output,
+      'plaintext',
+    );
   });
 
   it('defaults to yaml when no language option is provided', async () => {
@@ -60,11 +76,10 @@ describe('<CodeBoxTemplate />', () => {
       );
     });
 
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('magic-box-result-text')).toBeTruthy();
-      },
+    const result = await waitFor(
+      () => screen.getByTestId('magic-box-result-text'),
       { timeout: 3000 },
     );
+    expectRenderedCode(result, 'key: value', 'yaml');
   });
 });

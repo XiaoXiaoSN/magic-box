@@ -26,7 +26,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
   useSettings: () => ({ filteredBoxSources: noSources }),
 }));
 vi.mock('../../contexts/PreferencesContext', () => ({
-  usePreferences: () => ({ prefs: { copyMode: 'copy' } }),
+  usePreferences: () => ({ prefs: { copyMode: 'enter' } }),
 }));
 // The real panel needs a worker; this stand-in publishes one settled answer
 // once, on mount — like the panel, which publishes on a change of its own

@@ -1,265 +1,220 @@
 # math-box
 
-A small, fast math expression evaluator written in Rust and compiled to
-WebAssembly. Built as a drop-in replacement for `mathjs` in the
-[magic-box](../../) project, with comparable feature coverage at a fraction
-of the bundle size.
+A Rust expression evaluator compiled to WebAssembly for [Magic Box](../../).
+It implements the syntax below; it is not a complete replacement for the
+mathjs language. Implementation references: [lexer](src/lexer.rs),
+[parser](src/parser.rs), [builtins](src/builtins.rs) and [values](src/value.rs).
 
----
+## Supported syntax
 
-## Features
+- Arithmetic: `+`, `-`, `*`, `/`, `%`, `^`, unary `+`/`-`, postfix `!` (factorial).
+- Comparisons: `<`, `>`, `<=`, `>=`, `==` and `!=` return booleans.
+- Boolean literals `true` and `false`, logical `&&`/`||` with short-circuiting,
+  and prefix `!` for boolean negation. Logical operators require boolean
+  operands; `!1` and `1 && true` are errors.
+- Calculator-style implicit multiplication: `2 pi`, `2(3 + 4)` and
+  `(2 + 1)(4 + 1)`.
+- Percent postfix and percentage-of syntax: `50%` is `0.5`, and `10% of 200`
+  is `20`. A percent between arithmetic operands remains modulo, as in
+  `50 % -3`.
+- Decimal, hexadecimal (`0xff`), binary (`0b1010`) and octal (`0o17`) numbers.
+- Parentheses, function calls, variables and semicolon-separated statements:
+  `x = 1; x + 2`.
+- User functions: `f(x) = x^2; f(5)`.
+- BigInt literals with an `n` suffix, or `big("9007199254740993")`. Large
+  integer literals such as `9007199254740993` are promoted to the exact BigInt
+  backend when the `bigint` feature is enabled.
+- Fractions: `frac(1, 3) + frac(1, 4)` returns `7/12`.
+- Complex numbers: `complex(re, im)`, the constant `i`, and arithmetic.
+- Units: `(1 km + 500 m) to m`, `unit(1, "km")`,
+  `convert(unit(1, "km"), "m")` and `convert(1, "km", "m")`.
+  The [unit table](src/units.rs) covers length, mass, time, temperature, data
+  size and common derived SI units, with dimensional checks and affine Celsius
+  and Fahrenheit conversion.
+- Quoted strings, used by functions such as `big()` and `unit()`.
 
-- **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `^`, unary `-`, postfix `!` (factorial)
-- **Comparison & logic**: `<`, `>`, `<=`, `>=`, `==`, `!=`, `&&`, `||`, prefix `!`
-- **Built-in functions**: `sin/cos/tan/asin/acos/atan/atan2`, `sinh/cosh/tanh`,
-  `ln/log/log2/log10`, `exp`, `sqrt/cbrt`, `abs/floor/ceil/round`, `min/max`,
-  `pow`, `hypot`
-- **Constants**: `PI`, `pi`, `E`, `e`, `Infinity`, `NaN`, `i`
-- **Variables and statements**: `x = 1; x + 2`
-- **User-defined functions**: `f(x) = x^2; f(5)`
-- **BigInt**: arbitrary-precision integers via `123n` literals or `big(...)`
-- **Fractions**: exact rationals via `frac(num, den)`; auto-simplified
-- **Complex numbers**: `complex(re, im)`, `i`, full arithmetic + `re/im/conj/arg/abs`
-- **Units**: `1 km + 500 m to m` → `1500 m`; dimension checked length, mass,
-  time, temperature, and data units, including derived and composite units
-  such as `km/h`, `m^2`, `MB`, and `GiB`
-- **Number bases**: decimal, hex (`0xFF`), binary (`0b1010`), octal (`0o17`)
+### Functions and constants
 
-### Numeric exactness
+Numeric functions include `sin`, `cos`, `tan`, `asin`, `acos`, `atan`,
+`atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `exp`, `ln`,
+`log`, `log2`, `log10`, `pow`, `sqrt`, `cbrt`, `floor`, `ceil`, `round`,
+`trunc`, `abs`, `sign`, `hypot`, `min`, `max`, `fact`, `gcd` and `lcm`.
+`log(x)` is natural logarithm; `log(x, base)` selects a base.
 
-Plain decimal and radix integer literals above the safe `f64` integer range are
-parsed as `BigInt` automatically. An `n` suffix also requests `BigInt`, and is
-recognized only at an identifier boundary, so unit labels such as `2ns` and
-`2nm` remain valid. BigInt remainder, power, and factorial operations stay
-exact and use the crate's numeric bit and display limits. Mixing a BigInt with
-an inexact floating number returns a type error rather than converting the
-integer through `f64`.
-
-With the `bigint` feature enabled, integral `Num` and `Fraction` factorial
-operands use the same bounded BigInt backend as `n`-suffixed values.
-Fraction/BigInt arithmetic remains exact in either operand order, and
-nonnegative integral fraction exponents use bounded exact powers; unsupported
-inexact combinations return a type error.
-
-`%` uses floored modulo: the result has the divisor's sign, and a zero divisor
-returns the dividend. Fractions retain their BigInt numerator and denominator
-backend, including when an integral floating input is converted; the input's
-existing `f64` approximation is preserved. Scientific floating values keep
-scientific notation at JavaScript-style magnitude thresholds (`1e300` renders
-as `1e+300`).
-
----
-
-## Pipeline
-
-```
-source → lex → parse (Pratt) → compile (constant folding) → vm → value
-```
-
-- **Lexer** tokenizes numbers, identifiers, operators, string literals.
-- **Parser** is a Pratt parser with the precedence table below.
-- **Compiler** lowers the AST into a flat instruction stream and folds
-  constant subtrees at compile time.
-- **VM** executes the instruction stream against a stack — no recursion,
-  cache-friendly, safe under WASM stack limits.
+Constants are `PI`/`pi`, `E`/`e`, `TAU`/`tau`, `Infinity`, `NaN`, and `i`
+when `complex` is enabled. The feature-dependent functions are `big`, `frac`,
+`complex`, `re`, `im`, `conj`, `arg`, `unit` and `convert`.
 
 ### Precedence
 
-| precedence | category |
-|---|---|
-| 10  | `\|\|` |
-| 20  | `&&` |
-| 30  | `==`, `!=` |
-| 40  | `<`, `>`, `<=`, `>=` |
-| 60  | unit conversion `to` |
-| 95  | `+`, `-` |
-| 100 | `*`, `/`, infix `%` |
-| 110 | unary `-`, `!` |
-| 121 | exponent `^` |
-| 130 | postfix `%`, `!` |
+From tightest to loosest, as implemented in [parser.rs](src/parser.rs):
 
-`&&` and `||` require boolean operands and short-circuit the right-hand side.
-The percent token is postfix at the end of an expression, before a closing
-delimiter, or before `of` (`10% of 200`); otherwise it remains modulo.
+| Form | Binding power / behavior |
+| --- | --- |
+| Parentheses, literals, identifiers and calls | Parsed as primary expressions |
+| Postfix factorial `!` | 130 |
+| Exponent `^` | Left 121, right 120; right-associative |
+| Unary `+`, `-`, `!` | 110; `-2^2` means `-(2^2)` |
+| Implicit multiplication | 100; adjacent primary expressions such as `2 pi` and `2(3 + 4)` |
+| `*`, `/`, `%` | Left 100, right 101; left-associative |
+| `+`, `-` | Left 95, right 96; left-associative |
+| Unit conversion `to` | 60; parenthesize a compound value, as in `(1 km + 500 m) to m` |
+| Comparisons `<`, `>`, `<=`, `>=` | Left 40, right 41 |
+| Equality `==`, `!=` | Left 30, right 31 |
+| Logical `&&` | Left 20, right 21; short-circuiting |
+| Logical `||` | Left 10, right 11; short-circuiting |
 
-### Value types
+Assignments and function definitions are statement forms. Semicolons separate
+statements; commas separate function arguments and parameters.
+
+## Numeric behavior
+
+The actual variants in [value.rs](src/value.rs) are `Num(f64)`, `Bool(bool)`,
+`Str(String)`, and the feature-gated `Big(BigInt)`, `Frac(Fraction)`,
+`Complex(Complex)` and `Unit(UnitValue)`. There is no `Int` or `Empty` variant.
+
+Ordinary numeric literals use IEEE 754 double precision until the lexer sees an
+integer that cannot be represented exactly. With `bigint` enabled, such
+integer literals are kept in the BigInt backend, so
+`9007199254740993 + 1` returns `9007199254740994`. An `n` suffix is still the
+explicit form for exact integer input, and `big()` accepts an integer-valued
+number or string. Fractional values and non-integer BigInt mixes follow the
+type rules in [ops.rs](src/ops.rs). BigInt output is decimal text **without**
+the input's `n` suffix.
+
+Fractions use `num_rational::Ratio`, backed by BigInt when `bigint` is enabled
+and `i64` otherwise. Mixed-type arithmetic follows [ops.rs](src/ops.rs):
+exact numeric backends do not make arbitrary combinations with floating-point
+numbers exact.
+
+## Pipeline and API
+
+```text
+source → tokenize → Pratt parser → compiler (constant folding) → stack VM → value
+```
+
+The compiler emits a flat instruction stream. The VM iterates through each
+program, but calls `exec` recursively for user-function calls, with a bounded
+frame stack. The parser and compiler also traverse expression trees
+recursively. The default namespace is cached with `OnceLock` in `std` builds;
+the source is parsed and compiled again for each `evaluate` call.
 
 ```rust
-pub enum Value {
-    Num(f64),
-    Bool(bool),
-    Str(String),
-    Big(BigInt),        // feature = "bigint"
-    Frac(Fraction),     // feature = "fraction"
-    Complex(re, im),
-    Unit(UnitValue),
-}
-```
-
-Integral numeric literals beyond the safe `f64` range are represented as
-`BigInt` when the `bigint` feature is enabled, so users do not lose precision
-silently.
-
-Unit values retain their base value, dimension exponents, display scale, and
-display label. Arithmetic combines those fields instead of converting a
-composite value back through an atomic-unit lookup. Affine temperatures use
-`K`, `degC`/`°C`, and `degF`/`°F`; invalid absolute temperatures and affine
-multiplication, division, and powers return errors.
-
----
-
-## Crate layout
-
-```
-wasmModules/math-box/
-├── Cargo.toml          # crate-type = ["cdylib", "rlib"]
-├── src/
-│   ├── lib.rs          # #[wasm_bindgen] public API
-│   ├── value.rs        # Value enum + promotion rules
-│   ├── lexer.rs        # source → tokens
-│   ├── parser.rs       # tokens → AST (Pratt)
-│   ├── compiler.rs     # AST → flat instructions (with constant folding)
-│   ├── vm.rs           # instruction stream executor
-│   ├── namespace.rs    # variable / function lookup
-│   ├── builtins.rs     # built-in functions and constants
-│   ├── units.rs        # SI unit tables and dimension checks
-│   ├── ops.rs          # arithmetic dispatch across Value variants
-│   ├── limits.rs       # parse / eval safety caps
-│   └── error.rs        # ParseError, CompileError, RuntimeError
-├── tests/
-│   └── integration.rs
-└── benches/
-    └── eval.rs
-```
-
-Each error type is module-local with its own `Result` alias; `Display` is
-hand-written rather than derived.
-
----
-
-## Public API
-
-```rust
-#[wasm_bindgen]
 pub fn evaluate(input: &str) -> Result<String, String>;
-```
-
-One-shot parse + compile + eval. Errors are stringified for the JS side.
-
-```rust
-pub struct TypedResult {
-    // `num`, `big`, `fraction`, `complex`, `unit`, `bool`, `string`, or `function`.
-    kind: String,
-    text: String,
-    exact: bool,
-    finite: bool,
-}
-
 pub fn evaluate_typed(input: &str) -> Result<TypedResult, String>;
-
-pub struct Compiled { /* bounded compiled program */ }
+pub struct Compiled { /* compiled expression */ }
+impl Compiled {
+    pub fn new(input: &str) -> Result<Self, String>;
+    pub fn evaluate(&self) -> Result<String, String>;
+    pub fn evaluate_typed(&self) -> Result<TypedResult, String>;
+}
 ```
 
-`evaluate` remains the compatibility string API. `evaluate_typed` exposes the
-runtime kind, formatted text, exactness for BigInt/fraction results, and a
-finite flag. `Compiled::new`, `evaluate`, `evaluate_typed`, and `free` provide
-reusable compiled programs; every evaluation starts with a fresh scope and
-work budget.
+`evaluate` and `evaluate_typed` are exported through wasm-bindgen when `wasm`
+is enabled. Each top-level call has a fresh variable/function scope and returns
+the last statement's display value. `TypedResult` exposes `kind`, `text`,
+`exact` and `finite`; the kind is one of `num`, `bool`, `string`, `function`,
+`big`, `fraction`, `complex` or `unit`. `Compiled::new` parses and compiles
+once, while each `Compiled.evaluate*` call creates a fresh scope and budget.
+Errors come from the shared [Error enum](src/error.rs) and are converted to
+strings at this API boundary.
 
----
+## Limits
 
-## Safety limits
+The enforced constants are in [limits.rs](src/limits.rs) and [vm.rs](src/vm.rs):
 
-User input from the web is untrusted, so the evaluator enforces caps:
+| Limit | Value |
+| --- | ---: |
+| Input length (UTF-8 bytes) | 4096 |
+| Parser expression depth | 32 |
+| AST height | 256 |
+| Lexer token cap | 4096 |
+| Arguments in a function call | 32 |
+| Evaluation steps (compile and execution) | 10,000 |
+| BigInt/fraction numeric bit length | 16,384 |
+| Rendered display length | 4096 |
+| VM scope frames, including the initial frame | 32 |
 
-| limit | default |
-|---|---|
-| expression length | 4 KB |
-| nesting depth | 32 |
-| value count | 64 |
-| sub-expression count | 64 |
-
-Exceeding any cap returns a structured `ParseError` rather than panicking.
-
----
+Limit violations return the corresponding `Error`, such as `InputTooLong`,
+`DepthExceeded`, `TooManyTokens`, `ArityMismatch` or `LimitExceeded`. A normal
+`evaluate` call shares the evaluation-step budget between compilation and VM
+execution. A `Compiled` expression has a compile budget and a fresh execution
+budget for each call. Numeric growth and rendered output are checked before
+results cross the public API. The public JS-facing API returns a string error.
 
 ## Cargo features
 
-| feature | runtime deps | purpose |
-|---|---|---|
-| `default` | `std`, `wasm` | normal browser build |
-| `std` | — | use `f64::sin` etc. |
-| `wasm` | `wasm-bindgen` | JS-friendly API |
-| `bigint` | `num-bigint`, `num-traits` | arbitrary-precision integers |
-| `fraction` | `num-rational`, `num-integer`, `num-traits` | exact rationals (uses `BigInt` when `bigint` is on) |
-| `unit` | — | unit system, no extra deps |
+[Cargo.toml](Cargo.toml) enables **all six** features by default:
+`std`, `wasm`, `bigint`, `fraction`, `unit`, `complex`.
 
-Runtime dependencies are kept to a minimum: outside `wasm-bindgen` and the
-opt-in numeric backends, the crate has none. Dev-dependencies (`criterion`,
-`wasm-bindgen-test`, `proptest`) never reach `pkg/*.wasm`.
+| Feature | Dependencies / purpose |
+| --- | --- |
+| `std` | Standard-library build and cached default namespace |
+| `wasm` | `wasm-bindgen`, `console_error_panic_hook`; JS exports and panic diagnostics |
+| `bigint` | `num-bigint`, `num-traits`; `n` literals, `big()` and BigInt arithmetic |
+| `fraction` | `num-rational`, `num-integer`, `num-traits`; `frac()` and rational arithmetic |
+| `unit` | Unit values, the label table, implicit unit literals, `to`, `unit()` and `convert()` |
+| `complex` | Complex values, `i`, `complex()` and complex helpers |
 
----
+Use `--no-default-features --features "..."` to select a subset. Disabling
+`unit` removes the whole unit facility, not only a conversion helper.
+`criterion` and `wasm-bindgen-test` are dev-dependencies; `proptest` is not.
 
-## Integration with magic-box
+## Build and examples
 
-`MathExpressionBoxSource.ts` lazy-imports `math-box` in place of `mathjs`.
-The `MATH_SHAPE` regex pre-filter accepts the new syntax (`1 km`, `to`,
-`123n`, comparisons, and logical operators). The source uses typed results to
-ignore strings, function definitions, non-finite numbers, dates, phone-like
-numeric groups, and bare unit literals during automatic matching. `::math` and
-`::math=<expr>` explicitly enable or replace the expression.
+From the repository root, with Rust and wasm-pack installed:
 
-```jsonc
-// package.json
-{
-  "dependencies": {
-    "math-box": "file:wasmModules/math-box/pkg"
-  }
-}
+```sh
+bun run build:wasm
+bun install --frozen-lockfile
 ```
 
-Build with `bun run build:wasm` from the repo root.
-
----
-
-## Examples
+The app depends on `math-box` via `file:wasmModules/math-box/pkg`.
+`MathExpressionBoxSource` lazy-loads it and memoizes successful results at the
+application layer; that cache is not part of the evaluator benchmark.
 
 ```text
-1000 + 2000                          → 3000
-2 * (3 + 4)                          → 14
-2 + 2^10 + log(10, 10000)            → 1026.25
-sin(PI/2)                            → 1
-9007199254740993n + 1n               → 9007199254740994
-frac(1, 3) + frac(1, 4)              → 7/12
-complex(1, 2) * complex(3, 4)        → -5+10i
-1 km + 500 m to m                    → 1500 m
-3 kg to g                            → 3000 g
-10 km / 2 h                         → 5 km/h
-0 degC to degF                       → 32 degF
-10% of 200                           → 20
-f(x) = x^2; f(5)                     → 25
+1000 + 2000                     → 3000
+2 * (3 + 4)                     → 14
+2 + 2^10 + log(10, 10000)        → 1026.25
+sin(PI/2)                       → 1
+1 < 2                           → true
+2 pi                            → 6.283185307179586
+2(3 + 4)                        → 14
+50%                             → 0.5
+10% of 200                      → 20
+9007199254740993n + 1n          → 9007199254740994
+frac(1, 3) + frac(1, 4)          → 7/12
+complex(1, 2) * complex(3, 4)    → -5+10i
+(1 km + 500 m) to m             → 1500 m
+10 m/s to km/h                  → 36 km/h
+0 degC to degF                  → 32 degF
+3 kg to g                       → 3000 g
+f(x) = x^2; f(5)                → 25
 ```
 
----
+## Validation and benchmarks
 
-## Testing
+From the repository root:
 
-- `cargo test` — unit + integration tests
-- `wasm-bindgen-test` — headless browser smoke tests for the generated package
-- `proptest` — random expression generation, must not panic
-- `cargo fuzz` — lexer / parser robustness
-- TS side: `MathExpressionBoxSource.test.ts` and the recovery tests cover
-  automatic matching, explicit math options, negative gates, and retry paths
+```sh
+cargo test --manifest-path wasmModules/math-box/Cargo.toml
+cargo bench --manifest-path wasmModules/math-box/Cargo.toml --no-default-features --features "std bigint fraction unit complex"
+# after building and installing the WASM packages:
+node wasmModules/math-box/bench/compare.mjs
+bun run test --run src/modules/boxSources/__test__/MathExpressionBoxSource.test.ts
+```
 
----
+Current Rust coverage lives in [tests/integration.rs](tests/integration.rs).
+The [tests/web.rs](tests/web.rs) module defines three `wasm_bindgen_test` cases;
+the CI matrix runs them headlessly in both Chrome and Firefox. The TypeScript
+tests exercise the app's Math source and are separate from the browser WASM
+tests. There is no proptest suite or cargo-fuzz target.
 
-## Benchmarks
-
-`cargo bench` produces a Criterion report under
-`target/criterion/report/index.html`. Tracked samples cover short
-arithmetic, mid-depth expressions, trig + constants, multi-variable
-namespaces, and repeated eval against a precompiled program.
-
-WASM-side comparisons against `mathjs` (cold import, hot loop, cold loop)
-live in [`BENCHMARK.md`](./BENCHMARK.md), updated per phase. PRs that
-regress the hot path by more than 10% must justify the cost.
+[benches/eval.rs](benches/eval.rs) uses Criterion for six full-pipeline cases:
+simple, medium, trig, hex, factorial and nested expressions. It also benchmarks
+a precompiled user-function handle through `Compiled::evaluate`. See
+[BENCHMARK.md](BENCHMARK.md) for validated native and shipping WASM
+measurements, exact artifacts, provenance, raw samples and reproduction
+commands. Run `bun run test:math-box-compare` to verify that generated
+comparison reports leave the canonical benchmark unchanged.
