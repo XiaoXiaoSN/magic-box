@@ -46,7 +46,6 @@
    value in JS (see global/theme.ts) before first paint, so this block is the
    only place dark tokens live -- there is no duplicated
    `@media (prefers-color-scheme: dark)` copy to keep in sync. */
-.dark-theme,
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0b1120;
@@ -113,6 +112,16 @@ html body {
 ::selection {
   background: var(--accent-soft);
   color: var(--accent-ink);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 code,
@@ -405,6 +414,7 @@ pre,
 
 .input-qr-btn {
   position: absolute;
+  z-index: 6;
   right: 10px;
   bottom: 10px;
   width: 28px;
@@ -424,6 +434,96 @@ pre,
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.input-qr-btn .qr-reader-open {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: inherit;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.directive-autocomplete {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.directive-menu {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: calc(100% - 12px);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-lg);
+}
+
+.directive-option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.directive-option.is-active,
+.directive-option:hover {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.directive-option-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.directive-option-main code,
+.directive-option-description {
+  font-size: 11px;
+}
+
+.directive-option-main span,
+.directive-option-description {
+  color: var(--ink-3);
+}
+
+.directive-option-description {
+  flex: 0 1 45%;
+  text-align: right;
+}
+
+.directive-announcement,
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .input-options {
@@ -457,6 +557,32 @@ pre,
 
 .opt-v {
   opacity: 0.85;
+}
+
+.opt-chip.is-unknown {
+  background: var(--muted);
+  color: var(--ink-2);
+}
+
+.opt-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 6px;
+  font-family: var(--sans);
+  font-size: 10px;
+  color: var(--ink-3);
+}
+
+.opt-suggestion,
+.opt-enable {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
 }
 
 /* ---------- History panel ---------- */
@@ -654,15 +780,6 @@ pre,
   }
 }
 
-.out-count {
-  font-size: 11px;
-  color: var(--ink-3);
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-  font-family: var(--mono);
-}
-
 .boxes {
   display: flex;
   flex-direction: column;
@@ -809,7 +926,8 @@ pre,
 }
 
 .box-copy,
-.box-expand {
+.box-expand,
+.box-select {
   font-size: 11px;
   color: var(--ink-3);
   padding: 4px 9px;
@@ -829,13 +947,15 @@ pre,
 }
 
 .box-copy:hover,
-.box-expand:hover {
+.box-expand:hover,
+.box-select:hover {
   background: var(--muted);
   color: var(--ink);
 }
 
 .box-card.is-selected .box-copy,
-.box-card.is-selected .box-expand {
+.box-card.is-selected .box-expand,
+.box-card.is-selected .box-select {
   border-color: var(--accent);
   color: var(--accent-ink);
   background: var(--accent-soft);
@@ -843,15 +963,6 @@ pre,
 
 .box-body {
   padding: 12px 14px;
-}
-
-.box-meta {
-  font-size: 11px;
-  color: var(--ink-4);
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--line);
-  word-break: break-all;
 }
 
 .box-out {
@@ -1672,11 +1783,19 @@ pre,
   gap: 24px;
 }
 
+.field-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .field-info {
   flex: 1;
 }
 
 .field-label {
+  display: block;
   font-size: 13px;
   color: var(--ink);
   font-weight: 500;
@@ -1703,6 +1822,7 @@ pre,
 }
 
 .seg-item {
+  position: relative;
   font-size: 12px;
   color: var(--ink-3);
   padding: 5px 12px;
@@ -1715,11 +1835,29 @@ pre,
   font-family: inherit;
 }
 
+.seg-item input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.seg-item:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .seg-item:hover {
   color: var(--ink);
 }
 
 .seg-item.active {
+  background: var(--bg-elev);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.seg-item[aria-checked="true"] {
   background: var(--bg-elev);
   color: var(--ink);
   box-shadow: var(--shadow-sm);

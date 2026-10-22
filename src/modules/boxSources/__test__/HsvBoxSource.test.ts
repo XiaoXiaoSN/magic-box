@@ -224,11 +224,6 @@ describe('HsvBoxSource.generateBoxes', () => {
     expect(boxes[0].props.name).toBe('HSV');
   });
 
-  it('box priority matches HsvBoxSource.priority', async () => {
-    const boxes = await HsvBoxSource.generateBoxes('#ff0000', { hsv: true });
-    expect(boxes[0].props.priority).toBe(HsvBoxSource.priority);
-  });
-
   it('plaintext contains key:value pairs', async () => {
     const boxes = await HsvBoxSource.generateBoxes('#ff0000', { hsv: true });
     const text = boxes[0].props.plaintextOutput;

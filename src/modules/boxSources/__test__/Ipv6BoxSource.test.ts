@@ -87,11 +87,6 @@ describe('Ipv6BoxSource', () => {
       expect(boxes[0].view).toBe('keyValue');
     });
 
-    it('sets priority to 10', async () => {
-      const boxes = await Ipv6BoxSource.generateBoxes('::1', { ipv6: true });
-      expect(boxes[0].props.priority).toBe(10);
-    });
-
     it('box name is IPv6', async () => {
       const boxes = await Ipv6BoxSource.generateBoxes('::1', { ipv6: true });
       expect(boxes[0].props.name).toBe('IPv6');

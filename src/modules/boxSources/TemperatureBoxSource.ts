@@ -7,8 +7,6 @@ import {
   keyValueBox,
 } from '@modules/Box';
 
-const Priority = 10;
-
 // strips trailing decimal zeros, e.g. 100.00 → '100', 37.78 → '37.78'
 function formatValue(n: number): string {
   return Number.parseFloat(n.toFixed(2)).toString();
@@ -53,7 +51,6 @@ export const TemperatureBoxSource = {
   defaultInput: '100C\n::temp',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -81,7 +78,6 @@ export const TemperatureBoxSource = {
           errorBox(
             'Temperature',
             `Unknown temperature unit "${requestedUnit}". Use Celsius, Fahrenheit, or Kelvin.`,
-            { priority: this.priority },
           ),
         ];
       }
@@ -105,7 +101,6 @@ export const TemperatureBoxSource = {
         errorBox(
           'Temperature',
           `Temperature is below absolute zero for ${unit.toUpperCase()}.`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -118,11 +113,7 @@ export const TemperatureBoxSource = {
       Kelvin: k,
     };
 
-    return [
-      keyValueBox('keyValue', 'Temperature', kvOptions, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'Temperature', kvOptions)];
   },
 };
 

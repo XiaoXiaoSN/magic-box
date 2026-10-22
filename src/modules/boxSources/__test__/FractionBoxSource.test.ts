@@ -207,13 +207,6 @@ describe('FractionBoxSource', () => {
     });
 
     describe('box metadata', () => {
-      it('sets priority correctly', async () => {
-        const boxes = await FractionBoxSource.generateBoxes('0.75', {
-          fraction: true,
-        });
-        expect(boxes[0].props.priority).toBe(10);
-      });
-
       it('sets plaintextOutput as k:v lines', async () => {
         const boxes = await FractionBoxSource.generateBoxes('0.75', {
           fraction: true,

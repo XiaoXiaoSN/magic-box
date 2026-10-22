@@ -154,7 +154,6 @@ describe('Base32BoxSource', () => {
     it('has expected static properties', () => {
       expect(Base32BoxSource.name).toBe('Base32');
       expect(Base32BoxSource.kind).toBe('Encode');
-      expect(typeof Base32BoxSource.priority).toBe('number');
     });
   });
 });

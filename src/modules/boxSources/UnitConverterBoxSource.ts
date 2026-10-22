@@ -10,8 +10,6 @@ import {
   STRICT_NUMBER_TOKEN,
 } from './UnitConversionData';
 
-const Priority = 12;
-
 type UnitCategory =
   | 'length'
   | 'area'
@@ -593,9 +591,10 @@ function convertValue(val: number, srcDef: UnitDef, dstDef: UnitDef): number {
 
 // Regex to parse expressions like "100 km", "500 MB in GB", "37 C to F".
 const UNIT_INPUT_RE = new RegExp(
-  `^\\s*(${STRICT_NUMBER_TOKEN})(\\s*)([°²³a-zA-Z%/]+)(?:\\s*(?:to|in|->|=|:)\\s*([°²³a-zA-Z%/]+))?\\s*$`,
+  `^\\s*(${STRICT_NUMBER_TOKEN})(\\s*)([°²³a-zA-Z%/]+)(?:(?:\\s+(?:to|in)\\s+|\\s*(?:->|=|:)\\s*)([°²³a-zA-Z%/]+))?\\s*$`,
   'i',
 );
+const MAX_UNIT_INPUT_LENGTH = 64;
 
 interface ParsedUnitInput {
   value: number;
@@ -605,6 +604,7 @@ interface ParsedUnitInput {
 }
 
 function parseUnitInput(raw: string): ParsedUnitInput | null {
+  if (raw.length > MAX_UNIT_INPUT_LENGTH) return null;
   const match = UNIT_INPUT_RE.exec(raw);
   if (!match) return null;
 
@@ -643,7 +643,6 @@ export const UnitConverterBoxSource = {
   defaultInput: '100 km to mi',
   tag: '⇄',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -704,7 +703,7 @@ export const UnitConverterBoxSource = {
         new BoxBuilder(title, plaintext)
           .setView('keyValue')
           .setOptions(kvOptions)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -729,7 +728,7 @@ export const UnitConverterBoxSource = {
       new BoxBuilder(title, plaintext)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

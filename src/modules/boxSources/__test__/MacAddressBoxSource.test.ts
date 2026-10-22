@@ -210,7 +210,6 @@ describe('MacAddressBoxSource', () => {
       expect(MacAddressBoxSource.name).toBe('MAC Address');
       expect(MacAddressBoxSource.tag).toBe('#');
       expect(MacAddressBoxSource.kind).toBe('Convert');
-      expect(typeof MacAddressBoxSource.priority).toBe('number');
     });
   });
 });

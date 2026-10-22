@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 10_000;
 const MAX_OPERANDS = 1_000;
 
@@ -47,7 +46,6 @@ export const GcdLcmBoxSource = {
   defaultInput: '12, 18, 24\n::gcd',
   tag: '#',
   kind: 'Calculate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -60,7 +58,6 @@ export const GcdLcmBoxSource = {
         errorBox(
           'GCD / LCM',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -72,7 +69,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -82,9 +79,7 @@ export const GcdLcmBoxSource = {
 
     if (tokens.length > MAX_OPERANDS) {
       return [
-        errorBox('GCD / LCM', `Too many operands (limit ${MAX_OPERANDS}).`, {
-          priority: this.priority,
-        }),
+        errorBox('GCD / LCM', `Too many operands (limit ${MAX_OPERANDS}).`),
       ];
     }
 
@@ -96,7 +91,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -107,7 +102,7 @@ export const GcdLcmBoxSource = {
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
           .setOptions(kv)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -128,7 +123,7 @@ export const GcdLcmBoxSource = {
       new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
         .setOptions(kv)
         .setView('keyValue')
-        .setPriority(Priority)
+
         .build(),
     ];
   },

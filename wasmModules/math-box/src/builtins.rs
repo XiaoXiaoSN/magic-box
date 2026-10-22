@@ -1,7 +1,9 @@
+use alloc::vec::Vec;
 use core::f64::consts;
 
 use crate::error::{Error, Result};
 use crate::namespace::{Arity, Namespace};
+use crate::ops;
 use crate::value::{Value, values_to_f64};
 
 pub fn default_namespace() -> Namespace {
@@ -60,8 +62,10 @@ pub fn default_namespace() -> Namespace {
     num1!("ln", f64::ln);
     num1!("log2", f64::log2);
     num1!("log10", f64::log10);
-    num2!("pow", f64::powf);
-    num1!("sqrt", f64::sqrt);
+    ns.set_fn("pow", exact(2), true, |a| {
+        ops::pow(a[0].clone(), a[1].clone())
+    });
+    ns.set_fn("sqrt", exact(1), true, sqrt_value);
     num1!("cbrt", f64::cbrt);
 
     num1!("floor", f64::floor);
@@ -76,18 +80,39 @@ pub fn default_namespace() -> Namespace {
         } else {
             let base = v[1];
             if base <= 0.0 || base == 1.0 {
-                return Err(Error::Domain { what: "log base must be positive and != 1" });
+                return Err(Error::Domain {
+                    what: "log base must be positive and != 1",
+                });
             }
             Ok(Value::Num(v[0].log(base)))
         }
     });
 
-    ns.set_fn("abs", exact(1), true, |a| {
-        match &a[0] {
-            #[cfg(feature = "complex")]
-            Value::Complex(c) => Ok(Value::Num(c.abs())),
-            _ => Ok(Value::Num(values_to_f64(a)?[0].abs())),
+    ns.set_fn("abs", exact(1), true, |a| match &a[0] {
+        #[cfg(feature = "bigint")]
+        Value::Big(value) => Ok(Value::Big(abs_big(value.clone()))),
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => Ok(Value::Frac(value.abs())),
+        #[cfg(feature = "complex")]
+        Value::Complex(c) => Ok(Value::Num(c.abs())),
+        #[cfg(feature = "unit")]
+        Value::Unit(value) => {
+            let display_value = value.display_value().abs();
+            Ok(Value::Unit(crate::value::UnitValue {
+                base_value: if value.affine {
+                    display_value * value.display_factor + value.display_offset
+                } else {
+                    value.base_value.abs()
+                },
+                unit_label: value.unit_label.clone(),
+                display_factor: value.display_factor,
+                display_offset: value.display_offset,
+                display_value_override: Some(display_value),
+                dim: value.dim,
+                affine: value.affine,
+            }))
         }
+        _ => Ok(Value::Num(values_to_f64(a)?[0].abs())),
     });
 
     ns.set_fn("sign", exact(1), true, |a| {
@@ -100,41 +125,13 @@ pub fn default_namespace() -> Namespace {
         Ok(Value::Num(v.iter().map(|x| x * x).sum::<f64>().sqrt()))
     });
 
-    ns.set_fn("min", range(1, 32), true, |a| {
-        let v = values_to_f64(a)?;
-        Ok(Value::Num(v.iter().copied().fold(f64::INFINITY, f64::min)))
-    });
-    ns.set_fn("max", range(1, 32), true, |a| {
-        let v = values_to_f64(a)?;
-        Ok(Value::Num(v.iter().copied().fold(f64::NEG_INFINITY, f64::max)))
-    });
+    ns.set_fn("min", range(1, 32), true, |a| select_extreme(a, false));
+    ns.set_fn("max", range(1, 32), true, |a| select_extreme(a, true));
 
-    ns.set_fn("fact", exact(1), true, |a| {
-        let n = values_to_f64(a)?[0];
-        Ok(Value::Num(factorial_f64(n)?))
-    });
+    ns.set_fn("fact", exact(1), true, |a| ops::factorial(a[0].clone()));
 
-    // gcd / lcm — variadic over integer-valued numbers.
-    // both delegate to num_integer::Integer::{gcd,lcm}, which canonicalises
-    // sign and treats gcd(0,0) = 0 (mathematical convention).
-    ns.set_fn("gcd", range(2, 32), true, |a| {
-        use num_integer::Integer;
-        let v = values_to_f64(a)?;
-        let mut acc = v[0].abs() as i64;
-        for x in &v[1..] {
-            acc = acc.gcd(&(x.abs() as i64));
-        }
-        Ok(Value::Num(acc as f64))
-    });
-    ns.set_fn("lcm", range(2, 32), true, |a| {
-        use num_integer::Integer;
-        let v = values_to_f64(a)?;
-        let mut acc = v[0].abs() as i64;
-        for x in &v[1..] {
-            acc = acc.lcm(&(x.abs() as i64));
-        }
-        Ok(Value::Num(acc as f64))
-    });
+    ns.set_fn("gcd", range(2, 32), true, gcd_values);
+    ns.set_fn("lcm", range(2, 32), true, lcm_values);
 
     // ─── BigInt ────────────────────────────────────────────────
     #[cfg(feature = "bigint")]
@@ -156,7 +153,9 @@ pub fn default_namespace() -> Namespace {
                         .map(Value::Big)
                         .ok_or(Error::Overflow)
                 }
-                _ => Err(Error::Domain { what: "big() expects a number" }),
+                _ => Err(Error::Domain {
+                    what: "big() expects a number",
+                }),
             }
         });
     }
@@ -182,11 +181,18 @@ pub fn default_namespace() -> Namespace {
         });
         ns.set_fn("re", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.re)),
-            other => Ok(Value::Num(other.as_f64().unwrap_or(0.0))),
+            other => Ok(Value::Num(other.as_f64().ok_or(Error::Domain {
+                what: "re requires a numeric operand",
+            })?)),
         });
         ns.set_fn("im", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.im)),
-            _ => Ok(Value::Num(0.0)),
+            other => {
+                other.as_f64().ok_or(Error::Domain {
+                    what: "im requires a numeric operand",
+                })?;
+                Ok(Value::Num(0.0))
+            }
         });
         ns.set_fn("conj", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Complex(c.conj())),
@@ -195,8 +201,14 @@ pub fn default_namespace() -> Namespace {
         ns.set_fn("arg", exact(1), true, |a| match &a[0] {
             Value::Complex(c) => Ok(Value::Num(c.arg())),
             other => {
-                let n = other.as_f64().unwrap_or(0.0);
-                Ok(Value::Num(if n >= 0.0 { 0.0 } else { core::f64::consts::PI }))
+                let n = other.as_f64().ok_or(Error::Domain {
+                    what: "arg requires a numeric operand",
+                })?;
+                Ok(Value::Num(if n >= 0.0 {
+                    0.0
+                } else {
+                    core::f64::consts::PI
+                }))
             }
         });
     }
@@ -210,16 +222,34 @@ pub fn default_namespace() -> Namespace {
     #[cfg(feature = "unit")]
     {
         ns.set_fn("unit", exact(2), true, |a| {
-            let value = a[0].as_f64()
-                .ok_or(Error::Domain { what: "unit() requires a numeric value as the first argument" })?;
-            let label = a[1].as_str()
-                .ok_or(Error::Domain { what: "unit() requires a string label as the second argument" })?;
-            let (scale, dim) = crate::units::lookup(label)
-                .ok_or(Error::Domain { what: "unknown unit label" })?;
+            let value = a[0].as_f64().ok_or(Error::Domain {
+                what: "unit() requires a numeric value as the first argument",
+            })?;
+            let label = a[1].as_str().ok_or(Error::Domain {
+                what: "unit() requires a string label as the second argument",
+            })?;
+            let spec = crate::units::parse_expression(label)?;
+            let scaled_value = value * spec.factor;
+            if value != 0.0 && (!scaled_value.is_finite() || scaled_value == 0.0) {
+                return Err(Error::Overflow);
+            }
+            let base_value = scaled_value + spec.offset;
+            if spec.dim == crate::value::Dimension::TEMPERATURE && base_value < 0.0 {
+                return Err(Error::Domain {
+                    what: "temperature below absolute zero",
+                });
+            }
+            if spec.dim == crate::value::Dimension::SCALAR {
+                return Ok(Value::Num(base_value));
+            }
             Ok(Value::Unit(crate::value::UnitValue {
-                base_value: value * scale,
+                base_value,
                 unit_label: label.into(),
-                dim,
+                display_factor: spec.factor,
+                display_offset: spec.offset,
+                display_value_override: Some(value),
+                dim: spec.dim,
+                affine: spec.affine,
             }))
         });
 
@@ -234,21 +264,41 @@ pub fn default_namespace() -> Namespace {
             }
             let unit_v = match &a[0] {
                 Value::Unit(u) => u.clone(),
-                _ => return Err(Error::Domain { what: "convert() expects a Unit as first argument" }),
+                _ => {
+                    return Err(Error::Domain {
+                        what: "convert() expects a Unit as first argument",
+                    });
+                }
             };
-            let to_label = a[1]
-                .as_str()
-                .ok_or(Error::Domain { what: "convert() expects a string target label" })?;
-            let (_, dim) = crate::units::lookup(to_label)
-                .ok_or(Error::Domain { what: "unknown unit label" })?;
-            if unit_v.dim != dim {
+            let to_label = a[1].as_str().ok_or(Error::Domain {
+                what: "convert() expects a string target label",
+            })?;
+            let spec = crate::units::parse_expression(to_label)?;
+            if unit_v.dim != spec.dim {
                 return Err(Error::DimensionMismatch);
             }
-            // base_value is dimension-invariant; the new label drives display scale.
+            if spec.dim == crate::value::Dimension::TEMPERATURE && unit_v.base_value < 0.0 {
+                return Err(Error::Domain {
+                    what: "temperature below absolute zero",
+                });
+            }
             Ok(Value::Unit(crate::value::UnitValue {
                 base_value: unit_v.base_value,
                 unit_label: to_label.into(),
-                dim,
+                display_factor: spec.factor,
+                display_offset: spec.offset,
+                display_value_override: if spec.dim == crate::value::Dimension::TEMPERATURE {
+                    match to_label {
+                        "K" | "k" => Some(unit_v.base_value),
+                        "degC" | "°C" => Some(unit_v.base_value - 273.15),
+                        "degF" | "°F" => Some((unit_v.base_value - 273.15) * (9.0 / 5.0) + 32.0),
+                        _ => None,
+                    }
+                } else {
+                    None
+                },
+                dim: spec.dim,
+                affine: spec.affine,
             }))
         });
     }
@@ -256,6 +306,24 @@ pub fn default_namespace() -> Namespace {
     ns
 }
 
+fn select_extreme(args: &[Value], maximum: bool) -> Result<Value> {
+    let mut selected = args.first().cloned().ok_or(Error::UnexpectedEof)?;
+    for candidate in &args[1..] {
+        let op = if maximum {
+            crate::parser::CmpOp::Gt
+        } else {
+            crate::parser::CmpOp::Lt
+        };
+        let is_better = match ops::compare(candidate.clone(), selected.clone(), op)? {
+            Value::Bool(value) => value,
+            _ => false,
+        };
+        if is_better {
+            selected = candidate.clone();
+        }
+    }
+    Ok(selected)
+}
 
 pub fn factorial_f64(n: f64) -> Result<f64> {
     if !n.is_finite() || n < 0.0 || n.fract() != 0.0 {
@@ -279,13 +347,231 @@ fn to_frac(v: &Value) -> Result<crate::value::Fraction> {
     match v {
         Value::Num(n) => {
             if !n.is_finite() || n.fract() != 0.0 {
-                return Err(Error::Domain { what: "frac() expects integer-valued operands" });
+                return Err(Error::Domain {
+                    what: "frac() expects integer-valued operands",
+                });
             }
-            Ok(crate::value::Fraction::from_int(*n as i64))
+            crate::value::Fraction::from_f64_integer(*n)
         }
         #[cfg(feature = "bigint")]
         Value::Big(b) => Ok(crate::value::Fraction::raw_from_int_backend(b.clone())),
         Value::Frac(f) => Ok(f.clone()),
-        _ => Err(Error::Domain { what: "frac() expects an integer-valued argument" }),
+        _ => Err(Error::Domain {
+            what: "frac() expects an integer-valued argument",
+        }),
     }
+}
+
+fn sqrt_value(args: &[Value]) -> Result<Value> {
+    #[cfg(feature = "unit")]
+    if let Value::Unit(value) = &args[0] {
+        if value.affine
+            || value.dim.length % 2 != 0
+            || value.dim.mass % 2 != 0
+            || value.dim.time % 2 != 0
+            || value.dim.temperature % 2 != 0
+            || value.dim.data % 2 != 0
+        {
+            return Err(Error::TypeMismatch {
+                op: "sqrt",
+                lhs: "unit",
+                rhs: "even-dimensional unit",
+            });
+        }
+        if value.base_value < 0.0 {
+            return Err(Error::Domain {
+                what: "sqrt requires a non-negative unit value",
+            });
+        }
+        let dim = crate::value::Dimension {
+            length: value.dim.length / 2,
+            mass: value.dim.mass / 2,
+            time: value.dim.time / 2,
+            temperature: value.dim.temperature / 2,
+            data: value.dim.data / 2,
+        };
+        let base_value = value.base_value.sqrt();
+        if dim == crate::value::Dimension::SCALAR {
+            return Ok(Value::Num(base_value));
+        }
+        let (unit_label, display_factor) = crate::units::format_sqrt(&value.unit_label)
+            .map_or_else(
+                || (dim.canonical_label(), 1.0),
+                |label| (label, value.display_factor.sqrt()),
+            );
+        return Ok(Value::Unit(crate::value::UnitValue {
+            base_value,
+            unit_label,
+            display_factor,
+            display_offset: 0.0,
+            display_value_override: None,
+            dim,
+            affine: false,
+        }));
+    }
+
+    #[cfg(feature = "complex")]
+    if let Value::Complex(value) = &args[0] {
+        let radius = value.abs();
+        let re = ((radius + value.re) / 2.0).sqrt();
+        let im = ((radius - value.re) / 2.0).sqrt()
+            * if value.im.is_sign_negative() {
+                -1.0
+            } else {
+                1.0
+            };
+        return Ok(Value::Complex(crate::value::Complex::new(re, im)));
+    }
+
+    let value = args[0].as_f64().ok_or(Error::Domain {
+        what: "sqrt requires a numeric operand",
+    })?;
+    #[cfg(feature = "complex")]
+    if value < 0.0 {
+        return Ok(Value::Complex(crate::value::Complex::new(
+            0.0,
+            (-value).sqrt(),
+        )));
+    }
+    Ok(Value::Num(value.sqrt()))
+}
+
+#[cfg(feature = "bigint")]
+fn integer_big(value: &Value) -> Result<num_bigint::BigInt> {
+    use num_traits::FromPrimitive;
+
+    match value {
+        Value::Big(value) => Ok(value.clone()),
+        Value::Num(value) if value.is_finite() && value.fract() == 0.0 => {
+            num_bigint::BigInt::from_f64(*value).ok_or(Error::Overflow)
+        }
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => value.integer_backend().ok_or(Error::Domain {
+            what: "gcd/lcm requires integer arguments",
+        }),
+        _ => Err(Error::Domain {
+            what: "gcd/lcm requires integer arguments",
+        }),
+    }
+}
+
+#[cfg(feature = "bigint")]
+fn abs_big(value: num_bigint::BigInt) -> num_bigint::BigInt {
+    if value.sign() == num_bigint::Sign::Minus {
+        -value
+    } else {
+        value
+    }
+}
+
+#[cfg(feature = "bigint")]
+fn gcd_big(mut left: num_bigint::BigInt, mut right: num_bigint::BigInt) -> num_bigint::BigInt {
+    left = abs_big(left);
+    right = abs_big(right);
+    while right != num_bigint::BigInt::from(0) {
+        let remainder = &left % &right;
+        left = right;
+        right = remainder;
+    }
+    left
+}
+
+#[cfg(feature = "bigint")]
+fn gcd_values(args: &[Value]) -> Result<Value> {
+    let mut result = integer_big(&args[0])?;
+    for value in &args[1..] {
+        result = gcd_big(result, integer_big(value)?);
+    }
+    Ok(Value::Big(result))
+}
+
+#[cfg(feature = "bigint")]
+fn lcm_values(args: &[Value]) -> Result<Value> {
+    use crate::limits::MAX_NUMERIC_BITS;
+
+    let values = args.iter().map(integer_big).collect::<Result<Vec<_>>>()?;
+    let mut result = abs_big(values[0].clone());
+    for value in values.into_iter().skip(1).map(abs_big) {
+        if result == num_bigint::BigInt::from(0) || value == num_bigint::BigInt::from(0) {
+            return Ok(Value::Big(num_bigint::BigInt::from(0)));
+        }
+        let divisor = gcd_big(result.clone(), value.clone());
+        let reduced = &result / &divisor;
+        let minimum_bits = reduced
+            .bits()
+            .saturating_add(value.bits())
+            .saturating_sub(1);
+        if minimum_bits > MAX_NUMERIC_BITS as u64 {
+            return Err(Error::LimitExceeded {
+                what: "numeric bit length",
+                limit: MAX_NUMERIC_BITS,
+            });
+        }
+        result = reduced * value;
+        if result.bits() > MAX_NUMERIC_BITS as u64 {
+            return Err(Error::LimitExceeded {
+                what: "numeric bit length",
+                limit: MAX_NUMERIC_BITS,
+            });
+        }
+    }
+    Ok(Value::Big(result))
+}
+
+#[cfg(not(feature = "bigint"))]
+fn integer_i128(value: &Value) -> Result<i128> {
+    match value {
+        Value::Num(value)
+            if value.is_finite()
+                && value.fract() == 0.0
+                && *value >= i64::MIN as f64
+                && *value < 9_223_372_036_854_775_808.0 =>
+        {
+            Ok(*value as i128)
+        }
+        #[cfg(feature = "fraction")]
+        Value::Frac(value) => value
+            .integer_backend()
+            .map(i128::from)
+            .ok_or(Error::Domain {
+                what: "gcd/lcm requires integer arguments",
+            }),
+        _ => Err(Error::Domain {
+            what: "gcd/lcm requires integer arguments",
+        }),
+    }
+}
+
+#[cfg(not(feature = "bigint"))]
+fn gcd_values(args: &[Value]) -> Result<Value> {
+    let mut left = integer_i128(&args[0])?.abs();
+    for value in &args[1..] {
+        let mut right = integer_i128(value)?.abs();
+        while right != 0 {
+            let remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+    }
+    Ok(Value::Num(left as f64))
+}
+
+#[cfg(not(feature = "bigint"))]
+fn lcm_values(args: &[Value]) -> Result<Value> {
+    let values = args.iter().map(integer_i128).collect::<Result<Vec<_>>>()?;
+    let mut result = values[0].abs();
+    for value in values.into_iter().skip(1).map(i128::abs) {
+        if result == 0 || value == 0 {
+            return Ok(Value::Num(0.0));
+        }
+        let mut left = result;
+        let mut right = value;
+        while right != 0 {
+            let remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+        result = (result / left).checked_mul(value).ok_or(Error::Overflow)?;
+    }
+    Ok(Value::Num(result as f64))
 }

@@ -3,8 +3,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
-
 const MAX_INPUT_LEN = 64;
 
 interface RGB {
@@ -161,7 +159,6 @@ export const HsvBoxSource = {
   defaultInput: '#ff6347\n::hsv',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   checkMatch(input: string): Match | undefined {
     const s = trim(input);
@@ -209,7 +206,7 @@ export const HsvBoxSource = {
         new BoxBuilder('HSV', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -231,7 +228,7 @@ export const HsvBoxSource = {
         new BoxBuilder('HSV', kvToPlaintext(kv))
           .setView('keyValue')
           .setOptions(kv)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -245,7 +242,7 @@ export const HsvBoxSource = {
       new BoxBuilder('HSV', kvToPlaintext(kv))
         .setView('keyValue')
         .setOptions(kv)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

@@ -1,19 +1,21 @@
-import CodeBoxTemplate from './CodeBoxTemplate';
+import { lazy } from 'react';
 import DefaultBoxTemplate from './DefaultBoxTemplate';
-import DiceRollBoxTemplate from './DiceRollBoxTemplate';
 import KeyValueBoxTemplate from './KeyValueBoxTemplate';
-import LocalAIBoxTemplate from './LocalAIBoxTemplate';
-import NotingMatchBoxTemplate from './NotingMatchBoxTemplate';
-import QRCodeBoxTemplate from './QRCodeBoxTemplate';
 import ShortenURLBoxTemplate from './ShortenURLBoxTemplate';
+
+const CodeBoxTemplate = lazy(async () => import('./CodeBoxTemplate'));
+const DiffBoxTemplate = lazy(async () => import('./DiffBoxTemplate'));
+const DiceRollBoxTemplate = lazy(async () => import('./DiceRollBoxTemplate'));
+const LocalAIBoxTemplate = lazy(async () => import('./LocalAIBoxTemplate'));
+const QRCodeBoxTemplate = lazy(async () => import('./QRCodeBoxTemplate'));
 
 export {
   CodeBoxTemplate,
   DefaultBoxTemplate,
   DiceRollBoxTemplate,
+  DiffBoxTemplate,
   KeyValueBoxTemplate,
   LocalAIBoxTemplate,
-  NotingMatchBoxTemplate,
   QRCodeBoxTemplate,
   ShortenURLBoxTemplate,
 };

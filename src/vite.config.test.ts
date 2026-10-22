@@ -68,4 +68,22 @@ describe('Vite build configuration', () => {
       },
     });
   });
+
+  it('consolidates only the client Cron locale fallback graph', () => {
+    const config = resolveConfig('build');
+    const output = config.build?.rollupOptions?.output;
+    expect(Array.isArray(output)).toBe(false);
+    const manualChunks = Array.isArray(output)
+      ? undefined
+      : output?.manualChunks;
+    expect(typeof manualChunks).toBe('function');
+
+    const resolveChunk = manualChunks as (id: string) => string | undefined;
+    expect(resolveChunk('/repo/node_modules/cronstrue/locales/zh_TW.js')).toBe(
+      'cron-locales-fallback',
+    );
+    expect(
+      resolveChunk('/repo/src/modules/boxSources/CronExpressionBoxSource.ts'),
+    ).toBeUndefined();
+  });
 });

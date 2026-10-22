@@ -9,8 +9,6 @@ const DefaultBoxTemplateComponent = ({
   </pre>
 );
 
-const DefaultBoxTemplate = Object.assign(memo(DefaultBoxTemplateComponent), {
-  supportsLarge: true,
-});
+const DefaultBoxTemplate = memo(DefaultBoxTemplateComponent);
 
 export default DefaultBoxTemplate;

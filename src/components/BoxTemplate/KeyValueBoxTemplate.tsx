@@ -95,8 +95,6 @@ const KeyValueBoxTemplateComponent = ({
   );
 };
 
-const KeyValueBoxTemplate = Object.assign(memo(KeyValueBoxTemplateComponent), {
-  supportsLarge: true,
-});
+const KeyValueBoxTemplate = memo(KeyValueBoxTemplateComponent);
 
 export default KeyValueBoxTemplate;

@@ -8,7 +8,6 @@ describe('HaversineBoxSource', () => {
       expect(HaversineBoxSource.name).toBe('Distance');
       expect(HaversineBoxSource.tag).toBe('#');
       expect(HaversineBoxSource.kind).toBe('Calculate');
-      expect(HaversineBoxSource.priority).toBe(10);
     });
   });
 
@@ -73,14 +72,6 @@ describe('HaversineBoxSource', () => {
         { haversine: true },
       );
       expect(boxes[0].props.name).toBe('Distance');
-    });
-
-    it('priority is set', async () => {
-      const boxes = await HaversineBoxSource.generateBoxes(
-        '40.7128,-74.0060 to 51.5074,-0.1278',
-        { haversine: true },
-      );
-      expect(boxes[0].props.priority).toBe(10);
     });
 
     it('Miles uses the exact kilometers-to-miles conversion factor', async () => {

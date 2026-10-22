@@ -161,4 +161,23 @@ describe('JsonToolsBoxSource', () => {
       expect(box.plaintextOutput).toMatch(/^Input is not valid JSON/);
     });
   });
+
+  describe('lossless JSON values', () => {
+    it('keeps unsafe integers and decimal lexemes in transform output', async () => {
+      const box = await single(
+        '{"id":9007199254740993,"price":1.10}\n::jsonpick=id,price',
+      );
+      expect(box.plaintextOutput).toContain('9007199254740993');
+      expect(box.plaintextOutput).toContain('1.10');
+    });
+
+    it('keeps prototype-looking keys as ordinary own data', async () => {
+      const box = await single(
+        '{"__proto__":{"safe":true},"constructor":"data"}\n::jsonpick=__proto__,constructor',
+      );
+      expect(box.plaintextOutput).toContain('"__proto__"');
+      expect(box.plaintextOutput).toContain('"constructor"');
+      expect(box.plaintextOutput).toContain('"safe": true');
+    });
+  });
 });

@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 
-const PriorityReadableBytes = 10;
 const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
 const hexTokenPattern = /^(?:0x)?[0-9a-f]{1,2}$/i;
 const decimalTokenPattern = /^\d+$/;
@@ -22,7 +21,6 @@ export const ReadableBytesBoxSource = {
     '83, 116, 114, 105, 110, 103, 32, 116, 111, 32, 66, 121, 116, 101, 115',
   tag: '⟶',
   kind: 'Decode',
-  priority: PriorityReadableBytes,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -90,11 +88,7 @@ export const ReadableBytesBoxSource = {
     }
 
     const { decodedText } = match;
-    return [
-      new BoxBuilder('ByteArray to String', decodedText)
-        .setPriority(this.priority)
-        .build(),
-    ];
+    return [new BoxBuilder('ByteArray to String', decodedText).build()];
   },
 };
 

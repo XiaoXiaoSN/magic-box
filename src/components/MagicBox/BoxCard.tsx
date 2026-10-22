@@ -6,6 +6,7 @@ import type { BoxProps, Box as BoxType } from '@modules/Box';
 import {
   forwardRef,
   memo,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -14,9 +15,7 @@ import {
 } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 
-// Anything a template renders that the user operates. The card itself is a
-// role button div, which is fine: closest reaches it only when the click
-// landed on no control in between.
+// Anything a template renders that the user operates.
 const CONTROL_SELECTOR =
   'a, button, input, select, textarea, summary, label, [role="button"], [contenteditable="true"]';
 
@@ -45,7 +44,9 @@ interface BoxCardProps {
   selected: boolean;
   stale: boolean;
   onSelect: (index: number) => void;
+  selectionTabIndex: number;
   onCopy: (text: string) => Promise<boolean>;
+  onInputCommit?: () => void;
   onExpand?: (box: BoxType) => void;
   onResultChange?: (
     box: BoxType,
@@ -56,7 +57,7 @@ interface BoxCardProps {
 const COPIED_TIMEOUT_MS = 1200;
 
 const BoxCard = memo(
-  forwardRef<HTMLDivElement, BoxCardProps>(
+  forwardRef<HTMLElement, BoxCardProps>(
     (
       {
         box,
@@ -65,8 +66,10 @@ const BoxCard = memo(
         stale,
         onSelect,
         onCopy,
+        onInputCommit,
         onExpand,
         onResultChange,
+        selectionTabIndex,
       },
       ref,
     ) => {
@@ -79,7 +82,6 @@ const BoxCard = memo(
         plaintextOutput,
         options,
         sourceInput,
-        priority,
         tag,
         kind,
         onClick,
@@ -96,6 +98,15 @@ const BoxCard = memo(
           }
         };
       }, []);
+
+      useLayoutEffect(() => {
+        if (!stale) return;
+        copySequence.current += 1;
+        if (copiedTimer.current !== null) {
+          window.clearTimeout(copiedTimer.current);
+          copiedTimer.current = null;
+        }
+      }, [stale]);
 
       useLayoutEffect(() => {
         if (previousPlaintextOutput.current === plaintextOutput) return;
@@ -128,6 +139,7 @@ const BoxCard = memo(
           }
           if (!copied || sequence !== copySequence.current) return;
 
+          onInputCommit?.();
           setJustCopied(true);
           copiedTimer.current = window.setTimeout(() => {
             if (sequence !== copySequence.current) return;
@@ -135,7 +147,23 @@ const BoxCard = memo(
             setJustCopied(false);
           }, COPIED_TIMEOUT_MS);
         },
-        [onCopy, stale],
+        [onCopy, onInputCommit, stale],
+      );
+
+      const copyAndCommit = useCallback(
+        async (text: string): Promise<void> => {
+          if (stale) return;
+          const sequence = ++copySequence.current;
+          let copied = false;
+          try {
+            copied = await onCopy(text);
+          } catch {
+            copied = false;
+          }
+          if (!copied || sequence !== copySequence.current || stale) return;
+          onInputCommit?.();
+        },
+        [onCopy, onInputCommit, stale],
       );
 
       const handleCopy = useCallback(
@@ -158,33 +186,21 @@ const BoxCard = memo(
       const handleCardClick = useCallback(() => {
         if (stale) return;
         onSelect(index);
-        void Promise.resolve(onCopy(plaintextOutput)).catch(() => undefined);
+        void copyAndCommit(plaintextOutput);
         onClick(plaintextOutput);
-      }, [index, onClick, onCopy, onSelect, plaintextOutput, stale]);
+      }, [copyAndCommit, index, onClick, onSelect, plaintextOutput, stale]);
 
       // A click on a control inside the card belongs to that control, not to
       // the card's copy action. A portal opened by a template also bubbles
       // through the React tree without sitting inside the card in the DOM.
       const handleMouseClick = useCallback(
-        (event: React.MouseEvent<HTMLDivElement>) => {
+        (event: React.MouseEvent<HTMLElement>) => {
           if (stale) return;
           const target = event.target as Element;
           if (!event.currentTarget.contains(target)) return;
-          if (target.closest(CONTROL_SELECTOR) !== event.currentTarget) return;
+          const control = target.closest(CONTROL_SELECTOR);
+          if (control && control !== event.currentTarget) return;
           handleCardClick();
-        },
-        [handleCardClick, stale],
-      );
-
-      const handleKeyDown = useCallback(
-        (event: React.KeyboardEvent<HTMLDivElement>) => {
-          if (stale) return;
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.stopPropagation();
-            if (event.target !== event.currentTarget) return;
-            event.preventDefault();
-            handleCardClick();
-          }
         },
         [handleCardClick, stale],
       );
@@ -192,10 +208,10 @@ const BoxCard = memo(
       const handleTemplateClick = useCallback(
         (text: string): void => {
           if (stale) return;
-          void Promise.resolve(onCopy(text)).catch(() => undefined);
+          void copyAndCommit(text);
           onClick(text);
         },
-        [onClick, onCopy, stale],
+        [copyAndCommit, onClick, stale],
       );
 
       const handleTemplateResultChange = useCallback(
@@ -214,11 +230,54 @@ const BoxCard = memo(
         [stale],
       );
 
+      const handleSelectionClick = useCallback(
+        (event: React.MouseEvent<HTMLButtonElement>): void => {
+          event.stopPropagation();
+          if (!stale) onSelect(index);
+        },
+        [index, onSelect, stale],
+      );
+
+      const handleSelectionKeyDown = useCallback(
+        (event: React.KeyboardEvent<HTMLButtonElement>): void => {
+          if (stale) return;
+          if (
+            event.key !== 'Home' &&
+            event.key !== 'End' &&
+            event.key !== 'ArrowDown' &&
+            event.key !== 'ArrowUp'
+          )
+            return;
+          event.preventDefault();
+          const buttons = Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+              '[data-box-selection-index]',
+            ),
+          ).filter((button) => !button.disabled);
+          const currentPosition = buttons.findIndex(
+            (button) => Number(button.dataset.boxSelectionIndex) === index,
+          );
+          const targetPosition =
+            event.key === 'Home'
+              ? 0
+              : event.key === 'End'
+                ? buttons.length - 1
+                : event.key === 'ArrowUp'
+                  ? Math.max(0, currentPosition - 1)
+                  : Math.min(buttons.length - 1, currentPosition + 1);
+          const nextButton = buttons[targetPosition];
+          if (!nextButton) return;
+          onSelect(Number(nextButton.dataset.boxSelectionIndex));
+          nextButton.focus();
+        },
+        [index, onSelect, stale],
+      );
+
       const Comp = resolveBoxTemplate(box);
 
       return (
-        // biome-ignore lint/a11y/useSemanticElements: outer needs nested buttons (Copy / Expand), so it cannot itself be a button.
-        <div
+        <article
+          aria-labelledby={`box-card-title-${index}`}
           ref={ref}
           aria-disabled={stale || undefined}
           className={
@@ -231,11 +290,14 @@ const BoxCard = memo(
           onClickCapture={blockStaleInteraction}
           onChangeCapture={blockStaleInteraction}
           onInputCapture={blockStaleInteraction}
-          onKeyDown={handleKeyDown}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            if (event.target !== event.currentTarget) return;
+            event.preventDefault();
+            handleCardClick();
+          }}
           onKeyDownCapture={blockStaleInteraction}
           onPointerDownCapture={blockStaleInteraction}
-          role="button"
-          tabIndex={stale ? -1 : 0}
         >
           <div className="box-head">
             <span aria-hidden="true" className="box-tag">
@@ -244,12 +306,26 @@ const BoxCard = memo(
             <span
               className="box-title"
               data-testid="magic-box-result-title"
+              id={`box-card-title-${index}`}
               title={name}
             >
               {name}
             </span>
             {kind ? <span className="box-kind">{kind}</span> : null}
             <span className="box-actions">
+              <button
+                aria-label={t('boxCard.selectLabel', { name })}
+                aria-pressed={selected}
+                className="box-select"
+                data-box-selection-index={index}
+                disabled={stale}
+                onClick={handleSelectionClick}
+                onKeyDown={handleSelectionKeyDown}
+                tabIndex={stale ? -1 : selectionTabIndex}
+                type="button"
+              >
+                {selected ? t('boxCard.selected') : t('boxCard.select')}
+              </button>
               <button
                 className="box-copy"
                 disabled={stale}
@@ -278,22 +354,23 @@ const BoxCard = memo(
               fallback={(retry) => <TemplateErrorFallback retry={retry} />}
               resetKey={box}
             >
-              <Comp
-                disabled={stale}
-                kind={kind}
-                name={name}
-                onClick={handleTemplateClick}
-                onResultChange={handleTemplateResultChange}
-                options={options}
-                plaintextOutput={plaintextOutput}
-                priority={priority}
-                selected={selected}
-                sourceInput={sourceInput}
-                tag={tag}
-              />
+              <Suspense fallback={null}>
+                <Comp
+                  disabled={stale}
+                  kind={kind}
+                  name={name}
+                  onClick={handleTemplateClick}
+                  onResultChange={handleTemplateResultChange}
+                  options={options}
+                  plaintextOutput={plaintextOutput}
+                  selected={selected}
+                  sourceInput={sourceInput}
+                  tag={tag}
+                />
+              </Suspense>
             </ErrorBoundary>
           </div>
-        </div>
+        </article>
       );
     },
   ),

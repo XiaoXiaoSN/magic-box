@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // split into lines, stripping trailing \r (CRLF) and dropping the single empty
@@ -16,44 +15,31 @@ function splitLines(input: string): string[] {
 export const LineToolsBoxSource = {
   defaultDisabled: true,
   name: 'Line Tools',
-  description: 'Sort, de-duplicate, or reverse the lines of a text block.',
-  defaultInput: 'banana\napple\ncherry\napple\n::sortlines',
+  description: 'De-duplicate or reverse the lines of a text block.',
+  defaultInput: 'banana\napple\ncherry\napple\n::uniquelines',
   tag: '#',
   kind: 'Transform',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    const wantSort = hasOptionKeys(options, 'sortlines');
     const wantUnique = hasOptionKeys(options, 'uniquelines');
     const wantReverse = hasOptionKeys(options, 'reverselines');
 
-    if (!wantSort && !wantUnique && !wantReverse) return [];
+    if (!wantUnique && !wantReverse) return [];
     if (!isString(input) || input.length === 0) return [];
     if (input.length > MAX_INPUT) {
       return [
         errorBox(
           'Line Tools',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
 
     const lines = splitLines(input);
     const boxes: Box[] = [];
-
-    if (wantSort) {
-      const sorted = [...lines].sort((a, b) => a.localeCompare(b));
-      boxes.push(
-        new BoxBuilder('Sorted Lines', sorted.join('\n'))
-          .setView('code')
-          .setPriority(this.priority)
-          .build(),
-      );
-    }
 
     if (wantUnique) {
       // keep first occurrence order
@@ -66,7 +52,7 @@ export const LineToolsBoxSource = {
       boxes.push(
         new BoxBuilder('Unique Lines', unique.join('\n'))
           .setView('code')
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -76,7 +62,7 @@ export const LineToolsBoxSource = {
       boxes.push(
         new BoxBuilder('Reversed Lines', reversed.join('\n'))
           .setView('code')
-          .setPriority(this.priority)
+
           .build(),
       );
     }

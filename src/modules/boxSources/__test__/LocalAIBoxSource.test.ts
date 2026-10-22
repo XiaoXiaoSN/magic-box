@@ -1,5 +1,5 @@
 import { parseInput } from '@functions/parseOptions';
-import { boxSources } from '@modules/boxSources';
+import { getBoxSource } from '@modules/boxSources';
 import LocalAIBoxSource from '@modules/boxSources/LocalAIBoxSource';
 import { describe, expect, it } from 'vitest';
 
@@ -55,13 +55,25 @@ describe('LocalAIBoxSource', () => {
   });
 
   it('is registered and enabled by default so it appears on /list', () => {
-    expect(boxSources).toContain(LocalAIBoxSource);
+    const registered = getBoxSource('local-ai');
+    expect(registered?.id).toBe('local-ai');
+    expect(registered?.load).toBeTypeOf('function');
     expect(LocalAIBoxSource.defaultDisabled).toBeUndefined();
-    expect(SettingsStorage.get().boxes['Local AI']?.enabled).toBe(true);
+    expect(SettingsStorage.get().boxes['local-ai']?.enabled).toBe(true);
   });
 
   it('is excluded from the node-safe TUI sources', async () => {
     const { tuiBoxSources } = await import('../../../tui/sources');
-    expect(tuiBoxSources).not.toContain(LocalAIBoxSource);
+    expect(tuiBoxSources.map((source) => source.id)).not.toContain('local-ai');
+  });
+
+  it('loads the registered implementation through the stable wrapper', async () => {
+    const registered = getBoxSource('local-ai');
+    expect(registered).not.toBeNull();
+    const implementation = await registered?.load();
+    expect(implementation).toBe(LocalAIBoxSource);
+    await expect(
+      registered?.generateBoxes('', { ai: true }),
+    ).resolves.toHaveLength(1);
   });
 });

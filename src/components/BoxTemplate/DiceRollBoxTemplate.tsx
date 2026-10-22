@@ -1,7 +1,16 @@
 import type { BoxOptions, BoxProps } from '@modules/Box';
 import { diceOptions, dicePlaintext, rollDice } from '@modules/dice';
 import type { CSSProperties } from 'react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import { useLocale } from '../../contexts/LocaleContext';
 
 import './DiceRollBoxTemplate.css';
 
@@ -34,11 +43,68 @@ const ROTATIONS: Record<number, string> = {
   6: 'rotateX(0deg) rotateY(180deg)',
 };
 
+interface DiceLayout {
+  width: number;
+  columns: number;
+  height: number;
+}
+
+interface DiceLayoutTargets {
+  cubes: string[];
+  shadows: string[];
+}
+
+const layoutForWidth = (width: number, rollCount: number): DiceLayout => {
+  const columns = Math.max(1, Math.floor((width - 32) / 94));
+  return {
+    width,
+    columns,
+    height: Math.max(280, Math.ceil(rollCount / columns) * 112 + 84),
+  };
+};
+
+const layoutTargets = (
+  layout: DiceLayout,
+  rolls: number[],
+): DiceLayoutTargets => {
+  const cubes: string[] = [];
+  const shadows: string[] = [];
+  const rowCount = Math.ceil(rolls.length / layout.columns);
+  for (const [index, roll] of rolls.entries()) {
+    const row = Math.floor(index / layout.columns);
+    const currentRowCount = Math.min(
+      layout.columns,
+      rolls.length - row * layout.columns,
+    );
+    const x = ((index % layout.columns) - (currentRowCount - 1) / 2) * 94;
+    const y = (row - (rowCount - 1) / 2) * 112;
+    cubes.push(`translate3d(${x}px, ${y}px, 0px) ${ROTATIONS[roll]}`);
+    shadows.push(`translate(${x}px, ${y + 40}px) scale(1)`);
+  }
+  return { cubes, shadows };
+};
+
+const applyLayout = (
+  element: HTMLElement,
+  layout: DiceLayout,
+  rolls: number[],
+): DiceLayoutTargets => {
+  const targets = layoutTargets(layout, rolls);
+  const cubes = element.querySelectorAll<HTMLElement>('.dice-roll-slot');
+  const shadows = element.querySelectorAll<HTMLElement>('.dice-roll-shadow');
+  for (const [index, target] of targets.cubes.entries()) {
+    cubes[index]?.style.setProperty('transform', target);
+    shadows[index]?.style.setProperty('transform', targets.shadows[index]);
+  }
+  return targets;
+};
+
 const DiceRollBoxTemplateComponent = ({
   options,
   onClick,
   onResultChange,
 }: BoxProps): React.JSX.Element => {
+  const { t } = useLocale();
   const tray = useRef<HTMLDivElement>(null);
   const [localResult, setLocalResult] = useState<{
     source: BoxOptions;
@@ -46,28 +112,75 @@ const DiceRollBoxTemplateComponent = ({
   } | null>(null);
   const currentOptions =
     localResult?.source === options ? localResult.options : options;
-  const rolls = useMemo<number[]>(
-    () => JSON.parse(String(currentOptions?.Rolls ?? '[]')),
-    [currentOptions],
-  );
+  const rollsValue = String(currentOptions?.Rolls ?? '[]');
   const total = String(currentOptions?.Total ?? '0');
+  const rolls = useMemo<number[]>(
+    () => JSON.parse(rollsValue) as number[],
+    [rollsValue],
+  );
+  const [rerollGeneration, setRerollGeneration] = useState(0);
+  const rollIdentity = useMemo(
+    () => ({
+      options,
+      rerollGeneration,
+      rollsValue,
+      total,
+    }),
+    [options, rerollGeneration, rollsValue, total],
+  );
   const [phase, setPhase] = useState<'rolling' | 'gathering' | 'ready'>(
     'rolling',
   );
-  const [width, setWidth] = useState(320);
-  const columns = Math.max(1, Math.floor((width - 32) / 94));
-  const height = Math.max(280, Math.ceil(rolls.length / columns) * 112 + 84);
+  const [layout, setLayout] = useState<DiceLayout>(() =>
+    layoutForWidth(320, rolls.length),
+  );
+  const layoutRef = useRef(layout);
+
+  useLayoutEffect(() => {
+    const element = tray.current;
+    if (!element) return;
+    const measuredWidth = Math.round(
+      element.getBoundingClientRect().width ||
+        element.clientWidth ||
+        layoutRef.current.width,
+    );
+    const nextLayout = layoutForWidth(measuredWidth, rolls.length);
+    layoutRef.current = nextLayout;
+    setLayout((previous) =>
+      previous.width === nextLayout.width &&
+      previous.columns === nextLayout.columns &&
+      previous.height === nextLayout.height
+        ? previous
+        : nextLayout,
+    );
+  }, [rolls.length]);
 
   useEffect(() => {
     const element = tray.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) =>
-      setWidth(Math.round(entry.contentRect.width)),
-    );
+    const observer = new ResizeObserver(([entry]) => {
+      const measuredWidth = Math.round(
+        entry?.contentRect.width ||
+          element.getBoundingClientRect().width ||
+          element.clientWidth ||
+          layoutRef.current.width,
+      );
+      const nextLayout = layoutForWidth(measuredWidth, rolls.length);
+      layoutRef.current = nextLayout;
+      applyLayout(element, nextLayout, rolls);
+      setLayout((previous) =>
+        previous.width === nextLayout.width &&
+        previous.columns === nextLayout.columns &&
+        previous.height === nextLayout.height
+          ? previous
+          : nextLayout,
+      );
+    });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [rolls]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: rollIdentity covers upstream and local rerolls
   useEffect(() => {
     const element = tray.current;
     if (!element) return;
@@ -80,22 +193,11 @@ const DiceRollBoxTemplateComponent = ({
     const shadows = Array.from(
       element.querySelectorAll<HTMLElement>('.dice-roll-shadow'),
     );
-    const shadowTargets: string[] = [];
-    const targets = cubes.map((cube, index) => {
-      const row = Math.floor(index / columns);
-      const rowCount = Math.min(columns, rolls.length - row * columns);
-      const x = ((index % columns) - (rowCount - 1) / 2) * 94;
-      const y = (row - (Math.ceil(rolls.length / columns) - 1) / 2) * 112;
-      const target = `translate3d(${x}px, ${y}px, 0px) ${ROTATIONS[rolls[index]]}`;
-      cube.style.transform = target;
-      const shadowTarget = `translate(${x}px, ${y + 40}px) scale(1)`;
-      shadows[index].style.transform = shadowTarget;
-      shadowTargets.push(shadowTarget);
-      return target;
-    });
+    applyLayout(element, layoutRef.current, rolls);
     const stop = () => {
       controller.abort();
       for (const animation of animations) animation.cancel();
+      applyLayout(element, layoutRef.current, rolls);
       for (const cube of cubes) cube.style.visibility = '';
     };
     const preferenceChanged = () => {
@@ -105,8 +207,10 @@ const DiceRollBoxTemplateComponent = ({
       }
     };
     media.addEventListener('change', preferenceChanged);
-    if (media.matches) setPhase('ready');
-    else {
+    if (media.matches) {
+      applyLayout(element, layoutRef.current, rolls);
+      setPhase('ready');
+    } else {
       setPhase('rolling');
       for (const cube of cubes) cube.style.visibility = 'hidden';
       void (async () => {
@@ -114,10 +218,11 @@ const DiceRollBoxTemplateComponent = ({
           const { simulateDiceThrow, diceTransform } = await import(
             './dicePhysics'
           );
+          if (controller.signal.aborted) return;
           const simulation = await simulateDiceThrow(
             rolls,
-            width,
-            height,
+            layoutRef.current.width,
+            layoutRef.current.height,
             controller.signal,
           );
           controller.signal.throwIfAborted();
@@ -155,6 +260,11 @@ const DiceRollBoxTemplateComponent = ({
           controller.signal.throwIfAborted();
           setPhase('gathering');
           const lastFrame = simulation.frames[simulation.frames.length - 1];
+          const gatheringTargets = applyLayout(
+            element,
+            layoutRef.current,
+            rolls,
+          );
           await Promise.all(
             cubes.map((cube, index) => {
               const pose = lastFrame[index];
@@ -164,7 +274,10 @@ const DiceRollBoxTemplateComponent = ({
                     transform: `translate(${pose.x * 64}px, ${pose.y * 64 * Math.cos(Math.PI / 8) + 20}px) scale(${1 + pose.z * 0.12})`,
                     opacity: 0.55 / (1 + pose.z * 0.3),
                   },
-                  { transform: shadowTargets[index], opacity: 0.5 },
+                  {
+                    transform: gatheringTargets.shadows[index],
+                    opacity: 0.5,
+                  },
                 ],
                 {
                   duration: 850,
@@ -189,7 +302,7 @@ const DiceRollBoxTemplateComponent = ({
                     ),
                     offset: 0.3,
                   },
-                  { transform: targets[index] },
+                  { transform: gatheringTargets.cubes[index] },
                 ],
                 {
                   duration: 850,
@@ -204,11 +317,13 @@ const DiceRollBoxTemplateComponent = ({
           );
           controller.signal.throwIfAborted();
           for (const animation of animations) animation.cancel();
+          applyLayout(element, layoutRef.current, rolls);
           setPhase('ready');
         } catch (error) {
           if (!controller.signal.aborted) {
             console.error('Dice animation failed:', error);
             for (const animation of animations) animation.cancel();
+            applyLayout(element, layoutRef.current, rolls);
             for (const cube of cubes) cube.style.visibility = '';
             setPhase('ready');
           }
@@ -219,11 +334,14 @@ const DiceRollBoxTemplateComponent = ({
       stop();
       media.removeEventListener('change', preferenceChanged);
     };
-  }, [rolls, width, height, columns]);
+    // The options identity catches a fresh upstream result; the generation token
+    // keeps an identical local reroll animated.
+  }, [rollIdentity, rolls]);
 
   const reroll = () => {
     const next = diceOptions(rollDice(rolls.length));
     setPhase('rolling');
+    setRerollGeneration((generation) => generation + 1);
     setLocalResult({ source: options, options: next });
     onResultChange?.({ options: next, plaintextOutput: dicePlaintext(next) });
   };
@@ -232,22 +350,22 @@ const DiceRollBoxTemplateComponent = ({
     <div className="dice-roll-template" data-testid="magic-box-dice-roll">
       <div className="dice-roll-heading">
         <span>
-          {rolls.length} {rolls.length === 1 ? 'die' : 'dice'}{' '}
-          <span className="dice-roll-muted">/ six-sided</span>
+          {rolls.length} {rolls.length === 1 ? t('dice.die') : t('dice.dice')}{' '}
+          <span className="dice-roll-muted">/ {t('dice.sixSided')}</span>
         </span>
         <span className="dice-roll-muted">
           {phase === 'rolling'
-            ? 'Rolling…'
+            ? t('dice.rolling')
             : phase === 'gathering'
-              ? 'Gathering dice…'
-              : 'Your roll'}
+              ? t('dice.gathering')
+              : t('dice.ready')}
         </span>
       </div>
       <div
         className="dice-roll-tray"
         ref={tray}
         data-phase={phase}
-        style={{ height }}
+        style={{ height: layout.height }}
         aria-busy={phase !== 'ready'}
       >
         {rolls.map((_, index) => (
@@ -264,8 +382,8 @@ const DiceRollBoxTemplateComponent = ({
             role="img"
             aria-label={
               phase === 'ready'
-                ? `Die ${index + 1}: ${roll}`
-                : `Die ${index + 1}: rolling`
+                ? t('dice.ariaReady', { index: index + 1, value: roll })
+                : t('dice.ariaRolling', { index: index + 1 })
             }
           >
             <div className="dice-roll-view">
@@ -301,10 +419,10 @@ const DiceRollBoxTemplateComponent = ({
         <div role="status" aria-live="polite">
           <span className="dice-roll-muted">
             {phase === 'ready'
-              ? 'Total'
+              ? t('dice.total')
               : phase === 'rolling'
-                ? 'Rolling…'
-                : 'Gathering dice…'}
+                ? t('dice.rolling')
+                : t('dice.gathering')}
           </span>
           {phase === 'ready' && <strong>{total}</strong>}
           {phase === 'ready' && rolls.length > 1 && (
@@ -320,7 +438,7 @@ const DiceRollBoxTemplateComponent = ({
             reroll();
           }}
         >
-          Re-roll
+          {t('dice.reroll')}
         </button>
         <button
           type="button"
@@ -329,17 +447,14 @@ const DiceRollBoxTemplateComponent = ({
             event.stopPropagation();
             onClick(total);
           }}
-          aria-label={`Copy total: ${total}`}
+          aria-label={t('dice.copyTotal', { total })}
         >
-          Copy total
+          {t('dice.copyTotalButton')}
         </button>
       </div>
     </div>
   );
 };
 
-export const DiceRollBoxTemplate = Object.assign(
-  memo(DiceRollBoxTemplateComponent),
-  { supportsLarge: false },
-);
+export const DiceRollBoxTemplate = memo(DiceRollBoxTemplateComponent);
 export default DiceRollBoxTemplate;

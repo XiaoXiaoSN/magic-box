@@ -3,8 +3,6 @@ import { countGraphemes, countWords } from '@functions/unicode';
 import type { Box } from '@modules/Box';
 import { keyValueBox } from '@modules/Box';
 
-const Priority = 0;
-
 interface Match {
   text: string;
 }
@@ -24,7 +22,6 @@ i'mdifficult
 `,
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   checkMatch(input: string): Match | undefined {
     if (!isString(input)) {
@@ -55,11 +52,7 @@ i'mdifficult
       characters: characters.toString(),
     };
 
-    return [
-      keyValueBox('keyValue', 'Word Count', output, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'Word Count', output)];
   },
 };
 

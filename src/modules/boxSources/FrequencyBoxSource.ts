@@ -3,7 +3,6 @@ import { compareCodePoints, iterateGraphemes } from '@functions/unicode';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 const MAX_ROWS = 200;
 
@@ -43,7 +42,6 @@ export const FrequencyBoxSource = {
   defaultInput: 'hello world\n::freq',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -67,7 +65,7 @@ export const FrequencyBoxSource = {
       new BoxBuilder('Frequency', output)
         .setView('code')
         .setShowExpandButton(true)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

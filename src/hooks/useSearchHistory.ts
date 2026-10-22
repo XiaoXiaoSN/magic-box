@@ -1,12 +1,17 @@
+import { isPrivateInput } from '@functions/localAIPrivacy';
 import {
+  LOCAL_DATA_CLEARED_EVENT,
   readJsonResult,
   type StorageReadStatus,
   writeJson,
 } from '@functions/storage';
+import { utf8ByteLength } from '@functions/textSize';
 import { useCallback, useEffect, useReducer } from 'react';
 
 const STORAGE_KEY = 'mb_search_history';
 const DEFAULT_MAX_ITEMS = 50;
+export const MAX_HISTORY_INPUT_BYTES = 8 * 1024;
+export const MAX_HISTORY_PREVIEW_CHARS = 256;
 
 export interface HistoryItem {
   id: string;
@@ -31,16 +36,27 @@ const isHistoryItem = (value: unknown): value is HistoryItem => {
 interface LoadedHistory {
   items: HistoryItem[];
   status: StorageReadStatus;
+  removedEntries: boolean;
 }
 
-function loadHistory(): LoadedHistory {
+function loadHistory(maxItems: number): LoadedHistory {
   const parsed = readJsonResult<unknown[]>(
     STORAGE_KEY,
     (value): value is unknown[] => Array.isArray(value),
   );
+  const validItems =
+    parsed.status === 'ok' ? parsed.value.filter(isHistoryItem) : [];
+  const items = validItems
+    .filter(
+      (item) =>
+        !isPrivateInput(item.input) &&
+        utf8ByteLength(item.input) <= MAX_HISTORY_INPUT_BYTES,
+    )
+    .slice(0, maxItems);
   return {
-    items: parsed.status === 'ok' ? parsed.value.filter(isHistoryItem) : [],
+    items,
     status: parsed.status,
+    removedEntries: validItems.length !== items.length,
   };
 }
 
@@ -103,6 +119,7 @@ const reduceHistory = (
       return {
         items: state.pending.reduce(applyHistoryOperation, action.loaded.items),
         status: action.loaded.status,
+        removedEntries: false,
         dirty: true,
         pending: [],
       };
@@ -143,14 +160,21 @@ export function useSearchHistory(
   const [state, dispatch] = useReducer(
     reduceHistory,
     undefined,
-    (): HistoryState => ({ ...loadHistory(), dirty: false, pending: [] }),
+    (): HistoryState => {
+      const loaded = loadHistory(maxItems);
+      return {
+        ...loaded,
+        dirty: loaded.removedEntries,
+        pending: [],
+      };
+    },
   );
 
   useEffect(() => {
     if (state.status === 'unavailable') {
       if (state.pending.length === 0) return;
 
-      const loaded = loadHistory();
+      const loaded = loadHistory(maxItems);
       if (loaded.status !== 'unavailable') {
         dispatch({ type: 'resolve', loaded });
       }
@@ -160,12 +184,27 @@ export function useSearchHistory(
     if (state.dirty) {
       persistHistory(state.items);
     }
-  }, [state]);
+  }, [maxItems, state]);
+
+  useEffect(() => {
+    const handleClear = (): void => {
+      dispatch({ type: 'mutate', operation: { type: 'clear' } });
+    };
+    window.addEventListener(LOCAL_DATA_CLEARED_EVENT, handleClear);
+    return () =>
+      window.removeEventListener(LOCAL_DATA_CLEARED_EVENT, handleClear);
+  }, []);
 
   const addEntry = useCallback(
     (input: string) => {
       const trimmed = input.trim();
-      if (!trimmed) return;
+      if (
+        !trimmed ||
+        isPrivateInput(trimmed) ||
+        utf8ByteLength(trimmed) > MAX_HISTORY_INPUT_BYTES
+      ) {
+        return;
+      }
 
       dispatch({
         type: 'mutate',

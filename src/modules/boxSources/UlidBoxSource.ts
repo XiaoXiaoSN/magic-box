@@ -7,8 +7,6 @@ import {
   hasOptionKeys,
 } from '@modules/Box';
 
-const Priority = 10;
-
 // Crockford base32 alphabet — excludes I, L, O, U to avoid visual ambiguity
 const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
@@ -75,7 +73,6 @@ export const UlidBoxSource = {
   defaultInput: '::ulid',
   tag: '#',
   kind: 'Generate',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -111,7 +108,7 @@ export const UlidBoxSource = {
         new BoxBuilder('ULID', content)
           .setView('keyValue')
           .setOptions(kvOptions)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -121,7 +118,6 @@ export const UlidBoxSource = {
         errorBox(
           'ULID',
           'Invalid ULID: expected 26 Crockford base32 characters with a first character from 0 to 7.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -132,9 +128,7 @@ export const UlidBoxSource = {
       typeof crypto.getRandomValues !== 'function'
     ) {
       const errorContent = 'ULID generation requires a secure context (HTTPS).';
-      return [
-        new BoxBuilder('ULID', errorContent).setPriority(this.priority).build(),
-      ];
+      return [new BoxBuilder('ULID', errorContent).build()];
     }
 
     const ulid = generateUlid();
@@ -152,7 +146,7 @@ export const UlidBoxSource = {
       new BoxBuilder('ULID', content)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

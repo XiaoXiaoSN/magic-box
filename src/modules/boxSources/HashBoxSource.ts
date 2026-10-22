@@ -1,7 +1,6 @@
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const PriorityHashBox = 20;
 const MAX_INPUT = 100_000;
 
 // algorithms supported via Web Crypto
@@ -24,6 +23,22 @@ const ALGORITHMS: AlgorithmEntry[] = [
 
 // all option keys that activate this box source
 const ALL_TRIGGER_KEYS = ['hash', 'md5', 'sha1', 'sha256', 'sha384', 'sha512'];
+const MAC_OR_KDF_KEYS = [
+  'hmac',
+  'hmacsha1',
+  'hmacsha256',
+  'hmacsha512',
+  'pbkdf2',
+];
+
+function hasValuedShaOption(options: BoxOptions): boolean {
+  return (
+    options !== null &&
+    Object.entries(options).some(
+      ([key, value]) => /^sha\d+$/.test(key) && typeof value === 'string',
+    )
+  );
+}
 
 function bufToHex(buf: ArrayBuffer): string {
   return Array.from(new Uint8Array(buf))
@@ -130,12 +145,17 @@ export const HashBoxSource = {
   defaultInput: 'hello world\n::sha256',
   tag: '#',
   kind: 'Hash',
-  priority: PriorityHashBox,
 
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
+    if (
+      hasOptionKeys(options, ...MAC_OR_KDF_KEYS) ||
+      hasValuedShaOption(options)
+    ) {
+      return [];
+    }
     if (!hasOptionKeys(options, ...ALL_TRIGGER_KEYS)) {
       return [];
     }
@@ -160,7 +180,7 @@ export const HashBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -171,7 +191,7 @@ export const HashBoxSource = {
         return new BoxBuilder(`${alg.label}`, hex)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build();
       }),
     );
@@ -181,7 +201,7 @@ export const HashBoxSource = {
         new BoxBuilder('MD5', computeMd5(input))
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

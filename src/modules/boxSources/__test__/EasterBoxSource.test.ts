@@ -130,13 +130,6 @@ describe('EasterBoxSource', () => {
       expect(boxes[0].props.name).toBe('Easter');
     });
 
-    it('priority matches EasterBoxSource.priority', async () => {
-      const boxes = await EasterBoxSource.generateBoxes('2025', {
-        easter: true,
-      });
-      expect(boxes[0].props.priority).toBe(EasterBoxSource.priority);
-    });
-
     it('plaintext output contains key: value pairs', async () => {
       const boxes = await EasterBoxSource.generateBoxes('2025', {
         easter: true,

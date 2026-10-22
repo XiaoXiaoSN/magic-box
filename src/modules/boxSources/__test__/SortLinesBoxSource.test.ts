@@ -113,6 +113,23 @@ describe('SortLinesBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toBe('a\nz');
     });
+
+    it('uses the case-insensitive comparator for adjacent dedupe', async () => {
+      const boxes = await SortLinesBoxSource.generateBoxes(
+        'Apple\napple\nApple',
+        { sortlines: true, ci: true, unique: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('Apple');
+    });
+
+    it('keeps distinct numeric spellings while sorting numerically', async () => {
+      const boxes = await SortLinesBoxSource.generateBoxes('1\n1.0\n01', {
+        sortlines: true,
+        numeric: true,
+        unique: true,
+      });
+      expect(boxes[0].props.plaintextOutput).toBe('01\n1\n1.0');
+    });
   });
 
   describe('generateBoxes - case-insensitive', () => {
@@ -148,12 +165,11 @@ describe('SortLinesBoxSource', () => {
   });
 
   describe('box metadata', () => {
-    it('sets correct name and priority', async () => {
+    it('sets the correct name', async () => {
       const boxes = await SortLinesBoxSource.generateBoxes('b\na', {
         sortlines: true,
       });
       expect(boxes[0].props.name).toBe('Sort Lines');
-      expect(boxes[0].props.priority).toBe(10);
     });
 
     it('attaches CodeBoxTemplate', async () => {
@@ -168,7 +184,6 @@ describe('SortLinesBoxSource', () => {
     it('has expected static properties', () => {
       expect(SortLinesBoxSource.name).toBe('Sort Lines');
       expect(SortLinesBoxSource.kind).toBe('Transform');
-      expect(typeof SortLinesBoxSource.priority).toBe('number');
     });
   });
 

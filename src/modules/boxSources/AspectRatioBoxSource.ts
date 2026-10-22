@@ -2,7 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_DIMENSION_DIGITS = 128;
 const MAX_INPUT_LENGTH = MAX_DIMENSION_DIGITS * 2 + 9;
 const DIMENSION_RE = /^(\d+)\s*[x:×]\s*(\d+)$/i;
@@ -82,7 +81,6 @@ export const AspectRatioBoxSource = {
   defaultInput: '1920x1080\n::ratio',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -95,7 +93,6 @@ export const AspectRatioBoxSource = {
         errorBox(
           'Aspect Ratio',
           `Input is too large (dimensions are limited to ${MAX_DIMENSION_DIGITS} digits).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -111,7 +108,6 @@ export const AspectRatioBoxSource = {
         errorBox(
           'Aspect Ratio',
           `Input is too large: dimensions are limited to ${MAX_DIMENSION_DIGITS} digits.`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -147,7 +143,7 @@ export const AspectRatioBoxSource = {
       new BoxBuilder('Aspect Ratio', plaintextOutput)
         .setView('keyValue')
         .setOptions(kvOptions)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

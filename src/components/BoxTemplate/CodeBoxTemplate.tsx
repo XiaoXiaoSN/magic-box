@@ -124,8 +124,6 @@ const CodeBoxTemplateComponent = ({
   );
 };
 
-const CodeBoxTemplate = Object.assign(memo(CodeBoxTemplateComponent), {
-  supportsLarge: true,
-});
+const CodeBoxTemplate = memo(CodeBoxTemplateComponent);
 
 export default CodeBoxTemplate;

@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 1000;
 
 // maps unit words (zero–nineteen) to their numeric values
@@ -204,7 +203,6 @@ export const WordsToNumberBoxSource = {
   defaultInput: 'one million two hundred thirty-four thousand\n::wordstonum',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -237,7 +235,7 @@ export const WordsToNumberBoxSource = {
         )
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -246,7 +244,7 @@ export const WordsToNumberBoxSource = {
       new BoxBuilder('Words to Number', String(result.value))
         .setView('default')
         .setShowExpandButton(false)
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

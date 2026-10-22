@@ -2,7 +2,6 @@ import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 50_000;
 // number of bytes per row, matching hexdump -C
 const ROW_WIDTH = 16;
@@ -54,7 +53,6 @@ export const HexDumpBoxSource = {
   defaultInput: 'Hello, World!\n::hexdump',
   tag: '#',
   kind: 'Analyze',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -67,7 +65,6 @@ export const HexDumpBoxSource = {
         errorBox(
           'Hex Dump',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -77,7 +74,7 @@ export const HexDumpBoxSource = {
     return [
       new BoxBuilder('Hex Dump', output)
         .setView('code')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

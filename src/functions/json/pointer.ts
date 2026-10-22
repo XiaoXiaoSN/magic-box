@@ -1,4 +1,9 @@
-import { JsonToolError, type JsonValue } from './shared';
+import {
+  isJsonObject,
+  JsonToolError,
+  type JsonValue,
+  stringifyJson,
+} from './shared';
 
 // RFC 6901 §3: `~` is only valid as `~0` or `~1`
 const INVALID_ESCAPE = /~(?![01])/;
@@ -52,7 +57,7 @@ export function evaluatePointer(doc: JsonValue, pointer: string): JsonValue {
         );
       }
       current = current[index];
-    } else if (current !== null && typeof current === 'object') {
+    } else if (isJsonObject(current)) {
       if (!Object.hasOwn(current, token)) {
         throw new JsonToolError(
           `Pointer did not resolve: key "${token}" not found.`,
@@ -61,7 +66,7 @@ export function evaluatePointer(doc: JsonValue, pointer: string): JsonValue {
       current = current[token];
     } else {
       throw new JsonToolError(
-        `Pointer did not resolve: cannot index into ${JSON.stringify(current)} with "${token}".`,
+        `Pointer did not resolve: cannot index into ${stringifyJson(current)} with "${token}".`,
       );
     }
   }

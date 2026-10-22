@@ -40,7 +40,6 @@ describe('GenerateQRCodeBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('QRCode');
       expect(boxes[0].props.plaintextOutput).toBe(input);
-      expect(boxes[0].props.priority).toBe(10); // PriorityGenerateQRCode value
     });
 
     it('should generate QRCode box for valid input with qrcode option', async () => {
@@ -68,7 +67,6 @@ describe('GenerateQRCodeBoxSource', () => {
         });
 
         expect(box.props.name).toBe('QRCode');
-        expect(box.props.priority).toBe(10);
         expect(box.props.plaintextOutput).toBe(
           tooLong ? 'Input too long for a QR code (max 2953 bytes)' : input,
         );

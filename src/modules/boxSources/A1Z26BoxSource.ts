@@ -2,7 +2,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // maps a single letter (a-z / A-Z) to its 1-26 position number
@@ -69,7 +68,6 @@ export const A1Z26BoxSource = {
   defaultInput: 'hello\n::a1z26',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -93,7 +91,7 @@ export const A1Z26BoxSource = {
         new BoxBuilder('A1Z26 (Encode)', encoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -104,7 +102,7 @@ export const A1Z26BoxSource = {
         new BoxBuilder('A1Z26 (Decode)', decoded)
           .setView('default')
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

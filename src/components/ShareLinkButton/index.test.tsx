@@ -29,10 +29,28 @@ const deferred = <T,>(): Deferred<T> => {
   return { promise, reject, resolve };
 };
 
-const renderButton = () =>
+const renderButton = (options?: {
+  copyKey?: string;
+  onCopySuccess?: (copyKey: string | undefined) => void;
+}) =>
   render(
     <LocaleProvider>
-      <ShareLinkButton getShareLink={() => 'https://example.test/share'} />
+      <ShareLinkButton
+        copyKey={options?.copyKey}
+        getShareLink={() => 'https://example.test/share'}
+        onCopySuccess={options?.onCopySuccess}
+      />
+    </LocaleProvider>,
+  );
+
+const renderDisabledButton = () =>
+  render(
+    <LocaleProvider>
+      <ShareLinkButton
+        disabled
+        disabledLabel="Sharing is disabled for sensitive input"
+        getShareLink={() => 'https://example.test/share'}
+      />
     </LocaleProvider>,
   );
 
@@ -46,10 +64,23 @@ afterEach(() => {
 });
 
 describe('<ShareLinkButton />', () => {
+  it('does not request a link while disabled', () => {
+    vi.mocked(copyTextToClipboard).mockResolvedValue(true);
+    renderDisabledButton();
+
+    const button = screen.getByRole('button', {
+      name: 'Sharing is disabled for sensitive input',
+    });
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(copyTextToClipboard).not.toHaveBeenCalled();
+  });
+
   it('does not show copied for a deferred failed copy', async () => {
     const copy = deferred<boolean>();
+    const onCopySuccess = vi.fn();
     vi.mocked(copyTextToClipboard).mockReturnValue(copy.promise);
-    renderButton();
+    renderButton({ copyKey: 'input', onCopySuccess });
 
     const button = screen.getByRole('button', { name: 'Copy share link' });
     fireEvent.click(button);
@@ -61,6 +92,7 @@ describe('<ShareLinkButton />', () => {
     });
 
     expect(button).toHaveAccessibleName('Copy share link');
+    expect(onCopySuccess).not.toHaveBeenCalled();
   });
 
   it('does not show copied when copying rejects', async () => {
@@ -107,6 +139,40 @@ describe('<ShareLinkButton />', () => {
       vi.advanceTimersByTime(1);
     });
     expect(button).toHaveAccessibleName('Copy share link');
+  });
+
+  it('reports the key only after a current copy succeeds', async () => {
+    const copy = deferred<boolean>();
+    const onCopySuccess = vi.fn();
+    const { rerender } = renderButton({
+      copyKey: 'first',
+      onCopySuccess,
+    });
+
+    vi.mocked(copyTextToClipboard).mockReturnValue(copy.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
+    rerender(
+      <LocaleProvider>
+        <ShareLinkButton
+          copyKey="second"
+          getShareLink={() => 'https://example.test/share'}
+          onCopySuccess={onCopySuccess}
+        />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      copy.resolve(true);
+      await copy.promise;
+    });
+    expect(onCopySuccess).not.toHaveBeenCalled();
+
+    vi.mocked(copyTextToClipboard).mockResolvedValue(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Copy share link' }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(onCopySuccess).toHaveBeenCalledWith('second');
   });
 
   it('cleans up a copied timer when unmounted', async () => {

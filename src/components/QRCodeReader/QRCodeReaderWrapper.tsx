@@ -1,0 +1,88 @@
+import CloseIcon from '@mui/icons-material/Close';
+import Box from '@mui/material/Box';
+import type { IDetectedBarcode } from '@yudiel/react-qr-scanner';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import type React from 'react';
+
+import { reportSentryError } from '../../functions/sentry';
+
+interface CloseButtonProps {
+  closeLabel: string;
+  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const CloseButton = ({ closeLabel, setShowReader }: CloseButtonProps) => (
+  <Box
+    aria-label={closeLabel}
+    component="button"
+    data-testid="qr-reader-close-button"
+    sx={{
+      position: 'absolute',
+      top: '10px',
+      right: '10px',
+      cursor: 'pointer',
+      zIndex: 1,
+      // sits over the live camera feed, so it needs its own opaque-ish plate
+      // rather than inheriting the icon colour from the surrounding theme.
+      backgroundColor: 'var(--bg-elev)',
+      color: 'var(--ink)',
+      opacity: 0.85,
+      borderRadius: '50%',
+      padding: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      '&:hover': {
+        opacity: 1,
+      },
+    }}
+    onClick={() => setShowReader(false)}
+    type="button"
+  >
+    <CloseIcon aria-hidden="true" />
+  </Box>
+);
+
+interface QRCodeReaderWrapperProps {
+  closeLabel: string;
+  setResult: React.Dispatch<React.SetStateAction<string>>;
+  setShowReader: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+const QRCodeReaderWrapper = ({
+  closeLabel,
+  setResult,
+  setShowReader,
+}: QRCodeReaderWrapperProps) => {
+  const handleScan = (detectedCodes: IDetectedBarcode[]) => {
+    if (detectedCodes.length > 0) {
+      setResult(detectedCodes[0].rawValue);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        width: '300px',
+        height: '300px',
+        backgroundColor: 'var(--bg-elev)',
+        borderRadius: '8px',
+        overflow: 'hidden',
+      }}
+    >
+      <CloseButton closeLabel={closeLabel} setShowReader={setShowReader} />
+      <Scanner
+        onError={(error) => {
+          reportSentryError(`failed to scan: ${error}`);
+        }}
+        onScan={handleScan}
+        constraints={{
+          facingMode: 'environment',
+        }}
+      />
+    </Box>
+  );
+};
+
+export default QRCodeReaderWrapper;

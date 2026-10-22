@@ -46,7 +46,6 @@ describe('DurationBoxSource', () => {
       expect(opts.Clock).toBe('01:01:01');
       expect(Object.keys(opts)).toEqual(['Seconds', 'Human', 'Clock']);
       expect(boxes[0].view).toBe('keyValue');
-      expect(boxes[0].props.priority).toBe(10);
     });
 
     it('90 → Human "1m 30s", Clock "00:01:30"', async () => {
@@ -291,7 +290,6 @@ describe('DurationBoxSource', () => {
     it('has expected name and kind', () => {
       expect(DurationBoxSource.name).toBe('Duration');
       expect(DurationBoxSource.kind).toBe('Convert');
-      expect(DurationBoxSource.priority).toBe(10);
     });
   });
 

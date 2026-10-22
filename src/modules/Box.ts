@@ -46,12 +46,12 @@ export interface BoxProps {
   onResultChange?: (
     result: Pick<BoxProps, 'options' | 'plaintextOutput'>,
   ) => void;
-  priority?: number;
   showExpandButton?: boolean;
   disabled?: boolean;
   largeModal?: boolean;
   onClose?: () => void;
   selected?: boolean;
+  isError?: boolean;
   tag?: string;
   kind?: string;
 }
@@ -88,16 +88,10 @@ export class BoxBuilder {
     public plaintextOutput: string,
     public options = {} as BoxOptions,
     public onClick = (() => {}) as BoxOnClickFn,
-    public priority?: number,
     public boxTemplate?: BoxTemplate,
     public tag?: string,
     public kind?: string,
   ) {}
-
-  setPriority(priority?: number): BoxBuilder {
-    this.priority = priority;
-    return this;
-  }
 
   setOptions(options: BoxOptions): BoxBuilder {
     this.options = options;
@@ -144,7 +138,6 @@ export class BoxBuilder {
       props: {
         name: this.name,
         plaintextOutput: this.plaintextOutput,
-        priority: this.priority,
         options: this.options,
         sourceInput: this.sourceInput,
         onClick: this.onClick,
@@ -167,7 +160,7 @@ export function keyValueBox(
   template: BoxTemplate | BoxView | undefined,
   name: string,
   kv: Record<string, string>,
-  opts: { priority?: number; showExpandButton?: boolean } = {},
+  opts: { showExpandButton?: boolean } = {},
 ): Box {
   const plaintext = Object.entries(kv)
     .map(([k, v]) => `${k}: ${v}`)
@@ -175,7 +168,6 @@ export function keyValueBox(
   const builder = new BoxBuilder(name, plaintext).setOptions(kv);
   if (typeof template === 'string') builder.setView(template);
   else builder.setTemplate(template);
-  if (opts.priority !== undefined) builder.setPriority(opts.priority);
   if (opts.showExpandButton !== undefined) {
     builder.setShowExpandButton(opts.showExpandButton);
   }
@@ -185,12 +177,9 @@ export function keyValueBox(
 // builds a plain message box for error/empty states. it leaves the template
 // undefined so the web layer falls back to DefaultBoxTemplate and the headless
 // layer renders the message — never a blank KeyValue grid.
-export function errorBox(
-  name: string,
-  message: string,
-  opts: { priority?: number } = {},
-): Box {
+export function errorBox(name: string, message: string): Box {
   const builder = new BoxBuilder(name, message).setShowExpandButton(false);
-  if (opts.priority !== undefined) builder.setPriority(opts.priority);
-  return builder.build();
+  const box = builder.build();
+  box.props.isError = true;
+  return box;
 }

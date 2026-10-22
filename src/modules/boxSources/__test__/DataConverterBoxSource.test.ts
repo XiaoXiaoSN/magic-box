@@ -360,4 +360,85 @@ path = "/health"`;
       expect(boxes.map((b) => b.props.name)).toEqual(['YAML Output']);
     });
   });
+
+  describe('lossless detection and conversion', () => {
+    it('does not auto-detect one-line YAML-looking prose', async () => {
+      for (const input of ['Version: 1.0', '- buy milk', 'TODO: "fix this"']) {
+        await expect(
+          DataConverterBoxSource.generateBoxes(input, {}),
+        ).resolves.toHaveLength(0);
+      }
+    });
+
+    it('preserves JSON integer and decimal lexemes across output formats', async () => {
+      const input = '{"id":12345678901234567890,"price":1.10,"zip":"01234"}';
+      const boxes = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+        yaml: true,
+        toml: true,
+      });
+      const json = boxes.find((box) => box.props.name === 'JSON Output');
+      const yaml = boxes.find((box) => box.props.name === 'YAML Output');
+      const toml = boxes.find((box) => box.props.name === 'TOML Output');
+
+      expect(json?.props.plaintextOutput).toContain('12345678901234567890');
+      expect(json?.props.plaintextOutput).toContain('1.10');
+      expect(yaml?.props.plaintextOutput).toContain('12345678901234567890');
+      expect(yaml?.props.plaintextOutput).toContain('price: 1.10');
+      expect(toml?.props.plaintextOutput).toContain(
+        'id = 12345678901234567890',
+      );
+      expect(toml?.props.plaintextOutput).toContain('price = 1.10');
+    });
+
+    it('keeps XML element values as strings and rejects incomplete XML', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(
+        '<a><zip>01234</zip><v>1.0</v></a>',
+        { json: true },
+      );
+      const json = boxes.find((box) => box.props.name === 'JSON Output');
+      expect(json?.props.plaintextOutput).toContain('"01234"');
+      expect(json?.props.plaintextOutput).toContain('"1.0"');
+
+      const invalid = await DataConverterBoxSource.generateBoxes('<hello>', {
+        xml: true,
+      });
+      expect(invalid).toHaveLength(1);
+      expect(invalid[0].props.plaintextOutput).toContain(
+        'Failed to parse input as XML',
+      );
+    });
+
+    it('reports incompatible empty XML and TOML results', async () => {
+      const emptyXml = await DataConverterBoxSource.generateBoxes('{}', {
+        xml: true,
+      });
+      expect(emptyXml[0].props.plaintextOutput).toContain(
+        'Cannot convert to XML',
+      );
+
+      const nullToml = await DataConverterBoxSource.generateBoxes(
+        '{"a":null}',
+        { toml: true },
+      );
+      expect(nullToml[0].props.plaintextOutput).toContain(
+        'Cannot convert to TOML',
+      );
+    });
+
+    it('bounds automatic and explicit large inputs before parsing', async () => {
+      const automatic = await DataConverterBoxSource.generateBoxes(
+        'a'.repeat(256 * 1024 + 1),
+        {},
+      );
+      expect(automatic).toHaveLength(0);
+
+      const explicit = await DataConverterBoxSource.generateBoxes(
+        'a'.repeat(1024 * 1024 + 1),
+        { yaml: true },
+      );
+      expect(explicit).toHaveLength(1);
+      expect(explicit[0].props.plaintextOutput).toContain('Input is too large');
+    });
+  });
 });

@@ -87,14 +87,6 @@ describe('WordWrapBoxSource', () => {
       expect(boxes[0].view).toBe('code');
     });
 
-    it('should set priority from WordWrapBoxSource.priority', async () => {
-      const boxes = await WordWrapBoxSource.generateBoxes(
-        'The quick brown fox',
-        { wrap: '20' },
-      );
-      expect(boxes[0].props.priority).toBe(WordWrapBoxSource.priority);
-    });
-
     it('should accept ::wordwrap as an alias for ::wrap', async () => {
       const boxes = await WordWrapBoxSource.generateBoxes(
         'The quick brown fox jumps over the lazy dog',

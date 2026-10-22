@@ -7,7 +7,6 @@ import {
   keyValueBox,
 } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT_LENGTH = 100;
 
 const UNIT_MAP: Record<string, bigint> = {
@@ -194,7 +193,6 @@ export const DurationBoxSource = {
   defaultInput: '3661\n::duration',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -219,7 +217,6 @@ export const DurationBoxSource = {
         errorBox(
           'Duration',
           `Input is too large (${input.length} characters, limit ${MAX_INPUT_LENGTH}).`,
-          { priority: this.priority },
         ),
       ];
     }
@@ -253,7 +250,6 @@ export const DurationBoxSource = {
         errorBox(
           'Duration',
           'Duration exceeds the safe numeric range and cannot be represented exactly.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -267,11 +263,7 @@ export const DurationBoxSource = {
           Input: raw,
           Hint: hint,
         };
-        return [
-          keyValueBox('keyValue', 'Duration', kv, {
-            priority: this.priority,
-          }),
-        ];
+        return [keyValueBox('keyValue', 'Duration', kv)];
       }
       return [];
     }
@@ -281,7 +273,6 @@ export const DurationBoxSource = {
         errorBox(
           'Duration',
           'Duration exceeds the safe numeric range and cannot be represented exactly.',
-          { priority: this.priority },
         ),
       ];
     }
@@ -296,11 +287,7 @@ export const DurationBoxSource = {
       Clock: clock,
     };
 
-    return [
-      keyValueBox('keyValue', 'Duration', output, {
-        priority: this.priority,
-      }),
-    ];
+    return [keyValueBox('keyValue', 'Duration', output)];
   },
 };
 

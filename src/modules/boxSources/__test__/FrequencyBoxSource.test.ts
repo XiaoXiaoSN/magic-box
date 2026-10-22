@@ -115,7 +115,6 @@ describe('FrequencyBoxSource', () => {
       expect(FrequencyBoxSource.name).toBe('Frequency');
       expect(FrequencyBoxSource.tag).toBe('#');
       expect(FrequencyBoxSource.kind).toBe('Analyze');
-      expect(typeof FrequencyBoxSource.priority).toBe('number');
     });
   });
 

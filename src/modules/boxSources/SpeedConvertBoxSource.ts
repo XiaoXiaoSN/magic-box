@@ -11,8 +11,6 @@ import {
   STRICT_NUMBER_TOKEN,
 } from './UnitConversionData';
 
-const Priority = 10;
-
 // render key/value pairs as `k: v` lines for the headless/TUI plaintextOutput
 function kvToPlaintext(kv: Record<string, string>): string {
   return Object.entries(kv)
@@ -36,7 +34,6 @@ export const SpeedConvertBoxSource = {
   defaultInput: '100 km/h\n::speed',
   tag: '#',
   kind: 'Convert',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -57,7 +54,7 @@ export const SpeedConvertBoxSource = {
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -74,7 +71,7 @@ export const SpeedConvertBoxSource = {
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -89,7 +86,7 @@ export const SpeedConvertBoxSource = {
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
           .setOptions(errorOutput)
           .setView('keyValue')
-          .setPriority(this.priority)
+
           .build(),
       ];
     }
@@ -110,7 +107,7 @@ export const SpeedConvertBoxSource = {
       new BoxBuilder('Speed Convert', kvToPlaintext(kvOutput))
         .setOptions(kvOutput)
         .setView('keyValue')
-        .setPriority(this.priority)
+
         .build(),
     ];
   },

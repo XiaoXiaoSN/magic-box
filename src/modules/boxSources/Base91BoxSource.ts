@@ -3,7 +3,6 @@ import { isString, trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-const Priority = 10;
 const MAX_INPUT = 100_000;
 
 // basE91 alphabet (91 printable ASCII chars, Joachim Henke's ordering)
@@ -95,7 +94,6 @@ export const Base91BoxSource = {
   defaultInput: 'hello\n::base91',
   tag: '#',
   kind: 'Encode',
-  priority: Priority,
 
   async generateBoxes(
     input: string,
@@ -119,7 +117,7 @@ export const Base91BoxSource = {
       boxes.push(
         new BoxBuilder('basE91 (Encode)', encoded)
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }
@@ -130,7 +128,7 @@ export const Base91BoxSource = {
       boxes.push(
         new BoxBuilder('basE91 (Decode)', decoded)
           .setShowExpandButton(false)
-          .setPriority(this.priority)
+
           .build(),
       );
     }

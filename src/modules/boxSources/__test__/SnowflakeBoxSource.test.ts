@@ -48,14 +48,6 @@ describe('SnowflakeBoxSource', () => {
       );
       expect(boxes[0].view).toBe('keyValue');
     });
-
-    it('sets priority', async () => {
-      const boxes = await SnowflakeBoxSource.generateBoxes(
-        '175928847299117063',
-        { snowflake: true },
-      );
-      expect(boxes[0].props.priority).toBe(10);
-    });
   });
 
   describe('twitter epoch via ::snowflake=twitter', () => {
