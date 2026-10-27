@@ -1,0 +1,28 @@
+name: Self-hosted runner smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: [self-hosted, Linux, X64, gh-runner]
+    timeout-minutes: 5
+    steps:
+      - name: Check platform and installed tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -s)" = Linux
+          test "$(uname -m)" = x86_64
+          echo "Platform: Linux x86_64"
+          for tool in git node bun rustc; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              "$tool" --version
+            else
+              echo "$tool: not installed"
+            fi
+          done
+          echo "Self-hosted runner smoke check complete"
