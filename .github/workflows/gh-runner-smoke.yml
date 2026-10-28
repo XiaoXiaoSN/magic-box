@@ -1,0 +1,24 @@
+name: Self-hosted runner smoke test
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/gh-runner-smoke.yml
+
+permissions: {}
+
+jobs:
+  smoke:
+    # Enable only after runner access is restricted to trusted work.
+    if: ${{ false && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login == 'XiaoXiaoSN' && github.head_ref == 'experiment/gh-runner-smoke-isolated-20261028' }}
+    runs-on: [self-hosted, gh-runner-smoke-20261028]
+    timeout-minutes: 5
+    steps:
+      - name: Verify runner identity
+        env:
+          EXPECTED_RUNNER: gh-runner
+          ACTUAL_RUNNER: ${{ runner.name }}
+        run: |
+          printf 'Runner name: %s\n' "$ACTUAL_RUNNER"
+          test "$ACTUAL_RUNNER" = "$EXPECTED_RUNNER"
