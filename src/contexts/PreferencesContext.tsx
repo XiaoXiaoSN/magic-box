@@ -28,6 +28,8 @@ export interface Prefs {
   copyMode: CopyModePref;
   // anonymous telemetry opt-in.
   analytics: boolean;
+  // Explicit input/output feedback for future training, separate from analytics.
+  collectFeedback: boolean;
   // default UTC offset (hours) for time-related boxes.
   timezoneOffset: number;
   timezoneMode: TimezoneMode;
@@ -51,6 +53,7 @@ export const DEFAULT_PREFS: Prefs = {
   density: 'comfortable',
   copyMode: 'enter',
   analytics: true,
+  collectFeedback: false,
   timezoneOffset: DEFAULT_TIMEZONE_OFFSET,
   timezoneMode: 'fixed',
   toolboxUrl: '',
@@ -93,6 +96,7 @@ export const loadPrefs = (): Prefs => {
       typeof prefs.analytics === 'boolean'
         ? prefs.analytics
         : DEFAULT_PREFS.analytics,
+    collectFeedback: prefs.collectFeedback === true,
     timezoneOffset:
       typeof prefs.timezoneOffset === 'number' &&
       isValidTimezoneOffset(prefs.timezoneOffset)

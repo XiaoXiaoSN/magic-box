@@ -13,7 +13,9 @@ import {
 import { memo, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
 import { LocaleProvider } from '../../contexts/LocaleContext';
+import { submitFeedback } from '../../features/feedback/submit';
 import type {
   ComputeWorkerEvent,
   ComputeWorkerRunRequest,
@@ -23,8 +25,15 @@ import MagicBox from './index';
 const { noSources, preferenceState } = vi.hoisted(() => ({
   noSources: [],
   preferenceState: {
+    collectFeedback: false,
     copyMode: 'enter' as 'enter' | 'paste' | 'off',
   },
+}));
+
+vi.mock('../../features/feedback/submit', () => ({
+  submitFeedback: vi.fn(),
+  isFeedbackConfigured: () => true,
+  FeedbackError: class extends Error {},
 }));
 
 vi.mock('@functions/clipboard', () => ({ default: vi.fn() }));
@@ -34,6 +43,7 @@ vi.mock('../../contexts/SettingsContext', () => ({
 vi.mock('../../contexts/PreferencesContext', () => ({
   usePreferences: () => ({
     prefs: {
+      collectFeedback: preferenceState.collectFeedback,
       copyMode: preferenceState.copyMode,
       timezoneOffset: 8,
       timezoneMode: 'fixed',
@@ -134,6 +144,8 @@ afterEach(() => {
 beforeEach(() => {
   vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
   preferenceState.copyMode = 'enter';
+  preferenceState.collectFeedback = false;
+  vi.mocked(submitFeedback).mockReset().mockResolvedValue(undefined);
   FakeComputeWorker.requests = [];
 });
 
@@ -758,5 +770,95 @@ describe('MagicBox live input and keyboard boundaries', () => {
     } finally {
       addListener.mockRestore();
     }
+  });
+});
+
+describe('feedback snapshot integration', () => {
+  it('does not expose feedback until explicitly enabled', async () => {
+    const sources = [
+      sourceWithResult('Test source', Promise.resolve([box('One')])),
+    ];
+    render(tree('example', sources));
+    await screen.findByText('One output');
+    expect(
+      screen.queryByRole('region', { name: 'Help improve results' }),
+    ).toBeNull();
+  });
+
+  it('pairs the selected result with the exact input, source ID and ordered outputs', async () => {
+    preferenceState.collectFeedback = true;
+    const sources = [
+      {
+        ...sourceWithResult(
+          'Test source',
+          Promise.resolve([box('One'), box('Two')]),
+        ),
+        id: 'stable-test',
+      },
+    ];
+    render(tree('exact input\n::example', sources));
+    await screen.findByRole('region', { name: 'Help improve results' });
+    await screen.findByText('Two output');
+    fireEvent.click(screen.getByRole('button', { name: 'Select Two' }));
+    const send = screen.getByRole('button', { name: 'Send feedback' });
+    await waitFor(() => expect(send).toBeEnabled());
+    expect(submitFeedback).not.toHaveBeenCalled();
+    fireEvent.click(send);
+    await waitFor(() => expect(submitFeedback).toHaveBeenCalledOnce());
+    expect(vi.mocked(submitFeedback).mock.calls[0][0]).toMatchObject({
+      input: 'exact input\n::example',
+      selectedCandidateId: '0:Two:0',
+      candidates: [
+        { id: '0:One:0', sourceId: 'stable-test', output: 'One output' },
+        { id: '0:Two:0', sourceId: 'stable-test', output: 'Two output' },
+      ],
+    });
+  });
+
+  it('blocks a previous result during the live-input debounce window', async () => {
+    preferenceState.collectFeedback = true;
+    const sources = [
+      sourceWithResult('Test source', Promise.resolve([box('One')])),
+    ];
+    const view = render(tree('old input', sources));
+    await screen.findByRole('region', { name: 'Help improve results' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Select One' }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Send feedback' }),
+      ).toBeEnabled(),
+    );
+    view.rerender(tree('old input', sources, 'new input'));
+    expect(
+      screen.getByRole('button', { name: 'Send feedback' }),
+    ).toBeDisabled();
+  });
+
+  it.each([
+    'private\n::ai',
+    'private\n::localai',
+    'private\n::secret',
+  ])('hides collection for private input %s', async (input) => {
+    preferenceState.collectFeedback = true;
+    const sources = [
+      sourceWithResult('Test source', Promise.resolve([box('One')])),
+    ];
+    render(tree(input, sources));
+    await screen.findByText('One output');
+    expect(
+      screen.queryByRole('region', { name: 'Help improve results' }),
+    ).toBeNull();
+  });
+
+  it('hides collection in source previews', async () => {
+    preferenceState.collectFeedback = true;
+    const sources = [
+      sourceWithResult('Test source', Promise.resolve([box('One')])),
+    ];
+    render(<BoxPreviewProvider>{tree('example', sources)}</BoxPreviewProvider>);
+    await screen.findByText('One output');
+    expect(
+      screen.queryByRole('region', { name: 'Help improve results' }),
+    ).toBeNull();
   });
 });

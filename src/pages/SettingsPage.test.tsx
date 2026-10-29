@@ -30,6 +30,22 @@ function mount() {
 }
 
 describe('Settings timezone and defaults', () => {
+  it('requires explicit opt-in for training feedback independently of analytics', () => {
+    mount();
+    const mode = screen.getByRole('button', { name: 'Data collection mode' });
+    expect(mode).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(mode);
+    expect(
+      JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').collectFeedback,
+    ).toBe(true);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restore all defaults' }),
+    );
+    expect(mode).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').collectFeedback,
+    ).toBe(false);
+  });
   it('localizes source names and kinds without changing setting IDs', () => {
     localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify({ locale: 'tw' }));
     mount();

@@ -82,6 +82,7 @@
     "docs:check": "node --test scripts/generate-tool-docs.test.mjs && node scripts/generate-tool-docs.mjs --check",
     "test:math-box-compare": "node --test wasmModules/math-box/bench/compare.test.mjs",
     "lint": "bunx --no-install biome ci src cypress *.config.ts",
-    "lint:fix": "biome check --write src/ *.config.ts"
+    "lint:fix": "biome check --write src/ *.config.ts",
+    "test:feedback": "node --test functions/test/*.test.mjs"
   }
 }

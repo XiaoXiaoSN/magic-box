@@ -3,6 +3,7 @@ import CustomizedSnackbar, {
 } from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
+import { isLocalAIPrivate, isPrivateInput } from '@functions/localAIPrivacy';
 import { parseInput } from '@functions/parseOptions';
 import { type Box as BoxType, errorBox } from '@modules/Box';
 import type { BoxSource, BoxSourceContext } from '@modules/BoxSource';
@@ -18,12 +19,17 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import type { FeedbackCandidate } from '../../../functions/schema.js';
 import { useIsBoxPreview } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import BoxCard from './BoxCard';
 import BoxModal from './BoxModal';
+
+const FeedbackPanel = React.lazy(
+  () => import('../../features/feedback/FeedbackPanel'),
+);
 
 const WORKER_AUTO_INPUT_LIMIT = 256 * 1024;
 
@@ -64,11 +70,13 @@ interface Props {
 type RunState = 'idle' | 'pending' | 'settled';
 
 interface SourceResultSlot {
+  sourceId: string;
   boxes: BoxType[];
   runKey: string;
 }
 
 interface BoxEntry {
+  sourceId: string;
   box: BoxType;
   key: string;
   stale: boolean;
@@ -123,6 +131,10 @@ const MagicBox = ({
     Array<SourceResultSlot | null>
   >([]);
   const [runState, setRunState] = useState<RunState>('idle');
+  const [feedbackSettled, setFeedbackSettled] = useState<{
+    key: string;
+    sources: BoxSource[];
+  } | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalBox, setModalBox] = useState<BoxType | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -151,6 +163,13 @@ const MagicBox = ({
   const isStale = liveInput !== undefined && liveInput !== magicIn;
   const displayInput = liveInput ?? magicIn;
   const currentRunKey = `${preview ? 'preview' : 'live'}:${magicIn}`;
+  const feedbackContextKey = JSON.stringify([
+    magicIn,
+    locale,
+    prefs.timezoneMode,
+    prefs.timezoneOffset,
+  ]);
+  const activeSources = sources ?? filteredBoxSources;
   const copyKey = `${currentRunKey}:${displayInput}`;
   if (copyKeyRef.current !== copyKey) {
     copyKeyRef.current = copyKey;
@@ -167,6 +186,7 @@ const MagicBox = ({
         const occurrence = seenNames.get(name) ?? 0;
         seenNames.set(name, occurrence + 1);
         entries.push({
+          sourceId: slot.sourceId,
           box,
           key: `${sourceIndex}:${name}:${occurrence}`,
           stale: isStale || slot.runKey !== currentRunKey,
@@ -262,6 +282,7 @@ const MagicBox = ({
 
   useEffect(() => {
     const boxSources = sources ?? filteredBoxSources;
+    setFeedbackSettled(null);
     const controller = new AbortController();
     const runId = ++runIdRef.current;
 
@@ -311,6 +332,7 @@ const MagicBox = ({
         }
         const next = current.slice();
         next[sourceIndex] = {
+          sourceId: boxSources[sourceIndex].id ?? boxSources[sourceIndex].name,
           boxes: generated,
           runKey: currentRunKey,
         };
@@ -479,6 +501,7 @@ const MagicBox = ({
     void Promise.all(tasks).then(() => {
       if (!controller.signal.aborted && runIdRef.current === runId) {
         setRunState('settled');
+        setFeedbackSettled({ key: feedbackContextKey, sources: boxSources });
       }
     });
 
@@ -489,6 +512,7 @@ const MagicBox = ({
     };
   }, [
     currentRunKey,
+    feedbackContextKey,
     filteredBoxSources,
     locale,
     magicIn,
@@ -798,6 +822,27 @@ const MagicBox = ({
 
   const pending =
     runState === 'pending' || (isStale && trim(displayInput) !== '');
+  const feedbackCandidates: FeedbackCandidate[] = prefs.collectFeedback
+    ? boxEntries
+        .filter(({ stale }) => !stale)
+        .map(({ box, key, sourceId }) => ({
+          id: key,
+          sourceId,
+          name: box.props.name || 'box',
+          output: box.props.plaintextOutput,
+          isError: box.props.isError === true,
+        }))
+    : [];
+  const feedbackReady =
+    !pending &&
+    feedbackSettled?.key === feedbackContextKey &&
+    feedbackSettled.sources === activeSources;
+  const showFeedback =
+    prefs.collectFeedback &&
+    !preview &&
+    !isLocalAIPrivate() &&
+    !isPrivateInput(displayInput) &&
+    trim(displayInput) !== '';
   const modalIsActive =
     modalOpen &&
     !isStale &&
@@ -820,6 +865,17 @@ const MagicBox = ({
       ) : (
         <EmptyState input={displayInput} />
       )}
+      {showFeedback ? (
+        <React.Suspense fallback={null}>
+          <FeedbackPanel
+            key={feedbackContextKey}
+            input={magicIn}
+            candidates={feedbackCandidates}
+            selectedCandidateId={selectedIndex >= 0 ? selectedKey : null}
+            ready={feedbackReady}
+          />
+        </React.Suspense>
+      ) : null}
       <BoxModal
         box={modalBox}
         onClose={handleCloseModal}

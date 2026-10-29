@@ -1,0 +1,25 @@
+export const sample = () => ({
+  schemaVersion: 1,
+  consentVersion: 'training-v1',
+  id: '8f984c03-0d3c-4ca4-a3ab-2875014a280c',
+  createdAt: '2026-10-29T08:00:00.000Z',
+  appVersion: '0.2.0-test',
+  locale: 'tw',
+  timezone: 'Asia/Taipei',
+  timezoneOffset: 8,
+  timezoneMode: 'fixed',
+  input: '123',
+  candidates: [
+    {
+      id: '0:math:0',
+      sourceId: 'math',
+      name: 'Math',
+      output: '123',
+      isError: false,
+    },
+  ],
+  selectedCandidateId: '0:math:0',
+  expectedOutput: '',
+  comment: '',
+  kind: 'selection',
+});

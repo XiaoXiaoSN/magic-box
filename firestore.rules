@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only the callable's service account / authorized dataset operators use
+    // these collections. Admin SDK access is governed by IAM, not these rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
