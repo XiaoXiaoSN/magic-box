@@ -6,6 +6,27 @@ const zhTW: Translations = {
   'nav.list': '列表',
   'nav.settings': '設定',
 
+  'settings.collectFeedback': '資料收集模式',
+  'settings.collectFeedbackHint':
+    '預設關閉。開啟後可主動將本次輸入、所有候選輸出、選中的結果或期望輸出及意見提供給 Magic Box，用於功能改善與未來機器學習。只有按下「送出回饋」才會上傳，請勿包含機密資料。此設定與匿名分析獨立。',
+  'feedback.title': '協助改善結果',
+  'feedback.notice':
+    '送出會分享本次輸入、所有候選輸出與你的回饋，用於功能改善與未來模型訓練。請勿包含個資或機密資料。',
+  'feedback.kind': '你想回饋什麼？',
+  'feedback.selection': '這是我想要的結果',
+  'feedback.expectation': '我期待不同的結果',
+  'feedback.selected': '選中的結果：{{name}}',
+  'feedback.choose': '請先選取上方結果卡片，確認你想要的輸出。',
+  'feedback.expected': '你期望得到什麼輸出？',
+  'feedback.comment': '補充意見（選填）',
+  'feedback.submit': '送出回饋',
+  'feedback.sending': '送出中…',
+  'feedback.success': '謝謝！已儲存你的回饋。',
+  'feedback.error': '無法儲存回饋，請重試。',
+  'feedback.tooLarge': '輸入或候選結果超過回饋大小上限，請縮短範例後重試。',
+  'feedback.wait': '請等待目前的結果完成後再送出回饋。',
+  'feedback.unconfigured': '此網站尚未完成回饋收集設定。',
+
   'settings.title': '設定',
   'settings.subtitle': '偏好設定會儲存在瀏覽器中。',
   'settings.section.boxOrder': 'Box 順序',
@@ -37,7 +58,7 @@ const zhTW: Translations = {
   'settings.default': '預設',
   'settings.resetPreferences': '恢復所有預設值',
   'settings.defaultsHint':
-    '預設：系統主題、舒適密度、英文、Enter 複製、UTC+8、預設伺服器、啟用匿名統計；Local AI 提問、自動語言、自動檢查與執行。恢復預設值也會重設 Box 順序與啟用狀態，並保留輸入與歷史紀錄。',
+    '預設：系統主題、舒適密度、英文、Enter 複製、UTC+8、預設伺服器、啟用匿名統計、關閉資料收集；Local AI 提問、自動語言、自動檢查與執行。恢復預設值也會重設 Box 順序與啟用狀態，並保留輸入與歷史紀錄。',
   'settings.section.server': '伺服器',
   'settings.section.serverHint': '覆寫後端主機位址。留空則使用預設值。',
   'settings.toolboxUrl': 'Toolbox 網址',

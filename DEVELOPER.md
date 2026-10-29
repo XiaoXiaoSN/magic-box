@@ -105,6 +105,12 @@ The generator uses a pinned TypeScript 5.x parser under the `typescript-docs`
 alias because TypeScript 7 no longer exports that parser API. The application
 compiler remains TypeScript 7.
 
+## Feedback collection
+
+The optional central feedback receiver uses Firebase Functions and Firestore.
+See [deployment, schema and JSONL export](docs/feedback-collection.md).
+It requires separate backend deployment and App Check configuration.
+
 ## Deployment
 
 The Firebase Hosting workflow deploys `main` after its quality jobs succeed.

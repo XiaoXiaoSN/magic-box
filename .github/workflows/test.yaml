@@ -84,6 +84,7 @@ jobs:
         env:
           # Keep local and PR builds free of production Sentry secrets.
           CI: false
+          VITE_FIREBASE_APPCHECK_SITE_KEY: ${{ vars.FIREBASE_APPCHECK_SITE_KEY }}
           SENTRY_AUTH_TOKEN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.SENTRY_AUTH_TOKEN || '' }}
 
       - name: Upload shipping artifact
@@ -93,6 +94,21 @@ jobs:
           name: shipping-build
           path: build
           if-no-files-found: error
+
+  feedback-tests:
+    name: feedback-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install feedback receiver dependencies
+        run: npm ci --prefix functions --ignore-scripts
+      - name: Validate schema, handler and transaction behavior
+        run: npm test --prefix functions
 
   unit-tests:
     name: unit-tests

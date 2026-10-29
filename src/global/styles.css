@@ -2175,3 +2175,44 @@ pre,
   padding-top: 7px;
   padding-bottom: 7px;
 }
+
+/* Explicit feedback stays next to the completed results it describes. */
+.feedback-panel {
+  margin-block: 24px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.feedback-panel h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.feedback-panel fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+}
+.feedback-panel fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.feedback-field {
+  display: grid;
+  gap: 8px;
+  margin-block: 16px;
+}
+.feedback-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
