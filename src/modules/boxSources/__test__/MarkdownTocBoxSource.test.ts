@@ -396,3 +396,18 @@ describe('MarkdownTocBoxSource', () => {
     expect(boxes[0].props.plaintextOutput).toHaveLength(200_001);
   });
 });
+
+// CVE-2026-111758: both variants exercise reference parsing below MAX_INPUT.
+describe('Markdown TOC malformed reference regression', () => {
+  it.each([
+    ['label', '[a\n'],
+    ['title', '[a]: /url "\n'],
+  ])('keeps headings before an unclosed reference %s', async (_, prefix) => {
+    const input = `# Retained\n\n${prefix}${'a\n'.repeat(20_000)}`;
+    const boxes = await MarkdownTocBoxSource.generateBoxes(input, {
+      toc: true,
+    });
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].props.plaintextOutput).toBe('- [Retained](#retained)');
+  });
+});
