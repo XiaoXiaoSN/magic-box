@@ -8,6 +8,7 @@ export const workerSourceIds = [
   'cron-expression',
   'data-converter',
   'json-tools',
+  'csv',
   'date-calculate',
   'math-expression',
   'now',
@@ -44,6 +45,13 @@ const workerLoaders = new Map<string, WorkerSourceLoader>([
     'json-tools',
     () =>
       import('@modules/boxSources/JsonToolsBoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'csv',
+    () =>
+      import('@modules/boxSources/CsvBoxSource').then(
         (module) => module.default,
       ),
   ],

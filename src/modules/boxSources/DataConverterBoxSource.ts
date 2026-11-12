@@ -1,3 +1,5 @@
+import { CSV_EXCLUSIVE_OPTION_KEYS } from '@functions/csv/commands';
+import { detectTableShape } from '@functions/csv/detect';
 import { isString, trim } from '@functions/helper';
 import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
@@ -473,11 +475,18 @@ export const DataConverterBoxSource = {
       hasOptionKeys(options, ...fmt.keys),
     );
 
-    // a JSON Tools directive (::jsonpick, ::jsonmerge, ...) already says what to
-    // do with this input; the auto-format guess would only add a prettified
-    // copy of the source (or a YAML reading of `---`-separated documents)
-    // next to the requested result
-    if (!hasAnyTargetOption && hasOptionKeys(options, ...JSON_TOOL_OPTION_KEYS))
+    // a JSON Tools or CSV Table directive (::jsonpick, ::csv, ...) already
+    // says what to do with this input; the auto-format guess would only add a
+    // prettified copy of the source (or a YAML reading of `---`-separated
+    // documents) next to the requested result
+    if (
+      !hasAnyTargetOption &&
+      hasOptionKeys(
+        options,
+        ...JSON_TOOL_OPTION_KEYS,
+        ...CSV_EXCLUSIVE_OPTION_KEYS,
+      )
+    )
       return [];
 
     const inputSize = input.length;
@@ -500,6 +509,14 @@ export const DataConverterBoxSource = {
       // explicit the intent is unambiguous, so report why parsing failed
       // instead of rendering nothing.
       if (!hasAnyTargetOption || trim(input) === '') return [];
+      // `::json` under a CSV/TSV table is answered by CSV Table instead; any
+      // other target still deserves the error, since nothing else answers it
+      const onlyJsonRequested = FORMATS.every(
+        (fmt) =>
+          fmt.id === DataFormat.JSON || !hasOptionKeys(options, ...fmt.keys),
+      );
+      if (onlyJsonRequested && detectTableShape(trim(input)) !== null)
+        return [];
       return [errorBox('Data Converter', describeDetectFailure(result.errors))];
     }
 

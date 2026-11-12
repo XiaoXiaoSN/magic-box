@@ -1,3 +1,4 @@
+import { CSV_OPTION_KEYS } from '@functions/csv/commands';
 import { parseInput } from '@functions/parseOptions';
 import type { BoxSource } from '@modules/BoxSource';
 import { describe, expect, it, vi } from 'vitest';
@@ -15,7 +16,7 @@ const manifestIds = sourceManifest.map((source) => source.id);
 
 describe('source manifest', () => {
   it('keeps the complete ordered registry in stable-id form', () => {
-    expect(sourceManifest).toHaveLength(93);
+    expect(sourceManifest).toHaveLength(94);
     expect(new Set(manifestIds).size).toBe(sourceManifest.length);
     expect(
       manifestIds.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),
@@ -59,6 +60,10 @@ describe('source manifest', () => {
         defaultDisabled: loaded.defaultDisabled ?? false,
       });
     }
+  });
+
+  it('lists every CSV Table option key in its manifest entry', () => {
+    expect(getBoxSource('csv')?.optionKeys).toEqual(CSV_OPTION_KEYS);
   });
 
   it('keeps conservative matchers compatible with their default inputs', () => {

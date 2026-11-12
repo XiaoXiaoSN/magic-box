@@ -361,6 +361,35 @@ path = "/health"`;
     });
   });
 
+  describe('alongside CSV Table', () => {
+    const converter = (raw: string) => {
+      const [input, options] = parseInput(raw);
+      return DataConverterBoxSource.generateBoxes(input, options);
+    };
+
+    it('skips the auto-format guess for a CSV Table directive', async () => {
+      expect(await converter('[{"a":1,"b":2}]\n::csv')).toEqual([]);
+      expect(await converter('[{"a":1,"b":2}]\n::md')).toEqual([]);
+    });
+
+    it('leaves ::json under a CSV table to CSV Table', async () => {
+      expect(await converter('name,age\nAlice,30\n::json')).toEqual([]);
+      expect(await converter('name\tage\nAlice\t30\n::tojson')).toEqual([]);
+    });
+
+    it('still reports a target CSV Table cannot answer', async () => {
+      const boxes = await converter('name,age\nAlice,30\n::toyaml');
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.isError).toBe(true);
+    });
+
+    it('still reports ::json on text that is not a table', async () => {
+      const boxes = await converter('hello, world\n::json');
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.isError).toBe(true);
+    });
+  });
+
   describe('lossless detection and conversion', () => {
     it('does not auto-detect one-line YAML-looking prose', async () => {
       for (const input of ['Version: 1.0', '- buy milk', 'TODO: "fix this"']) {

@@ -13,6 +13,7 @@ export const BOX_SOURCE_IDS = [
   'cron-expression',
   'data-converter',
   'json-tools',
+  'csv',
   'date-calculate',
   'duration',
   'generate-qr-code',
@@ -134,6 +135,11 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
     name: 'JSON Tools',
     description:
       'Merge, pick/omit, query (RFC 6901 JSON Pointer) and JSONL-convert JSON. ::jsonmerge (objects separated by a --- line), ::jsonpick=a,b, ::jsonomit=a,b, ::jsonpointer=/a/0, ::tojsonl, ::fromjsonl, ::jsonl (auto).',
+  },
+  csv: {
+    name: 'CSV Table',
+    description:
+      'Auto-detects CSV/TSV tables (spreadsheet copies too) and converts them to Markdown and JSON. ::csv, ::tsv, ::md, ::json pick outputs and also turn a JSON array into a table; ::col=email keeps columns; ::sep=;, ::header, ::noheader adjust parsing.',
   },
   'date-calculate': {
     name: 'Date Calculate',
@@ -573,6 +579,11 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
     name: 'JSON 工具',
     description:
       '合併、挑選或排除欄位、查詢（RFC 6901 JSON Pointer），以及在 JSON 與 JSONL 之間轉換。可使用 ::jsonmerge（以 --- 分隔的物件）、::jsonpick=a,b、::jsonomit=a,b、::jsonpointer=/a/0、::tojsonl、::fromjsonl、::jsonl（自動判斷）。',
+  },
+  csv: {
+    name: 'CSV 表格',
+    description:
+      '自動偵測 CSV／TSV 表格（包含從試算表複製的內容），轉成 Markdown 表格與 JSON。::csv、::tsv、::md、::json 指定輸出，也能把 JSON 陣列轉成表格；::col=email 保留指定欄位；::sep=;、::header、::noheader 調整解析方式。',
   },
   'date-calculate': {
     name: '日期計算',
