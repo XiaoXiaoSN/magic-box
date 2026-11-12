@@ -5,6 +5,8 @@ import {
   formatOffsetLabel,
   formatOffsetSuffix,
   isValidTimezoneOffset,
+  offsetInTimeZone,
+  parseTimezoneSpec,
   toOffsetISOString,
 } from '../timezone';
 
@@ -62,5 +64,64 @@ describe('timezone preferences', () => {
     );
     setRuntimePrefs({ timezoneMode: 'fixed', timezoneOffset: 5.75 });
     expect(getTimezoneOffset(july)).toBe(5.75);
+  });
+});
+
+describe('parseTimezoneSpec', () => {
+  it.each([
+    ['0', 0],
+    ['8', 8],
+    ['+8', 8],
+    ['-8', -8],
+    ['5.5', 5.5],
+    ['+05:30', 5.5],
+    ['+0545', 5.75],
+    ['UTC+9', 9],
+    ['gmt-3', -3],
+    ['Z', 0],
+    ['utc', 0],
+    ['-0', 0],
+  ])('parses %s as a fixed offset', (raw, offsetHours) => {
+    expect(parseTimezoneSpec(raw)).toEqual({ kind: 'fixed', offsetHours });
+  });
+
+  it.each([
+    ['taipei', 'Asia/Taipei'],
+    ['Tokyo', 'Asia/Tokyo'],
+    ['new york', 'America/New_York'],
+    ['new_york', 'America/New_York'],
+    ['asia/taipei', 'Asia/Taipei'],
+  ])('resolves %s to %s', (raw, timeZone) => {
+    expect(parseTimezoneSpec(raw)).toEqual({ kind: 'iana', timeZone });
+  });
+
+  it.each([
+    '',
+    '15',
+    '-13',
+    '+5:70',
+    '5.3',
+    'mars',
+    'Asia/Atlantis',
+  ])('rejects %j', (raw) => {
+    expect(parseTimezoneSpec(raw)).toBeNull();
+  });
+});
+
+describe('offsetInTimeZone', () => {
+  it('follows DST transitions', () => {
+    expect(
+      offsetInTimeZone('America/New_York', new Date('2025-03-09T06:59:59Z')),
+    ).toBe(-5);
+    expect(
+      offsetInTimeZone('America/New_York', new Date('2025-03-09T07:00:00Z')),
+    ).toBe(-4);
+  });
+
+  it('handles UTC and fractional offsets', () => {
+    expect(offsetInTimeZone('UTC', new Date(0))).toBe(0);
+    expect(offsetInTimeZone('Asia/Kathmandu', new Date('2024-01-01'))).toBe(
+      5.75,
+    );
   });
 });

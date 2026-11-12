@@ -225,7 +225,14 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     defaultInput: 'now + 7d',
     tag: '⏱',
     kind: 'Time',
-    optionKeys: ['relative', 'timeago', 'timelater', 'relativetime'],
+    optionKeys: [
+      'relative',
+      'timeago',
+      'timelater',
+      'relativetime',
+      'tz',
+      'timezone',
+    ],
     headless: true,
     workerSafe: true,
     load: () =>

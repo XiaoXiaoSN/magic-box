@@ -71,6 +71,7 @@ describe('theme tokens', () => {
           '--topbar-h',
           '--density-gap',
           '--density-pad',
+          '--box-stack-gap',
         ].includes(name),
     );
     expect(lightOnly).toEqual([]);

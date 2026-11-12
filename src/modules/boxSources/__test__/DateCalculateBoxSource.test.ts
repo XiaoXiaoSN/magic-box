@@ -70,8 +70,8 @@ describe('DateCalculateBoxSource', () => {
       const result =
         DateCalculateBoxSource.checkAddSubtractPattern('now + 20d');
       expect(result).toBeDefined();
-      expect(result?.fromDate).toBe('2024-01-01');
-      expect(result?.toDate).toBe('2024-01-21');
+      expect(result?.fromDate).toBe('2024-01-01T08:00:00.000+08:00');
+      expect(result?.toDate).toBe('2024-01-21T08:00:00.000+08:00');
       expect(result?.days).toBe(20);
       expect(result?.operation).toBe('+');
     });
@@ -80,8 +80,8 @@ describe('DateCalculateBoxSource', () => {
       const result =
         DateCalculateBoxSource.checkAddSubtractPattern('now - 10d');
       expect(result).toBeDefined();
-      expect(result?.fromDate).toBe('2024-01-01');
-      expect(result?.toDate).toBe('2023-12-22');
+      expect(result?.fromDate).toBe('2024-01-01T08:00:00.000+08:00');
+      expect(result?.toDate).toBe('2023-12-22T08:00:00.000+08:00');
       expect(result?.days).toBe(10);
       expect(result?.operation).toBe('-');
     });
@@ -109,16 +109,16 @@ describe('DateCalculateBoxSource', () => {
     it('should handle multiple units (h, m, s, ms)', () => {
       expect(
         DateCalculateBoxSource.checkAddSubtractPattern('now + 1h')?.result,
-      ).toBe('2024-01-01T01:00:00.000Z');
+      ).toBe('2024-01-01T09:00:00.000+08:00');
       expect(
         DateCalculateBoxSource.checkAddSubtractPattern('now + 30m')?.result,
-      ).toBe('2024-01-01T00:30:00.000Z');
+      ).toBe('2024-01-01T08:30:00.000+08:00');
       expect(
         DateCalculateBoxSource.checkAddSubtractPattern('now + 45s')?.result,
-      ).toBe('2024-01-01T00:00:45.000Z');
+      ).toBe('2024-01-01T08:00:45.000+08:00');
       expect(
         DateCalculateBoxSource.checkAddSubtractPattern('now + 500ms')?.result,
-      ).toBe('2024-01-01T00:00:00.500Z');
+      ).toBe('2024-01-01T08:00:00.500+08:00');
     });
 
     it('should handle addition with timezone offset', () => {
@@ -195,7 +195,7 @@ describe('DateCalculateBoxSource', () => {
       ).toBe('2024-01-03');
       expect(
         DateCalculateBoxSource.checkAddSubtractPattern('now + 2w')?.result,
-      ).toBe('2024-01-15');
+      ).toBe('2024-01-15T08:00:00.000+08:00');
     });
 
     it('rejects timestamp and datetime hybrid inputs', () => {
@@ -250,7 +250,7 @@ describe('DateCalculateBoxSource', () => {
       const result =
         DateCalculateBoxSource.checkDateDiffPattern('now to 2024-12-31');
       expect(result).toBeDefined();
-      expect(result?.fromDate).toBe('2024-01-01');
+      expect(result?.fromDate).toBe('2024-01-01T08:00:00.000+08:00');
       expect(result?.toDate).toBe('2024-12-31');
       expect(result?.days).toBe(365);
       expect(result?.operation).toBe('diff');
@@ -283,7 +283,7 @@ describe('DateCalculateBoxSource', () => {
         DateCalculateBoxSource.checkDateDiffPattern('2023-01-01 to now');
       expect(result).toBeDefined();
       expect(result?.fromDate).toBe('2023-01-01');
-      expect(result?.toDate).toBe('2024-01-01');
+      expect(result?.toDate).toBe('2024-01-01T08:00:00.000+08:00');
       expect(result?.days).toBe(365);
       expect(result?.operation).toBe('diff');
     });
@@ -352,7 +352,9 @@ describe('DateCalculateBoxSource', () => {
       const boxes = await DateCalculateBoxSource.generateBoxes('now + 20d');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
-      expect(boxes[0].props.plaintextOutput).toBe('2024-01-21');
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '2024-01-21T08:00:00.000+08:00',
+      );
       expect(boxes[0].boxTemplate).toBeUndefined();
     });
 
@@ -367,32 +369,32 @@ describe('DateCalculateBoxSource', () => {
     it('should support different types of day patterns', async () => {
       let boxes = await DateCalculateBoxSource.generateBoxes('now + 20D');
       expect(boxes[0].props.options).toEqual({
-        fromDate: '2024-01-01',
-        toDate: '2024-01-21',
+        fromDate: '2024-01-01T08:00:00.000+08:00',
+        toDate: '2024-01-21T08:00:00.000+08:00',
         days: '20',
         operation: '+',
       });
 
       boxes = await DateCalculateBoxSource.generateBoxes('now + 20days');
       expect(boxes[0]?.props?.options).toEqual({
-        fromDate: '2024-01-01',
-        toDate: '2024-01-21',
+        fromDate: '2024-01-01T08:00:00.000+08:00',
+        toDate: '2024-01-21T08:00:00.000+08:00',
         days: '20',
         operation: '+',
       });
 
       boxes = await DateCalculateBoxSource.generateBoxes('now + 20day');
       expect(boxes[0].props.options).toEqual({
-        fromDate: '2024-01-01',
-        toDate: '2024-01-21',
+        fromDate: '2024-01-01T08:00:00.000+08:00',
+        toDate: '2024-01-21T08:00:00.000+08:00',
         days: '20',
         operation: '+',
       });
 
       boxes = await DateCalculateBoxSource.generateBoxes('now + 20DaYS');
       expect(boxes[0].props.options).toEqual({
-        fromDate: '2024-01-01',
-        toDate: '2024-01-21',
+        fromDate: '2024-01-01T08:00:00.000+08:00',
+        toDate: '2024-01-21T08:00:00.000+08:00',
         days: '20',
         operation: '+',
       });
@@ -409,11 +411,88 @@ describe('DateCalculateBoxSource', () => {
     it('should set correct options in box props', async () => {
       const boxes = await DateCalculateBoxSource.generateBoxes('now + 20d');
       expect(boxes[0].props.options).toEqual({
-        fromDate: '2024-01-01',
-        toDate: '2024-01-21',
+        fromDate: '2024-01-01T08:00:00.000+08:00',
+        toDate: '2024-01-21T08:00:00.000+08:00',
         days: '20',
         operation: '+',
       });
+    });
+  });
+
+  describe('timezone', () => {
+    const output = async (
+      input: string,
+      options: Record<string, string | boolean> | null = null,
+    ) =>
+      (await DateCalculateBoxSource.generateBoxes(input, options))[0]?.props
+        .plaintextOutput;
+
+    it('renders `now` in the settings timezone', async () => {
+      expect(await output('now + 16h')).toBe('2024-01-02T00:00:00.000+08:00');
+    });
+
+    it.each([
+      ['0', '2024-01-01T16:00:00.000+00:00'],
+      ['-8', '2024-01-01T08:00:00.000-08:00'],
+      ['+05:30', '2024-01-01T21:30:00.000+05:30'],
+      ['UTC+9', '2024-01-02T01:00:00.000+09:00'],
+      ['taipei', '2024-01-02T00:00:00.000+08:00'],
+      ['New York', '2024-01-01T11:00:00.000-05:00'],
+      ['Europe/London', '2024-01-01T16:00:00.000+00:00'],
+    ])('`::tz=%s` overrides the settings timezone', async (tz, expected) => {
+      expect(await output('now + 16h', { tz })).toBe(expected);
+    });
+
+    it('accepts `::timezone` as an alias', async () => {
+      expect(await output('now + 16h', { timezone: 'utc' })).toBe(
+        '2024-01-01T16:00:00.000+00:00',
+      );
+    });
+
+    it('interprets zone-less wall-clock input in the override', async () => {
+      expect(await output('2024-01-01 00:00:00 + 1h', { tz: '0' })).toBe(
+        '2024-01-01T01:00:00.000+00:00',
+      );
+    });
+
+    it('keeps an explicit input offset', async () => {
+      expect(await output('2024-01-01T00:00:00Z + 1h', { tz: 'taipei' })).toBe(
+        '2024-01-01T01:00:00.000Z',
+      );
+    });
+
+    it('resolves `today` in the override', async () => {
+      expect(await output('today + 1d')).toBe('2024-01-02');
+      expect(await output('today + 1d', { tz: '-8' })).toBe('2024-01-01');
+    });
+
+    it('follows DST for named zones', async () => {
+      // 2025-03-09T06:00Z is 01:00 EST, one hour before the spring-forward gap.
+      vi.setSystemTime(new Date('2025-03-09T06:00:00Z'));
+      expect(await output('now + 2h', { tz: 'new_york' })).toBe(
+        '2025-03-09T04:00:00.000-04:00',
+      );
+      expect(await output('now + 1d', { tz: 'new_york' })).toBe(
+        '2025-03-10T01:00:00.000-04:00',
+      );
+    });
+
+    it('ignores a bare `::tz` that is still being typed', async () => {
+      expect(await output('now + 16h', { tz: true })).toBe(
+        '2024-01-02T00:00:00.000+08:00',
+      );
+    });
+
+    it('reports an unknown timezone only for date input', async () => {
+      const boxes = await DateCalculateBoxSource.generateBoxes('now + 1h', {
+        tz: 'mars',
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.isError).toBe(true);
+      expect(boxes[0].props.plaintextOutput).toBe('Unknown timezone "mars"');
+      expect(
+        await DateCalculateBoxSource.generateBoxes('hello', { tz: 'mars' }),
+      ).toEqual([]);
     });
   });
 

@@ -40,6 +40,8 @@
   /* density-driven row gap; compact tightens it (see [data-density]). */
   --density-gap: 12px;
   --density-pad: 16px;
+  /* vertical space between stacked output cards. */
+  --box-stack-gap: 8px;
 }
 
 /* Dark palette. The "system" preference is resolved to a concrete light/dark
@@ -79,6 +81,7 @@
 :root[data-density="compact"] {
   --density-gap: 6px;
   --density-pad: 10px;
+  --box-stack-gap: 4px;
   --radius: 8px;
   --radius-lg: 10px;
 }
@@ -847,6 +850,10 @@ pre,
   font: inherit;
   color: inherit;
   display: block;
+}
+
+.box-card + .box-card {
+  margin-top: var(--box-stack-gap);
 }
 
 .box-card:hover {
