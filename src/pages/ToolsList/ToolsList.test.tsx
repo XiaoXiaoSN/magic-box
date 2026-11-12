@@ -166,7 +166,7 @@ describe('/list preview input state', () => {
 
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'UUID', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'UUID' }));
 
     expect(await screen.findByDisplayValue('uuid')).toBeInTheDocument();
     expect(screen.getByTestId('router-box')).toHaveTextContent('uuid');
@@ -275,9 +275,7 @@ describe('/list preview input state', () => {
       renderPage(['/list'], 0, true);
 
       expect(originalGetItem('mb:list:selected')).toBe('Word Count');
-      fireEvent.click(
-        screen.getByRole('button', { name: 'UUID', exact: true }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'UUID' }));
 
       expect(originalGetItem('mb:list:selected')).toBe('uuid');
     } finally {
@@ -291,7 +289,7 @@ describe('/list preview input state', () => {
     });
 
     renderPage(['/list?box=Word%20Count']);
-    fireEvent.click(screen.getByRole('button', { name: 'UUID', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'UUID' }));
     expect(screen.getByTestId('router-box')).toHaveTextContent('uuid');
     expect(screen.getByRole('heading', { name: 'UUID' })).toBeInTheDocument();
     setItem.mockRestore();
