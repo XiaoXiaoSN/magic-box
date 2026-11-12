@@ -5,7 +5,11 @@ const { getAnalytics, setAnalyticsCollectionEnabled } = vi.hoisted(() => ({
   setAnalyticsCollectionEnabled: vi.fn(),
 }));
 
-vi.mock('firebase/app', () => ({ initializeApp: vi.fn(() => ({})) }));
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(() => ({})),
+  getApps: vi.fn(() => []),
+  getApp: vi.fn(() => ({})),
+}));
 vi.mock('firebase/analytics', () => ({
   getAnalytics,
   setAnalyticsCollectionEnabled,

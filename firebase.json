@@ -71,5 +71,12 @@
         ]
       }
     ]
-  }
+  },
+  "functions": [{
+    "source": "functions",
+    "codebase": "feedback",
+    "runtime": "nodejs22",
+    "ignore": ["node_modules", ".git", "test", "*.jsonl"]
+  }],
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" }
 }

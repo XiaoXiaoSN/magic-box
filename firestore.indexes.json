@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "feedbackSamples",
+      "fieldPath": "sample",
+      "indexes": []
+    }
+  ]
+}

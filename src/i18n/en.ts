@@ -4,6 +4,30 @@ const en = {
   'nav.list': 'List',
   'nav.settings': 'Settings',
 
+  'settings.collectFeedback': 'Data collection mode',
+  'settings.collectFeedbackHint':
+    'Off by default. Enable feedback forms to share the current input, all candidate outputs, your chosen result or expected output, and comments with Magic Box for improvements and future machine learning. Only Send feedback uploads data; do not submit secrets. Independent of anonymous analytics.',
+  'feedback.title': 'Help improve results',
+  'feedback.notice':
+    'Sending shares this input and all current candidate outputs, together with your feedback, for improvements and future model training. Do not include personal data or secrets.',
+  'feedback.kind': 'What would you like to report?',
+  'feedback.selection': 'This is the result I wanted',
+  'feedback.expectation': 'I expected a different result',
+  'feedback.selected': 'Chosen result: {{name}}',
+  'feedback.choose':
+    'Select a result card above to confirm the output you wanted.',
+  'feedback.expected': 'What output did you expect?',
+  'feedback.comment': 'Additional comments (optional)',
+  'feedback.submit': 'Send feedback',
+  'feedback.sending': 'Sending…',
+  'feedback.success': 'Thanks! Your feedback was saved.',
+  'feedback.error': 'Feedback could not be saved. Please retry.',
+  'feedback.tooLarge':
+    'This input or its results exceed the feedback size limit. Shorten the example and try again.',
+  'feedback.wait': 'Wait for the current results before sending feedback.',
+  'feedback.unconfigured':
+    'Feedback collection is not configured on this deployment yet.',
+
   'settings.title': 'Settings',
   'settings.subtitle': 'Preferences are saved locally in your browser.',
   'settings.section.boxOrder': 'Box order',
@@ -35,7 +59,7 @@ const en = {
   'settings.default': 'default',
   'settings.resetPreferences': 'Restore all defaults',
   'settings.defaultsHint':
-    'Defaults: system theme, comfortable density, English, Enter copies, UTC+8, default server URLs, anonymous usage enabled; Local AI asks, auto language, auto check and auto-run enabled. Restore also resets box order and availability, while preserving input and history.',
+    'Defaults: system theme, comfortable density, English, Enter copies, UTC+8, default server URLs, anonymous usage enabled, data collection off; Local AI asks, auto language, auto check and auto-run enabled. Restore also resets box order and availability, while preserving input and history.',
   'settings.section.server': 'Server',
   'settings.section.serverHint':
     'Override backend hosts. Leave blank to use the defaults.',

@@ -755,6 +755,16 @@ const SettingsPage = (): React.JSX.Element => {
 
         <Section title={t('settings.section.privacy')}>
           <Field
+            hint={t('settings.collectFeedbackHint')}
+            label={t('settings.collectFeedback')}
+          >
+            <Toggle
+              checked={prefs.collectFeedback}
+              label={t('settings.collectFeedback')}
+              onChange={(v) => setPref('collectFeedback', v)}
+            />
+          </Field>
+          <Field
             hint={t('settings.analyticsHint')}
             label={t('settings.analytics')}
           >
