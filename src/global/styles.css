@@ -324,15 +324,20 @@ pre,
   align-items: center;
   gap: 10px;
   min-height: 40px;
-  padding: 0 8px;
-  font-size: 14px;
-  color: var(--ink-2);
-  font-weight: 500;
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
   flex-wrap: wrap;
 }
 
 .home-col-head .dot {
-  display: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-4);
 }
 
 .home-col-head .swap {
