@@ -236,7 +236,6 @@ const SettingsPage = (): React.JSX.Element => {
         <header className="page-head">
           <div>
             <h1 className="page-title">{t('settings.title')}</h1>
-            <p className="page-sub">{t('settings.subtitle')}</p>
           </div>
           <button
             className="btn-subtle"

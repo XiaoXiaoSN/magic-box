@@ -80,7 +80,6 @@ const zhTW: Translations = {
   'cloud.error': '無法存取設定備份。請確認網路連線後重試。',
 
   'settings.title': '設定',
-  'settings.subtitle': '設定會自動儲存於此裝置。',
   'settings.section.boxOrder': 'Box 順序',
   'settings.section.boxOrderHint':
     '拖曳以重新排序。首頁的匹配結果會依照此順序顯示；關閉開關可隱藏 Box。',

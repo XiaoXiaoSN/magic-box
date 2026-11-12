@@ -88,7 +88,6 @@ const en = {
     'Could not access the settings backup. Check your connection and try again.',
 
   'settings.title': 'Settings',
-  'settings.subtitle': 'Saved on this device.',
   'settings.section.boxOrder': 'Box order',
   'settings.section.boxOrderHint':
     'Drag to reorder. Matches on the home screen appear in this order. Toggle off to hide a box.',
