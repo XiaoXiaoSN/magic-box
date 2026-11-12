@@ -1,3 +1,12 @@
+import {
+  CSV_SHARED_OPTION_KEYS,
+  hasExclusiveCsvOption,
+} from '@functions/csv/commands';
+import {
+  CSV_AUTO_INPUT_LIMIT,
+  CSV_EXPLICIT_INPUT_LIMIT,
+  detectTableShape,
+} from '@functions/csv/detect';
 import { parseDateString } from '@functions/helper';
 import type { BoxOptions } from '@modules/Box';
 import {
@@ -71,6 +80,17 @@ const dataConverterCanHandle = (
   }
 
   return hasTomlDocumentShape(trimmed) || hasYamlDocumentShape(trimmed);
+};
+
+// a shared `::json` alone does not ask for a table, so it still needs the
+// table guess; it only lifts the size cap the way an explicit request does
+const csvCanHandle = (input: string, options: BoxOptions): boolean => {
+  if (hasExclusiveCsvOption(options)) return true;
+  const jsonRequested =
+    options !== null &&
+    CSV_SHARED_OPTION_KEYS.some((key) => options[key] !== undefined);
+  const limit = jsonRequested ? CSV_EXPLICIT_INPUT_LIMIT : CSV_AUTO_INPUT_LIMIT;
+  return input.length <= limit && detectTableShape(input) !== null;
 };
 
 const certificateCanHandle = (input: string, options: BoxOptions): boolean =>
@@ -216,6 +236,39 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'jsonl',
     ]),
     load: () => import('./JsonToolsBoxSource').then((module) => module.default),
+  },
+  {
+    id: 'csv',
+    name: 'CSV Table',
+    description:
+      'Auto-detects CSV/TSV tables (spreadsheet copies too) and converts them to Markdown and JSON. ::csv, ::tsv, ::md, ::json pick outputs and also turn a JSON array into a table; ::col=email keeps columns; ::sep=;, ::header, ::noheader adjust parsing.',
+    defaultInput:
+      'name,email,city\nAlice,alice@example.com,Taipei\nBob,bob@example.com,"Tokyo, Japan"',
+    tag: 'CSV',
+    kind: 'Convert',
+    // a literal so the docs generator can read it statically; the registry
+    // test keeps it equal to CSV_OPTION_KEYS
+    optionKeys: [
+      'csv',
+      'tocsv',
+      'tsv',
+      'totsv',
+      'md',
+      'markdown',
+      'col',
+      'column',
+      'sep',
+      'delimiter',
+      'header',
+      'noheader',
+      'json',
+      'tojson',
+    ],
+    headless: true,
+    workerSafe: true,
+    supportsLargeInput: true,
+    canHandle: csvCanHandle,
+    load: () => import('./CsvBoxSource').then((module) => module.default),
   },
   {
     id: 'date-calculate',
@@ -1624,6 +1677,7 @@ export const boxSources: LazyBoxSource[] = definitions.map(createLazyBoxSource);
 // these overlaps are intentional because the same directive has a defined
 // meaning in each listed source. every other option key belongs to one source.
 export const sharedOptionOwners: Readonly<Record<string, readonly string[]>> = {
+  json: ['data-converter', 'csv'],
   l: ['base64-decode', 'cron-expression', 'text-diff'],
   lang: ['base64-decode', 'cron-expression', 'text-diff'],
   language: ['base64-decode', 'text-diff'],
@@ -1631,6 +1685,7 @@ export const sharedOptionOwners: Readonly<Record<string, readonly string[]>> = {
   sha1: ['hash', 'hmac', 'pbkdf2'],
   sha256: ['hash', 'hmac', 'pbkdf2'],
   sha512: ['hash', 'hmac', 'pbkdf2'],
+  tojson: ['data-converter', 'csv'],
   upper: ['uuid', 'case-converter'],
   uppercase: ['uuid', 'case-converter'],
 };

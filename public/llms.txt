@@ -102,6 +102,20 @@ Example (each ::option starts a new line):
 ::jsonmerge
 ~~~~
 
+### CSV Table (csv)
+
+Auto-detects CSV/TSV tables (spreadsheet copies too) and converts them to Markdown and JSON. ::csv, ::tsv, ::md, ::json pick outputs and also turn a JSON array into a table; ::col=email keeps columns; ::sep=;, ::header, ::noheader adjust parsing.
+
+Category: Convert. Enabled by default on the web: true.
+Option keys: ::csv, ::tocsv, ::tsv, ::totsv, ::md, ::markdown, ::col, ::column, ::sep, ::delimiter, ::header, ::noheader, ::json, ::tojson.
+
+Example (each ::option starts a new line):
+~~~~text
+name,email,city
+Alice,alice@example.com,Taipei
+Bob,bob@example.com,"Tokyo, Japan"
+~~~~
+
 ### Date Calculate (date-calculate)
 
 Add or subtract calendar or time units from a date, or compute the duration between two dates.

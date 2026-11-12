@@ -1,7 +1,7 @@
 # Terminal UI
 
 The terminal interface uses the same tool registry as the web application.
-It includes 89 headless sources from the 93-source registry, excluding
+It includes 90 headless sources from the 94-source registry, excluding
 Generate QR Code and Local AI (browser APIs), and My IP and Shorten URL
 (network side effects). Web Settings do not disable terminal sources;
 directive-driven sources are available even when disabled by default on the web.

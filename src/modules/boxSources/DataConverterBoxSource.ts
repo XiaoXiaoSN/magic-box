@@ -1,3 +1,7 @@
+import {
+  CSV_EXCLUSIVE_OPTION_KEYS,
+  csvOwnsJsonOutput,
+} from '@functions/csv/commands';
 import { isString, trim } from '@functions/helper';
 import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
@@ -469,15 +473,27 @@ export const DataConverterBoxSource = {
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     if (!isString(input)) return [];
 
-    const hasAnyTargetOption = FORMATS.some((fmt) =>
-      hasOptionKeys(options, ...fmt.keys),
+    const csvOwnsJson = csvOwnsJsonOutput(input, options);
+    const requestedFormats = FORMATS.filter(
+      (fmt) =>
+        hasOptionKeys(options, ...fmt.keys) &&
+        !(fmt.id === DataFormat.JSON && csvOwnsJson),
     );
+    if (csvOwnsJson && requestedFormats.length === 0) return [];
+    const hasAnyTargetOption = requestedFormats.length > 0;
 
-    // a JSON Tools directive (::jsonpick, ::jsonmerge, ...) already says what to
-    // do with this input; the auto-format guess would only add a prettified
-    // copy of the source (or a YAML reading of `---`-separated documents)
-    // next to the requested result
-    if (!hasAnyTargetOption && hasOptionKeys(options, ...JSON_TOOL_OPTION_KEYS))
+    // a JSON Tools or CSV Table directive (::jsonpick, ::csv, ...) already
+    // says what to do with this input; the auto-format guess would only add a
+    // prettified copy of the source (or a YAML reading of `---`-separated
+    // documents) next to the requested result
+    if (
+      !hasAnyTargetOption &&
+      hasOptionKeys(
+        options,
+        ...JSON_TOOL_OPTION_KEYS,
+        ...CSV_EXCLUSIVE_OPTION_KEYS,
+      )
+    )
       return [];
 
     const inputSize = input.length;
@@ -516,7 +532,8 @@ export const DataConverterBoxSource = {
     const boxes: Box[] = [];
 
     for (const fmt of FORMATS) {
-      const isTargetRequested = hasOptionKeys(options, ...fmt.keys);
+      if (fmt.id === DataFormat.JSON && csvOwnsJson) continue;
+      const isTargetRequested = requestedFormats.includes(fmt);
       const isSourceFormat = fmt.id === srcFormat;
 
       // If specific options are provided, only show those requested.

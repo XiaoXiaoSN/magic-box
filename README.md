@@ -126,6 +126,29 @@ Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a 
 </details>
 
 <details>
+<summary> <b>CsvTableBox</b> </summary>
+
+Paste a table and the box recognizes it on its own: comma, tab (spreadsheet copies) and semicolon separators, quoted fields, and a header row. Box titles name what was detected, e.g. `TSV → Markdown`. Prose, number lists, code and JSON lines are not treated as tables.
+
+| match rule                                   | output                                     |
+| -------------------------------------------- | ------------------------------------------ |
+| CSV/TSV with a header and 2+ columns         | Markdown table and JSON (array of objects) |
+
+| options                        | description                                                                 | example         |
+| ------------------------------ | --------------------------------------------------------------------------- | --------------- |
+| `csv`, `tocsv`                 | CSV output; also turns a JSON array (of objects or arrays) into CSV         | `::csv`         |
+| `tsv`, `totsv`                 | TSV output, ready to paste into a spreadsheet                               | `::tsv`         |
+| `md`, `markdown`               | Markdown table output; numeric columns are right-aligned                    | `::md`          |
+| `json`, `tojson`               | JSON output only (shared with DataConverter, which steps aside for tables) | `::json`        |
+| `col`, `column`                | keep columns by header name or 1-based position; one column lists its values | `::col=email`   |
+| `sep`, `delimiter`             | read with this delimiter (one character, `tab` or `space`)                  | `::sep=\|`      |
+| `header`, `noheader`           | force the first row to be column names, or data                             | `::noheader`    |
+
+Any of these options also reads input that is too irregular to guess (ragged rows, a single column). Values stay strings in JSON, so IDs and ZIP codes keep their leading zeros. A first row of only numbers is read as data.
+
+</details>
+
+<details>
 <summary> <b>DateCalculateBox</b> </summary>
 
 | match rule          | description                              | example               | output                      |
@@ -371,7 +394,7 @@ six-sided die, or `::roll=3` for three dice (up to 20).
 ## Terminal UI (TUI) 🖥️
 
 Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup).
-The registry contains 93 sources; 89 headless sources without network side
+The registry contains 94 sources; 90 headless sources without network side
 effects are available in the TUI. The four browser-only or network-backed
 sources are Generate QR Code, My IP, Shorten URL and Local AI.
 

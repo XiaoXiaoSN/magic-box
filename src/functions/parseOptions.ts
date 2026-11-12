@@ -1,5 +1,8 @@
 import type { BoxOptions, BoxOptionValues } from '@modules/Box';
 
+import { hasExclusiveCsvOption } from './csv/commands';
+import { detectTableShape } from './csv/detect';
+import { quotedCsvDirectiveOffsets } from './csv/input';
 import { parseIPv6Address } from './parseIPv6';
 
 interface ParsedDirective {
@@ -72,6 +75,7 @@ function parseDirectiveLine(line: string): ParsedDirective | null {
 
 function parseLines(input: string): ParsedInput {
   const normalized = input.replace(/\r\n?/g, '\n');
+  const quotedLines = quotedCsvDirectiveOffsets(normalized);
   const retainedLines: string[] = [];
   const options = newOptions();
   let lineStart = 0;
@@ -80,7 +84,9 @@ function parseLines(input: string): ParsedInput {
     if (index !== normalized.length && normalized[index] !== '\n') continue;
 
     const line = normalized.slice(lineStart, index);
-    const directive = parseDirectiveLine(line);
+    const directive = quotedLines?.has(lineStart)
+      ? null
+      : parseDirectiveLine(line);
     if (directive === null) {
       retainedLines.push(line);
     } else {
@@ -89,7 +95,15 @@ function parseLines(input: string): ParsedInput {
     lineStart = index + 1;
   }
 
-  return { input: retainedLines.join('\n').trim(), options };
+  const retained = retainedLines.join('\n');
+  // Boundary tabs carry empty spreadsheet cells; all other inputs keep trim semantics.
+  const preserveTabs =
+    retained.includes('\t') &&
+    (hasExclusiveCsvOption(options) || detectTableShape(retained) !== null);
+  const clean = preserveTabs
+    ? retained.replace(/^[ \n]+|[ \n]+$/g, '')
+    : retained.trim();
+  return { input: clean, options };
 }
 
 // parses line-anchored `::option=value` directives and returns clean input.

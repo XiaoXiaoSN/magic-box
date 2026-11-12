@@ -14,8 +14,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 
 test('reads the complete ordered source manifest without loading implementations', () => {
   const sources = readSourceManifest();
-  assert.equal(sources.length, 93);
-  assert.equal(new Set(sources.map((source) => source.id)).size, 93);
+  assert.equal(sources.length, 94);
+  assert.equal(new Set(sources.map((source) => source.id)).size, 94);
   assert.deepEqual(
     sources.slice(0, 4).map((source) => source.id),
     ['color', 'color-contrast', 'escape-string', 'base64-decode'],
@@ -86,8 +86,8 @@ test('resolves manifest arrays and rejects unsupported expressions', () => {
 test('renders stable IDs and the registry metadata into both outputs', () => {
   const sources = readSourceManifest();
   const { tools, llms } = renderDocumentation(sources);
-  assert.match(tools, /All 93 registered tools/);
-  assert.equal((tools.match(/^\| `[^`]+` \|/gm) ?? []).length, 93);
+  assert.match(tools, /All 94 registered tools/);
+  assert.equal((tools.match(/^\| `[^`]+` \|/gm) ?? []).length, 94);
   assert.match(tools, /\| `json-tools` \| \[JSON Tools\]/);
   assert.match(llms, /^### Local AI \(local-ai\)$/m);
   assert.match(llms, /Enabled by default on the web: true/);
