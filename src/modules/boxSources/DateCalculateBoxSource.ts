@@ -1,8 +1,18 @@
 import { isString, parseDateString, trim } from '@functions/helper';
 import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
-import { shiftDateToOffset, toOffsetISOString } from '@functions/timezone';
+import {
+  offsetForSpec,
+  parseTimezoneSpec,
+  shiftDateToOffset,
+  toOffsetISOString,
+} from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+} from '@modules/Box';
 import { toIntlLocale } from '../../i18n';
 
 const MINUTE_MS = 60_000;
@@ -53,7 +63,11 @@ const HOUR_MS_BY_UNIT: Record<string, number> = {
   milliseconds: 1,
 };
 
+// 'preferred' is the active zone: the settings timezone, or a `::tz` override.
 type DateZone = 'date' | 'utc' | 'preferred' | { offsetHours: number };
+
+// UTC offset (hours) of the active zone at a given instant.
+type OffsetAt = (date: Date) => number;
 
 interface ParsedDate {
   date: Date;
@@ -85,13 +99,13 @@ function createUTCDate(
   return date;
 }
 
-function currentPreferredDate(): Date {
+function currentPreferredDate(offsetAt: OffsetAt): Date {
   const now = new Date();
-  return shiftDateToOffset(now, getTimezoneOffset(now));
+  return shiftDateToOffset(now, offsetAt(now));
 }
 
-function offsetForZone(zone: DateZone, date: Date): number {
-  if (zone === 'preferred') return getTimezoneOffset(date);
+function offsetForZone(zone: DateZone, date: Date, offsetAt: OffsetAt): number {
+  if (zone === 'preferred') return offsetAt(date);
   if (zone === 'date' || zone === 'utc') return 0;
   return zone.offsetHours;
 }
@@ -99,24 +113,20 @@ function offsetForZone(zone: DateZone, date: Date): number {
 function makeDate(
   wallDate: Date,
   zone: DateZone,
-  subMillisecondMicroseconds = 0,
+  subMillisecondMicroseconds: number,
+  offsetAt: OffsetAt,
 ): ParsedDate | null {
-  const offset =
-    zone === 'preferred'
-      ? getTimezoneOffset(wallDate)
-      : offsetForZone(zone, wallDate);
+  const offset = offsetForZone(zone, wallDate, offsetAt);
   let date = new Date(wallDate.getTime() - offset * HOUR_MS);
   if (zone === 'preferred') {
-    const resolvedOffset = getTimezoneOffset(date);
+    const resolvedOffset = offsetAt(date);
     if (resolvedOffset !== offset) {
       const resolvedDate = new Date(
         wallDate.getTime() - resolvedOffset * HOUR_MS,
       );
       if (
-        shiftDateToOffset(
-          resolvedDate,
-          getTimezoneOffset(resolvedDate),
-        ).getTime() === wallDate.getTime()
+        shiftDateToOffset(resolvedDate, offsetAt(resolvedDate)).getTime() ===
+        wallDate.getTime()
       ) {
         date = resolvedDate;
       }
@@ -166,15 +176,15 @@ function parseOffset(zone: string): number | null {
   return (match[1] === '-' ? -1 : 1) * (hours + minutes / 60);
 }
 
-function parseDateInput(input: string): ParsedDate | null {
+function parseDateInput(input: string, offsetAt: OffsetAt): ParsedDate | null {
   const raw = trim(input);
   const keyword = raw.toLowerCase();
   if (keyword === 'now') {
-    const date = new Date();
+    // an instant with no written zone: render it in the active zone.
     return {
-      date,
+      date: new Date(),
       dateOnly: false,
-      zone: 'utc',
+      zone: 'preferred',
       subMillisecondMicroseconds: 0,
     };
   }
@@ -183,7 +193,7 @@ function parseDateInput(input: string): ParsedDate | null {
     keyword === 'tomorrow' ||
     keyword === 'yesterday'
   ) {
-    const current = currentPreferredDate();
+    const current = currentPreferredDate(offsetAt);
     const day =
       current.getUTCDate() +
       (keyword === 'tomorrow' ? 1 : keyword === 'yesterday' ? -1 : 0);
@@ -219,7 +229,8 @@ function parseDateInput(input: string): ParsedDate | null {
       return null;
     }
 
-    const year = dateParts.year ?? currentPreferredDate().getUTCFullYear();
+    const year =
+      dateParts.year ?? currentPreferredDate(offsetAt).getUTCFullYear();
     const fraction = datetime[5] ?? '';
     const millisecond = Number(fraction.slice(0, 3).padEnd(3, '0'));
     const subMillisecondMicroseconds = Number(
@@ -236,7 +247,12 @@ function parseDateInput(input: string): ParsedDate | null {
     );
     const rawZone = datetime[6];
     if (rawZone === undefined) {
-      return makeDate(wallDate, 'preferred', subMillisecondMicroseconds);
+      return makeDate(
+        wallDate,
+        'preferred',
+        subMillisecondMicroseconds,
+        offsetAt,
+      );
     }
     const offset = parseOffset(rawZone);
     if (offset === null) return null;
@@ -244,12 +260,14 @@ function parseDateInput(input: string): ParsedDate | null {
       wallDate,
       rawZone.toLowerCase() === 'z' ? 'utc' : { offsetHours: offset },
       subMillisecondMicroseconds,
+      offsetAt,
     );
   }
 
   const dateParts = parseDateString(raw);
   if (!dateParts) return null;
-  const year = dateParts.year ?? currentPreferredDate().getUTCFullYear();
+  const year =
+    dateParts.year ?? currentPreferredDate(offsetAt).getUTCFullYear();
   return makeDateOnly(year, dateParts.month, dateParts.day);
 }
 
@@ -257,10 +275,10 @@ function formatDateOnly(date: Date): string {
   return `${String(date.getUTCFullYear()).padStart(4, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
-function formatParsedDate(parsed: ParsedDate): string {
+function formatParsedDate(parsed: ParsedDate, offsetAt: OffsetAt): string {
   if (parsed.dateOnly) return formatDateOnly(parsed.date);
   if (parsed.zone === 'preferred') {
-    return toOffsetISOString(parsed.date, getTimezoneOffset(parsed.date));
+    return toOffsetISOString(parsed.date, offsetAt(parsed.date));
   }
   const iso = parsed.date.toISOString();
   return iso.endsWith('T00:00:00.000Z') ? iso.slice(0, 10) : iso;
@@ -279,8 +297,9 @@ function addCalendarUnit(
   parsed: ParsedDate,
   unit: 'day' | 'week' | 'month' | 'year',
   amount: number,
+  offsetAt: OffsetAt,
 ): ParsedDate | null {
-  const offset = offsetForZone(parsed.zone, parsed.date);
+  const offset = offsetForZone(parsed.zone, parsed.date, offsetAt);
   const wall = shiftDateToOffset(parsed.date, offset);
   const year = wall.getUTCFullYear();
   const month = wall.getUTCMonth() + 1;
@@ -320,6 +339,7 @@ function addCalendarUnit(
     adjustedWall,
     parsed.zone,
     parsed.subMillisecondMicroseconds,
+    offsetAt,
   );
   if (result) result.dateOnly = parsed.dateOnly;
   return result;
@@ -329,6 +349,7 @@ function addDateUnit(
   parsed: ParsedDate,
   unit: string,
   amount: number,
+  offsetAt: OffsetAt,
 ): ParsedDate | null {
   if (
     unit === 'day' ||
@@ -336,7 +357,7 @@ function addDateUnit(
     unit === 'month' ||
     unit === 'year'
   ) {
-    return addCalendarUnit(parsed, unit, amount);
+    return addCalendarUnit(parsed, unit, amount, offsetAt);
   }
   const multiplier = HOUR_MS_BY_UNIT[unit];
   if (multiplier === undefined) return null;
@@ -392,11 +413,14 @@ export const DateCalculateBoxSource = {
   tag: '⏱',
   kind: 'Time',
 
-  checkAddSubtractPattern(input: string): Match | undefined {
+  checkAddSubtractPattern(
+    input: string,
+    offsetAt: OffsetAt = getTimezoneOffset,
+  ): Match | undefined {
     const addMatch = ADD_PATTERN.exec(input);
     if (!addMatch) return undefined;
 
-    const fromDate = parseDateInput(addMatch[1]);
+    const fromDate = parseDateInput(addMatch[1], offsetAt);
     if (!fromDate) return undefined;
     const amount = Number(addMatch[3]);
     if (!Number.isSafeInteger(amount)) return undefined;
@@ -416,6 +440,7 @@ export const DateCalculateBoxSource = {
       fromDate,
       unit,
       amount * (addMatch[2] === '+' ? 1 : -1),
+      offsetAt,
     );
     if (!toDate) return undefined;
 
@@ -426,21 +451,24 @@ export const DateCalculateBoxSource = {
             (toDate.date.getTime() - fromDate.date.getTime()) / DAY_MS,
           );
     const absoluteDays = Math.abs(days);
-    const result = formatParsedDate(toDate);
+    const result = formatParsedDate(toDate, offsetAt);
     return {
       result,
-      fromDate: formatParsedDate(fromDate),
+      fromDate: formatParsedDate(fromDate, offsetAt),
       toDate: result,
       days: absoluteDays,
       operation: addMatch[2],
     };
   },
 
-  checkDateDiffPattern(input: string): Match | undefined {
+  checkDateDiffPattern(
+    input: string,
+    offsetAt: OffsetAt = getTimezoneOffset,
+  ): Match | undefined {
     const diffMatch = DIFF_PATTERN.exec(input);
     if (!diffMatch) return undefined;
-    const fromDate = parseDateInput(diffMatch[1]);
-    const toDate = parseDateInput(diffMatch[2]);
+    const fromDate = parseDateInput(diffMatch[1], offsetAt);
+    const toDate = parseDateInput(diffMatch[2], offsetAt);
     if (!fromDate || !toDate) return undefined;
 
     const timeDiffMs = toDate.date.getTime() - fromDate.date.getTime();
@@ -458,20 +486,23 @@ export const DateCalculateBoxSource = {
 
     return {
       result,
-      fromDate: formatParsedDate(fromDate),
-      toDate: formatParsedDate(toDate),
+      fromDate: formatParsedDate(fromDate, offsetAt),
+      toDate: formatParsedDate(toDate, offsetAt),
       days,
       operation: 'diff',
     };
   },
 
-  checkMatch(input: string): Match | undefined {
+  checkMatch(
+    input: string,
+    offsetAt: OffsetAt = getTimezoneOffset,
+  ): Match | undefined {
     if (!isString(input)) return undefined;
     const regularInput = trim(input);
     if (!regularInput) return undefined;
     return (
-      this.checkAddSubtractPattern(regularInput) ??
-      this.checkDateDiffPattern(regularInput)
+      this.checkAddSubtractPattern(regularInput, offsetAt) ??
+      this.checkDateDiffPattern(regularInput, offsetAt)
     );
   },
 
@@ -479,14 +510,33 @@ export const DateCalculateBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (
-      hasOptionKeys(options, 'relative', 'timeago', 'timelater', 'relativetime')
-    ) {
+    const wantsRelative = hasOptionKeys(
+      options,
+      'relative',
+      'timeago',
+      'timelater',
+      'relativetime',
+    );
+    // `::tz` / `::timezone` replaces the settings timezone for this query only.
+    // a bare `::tz` (value `true`) is still being typed, so it is ignored.
+    const tzOption = extractOptionKeys(options, 'tz', 'timezone');
+    let offsetAt: OffsetAt = getTimezoneOffset;
+    if (typeof tzOption === 'string') {
+      const spec = parseTimezoneSpec(tzOption);
+      if (!spec) {
+        return wantsRelative || this.checkMatch(input)
+          ? [errorBox('Date Calculate', `Unknown timezone "${tzOption}"`)]
+          : [];
+      }
+      offsetAt = (date) => offsetForSpec(spec, date);
+    }
+
+    if (wantsRelative) {
       if (!isString(input) || trim(input).length === 0 || input.length > 100) {
         return [];
       }
       const raw = trim(input);
-      const parsed = parseDateInput(raw);
+      const parsed = parseDateInput(raw, offsetAt);
       if (!parsed) {
         return [
           new BoxBuilder('Relative Time', `Invalid date: "${raw}"`)
@@ -527,7 +577,7 @@ export const DateCalculateBoxSource = {
       ];
     }
 
-    const match = this.checkMatch(input);
+    const match = this.checkMatch(input, offsetAt);
     if (!match) return [];
     return [
       new BoxBuilder('Date Calculate', match.result)
@@ -549,5 +599,5 @@ export default DateCalculateBoxSource;
 export const exportedForTesting = {
   DATE,
   parseDate: (input: string): Date =>
-    parseDateInput(input)?.date ?? new Date(Number.NaN),
+    parseDateInput(input, getTimezoneOffset)?.date ?? new Date(Number.NaN),
 };

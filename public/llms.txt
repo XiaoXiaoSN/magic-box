@@ -107,7 +107,7 @@ Example (each ::option starts a new line):
 Add or subtract calendar or time units from a date, or compute the duration between two dates.
 
 Category: Time. Enabled by default on the web: true.
-Option keys: ::relative, ::timeago, ::timelater, ::relativetime.
+Option keys: ::relative, ::timeago, ::timelater, ::relativetime, ::tz, ::timezone.
 
 Example (each ::option starts a new line):
 ~~~~text

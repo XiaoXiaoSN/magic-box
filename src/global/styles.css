@@ -849,6 +849,10 @@ pre,
   display: block;
 }
 
+.box-card + .box-card {
+  margin-top: var(--density-gap);
+}
+
 .box-card:hover {
   border-color: var(--line-2);
 }

@@ -134,6 +134,8 @@ Merge is a plain deep merge, not RFC 7396 JSON Merge Patch: `null` is kept as a 
 | `date1` - `number`d | subtract days from a date                | `2025-01-01 - 30d`    |                             |
 | `date1` to `date2`  | calculate the duration between two dates | `today to 2025-12-31` |                             |
 
+`now`, `today` and dates without an explicit offset use the timezone from Settings. Override it per query with `::tz` (alias `::timezone`): an offset (`::tz=0`, `::tz=-8`, `::tz=+05:30`, `::tz=UTC+9`), an IANA id (`::tz=Asia/Taipei`) or a city (`::tz=taipei`, `::tz=new york`). Named zones follow DST.
+
 </details>
 
 <details>
