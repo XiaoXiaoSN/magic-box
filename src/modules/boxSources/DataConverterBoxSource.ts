@@ -1,5 +1,7 @@
-import { CSV_EXCLUSIVE_OPTION_KEYS } from '@functions/csv/commands';
-import { detectTableShape } from '@functions/csv/detect';
+import {
+  CSV_EXCLUSIVE_OPTION_KEYS,
+  csvOwnsJsonOutput,
+} from '@functions/csv/commands';
 import { isString, trim } from '@functions/helper';
 import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
@@ -471,9 +473,14 @@ export const DataConverterBoxSource = {
   async generateBoxes(input: string, options: BoxOptions): Promise<Box[]> {
     if (!isString(input)) return [];
 
-    const hasAnyTargetOption = FORMATS.some((fmt) =>
-      hasOptionKeys(options, ...fmt.keys),
+    const csvOwnsJson = csvOwnsJsonOutput(input, options);
+    const requestedFormats = FORMATS.filter(
+      (fmt) =>
+        hasOptionKeys(options, ...fmt.keys) &&
+        !(fmt.id === DataFormat.JSON && csvOwnsJson),
     );
+    if (csvOwnsJson && requestedFormats.length === 0) return [];
+    const hasAnyTargetOption = requestedFormats.length > 0;
 
     // a JSON Tools or CSV Table directive (::jsonpick, ::csv, ...) already
     // says what to do with this input; the auto-format guess would only add a
@@ -509,14 +516,6 @@ export const DataConverterBoxSource = {
       // explicit the intent is unambiguous, so report why parsing failed
       // instead of rendering nothing.
       if (!hasAnyTargetOption || trim(input) === '') return [];
-      // `::json` under a CSV/TSV table is answered by CSV Table instead; any
-      // other target still deserves the error, since nothing else answers it
-      const onlyJsonRequested = FORMATS.every(
-        (fmt) =>
-          fmt.id === DataFormat.JSON || !hasOptionKeys(options, ...fmt.keys),
-      );
-      if (onlyJsonRequested && detectTableShape(trim(input)) !== null)
-        return [];
       return [errorBox('Data Converter', describeDetectFailure(result.errors))];
     }
 
@@ -533,7 +532,8 @@ export const DataConverterBoxSource = {
     const boxes: Box[] = [];
 
     for (const fmt of FORMATS) {
-      const isTargetRequested = hasOptionKeys(options, ...fmt.keys);
+      if (fmt.id === DataFormat.JSON && csvOwnsJson) continue;
+      const isTargetRequested = requestedFormats.includes(fmt);
       const isSourceFormat = fmt.id === srcFormat;
 
       // If specific options are provided, only show those requested.

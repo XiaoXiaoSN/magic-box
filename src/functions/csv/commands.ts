@@ -1,5 +1,16 @@
 import type { BoxOptions } from '@modules/Box';
 
+import { CSV_EXPLICIT_INPUT_LIMIT, detectTableShape } from './detect';
+
+export const CSV_DELIMITER_NAMES: Readonly<Record<string, string>> = {
+  tab: '\t',
+  '\\t': '\t',
+  space: ' ',
+  comma: ',',
+  semicolon: ';',
+  pipe: '|',
+};
+
 // output targets: each one adds a box rendering the table in that format.
 export const CSV_TARGET_OPTIONS = {
   csv: ['csv', 'tocsv'],
@@ -47,5 +58,21 @@ export function hasExclusiveCsvOption(options: BoxOptions): boolean {
 export function requestedCsvTargets(options: BoxOptions): CsvTarget[] {
   return (Object.keys(CSV_TARGET_OPTIONS) as CsvTarget[]).filter((target) =>
     hasAny(options, CSV_TARGET_OPTIONS[target]),
+  );
+}
+
+/** Shared ownership keeps Data Converter from also returning unselected JSON. */
+export function csvOwnsJsonOutput(input: string, options: BoxOptions): boolean {
+  if (!hasAny(options, CSV_SHARED_OPTION_KEYS)) return false;
+  if (hasExclusiveCsvOption(options)) {
+    if (hasAny(options, CSV_DELIMITER_KEYS)) return true;
+    const text = input.trim();
+    const fromJson =
+      (text.startsWith('[') && text.endsWith(']')) ||
+      (text.startsWith('{') && text.endsWith('}'));
+    return !fromJson || hasAny(options, CSV_COLUMN_KEYS);
+  }
+  return (
+    input.length <= CSV_EXPLICIT_INPUT_LIMIT && detectTableShape(input) !== null
   );
 }

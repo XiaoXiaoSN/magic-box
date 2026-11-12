@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   detectTableShape,
+  isNumericCell,
   looksLikeHeader,
-  lostLeadingCell,
   resolveTableShape,
 } from '../detect';
 
@@ -82,9 +82,9 @@ describe('detectTableShape', () => {
     expect(delimiterOf('a;b,c;d\n1;2,3;4')).toBe(';');
   });
 
-  it('recovers the empty top-left cell input trimming removed', () => {
-    // `\tQ1\tQ2\nNorth\t10\t20` after `parseInput` trims the leading tab
-    expect(delimiterOf('Q1\tQ2\nNorth\t10\t20')).toBe('\t');
+  it('preserves a real empty top-left cell without guessing missing tabs', () => {
+    expect(delimiterOf('\tQ1\tQ2\nNorth\t10\t20')).toBe('\t');
+    expect(delimiterOf('Q1\tQ2\nNorth\t10\t20')).toBeNull();
     expect(delimiterOf('Q1,Q2\nNorth,10,20')).toBeNull();
   });
 
@@ -123,14 +123,11 @@ describe('looksLikeHeader', () => {
   });
 });
 
-describe('lostLeadingCell', () => {
-  it('only applies to a short tab-separated header over a full body', () => {
-    const body = [
-      ['Q1', 'Q2'],
-      ['North', '10', '20'],
-    ];
-    expect(lostLeadingCell(body, '\t')).toBe(true);
-    expect(lostLeadingCell(body, ',')).toBe(false);
-    expect(lostLeadingCell([['a', 'b', 'c'], ['1']], '\t')).toBe(false);
-  });
+it('requires a mantissa before an exponent', () => {
+  expect(delimiterOf('E1,E2\n10,20')).toBe(',');
+  expect(looksLikeHeader(['E1', 'E2'])).toBe(true);
+  for (const value of ['.5', '1e3', '1,234.5', '50%'])
+    expect(isNumericCell(value)).toBe(true);
+  for (const value of ['E1', 'e-2', '%', '.'])
+    expect(isNumericCell(value)).toBe(false);
 });

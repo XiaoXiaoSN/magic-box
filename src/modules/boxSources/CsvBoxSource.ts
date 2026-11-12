@@ -1,10 +1,12 @@
 import {
   CSV_COLUMN_KEYS,
   CSV_DELIMITER_KEYS,
+  CSV_DELIMITER_NAMES,
   CSV_HEADER_KEY,
   CSV_NO_HEADER_KEY,
   CSV_SHARED_OPTION_KEYS,
   type CsvTarget,
+  csvOwnsJsonOutput,
   hasExclusiveCsvOption,
   requestedCsvTargets,
 } from '@functions/csv/commands';
@@ -40,9 +42,13 @@ import {
   extractOptionKeys,
   hasOptionKeys,
 } from '@modules/Box';
+import {
+  MAX_WORKER_OUTPUT_LENGTH,
+  MAX_WORKER_STRING_LENGTH,
+} from '@modules/computeWorker/dto';
 
 const SOURCE_NAME = 'CSV Table';
-const OUTPUT_LIMIT = 4 * 1024 * 1024;
+const OUTPUT_LIMIT = MAX_WORKER_STRING_LENGTH;
 
 interface SourceTable {
   table: Table;
@@ -58,15 +64,6 @@ type Output =
   | { kind: 'json' }
   | { kind: 'list' };
 
-const DELIMITER_NAMES: Readonly<Record<string, string>> = {
-  tab: '\t',
-  '\\t': '\t',
-  space: ' ',
-  comma: ',',
-  semicolon: ';',
-  pipe: '|',
-};
-
 function delimitedLabel(delimiter: string): string {
   if (delimiter === ',') return 'CSV';
   if (delimiter === '\t') return 'TSV';
@@ -75,8 +72,8 @@ function delimitedLabel(delimiter: string): string {
 
 function parseDelimiterOption(value: BoxOptionValues): string {
   if (typeof value === 'string') {
-    const named = DELIMITER_NAMES[value.toLowerCase()];
-    if (named !== undefined) return named;
+    const named = CSV_DELIMITER_NAMES[value.toLowerCase()];
+    if (typeof named === 'string') return named;
     // the parser compares one UTF-16 code unit; quotes and breaks are syntax
     if (value.length === 1 && !/["\r\n]/.test(value)) return value;
   }
@@ -102,7 +99,7 @@ function readDelimited(
   }
   const hasHeader = header ?? (rows.length > 0 && looksLikeHeader(rows[0]));
   return {
-    table: tableFromRecords(rows, shape.delimiter, hasHeader),
+    table: tableFromRecords(rows, hasHeader),
     label: delimitedLabel(shape.delimiter),
     delimiter: shape.delimiter,
   };
@@ -152,11 +149,12 @@ function resolveOutputs(
   source: SourceTable,
   options: BoxOptions,
   columnsSelected: boolean,
+  input: string,
 ): Output[] {
   const fromJson = source.delimiter === null;
   // JSON → JSON is Data Converter's job unless columns were picked out
   const targets = requestedCsvTargets(options).filter(
-    (target) => !(fromJson && target === 'json' && !columnsSelected),
+    (target) => target !== 'json' || csvOwnsJsonOutput(input, options),
   );
   if (targets.length > 0) return targets.map(targetOutput);
 
@@ -210,20 +208,48 @@ function render(
 }
 
 function buildBoxes(source: SourceTable, outputs: readonly Output[]): Box[] {
+  // Reserve room for format errors alongside the successful outputs.
+  let remaining = MAX_WORKER_OUTPUT_LENGTH - 4096;
   return outputs.map((output) => {
-    const { name, text, language } = render(source.table, output);
-    if (text.length > OUTPUT_LIMIT) {
-      throw new CsvError(`The ${name} output would be too large.`);
+    const name =
+      output.kind === 'delimited'
+        ? delimitedLabel(output.delimiter)
+        : output.kind === 'markdown'
+          ? 'Markdown'
+          : output.kind === 'json'
+            ? 'JSON'
+            : 'Column';
+    try {
+      const rendered = render(source.table, output);
+      if (rendered.text.length > OUTPUT_LIMIT) {
+        throw new CsvError(
+          `The ${name} output would be too large (limit ${OUTPUT_LIMIT} characters).`,
+        );
+      }
+      const title = (
+        output.kind === 'list' || rendered.name === source.label
+          ? rendered.name
+          : `${source.label} → ${rendered.name}`
+      ).slice(0, 512);
+      const size =
+        title.length +
+        rendered.text.length +
+        'language'.length +
+        rendered.language.length;
+      if (size > remaining)
+        throw new CsvError(
+          `The ${name} output would exceed the combined output limit.`,
+        );
+      remaining -= size;
+      return new BoxBuilder(title, rendered.text)
+        .setOptions({ language: rendered.language })
+        .setView('code')
+        .build();
+    } catch (error) {
+      if (error instanceof CsvError)
+        return errorBox(`${SOURCE_NAME} → ${name}`, error.message);
+      throw error;
     }
-    // the box name says what the input was read as: `TSV → Markdown`
-    const title =
-      output.kind === 'list' || name === source.label
-        ? name
-        : `${source.label} → ${name}`;
-    return new BoxBuilder(title, text)
-      .setOptions({ language })
-      .setView('code')
-      .build();
   });
 }
 
@@ -239,7 +265,10 @@ function autoBoxes(input: string, options: BoxOptions): Box[] {
     const outputs: Output[] = jsonRequested
       ? [{ kind: 'json' }]
       : [{ kind: 'markdown' }, { kind: 'json' }];
-    return buildBoxes(source, outputs);
+    const boxes = buildBoxes(source, outputs);
+    return !jsonRequested && boxes.some((box) => box.props.isError)
+      ? []
+      : boxes;
   } catch (error) {
     // a guess stays silent; `::json` asked for this table, so it hears why
     if (error instanceof CsvError) {
@@ -276,7 +305,7 @@ function explicitBoxes(input: string, options: BoxOptions): Box[] {
           };
     return buildBoxes(
       selected,
-      resolveOutputs(selected, options, columnSpec !== null),
+      resolveOutputs(selected, options, columnSpec !== null, input),
     );
   } catch (error) {
     if (error instanceof CsvError)
@@ -300,8 +329,8 @@ export const CsvBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    const text = input.trim();
-    if (text === '') return [];
+    const text = input.replace(/^[ \r\n]+|[ \r\n]+$/g, '');
+    if (text.trim() === '') return [];
     return hasExclusiveCsvOption(options)
       ? explicitBoxes(text, options)
       : autoBoxes(text, options);

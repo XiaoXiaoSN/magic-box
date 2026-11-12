@@ -43,8 +43,7 @@ describe('CsvBoxSource', () => {
       ]);
     });
 
-    it('rebuilds a spreadsheet copy whose top-left cell was empty', async () => {
-      // the leading tab of `\tQ1\tQ2` is lost to input trimming
+    it('preserves a spreadsheet copy whose top-left cell is empty', async () => {
       const json = await output('\tQ1\tQ2\nNorth\t10\t20', 'TSV → JSON');
       expect(JSON.parse(json ?? '')).toEqual([
         { column_1: 'North', Q1: '10', Q2: '20' },
@@ -282,7 +281,7 @@ describe('CsvBoxSource', () => {
 
   describe('errors and limits', () => {
     it('reports an unterminated quote with its line', async () => {
-      const boxes = await run('a,b\n1,2\n"open,3\n::md');
+      const boxes = await run('::md\na,b\n1,2\n"open,3');
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.isError).toBe(true);
       expect(boxes[0].props.plaintextOutput).toBe(
@@ -300,11 +299,12 @@ describe('CsvBoxSource', () => {
       expect(await run('#ff6347\n::col')).toEqual([]);
     });
 
-    it('converts a table near the explicit limit without a stack overflow', async () => {
+    it('reports Markdown over the transport limit without a stack overflow', async () => {
       const table = 'a,b\n'.repeat(260_000).slice(0, 1024 * 1024 - 8);
       const boxes = await run(`${table}\n::md`);
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.isError).not.toBe(true);
+      expect(boxes[0].props.isError).toBe(true);
+      expect(boxes[0].props.plaintextOutput).toMatch(/Markdown.*too large/);
     });
 
     it('explains a ::json result that would be too large', async () => {
@@ -323,7 +323,7 @@ describe('CsvBoxSource', () => {
     });
 
     it('does not guess on a paste over the automatic limit', async () => {
-      const large = `name,age\n${'Alice,30\n'.repeat(30_000)}`;
+      const large = `name,age\n${'Alice Example,30\n'.repeat(18_000)}`;
       expect(await run(large)).toEqual([]);
       expect(await names(`${large}::json`)).toEqual(['CSV → JSON']);
     });

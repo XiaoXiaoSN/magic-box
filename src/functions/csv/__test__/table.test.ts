@@ -1,5 +1,5 @@
 import { parseJson } from '@functions/json/shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   CsvError,
@@ -26,7 +26,7 @@ const people: Table = {
 describe('tableFromRecords', () => {
   it('pads short rows and widens for long ones instead of dropping cells', () => {
     expect(
-      tableFromRecords([['a', 'b'], ['1'], ['1', '2', '3']], ',', true),
+      tableFromRecords([['a', 'b'], ['1'], ['1', '2', '3']], true),
     ).toEqual({
       header: ['a', 'b', ''],
       rows: [
@@ -37,20 +37,19 @@ describe('tableFromRecords', () => {
     });
   });
 
-  it('restores the empty top-left cell of a trimmed spreadsheet copy', () => {
+  it('preserves an explicit empty top-left cell', () => {
     const table = tableFromRecords(
       [
-        ['Q1', 'Q2'],
+        ['', 'Q1', 'Q2'],
         ['North', '10', '20'],
       ],
-      '\t',
       true,
     );
     expect(table.header).toEqual(['', 'Q1', 'Q2']);
   });
 
   it('keeps every record as data without a header', () => {
-    const table = tableFromRecords([['1', '2']], ',', false);
+    const table = tableFromRecords([['1', '2']], false);
     expect(table).toEqual({ header: null, rows: [['1', '2']], width: 2 });
   });
 });
@@ -244,4 +243,51 @@ describe('displayWidth', () => {
     expect(displayWidth('😀')).toBe(2);
     expect(displayWidth('𠮷')).toBe(2);
   });
+});
+
+describe('dense table budgets', () => {
+  it('checks rectangular records before reading cells to pad them', () => {
+    const rows = [['a', 'b'], ['1'], ['x', 'y', 'z']];
+    expect(tableFromRecords(rows, true, 9).width).toBe(3);
+    Object.defineProperty(rows[1], 0, {
+      get: () => {
+        throw new Error('allocated too soon');
+      },
+    });
+    expect(() => tableFromRecords(rows, true, 8)).toThrow(CsvError);
+  });
+
+  it('budgets the JSON union of keys including its header', () => {
+    const value = parseJson('[{"a":1},{"b":2}]');
+    expect(tableFromJson(value, false, 6).rows).toEqual([
+      ['1', ''],
+      ['', '2'],
+    ]);
+    expect(() => tableFromJson(value, false, 5)).toThrow(/cell limit/);
+    expect(() => tableFromJson(parseJson('[[1],[2,3]]'), false, 3)).toThrow(
+      /cell limit/,
+    );
+  });
+
+  it('budgets repeated selected columns including the header', () => {
+    expect(selectColumns(people, '1,1', 6).rows[0]).toEqual(['Alice', 'Alice']);
+    expect(() => selectColumns(people, '1,1,1', 6)).toThrow(/cell limit/);
+  });
+});
+
+it('resolves many duplicate headers with a linear number of key probes', () => {
+  const has = vi.spyOn(Set.prototype, 'has');
+  const keys = jsonKeys(Array<string>(20_000).fill('h'));
+  const probes = has.mock.calls.length;
+  has.mockRestore();
+  expect(keys[0]).toBe('h');
+  expect(keys.at(-1)).toBe('h_20000');
+  expect(new Set(keys).size).toBe(20_000);
+  expect(probes).toBeLessThan(60_000);
+  expect(jsonKeys(['id', 'id', 'id_2', 'id'])).toEqual([
+    'id',
+    'id_2',
+    'id_2_2',
+    'id_3',
+  ]);
 });

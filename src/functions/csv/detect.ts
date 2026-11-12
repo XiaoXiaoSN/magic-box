@@ -16,7 +16,7 @@ const STYLE_SAMPLE_CHARS = 8 * 1024;
 // Excel writes `sep=;` as the first line to name a non-default delimiter
 const EXCEL_SEP_LINE = /^sep=([^\r\n])\r?\n/;
 const NUMERIC_CELL =
-  /^[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)?(?:\.\d+)?(?:[eE][-+]?\d+)?%?$/;
+  /^[-+]?(?:(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?%?$/;
 const SENTENCE_END = /[.!?。！？]$/;
 const BRACKET_PAIRS = [
   ['(', ')'],
@@ -41,7 +41,7 @@ function readExcelSepLine(text: string): ExcelSepLine | null {
 }
 
 /** Widest row; a loop rather than `Math.max(...)`, whose argument count is capped. */
-export function maxRowWidth(rows: readonly (readonly string[])[]): number {
+export function maxRowWidth(rows: readonly (readonly unknown[])[]): number {
   let width = 0;
   for (const row of rows) if (row.length > width) width = row.length;
   return width;
@@ -58,27 +58,6 @@ export function isNumericCell(cell: string): boolean {
 export function looksLikeHeader(firstRow: readonly string[]): boolean {
   const filled = firstRow.filter((cell) => cell !== '');
   return filled.length === 0 || !filled.every(isNumericCell);
-}
-
-/**
- * `parseInput` trims the whole input, so a spreadsheet copy whose top-left
- * cell is empty arrives with its first tab gone: the header row is exactly
- * one cell short while the body is full width. Only tabs are affected —
- * a leading comma or semicolon is not whitespace.
- */
-export function lostLeadingCell(
-  rows: readonly (readonly string[])[],
-  delimiter: string,
-): boolean {
-  if (delimiter !== '\t' || rows.length < 2) return false;
-  const width = maxRowWidth(rows);
-  if (rows[0].length !== width - 1) return false;
-  const body = rows.slice(1);
-  // the last row may also be short: its trailing tabs were trimmed too
-  return (
-    body.slice(0, -1).every((row) => row.length === width) &&
-    body.some((row) => row.length === width)
-  );
 }
 
 function bracketsBalance(cell: string): boolean {
@@ -145,7 +124,6 @@ function strictWidth(text: string, delimiter: string): number {
   const width = maxRowWidth(rows);
   if (width < 2) return 0;
 
-  const restored = lostLeadingCell(rows, delimiter);
   const lastIndex = rows.length - 1;
   const fullRows: (readonly string[])[] = [];
   for (const [index, row] of rows.entries()) {
@@ -153,21 +131,19 @@ function strictWidth(text: string, delimiter: string): number {
       fullRows.push(row);
       continue;
     }
-    if (index === 0 && restored) continue;
-    // trailing tabs of the final record were trimmed with the input
+    // A short final TSV row may omit empty trailing cells.
     if (index === lastIndex && delimiter === '\t' && !truncated) continue;
     return 0;
   }
-  if (fullRows.length + (restored ? 1 : 0) < 2) return 0;
+  if (fullRows.length < 2) return 0;
 
-  const header = restored ? ['', ...rows[0]] : rows[0];
+  const header = rows[0];
   if (!looksLikeHeader(header)) return 0;
-  // only full-width rows vouch for a column: a restored header cell or a
-  // trimmed last row would let tab-indented lines under a heading pass
+  // Only full-width rows vouch for a column, excluding tab-indented lists.
   for (let column = 0; column < width; column += 1) {
     if (fullRows.every((row) => row[column] === '')) return 0;
   }
-  const table = restored ? [header, ...rows.slice(1)] : rows;
+  const table = rows;
   if (!table.every((row) => row.every(bracketsBalance))) return 0;
   if (delimiter === ',' && table.every(splitsDigitGroup)) return 0;
 

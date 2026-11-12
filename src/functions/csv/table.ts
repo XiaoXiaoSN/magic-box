@@ -6,7 +6,7 @@ import {
 } from '@functions/json/shared';
 import { isLosslessNumber } from 'lossless-json';
 
-import { isNumericCell, lostLeadingCell, maxRowWidth } from './detect';
+import { isNumericCell, maxRowWidth } from './detect';
 
 /** a user-facing failure; the message is shown verbatim in the error box */
 export class CsvError extends Error {
@@ -24,6 +24,15 @@ export interface Table {
   width: number;
 }
 
+// Bound dense expansion before allocating padded rows or union-key matrices.
+export const CSV_CELL_LIMIT = 1024 * 1024;
+
+function checkCellBudget(rows: number, width: number, limit: number): void {
+  if (rows * width > limit) {
+    throw new CsvError(`The table would exceed the ${limit}-cell limit.`);
+  }
+}
+
 const padRow = (row: readonly string[], width: number): string[] =>
   row.length === width
     ? [...row]
@@ -35,14 +44,12 @@ const padRow = (row: readonly string[], width: number): string[] =>
  */
 export function tableFromRecords(
   records: readonly (readonly string[])[],
-  delimiter: string,
   hasHeader: boolean,
+  cellLimit = CSV_CELL_LIMIT,
 ): Table {
-  const restored = lostLeadingCell(records, delimiter)
-    ? [['', ...records[0]], ...records.slice(1)]
-    : records;
-  const width = maxRowWidth(restored);
-  const squared = restored.map((row) => padRow(row, width));
+  const width = maxRowWidth(records);
+  checkCellBudget(records.length, width, cellLimit);
+  const squared = records.map((row) => padRow(row, width));
   return hasHeader
     ? { header: squared[0] ?? [], rows: squared.slice(1), width }
     : { header: null, rows: squared, width };
@@ -64,7 +71,11 @@ function jsonCell(value: JsonValue): string {
  * order), an array of arrays (rows; headerless unless `header`), an array of
  * scalars (one column), or a single object (one row).
  */
-export function tableFromJson(value: JsonValue, header: boolean): Table {
+export function tableFromJson(
+  value: JsonValue,
+  header: boolean,
+  cellLimit = CSV_CELL_LIMIT,
+): Table {
   const items = Array.isArray(value)
     ? value
     : isJsonObject(value)
@@ -81,6 +92,7 @@ export function tableFromJson(value: JsonValue, header: boolean): Table {
     const keys = new Set<string>();
     for (const item of items)
       for (const key of Object.keys(item)) keys.add(key);
+    checkCellBudget(items.length + 1, keys.size, cellLimit);
     const columns = [...keys];
     const rows = items.map((item) =>
       columns.map((key) =>
@@ -95,15 +107,17 @@ export function tableFromJson(value: JsonValue, header: boolean): Table {
     !Array.isArray(item) && !isJsonObject(item);
   let records: string[][];
   if (items.every(isRow)) {
+    checkCellBudget(items.length, maxRowWidth(items), cellLimit);
     records = items.map((item) => item.map(jsonCell));
   } else if (items.every(isScalar)) {
+    checkCellBudget(items.length, 1, cellLimit);
     records = items.map((item) => [jsonCell(item)]);
   } else {
     throw new CsvError(
       'The JSON array mixes objects, arrays and values, so it cannot form a table.',
     );
   }
-  return tableFromRecords(records, ',', header);
+  return tableFromRecords(records, header, cellLimit);
 }
 
 /** Display label of a column for messages: its name, or `#n` when unnamed. */
@@ -114,7 +128,11 @@ const columnLabel = (table: Table, index: number): string =>
  * Keeps the columns named in `spec` (comma-separated header names, matched
  * exactly then case-insensitively, or 1-based positions) in the given order.
  */
-export function selectColumns(table: Table, spec: string): Table {
+export function selectColumns(
+  table: Table,
+  spec: string,
+  cellLimit = CSV_CELL_LIMIT,
+): Table {
   const tokens = spec
     .split(',')
     .map((token) => token.trim())
@@ -124,6 +142,12 @@ export function selectColumns(table: Table, spec: string): Table {
       'Name the columns to keep, e.g. ::col=email or ::col=1,3 (1-based).',
     );
   }
+
+  checkCellBudget(
+    table.rows.length + (table.header === null ? 0 : 1),
+    tokens.length,
+    cellLimit,
+  );
 
   const indexes = tokens.map((token) => {
     const header = table.header;
@@ -280,10 +304,16 @@ export function toMarkdown(table: Table): string {
  */
 export function jsonKeys(header: readonly string[]): string[] {
   const seen = new Set<string>();
+  const nextSuffix = new Map<string, number>();
   return header.map((name, index) => {
     const base = name === '' ? `column_${index + 1}` : name;
     let key = base;
-    for (let suffix = 2; seen.has(key); suffix += 1) key = `${base}_${suffix}`;
+    let suffix = nextSuffix.get(base) ?? 2;
+    while (seen.has(key)) {
+      key = `${base}_${suffix}`;
+      suffix += 1;
+    }
+    nextSuffix.set(base, suffix);
     seen.add(key);
     return key;
   });
