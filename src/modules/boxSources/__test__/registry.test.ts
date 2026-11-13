@@ -16,7 +16,7 @@ const manifestIds = sourceManifest.map((source) => source.id);
 
 describe('source manifest', () => {
   it('keeps the complete ordered registry in stable-id form', () => {
-    expect(sourceManifest).toHaveLength(95);
+    expect(sourceManifest).toHaveLength(96);
     expect(new Set(manifestIds).size).toBe(sourceManifest.length);
     expect(
       manifestIds.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),
