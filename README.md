@@ -52,6 +52,11 @@ Browse the [interactive tool list](https://mb.10oz.tw/list) or the
 [complete tool reference](docs/tools.md) for every tool's description, example
 and options. Tools disabled by default can be enabled in Settings.
 
+Country Flag (disabled by default) converts assigned ISO country codes and country
+flag emojis in either direction. Enter `US` or `🇺🇸`, followed by `::flag` or
+`::countryflag` on its own line. Names use the runtime's English region names.
+Reserved codes such as `EU`, `UK`, and `ZZ` are rejected.
+
 Expand the examples below for usage tips and screenshots.
 
 <details>
