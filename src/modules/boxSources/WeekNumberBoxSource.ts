@@ -1,4 +1,4 @@
-import { parseDateString, trim } from '@functions/helper';
+import { isValidCalendarDate, parseDateString, trim } from '@functions/helper';
 import { getTimezoneOffset } from '@functions/runtimePrefs';
 import { shiftDateToOffset } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
@@ -110,7 +110,9 @@ export const WeekNumberBoxSource = {
           const localDate = shiftDateToOffset(now, getTimezoneOffset(now));
           year = localDate.getUTCFullYear();
         }
-        date = utcDate(year, parsed.month - 1, parsed.day);
+        date = isValidCalendarDate(year, parsed.month, parsed.day)
+          ? utcDate(year, parsed.month - 1, parsed.day)
+          : new Date(Number.NaN);
       } else {
         date = new Date(Number.NaN);
       }

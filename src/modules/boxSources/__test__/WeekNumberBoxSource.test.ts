@@ -129,6 +129,55 @@ describe('WeekNumberBoxSource', () => {
     });
   });
 
+  describe('yearless leap day', () => {
+    const leapDayInputs = [
+      'Feb 29',
+      '02/29',
+      'Feb 29 12:30:00',
+      '02/29T12:30:00',
+    ];
+
+    it.each([2025, 2026])('rejects February 29 in %i', async (year) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(`${year}-01-01T00:00:00Z`));
+      for (const input of leapDayInputs) {
+        const [box] = await WeekNumberBoxSource.generateBoxes(input, {
+          weeknum: true,
+        });
+        expect(box?.props.plaintextOutput).toBe(`Invalid date: "${input}"`);
+      }
+    });
+
+    it.each(leapDayInputs)('accepts %s in 2024', async (input) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+      const [box] = await WeekNumberBoxSource.generateBoxes(input, {
+        weeknum: true,
+      });
+      expect(box?.props.options?.Date).toBe('2024-02-29');
+      expect(box?.props.options?.['ISO Week']).toBe('2024-W09');
+    });
+
+    it('resolves the year using the configured timezone for an omitted year only', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-01-01T02:00:00Z'));
+      setRuntimePrefs({ timezoneOffset: -8, timezoneMode: 'fixed' });
+      const [yearless] = await WeekNumberBoxSource.generateBoxes('02/29', {
+        weeknum: true,
+      });
+      expect(yearless?.props.options?.Date).toBe('2024-02-29');
+      setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed' });
+      const [invalid] = await WeekNumberBoxSource.generateBoxes('02/29', {
+        weeknum: true,
+      });
+      expect(invalid?.props.options?.Error).toBe('Invalid date: "02/29"');
+      const [explicit] = await WeekNumberBoxSource.generateBoxes('2000-02-29', {
+        weeknum: true,
+      });
+      expect(explicit?.props.options?.Date).toBe('2000-02-29');
+    });
+  });
+
   describe('flexible date formats', () => {
     it('accepts MM/DD format', async () => {
       const boxes = await WeekNumberBoxSource.generateBoxes('01/01', {
