@@ -317,18 +317,6 @@ export default defineConfig(({ command }) => {
                 },
               },
             },
-            {
-              // Only the pinned browser entry module. Model weights and the ORT
-              // wasm assets go to transformers.js's own cache, never this one, so
-              // the 4 MiB precache budget above is unaffected.
-              urlPattern:
-                /^https:\/\/cdn\.jsdelivr\.net\/npm\/@huggingface\/transformers@4\.3\.0\/dist\/transformers\.min\.js$/,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'magic-box-local-ai-runtime-v2',
-                cacheableResponse: { statuses: [200] },
-              },
-            },
           ],
         },
       }),

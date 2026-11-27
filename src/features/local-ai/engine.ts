@@ -182,10 +182,8 @@ export class LocalAIEngine {
   private async isCompleteCache(
     runtime: TransformersRuntime,
   ): Promise<boolean> {
-    const [modelCached, runtimeCached] = await Promise.all([
-      this.inspectCache(),
-      this.inspectRuntimeCache(runtime),
-    ]);
+    const modelCached = await this.inspectCache();
+    const runtimeCached = await this.inspectRuntimeCache(runtime);
     return modelCached && runtimeCached;
   }
 

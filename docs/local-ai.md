@@ -285,15 +285,18 @@ with a load error; an explicit setup action can use the normal download path.
 | Cache | Contents |
 | --- | --- |
 | `magic-box-local-ai-<runtime>-<revision>-<dtype>` | model weights and the ORT wasm/factory files |
-| `magic-box-local-ai-runtime-v2` | the pinned runtime module (Workbox `CacheFirst`) |
+| `magic-box-local-ai-runtime-v2` | the pinned runtime module, saved by the inference worker |
 
 The model cache key carries the runtime version, model revision and dtype, so
 bumping a pin cannot serve stale artifacts. **Delete AI downloads** removes every
 cache in the reserved `magic-box-local-ai-` namespace, including older runtime
 and model versions. Workbox's app caches and other features' storage are
-untouched. Deletion asks other Local AI tabs to release the model, then takes an
-exclusive Web Lock until the cache clear finishes. A timeout or unsupported lock
-API leaves the downloads untouched and shows a retry message. The normal
+untouched. Deletion asks other Local AI tabs to release the model, then holds
+the exclusive model and cache locks until the clear finishes. Inspection and
+preparation hold a shared cache lock during their worker operations. This lets
+inspection proceed while another tab has a model loaded and makes new
+inspections wait while downloads are being removed. A timeout or unsupported
+lock API leaves the downloads untouched and shows a retry message. The normal
 prepare path also removes stale pins after a successful load.
 
 Workbox's 4 MiB `maximumFileSizeToCacheInBytes` precache budget is untouched;
