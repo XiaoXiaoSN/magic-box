@@ -12,6 +12,7 @@ import {
 } from '../contexts/PreferencesContext';
 import { buildDefaultSettings, useSettings } from '../contexts/SettingsContext';
 import SettingsFile from '../features/cloud-settings/SettingsFile';
+import OfflineTools from '../features/offline-tools/OfflineTools';
 import { clearLocalStorage } from '../functions/storage';
 import {
   DEFAULT_TIMEZONE_OFFSET,
@@ -300,6 +301,10 @@ const SettingsPage = (): React.JSX.Element => {
 
         <Section title={t('portable.title')}>
           <SettingsFile />
+        </Section>
+
+        <Section title={t('offline.title')}>
+          <OfflineTools />
         </Section>
 
         <Section title={t('settings.section.appearance')}>

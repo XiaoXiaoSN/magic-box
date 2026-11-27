@@ -8,6 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
 
 import packageJson from './package.json';
+import { writeOfflineToolPack } from './scripts/offline-tool-pack';
 
 const getBuildRevision = (): string => {
   const githubSha = process.env.GITHUB_SHA?.trim();
@@ -224,7 +225,10 @@ export default defineConfig(({ command }) => {
             options.workbox = {
               ...options.workbox,
               manifestTransforms: [
-                (entries) => criticalPrecacheTransform(entries, outputDir),
+                (entries) => {
+                  writeOfflineToolPack(outputDir, buildVersion);
+                  return criticalPrecacheTransform(entries, outputDir);
+                },
               ],
             };
           },
@@ -267,6 +271,7 @@ export default defineConfig(({ command }) => {
             'manifest.webmanifest',
             'images/logo-*.png',
             'version.json',
+            'offline-tool-pack.json',
           ],
           globPatterns: [
             '**/*.{js,css,html,ico,png,svg,wasm,woff2,webmanifest,json}',
@@ -279,6 +284,7 @@ export default defineConfig(({ command }) => {
               // remain available offline without install-time downloads.
               urlPattern: ({ sameOrigin, url }) =>
                 sameOrigin &&
+                !url.searchParams.has('offline-pack') &&
                 /\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:css|js|wasm)$/.test(
                   url.pathname,
                 ),
@@ -288,6 +294,22 @@ export default defineConfig(({ command }) => {
                 cacheableResponse: { statuses: [200] },
                 matchOptions: { ignoreSearch: true, ignoreVary: true },
                 plugins: [
+                  {
+                    handlerDidError: async ({ request }) => {
+                      const packed = await caches.match(request, {
+                        cacheName: 'magic-box-offline-tools-v1',
+                        ignoreSearch: true,
+                        ignoreVary: true,
+                      });
+                      if (!packed || !new URL(request.url).search)
+                        return packed;
+                      return new Response(packed.body, {
+                        headers: packed.headers,
+                        status: packed.status,
+                        statusText: packed.statusText,
+                      });
+                    },
+                  },
                   {
                     cachedResponseWillBeUsed: async ({
                       cachedResponse,
