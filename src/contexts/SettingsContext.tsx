@@ -148,19 +148,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
 
   // Filter enabled sources and preserve the user's registry order.
   const getFilteredAndSortedBoxSources = useMemo((): BoxSource[] => {
-    const enabledBoxSources = boxSources.filter(
-      (boxSource) => settings.boxes[boxSource.id ?? boxSource.name]?.enabled,
-    );
-
-    return enabledBoxSources
-      .map((boxSource) => {
-        const setting = settings.boxes[boxSource.id ?? boxSource.name];
-        return {
-          ...boxSource,
-          secondaryOrder: setting?.secondaryOrder ?? 0,
-        };
-      })
-      .sort((a, b) => (a.secondaryOrder ?? 0) - (b.secondaryOrder ?? 0));
+    const settingsFor = (source: BoxSource) =>
+      settings.boxes[source.id ?? source.name];
+    return boxSources
+      .filter((source) => settingsFor(source)?.enabled)
+      .sort(
+        (a, b) =>
+          (settingsFor(a)?.secondaryOrder ?? 0) -
+          (settingsFor(b)?.secondaryOrder ?? 0),
+      );
   }, [settings.boxes]);
 
   const value = useMemo<SettingsContextType>(
