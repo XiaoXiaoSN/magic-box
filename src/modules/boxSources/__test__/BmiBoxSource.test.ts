@@ -42,6 +42,15 @@ describe('BmiBoxSource', () => {
       expect(boxes[0].props.options?.Category).toBe('Normal');
     });
 
+    it('keeps the magnitude of a leading decimal point', async () => {
+      const [box] = await BmiBoxSource.generateBoxes('70kg .75m', {
+        bmi: true,
+      });
+
+      expect(box.props.options?.Height).toBe('0.7500 m');
+      expect(box.props.options?.BMI).toBe('124.4');
+    });
+
     it('underweight: 50kg 1.8m → BMI 15.4, Category Underweight', async () => {
       // 50 / (1.8^2) = 50 / 3.24 = 15.432… → 15.4
       const boxes = await BmiBoxSource.generateBoxes('50kg 1.8m', {
@@ -102,6 +111,15 @@ describe('BmiBoxSource', () => {
       expect(boxes[0].props.options?.Height).toBe('1.7780 m');
     });
 
+    it('accepts a zero inches component when the total height is positive', async () => {
+      const [box] = await BmiBoxSource.generateBoxes('6ft 0in 154lbs', {
+        bmi: true,
+      });
+
+      expect(box.props.options?.Height).toBe('1.8288 m');
+      expect(box.props.options?.BMI).toBe('20.9');
+    });
+
     it('rejects duplicate or mixed height units', async () => {
       const duplicate = await BmiBoxSource.generateBoxes('70kg 5ft 6ft', {
         bmi: true,
@@ -115,6 +133,26 @@ describe('BmiBoxSource', () => {
   });
 
   describe('generateBoxes — invalid / guidance', () => {
+    it.each([
+      '-70kg 1.75m',
+      '70kg -1.75m',
+      '70kg 5ft -10in',
+      '0kg 1.75m',
+      '70kg 0m',
+      '154lb 0in',
+      '154lbs 0ft 0in',
+      '70kg 175cmgarbage',
+      'weight: 70kg 1.75m',
+      '70kg and 1.75m',
+      '70kg 1..75m',
+      '70kg Infinitym',
+    ])('returns guidance for an invalid measurement: %s', async (input) => {
+      const [box] = await BmiBoxSource.generateBoxes(input, { bmi: true });
+
+      expect(box.props.options?.BMI).toBeUndefined();
+      expect(box.props.options?.['Example (metric)']).toBeDefined();
+    });
+
     it('returns a guidance box when input has no recognizable units', async () => {
       const boxes = await BmiBoxSource.generateBoxes('hello', { bmi: true });
       expect(boxes).toHaveLength(1);

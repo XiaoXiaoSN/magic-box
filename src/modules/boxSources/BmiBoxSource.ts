@@ -2,9 +2,6 @@ import { trim } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
-// token regex: a number followed by a unit label
-const TOKEN_RE = /(\d+(?:\.\d+)?)\s*(kg|lb|lbs|cm|m|in|"|ft|')/gi;
-
 interface ParsedMeasurements {
   weightKg: number;
   heightM: number;
@@ -24,30 +21,25 @@ function getBmiCategory(bmi: number): string {
   return 'Obese';
 }
 
-// parse two value+unit tokens from the input, normalize to kg and meters
+// Parse the whole input as weight and height tokens, with an optional second
+// height token for feet and inches.
 function parseMeasurements(input: string): ParsedMeasurements | null {
-  TOKEN_RE.lastIndex = 0;
-  const tokens: Array<{ value: number; unit: string }> = [];
-
-  let match: RegExpExecArray | null;
-  // biome-ignore lint/suspicious/noAssignInExpressions: standard exec-loop idiom
-  while ((match = TOKEN_RE.exec(input)) !== null) {
-    tokens.push({
-      value: Number.parseFloat(match[1]),
-      unit: match[2].toLowerCase(),
-    });
-  }
-
-  if (tokens.length < 2) return null;
+  // Match at the current position so signs and stray text are never skipped.
+  // Tokens can be separated by whitespace or adjacent in notation like 5'10".
+  const token = /\s*(\+?(?:\d+(?:\.\d+)?|\.\d+))\s*(kg|lbs?|cm|m|in|"|ft|')/iy;
 
   let weightKg: number | null = null;
   let heightM: number | null = null;
-  let metricHeightUnit: 'm' | 'cm' | null = null;
   let feet: number | null = null;
   let inches: number | null = null;
-  let hasImperialHeight = false;
 
-  for (const { value, unit } of tokens) {
+  while (token.lastIndex < input.length) {
+    const match = token.exec(input);
+    if (!match) return null;
+    const value = Number(match[1]);
+    if (!Number.isFinite(value)) return null;
+    const unit = match[2].toLowerCase();
+
     switch (unit) {
       case 'kg':
         if (weightKg !== null) return null;
@@ -59,35 +51,30 @@ function parseMeasurements(input: string): ParsedMeasurements | null {
         weightKg = value * 0.453592;
         break;
       case 'm':
-        if (metricHeightUnit !== null || hasImperialHeight) return null;
-        metricHeightUnit = 'm';
-        heightM = value;
-        break;
       case 'cm':
-        if (metricHeightUnit !== null || hasImperialHeight) return null;
-        metricHeightUnit = 'cm';
-        heightM = value / 100;
+        if (heightM !== null || feet !== null || inches !== null) return null;
+        heightM = unit === 'cm' ? value / 100 : value;
         break;
       case 'in':
       case '"':
-        if (inches !== null || metricHeightUnit !== null) return null;
-        hasImperialHeight = true;
+        if (inches !== null || heightM !== null) return null;
         inches = value;
         break;
       case 'ft':
       case "'":
-        if (feet !== null || metricHeightUnit !== null) return null;
-        hasImperialHeight = true;
+        if (feet !== null || heightM !== null) return null;
         feet = value;
         break;
     }
   }
 
-  if (hasImperialHeight) {
+  if (feet !== null || inches !== null) {
     heightM = (feet ?? 0) * 0.3048 + (inches ?? 0) * 0.0254;
   }
 
-  if (weightKg === null || heightM === null || heightM === 0) return null;
+  if (weightKg === null || weightKg <= 0 || heightM === null || heightM <= 0) {
+    return null;
+  }
 
   return { weightKg, heightM };
 }
