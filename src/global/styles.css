@@ -668,6 +668,21 @@ pre,
   margin: 6px 0;
 }
 
+.file-hash-compare {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.file-hash-compare input {
+  padding: 6px 8px;
+  color: inherit;
+  font-family: var(--mono);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
 .saved-inputs {
   display: grid;
   gap: 6px;
