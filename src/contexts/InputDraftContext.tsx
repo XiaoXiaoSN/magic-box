@@ -30,10 +30,19 @@ interface InputDraftContextValue {
   draft: string;
   clearDraft: () => void;
   clearVersion: number;
+  shareEntryKey: string | null;
+  applySharedInput: (entryKey: string, value: string) => boolean;
   updateDraft: (value: string, options?: { persist?: boolean }) => void;
 }
 
-const InputDraftContext = createContext<InputDraftContextValue | null>(null);
+const InputDraftContext = createContext<InputDraftContextValue>({
+  draft: '',
+  clearDraft: () => undefined,
+  clearVersion: 0,
+  shareEntryKey: null,
+  applySharedInput: () => true,
+  updateDraft: () => undefined,
+});
 
 const getSessionStorage = (): Storage | null => {
   if (typeof window === 'undefined') return null;
@@ -125,6 +134,8 @@ export const InputDraftProvider = ({
 }: PropsWithChildren): React.JSX.Element => {
   const [draft, setDraft] = useState(readStoredDraft);
   const [clearVersion, setClearVersion] = useState(0);
+  const [shareEntryKey, setShareEntryKey] = useState<string | null>(null);
+  const shareEntryKeyRef = useRef<string | null>(null);
   const draftRef = useRef(draft);
   const writeTimerRef = useRef<number | null>(null);
 
@@ -170,6 +181,19 @@ export const InputDraftProvider = ({
     [cancelWrite],
   );
 
+  const applySharedInput = useCallback(
+    (entryKey: string, value: string): boolean => {
+      // The current share entry remains associated with the draft across route
+      // remounts and clears. Another explicit share starts a new draft.
+      if (shareEntryKeyRef.current === entryKey) return false;
+      shareEntryKeyRef.current = entryKey;
+      setShareEntryKey(entryKey);
+      updateDraft(value, { persist: false });
+      return true;
+    },
+    [updateDraft],
+  );
+
   useEffect(() => {
     const handlePageHide = (): void => {
       cancelWrite();
@@ -186,8 +210,22 @@ export const InputDraftProvider = ({
   }, [cancelWrite, clearDraft]);
 
   const value = useMemo<InputDraftContextValue>(
-    () => ({ draft, clearDraft, clearVersion, updateDraft }),
-    [clearDraft, clearVersion, draft, updateDraft],
+    () => ({
+      draft,
+      clearDraft,
+      clearVersion,
+      shareEntryKey,
+      applySharedInput,
+      updateDraft,
+    }),
+    [
+      applySharedInput,
+      clearDraft,
+      clearVersion,
+      draft,
+      shareEntryKey,
+      updateDraft,
+    ],
   );
 
   return (
@@ -197,13 +235,5 @@ export const InputDraftProvider = ({
   );
 };
 
-export const useInputDraft = (): InputDraftContextValue => {
-  const context = useContext(InputDraftContext);
-  if (context) return context;
-  return {
-    draft: '',
-    clearDraft: () => undefined,
-    clearVersion: 0,
-    updateDraft: () => undefined,
-  };
-};
+export const useInputDraft = (): InputDraftContextValue =>
+  useContext(InputDraftContext);

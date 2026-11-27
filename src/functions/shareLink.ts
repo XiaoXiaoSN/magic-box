@@ -11,7 +11,7 @@ const setParamIfPresent = (
   key: string,
   value: string | undefined,
 ) => {
-  if (value) {
+  if (value !== undefined) {
     params.set(key, value);
   } else {
     params.delete(key);
@@ -25,11 +25,11 @@ export const buildShareLink = ({
   origin = window.location.origin,
 }: ShareLinkParams & { origin?: string }): string => {
   const url = new URL(pathname, origin);
-  setParamIfPresent(url.searchParams, 'box', box);
+  setParamIfPresent(url.searchParams, 'box', box || undefined);
   setParamIfPresent(
     url.searchParams,
     'input',
-    input && !isPrivateInput(input) ? input : undefined,
+    input !== undefined && !isPrivateInput(input) ? input : undefined,
   );
   return url.toString();
 };

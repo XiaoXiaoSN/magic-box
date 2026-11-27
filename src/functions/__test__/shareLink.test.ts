@@ -39,13 +39,13 @@ describe('buildShareLink', () => {
     expect(new URL(result).searchParams.has('box')).toBe(false);
   });
 
-  it('omits input param when empty string', () => {
+  it('includes an explicit empty input param', () => {
     const result = buildShareLink({
       input: '',
       pathname: '/',
       origin: 'http://localhost:3000',
     });
-    expect(new URL(result).searchParams.has('input')).toBe(false);
+    expect(new URL(result).searchParams.get('input')).toBe('');
   });
 
   it('includes both box and input when both provided', () => {
