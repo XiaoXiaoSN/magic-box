@@ -146,7 +146,7 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
   'date-calculate': {
     name: 'Date Calculate',
     description:
-      'Add or subtract calendar or time units from a date, or compute the duration between two dates.',
+      'Add or subtract time, calculate a duration, or compare multiple time zones with ::tzcompare.',
   },
   duration: {
     name: 'Duration',
@@ -599,7 +599,8 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   },
   'date-calculate': {
     name: '日期計算',
-    description: '對日期加減日曆或時間單位，或計算兩個日期之間的時間長度。',
+    description:
+      '對日期加減時間、計算時間長度，或用 ::tzcompare 比較多個時區。',
   },
   duration: {
     name: '持續時間',

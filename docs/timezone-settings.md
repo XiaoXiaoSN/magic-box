@@ -26,3 +26,8 @@ and test both DST transitions and fractional offsets. Converting wall times back
 to instants also needs an explicit policy for DST gaps and ambiguous repeated
 hours. The current feature follows the system IANA zone via Date; it does not
 claim to implement a separate arbitrary-IANA selector.
+
+Date Calculate already accepts a named zone per expression with `::tz`. Use
+`::tzcompare` with a comma-separated list to compare multiple zones at one
+instant. An explicit offset is required for wall-clock input so repeated or
+missing times during DST transitions stay unambiguous.
