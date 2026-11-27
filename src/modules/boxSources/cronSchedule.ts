@@ -207,7 +207,7 @@ function parseField(input: string, kind: FieldKind): CronField | null {
 
   return {
     values: [...values].sort((left, right) => left - right),
-    wildcard: input === '*' || input === '?',
+    wildcard: input.startsWith('*') || input === '?',
   };
 }
 
@@ -610,16 +610,15 @@ const matchesCalendarDay = (
   const matchesDayOfMonth = daysOfMonth.values.includes(day);
   const matchesDayOfWeek = daysOfWeek.values.includes(dayOfWeek);
 
-  if (schedule.fieldCount === 5) {
-    if (daysOfMonth.wildcard && daysOfWeek.wildcard) return true;
-    if (daysOfMonth.wildcard) return matchesDayOfWeek;
-    if (daysOfWeek.wildcard) return matchesDayOfMonth;
+  // Cronie uses OR only when neither day field starts with a wildcard.
+  if (
+    schedule.fieldCount === 5 &&
+    !daysOfMonth.wildcard &&
+    !daysOfWeek.wildcard
+  ) {
     return matchesDayOfMonth || matchesDayOfWeek;
   }
 
-  if (daysOfMonth.wildcard && daysOfWeek.wildcard) return true;
-  if (daysOfMonth.wildcard) return matchesDayOfWeek;
-  if (daysOfWeek.wildcard) return matchesDayOfMonth;
   return matchesDayOfMonth && matchesDayOfWeek;
 };
 

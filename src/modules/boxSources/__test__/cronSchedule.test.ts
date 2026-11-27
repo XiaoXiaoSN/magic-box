@@ -117,22 +117,46 @@ describe('cron schedule calculation', () => {
     );
   });
 
-  it('uses UNIX OR semantics for restricted five-field day fields', () => {
+  it.each([
+    '*',
+    '*/1',
+    '?',
+  ])('uses the other day field when %s matches every day of the month', (dayOfMonth) => {
     const result = nextCronOccurrences(
-      '0 0 1 * MON',
-      new Date('2024-01-02T00:00:00Z'),
+      `0 0 ${dayOfMonth} * MON`,
+      new Date('2024-01-01T00:00:00Z'),
       fixedOffset(0),
     );
 
     expect(result.status).toBe('ok');
-    if (result.status !== 'ok') return;
-    expect(
-      result.occurrences.slice(0, 3).map((date) => date.toISOString()),
-    ).toEqual([
+    expect(result.occurrences.map((date) => date.toISOString())).toEqual([
       '2024-01-08T00:00:00.000Z',
       '2024-01-15T00:00:00.000Z',
       '2024-01-22T00:00:00.000Z',
+      '2024-01-29T00:00:00.000Z',
+      '2024-02-05T00:00:00.000Z',
     ]);
+  });
+
+  it.each([
+    ['0 0 */2 * MON', ['01-15', '01-29', '02-05', '02-19', '03-11']],
+    ['0 0 1 * */2', ['02-01', '06-01', '08-01', '09-01', '10-01']],
+    ['0 0 */2 * */2', ['01-07', '01-09', '01-11', '01-13', '01-21']],
+    ['0 0 1,15 * MON', ['01-08', '01-15', '01-22', '01-29', '02-01']],
+    ['0 0 */2,8 * MON', ['01-08', '01-15', '01-29', '02-05', '02-19']],
+    ['0 0 8,*/2 * MON', ['01-03', '01-05', '01-07', '01-08', '01-09']],
+    ['0 0 0 1 * MON 2024', ['04-01', '07-01']],
+  ])('matches the correct calendar days for %s', (expression, dates) => {
+    const result = nextCronOccurrences(
+      expression,
+      new Date('2024-01-01T00:00:00Z'),
+      fixedOffset(0),
+    );
+
+    expect(result.status).toBe('ok');
+    expect(result.occurrences.map((date) => date.toISOString())).toEqual(
+      dates.map((date) => `2024-${date}T00:00:00.000Z`),
+    );
   });
 
   it('finds leap days across the bounded horizon and rejects impossible dates', () => {
