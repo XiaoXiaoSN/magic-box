@@ -244,6 +244,16 @@ const MagicBoxPage = (): React.JSX.Element => {
     [replaceInput],
   );
 
+  const handleHistoryDelete = (item: HistoryItem): void => {
+    if (lastRecordedRef.current === item.input) lastRecordedRef.current = '';
+    removeEntry(item.id);
+  };
+
+  const handleHistoryClear = (): void => {
+    lastRecordedRef.current = '';
+    clearHistory();
+  };
+
   const handleInputBlur = useCallback(
     (event: React.FocusEvent<HTMLTextAreaElement>): void => {
       if (!editedRef.current) return;
@@ -339,7 +349,7 @@ const MagicBoxPage = (): React.JSX.Element => {
                               input: item.input.slice(0, 30),
                             })}
                             className="history-item-del"
-                            onClick={() => removeEntry(item.id)}
+                            onClick={() => handleHistoryDelete(item)}
                             type="button"
                           >
                             ✕
@@ -350,7 +360,7 @@ const MagicBoxPage = (): React.JSX.Element => {
                   </div>
                   <button
                     className="history-clear"
-                    onClick={clearHistory}
+                    onClick={handleHistoryClear}
                     type="button"
                   >
                     {t('magicBox.clearHistory')}
