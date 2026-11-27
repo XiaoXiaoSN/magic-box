@@ -232,6 +232,117 @@ stringData:
       ]);
     });
 
+    it('merges data and stringData from List items with local and sequence precedence', async () => {
+      const boxes = await K8sSecretBoxSource.generateBoxes(`
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Secret
+    data: &primaryData
+      password: cGFzcw==
+      preferred: Zmlyc3Q=
+      localData: ZGVmYXVsdA==
+    stringData: &primaryStrings
+      plain: first
+      localString: default
+  - apiVersion: v1
+    kind: Secret
+    data: &fallbackData
+      preferred: c2Vjb25k
+      fallback: c3BhcmU=
+    stringData: &fallbackStrings
+      plain: second
+      plainFallback: spare
+  - apiVersion: v1
+    kind: Secret
+    metadata: {name: service}
+    data:
+      localData: bG9jYWw=
+      <<: [*primaryData, *fallbackData]
+    stringData:
+      <<: [*primaryStrings, *fallbackStrings]
+      localString: local
+`);
+
+      expect(boxes).toHaveLength(3);
+      expect(boxes[2].props.name).toBe('Kubernetes Secret: service');
+      expect(boxes[2].props.options).toEqual({
+        password: 'pass',
+        preferred: 'first',
+        localData: 'local',
+        fallback: 'spare',
+        plain: 'first',
+        localString: 'local',
+        plainFallback: 'spare',
+      });
+    });
+
+    it('bounds repeated merge expansion while allowing ordinary reuse', async () => {
+      const listWithMerges = (count: number) => `
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Secret
+    data: &defaults {password: cGFzcw==}
+${Array.from(
+  { length: count },
+  () => '  - { apiVersion: v1, kind: Secret, data: { <<: *defaults } }',
+).join('\n')}`;
+
+      const boxes = await K8sSecretBoxSource.generateBoxes(listWithMerges(100));
+      expect(boxes).toHaveLength(101);
+      expect(boxes.at(-1)?.props.options).toEqual({ password: 'pass' });
+      await expect(
+        K8sSecretBoxSource.generateBoxes(listWithMerges(101)),
+      ).resolves.toEqual([]);
+    });
+
+    it('allows separate merge anchors to be reused within their own limits', async () => {
+      const items = Array.from({ length: 101 }, (_, index) => {
+        const name = `credentials${index}`;
+        return `  - { apiVersion: v1, kind: Secret, data: &${name} {password: cGFzcw==} }
+  - { apiVersion: v1, kind: Secret, data: { <<: *${name} } }`;
+      });
+      const boxes = await K8sSecretBoxSource.generateBoxes(
+        `apiVersion: v1\nkind: List\nitems:\n${items.join('\n')}`,
+      );
+
+      expect(boxes).toHaveLength(202);
+      expect(boxes.at(-1)?.props.options).toEqual({ password: 'pass' });
+    });
+
+    it('decodes exact empty bytes and preserves stringData overrides', async () => {
+      const boxes = await K8sSecretBoxSource.generateBoxes(`
+apiVersion: v1
+kind: Secret
+data:
+  emptyData: ""
+  cleared: cGFzcw==
+  replaced: ''
+  whitespace: '   '
+  malformed: abcde
+  number: 1234
+stringData:
+  emptyStringData: ''
+  cleared: ''
+  replaced: plaintext
+`);
+
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toEqual({
+        emptyData: '',
+        emptyStringData: '',
+        cleared: '',
+        replaced: 'plaintext',
+        whitespace: '<invalid-base64>',
+        malformed: '<invalid-base64>',
+        number: '<invalid-base64>',
+      });
+      expect(boxes[0].props.plaintextOutput).toContain('emptyData: ');
+    });
+
     it('marks malformed UTF-8 as unreadable', async () => {
       const boxes = await K8sSecretBoxSource.generateBoxes(`
 apiVersion: v1
