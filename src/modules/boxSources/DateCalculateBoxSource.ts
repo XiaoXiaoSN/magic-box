@@ -1,4 +1,9 @@
-import { isString, parseDateString, trim } from '@functions/helper';
+import {
+  isString,
+  isValidCalendarDate,
+  parseDateString,
+  trim,
+} from '@functions/helper';
 import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
 import {
   offsetForSpec,
@@ -136,7 +141,12 @@ function makeDate(
   return { date, dateOnly: false, zone, subMillisecondMicroseconds };
 }
 
-function makeDateOnly(year: number, month: number, day: number): ParsedDate {
+function makeDateOnly(
+  year: number,
+  month: number,
+  day: number,
+): ParsedDate | null {
+  if (!isValidCalendarDate(year, month, day)) return null;
   return {
     date: createUTCDate(year, month, day),
     dateOnly: true,
@@ -231,6 +241,7 @@ function parseDateInput(input: string, offsetAt: OffsetAt): ParsedDate | null {
 
     const year =
       dateParts.year ?? currentPreferredDate(offsetAt).getUTCFullYear();
+    if (!isValidCalendarDate(year, dateParts.month, dateParts.day)) return null;
     const fraction = datetime[5] ?? '';
     const millisecond = Number(fraction.slice(0, 3).padEnd(3, '0'));
     const subMillisecondMicroseconds = Number(

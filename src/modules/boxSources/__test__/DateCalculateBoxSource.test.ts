@@ -53,6 +53,52 @@ describe('DateCalculateBoxSource', () => {
     });
   });
 
+  describe('yearless leap day', () => {
+    const leapDayInputs = [
+      'Feb 29',
+      '02/29',
+      'Feb 29 12:30:00',
+      '02/29T12:30:00',
+    ];
+
+    it.each([2025, 2026])('rejects February 29 in %i', async (year) => {
+      vi.setSystemTime(new Date(`${year}-01-01T00:00:00Z`));
+      for (const input of leapDayInputs) {
+        expect(
+          DateCalculateBoxSource.checkMatch(`${input} + 0d`),
+        ).toBeUndefined();
+        expect(
+          DateCalculateBoxSource.checkMatch(`${input} to today`),
+        ).toBeUndefined();
+        const [box] = await DateCalculateBoxSource.generateBoxes(input, {
+          relative: true,
+        });
+        expect(box?.props.plaintextOutput).toBe(`Invalid date: "${input}"`);
+      }
+    });
+
+    it.each(leapDayInputs)('accepts %s in 2024', (input) => {
+      expect(
+        DateCalculateBoxSource.checkMatch(`${input} + 0d`)?.fromDate,
+      ).toMatch(/^2024-02-29/);
+    });
+
+    it('resolves the year using the active timezone for an omitted year only', async () => {
+      vi.setSystemTime(new Date('2025-01-01T02:00:00Z'));
+      expect(await DateCalculateBoxSource.generateBoxes('Feb 29 + 0d')).toEqual(
+        [],
+      );
+      const [yearless] = await DateCalculateBoxSource.generateBoxes(
+        'Feb 29 + 0d',
+        { tz: '-8' },
+      );
+      expect(yearless?.props.plaintextOutput).toBe('2024-02-29');
+      expect(
+        DateCalculateBoxSource.checkMatch('2000-02-29 + 0d')?.fromDate,
+      ).toBe('2000-02-29');
+    });
+  });
+
   describe('checkAddSubtractPattern', () => {
     it('should return undefined for non-matching input', () => {
       expect(

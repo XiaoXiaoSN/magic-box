@@ -99,11 +99,11 @@ const NAMED_YMD_REGEX = new RegExp(
   'i',
 );
 const MONTH_DAY_YEAR_REGEX = new RegExp(
-  `^${MONTH_NAMES_PATTERN}[-/.,\\s]+(\\d{1,2})${ORDINAL_SUFFIX}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  `^${MONTH_NAMES_PATTERN}[-/.,\\s]+(\\d{1,2})${ORDINAL_SUFFIX}(?:[-/.,\\s]+(\\d{2,4})(?![\\d:]))?(.*)$`,
   'i',
 );
 const DAY_MONTH_YEAR_REGEX = new RegExp(
-  `^(\\d{1,2})${ORDINAL_SUFFIX}[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES_PATTERN}(?:[-/.,\\s]+(\\d{2,4}))?(.*)$`,
+  `^(\\d{1,2})${ORDINAL_SUFFIX}[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES_PATTERN}(?:[-/.,\\s]+(\\d{2,4})(?![\\d:]))?(.*)$`,
   'i',
 );
 
@@ -262,8 +262,9 @@ export function parseDateString(
     );
   }
 
-  const numericMonthDay = /^(\d{1,2})[-/.](\d{1,2})$/.exec(cleaned);
+  const numericMonthDay = /^(\d{1,2})[-/.](\d{1,2})(.*)$/.exec(cleaned);
   if (numericMonthDay) {
+    if (!isValidDateSuffix(numericMonthDay[3])) return null;
     return validParsedDate(
       undefined,
       Number(numericMonthDay[1]),
