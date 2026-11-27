@@ -27,6 +27,28 @@ const zhTW: Translations = {
   'feedback.wait': '請等待目前的結果完成後再送出回饋。',
   'feedback.unconfigured': '此網站尚未完成回饋收集設定。',
 
+  'cloud.title': '雲端設定',
+  'cloud.hint':
+    '可備份語言、外觀、輸入操作、時區、本機 AI 偏好及工具排列。伺服器網址與隱私選項保留在此裝置。',
+  'cloud.open': '管理雲端設定',
+  'cloud.signIn': '使用 Google 登入',
+  'cloud.signOut': '登出',
+  'cloud.loading': '載入中…',
+  'cloud.save': '儲存到雲端',
+  'cloud.replace': '覆寫雲端備份',
+  'cloud.restore': '將雲端設定套用到此裝置',
+  'cloud.refresh': '重新檢查雲端備份',
+  'cloud.confirmSave': '要用這台裝置目前的設定覆寫帳號中的雲端備份嗎？',
+  'cloud.confirmRestore': '要用雲端備份取代這台裝置上可同步的設定嗎？',
+  'cloud.empty': '這個帳號還沒有設定備份。',
+  'cloud.match': '這台裝置的設定與上次檢查的雲端備份相同。',
+  'cloud.fresh': '這台裝置使用預設值，可以從雲端備份帶入設定。',
+  'cloud.different': '這台裝置與雲端備份的設定不同，請選擇要使用哪一份。',
+  'cloud.changed': '其他裝置已更新備份。請重新選擇要使用哪一份設定。',
+  'cloud.authError':
+    '登入或登出未完成。請確認網路連線、允許開啟 Google 登入視窗後再試一次。',
+  'cloud.error': '無法存取設定備份。請確認網路連線後重試。',
+
   'settings.title': '設定',
   'settings.subtitle': '偏好設定會儲存在瀏覽器中。',
   'settings.section.boxOrder': 'Box 順序',

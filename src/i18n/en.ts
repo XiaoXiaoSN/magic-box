@@ -28,6 +28,33 @@ const en = {
   'feedback.unconfigured':
     'Feedback collection is not configured on this deployment yet.',
 
+  'cloud.title': 'Cloud settings',
+  'cloud.hint':
+    'Back up your language, appearance, input behavior, timezone, Local AI preferences and box layout. Server URLs and privacy choices stay on this device.',
+  'cloud.open': 'Manage cloud settings',
+  'cloud.signIn': 'Sign in with Google',
+  'cloud.signOut': 'Sign out',
+  'cloud.loading': 'Loading…',
+  'cloud.save': 'Save to cloud',
+  'cloud.replace': 'Replace cloud backup',
+  'cloud.restore': 'Use cloud settings on this device',
+  'cloud.refresh': 'Check for changes',
+  'cloud.confirmSave':
+    'Replace the settings saved in your account with the current settings on this device?',
+  'cloud.confirmRestore':
+    'Replace the portable settings on this device with the cloud backup?',
+  'cloud.empty': 'This account has no settings backup yet.',
+  'cloud.match': 'This device matches the last checked backup.',
+  'cloud.fresh': 'This device uses the defaults. A cloud backup is available.',
+  'cloud.different':
+    'This device and your cloud backup have different settings. Choose which copy to use.',
+  'cloud.changed':
+    'Another device updated the backup. The latest copy is ready to compare.',
+  'cloud.authError':
+    'Could not complete sign-in or sign-out. Check your connection and allow the Google sign-in window, then try again.',
+  'cloud.error':
+    'Could not access the settings backup. Check your connection and try again.',
+
   'settings.title': 'Settings',
   'settings.subtitle': 'Preferences are saved locally in your browser.',
   'settings.section.boxOrder': 'Box order',

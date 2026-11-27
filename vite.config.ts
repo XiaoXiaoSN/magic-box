@@ -183,12 +183,10 @@ export default defineConfig(({ command }) => {
                 name: 'cron-locales-fallback',
                 test: /[\\/]node_modules[\\/]cronstrue[\\/]locales[\\/]/,
               },
-              // Reuse the existing locale shell chunk for the small boundary
-              // shared by lazy routes and templates.
+              // Keep the app providers and error boundary in the shared shell chunk.
               {
                 name: 'LocaleContext',
-                test: /[\\/]src[\\/](?:components[\\/]ErrorBoundary[\\/]index|contexts[\\/]LocaleContext)\.tsx$/,
-                includeDependenciesRecursively: false,
+                test: /[\\/]src[\\/](?:components[\\/]ErrorBoundary[\\/]index|contexts[\\/](?:Locale|Settings|Preferences|InputDraft)Context)\.tsx$/,
               },
             ],
           },

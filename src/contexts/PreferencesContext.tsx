@@ -1,5 +1,10 @@
-import { patchLocalPrefs, readLocalPrefs } from '@functions/localPrefs';
+import {
+  LOCAL_PREFS_KEY,
+  patchLocalPrefs,
+  readLocalPrefs,
+} from '@functions/localPrefs';
 import { setRuntimePrefs } from '@functions/runtimePrefs';
+import { onStorageChange } from '@functions/storage';
 import {
   DEFAULT_TIMEZONE_OFFSET,
   isValidTimezoneOffset,
@@ -84,8 +89,7 @@ export const isValidServerUrl = (value: string): boolean => {
   }
 };
 
-export const loadPrefs = (): Prefs => {
-  const prefs = readLocalPrefs();
+export const normalizePrefs = (prefs: Record<string, unknown>): Prefs => {
   return {
     theme: isTheme(prefs.theme) ? prefs.theme : DEFAULT_PREFS.theme,
     density: isDensity(prefs.density) ? prefs.density : DEFAULT_PREFS.density,
@@ -126,6 +130,8 @@ export const loadPrefs = (): Prefs => {
   };
 };
 
+export const loadPrefs = (): Prefs => normalizePrefs(readLocalPrefs());
+
 // push the subset of prefs that plain (non-react) modules need to read.
 const syncRuntimePrefs = (prefs: Prefs): void => {
   setRuntimePrefs({
@@ -148,6 +154,7 @@ const applyDocumentPrefs = (prefs: Prefs): void => {
 interface PreferencesContextType {
   prefs: Prefs;
   setPref: <K extends keyof Prefs>(key: K, value: Prefs[K]) => void;
+  updatePrefs: (patch: Partial<Prefs>) => void;
   resetPrefs: () => void;
 }
 
@@ -178,12 +185,19 @@ export const PreferencesProvider: React.FC<PreferencesProviderProps> = ({
     syncRuntimePrefs(prefs);
   }, [prefs]);
 
-  const setPref = useCallback(
-    <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
-      patchLocalPrefs({ [key]: value });
-      setPrefs((p) => ({ ...p, [key]: value }));
-    },
+  useEffect(
+    () => onStorageChange(LOCAL_PREFS_KEY, () => setPrefs(loadPrefs())),
     [],
+  );
+
+  const updatePrefs = useCallback((patch: Partial<Prefs>) => {
+    patchLocalPrefs(patch);
+    setPrefs((previous) => ({ ...previous, ...patch }));
+  }, []);
+  const setPref = useCallback(
+    <K extends keyof Prefs>(key: K, value: Prefs[K]) =>
+      updatePrefs({ [key]: value }),
+    [updatePrefs],
   );
 
   const resetPrefs = useCallback(() => {
@@ -192,8 +206,8 @@ export const PreferencesProvider: React.FC<PreferencesProviderProps> = ({
   }, []);
 
   const value = useMemo<PreferencesContextType>(
-    () => ({ prefs, setPref, resetPrefs }),
-    [prefs, setPref, resetPrefs],
+    () => ({ prefs, setPref, updatePrefs, resetPrefs }),
+    [prefs, setPref, updatePrefs, resetPrefs],
   );
 
   return (

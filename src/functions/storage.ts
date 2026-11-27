@@ -8,6 +8,19 @@ export const getLocalStorage = (): Storage | null => {
   }
 };
 
+/** Keep open tabs in step when another tab restores or clears settings. */
+export function onStorageChange(key: string, reload: () => void): () => void {
+  const listener = (event: StorageEvent) => {
+    if (
+      event.storageArea === getLocalStorage() &&
+      (event.key === key || event.key === null)
+    )
+      reload();
+  };
+  window.addEventListener('storage', listener);
+  return () => window.removeEventListener('storage', listener);
+}
+
 export const LOCAL_DATA_CLEARED_EVENT = 'magic-box:local-data-cleared';
 
 export type StorageReadStatus = 'ok' | 'missing' | 'unavailable' | 'invalid';
