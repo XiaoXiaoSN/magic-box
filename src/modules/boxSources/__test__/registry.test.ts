@@ -1,8 +1,14 @@
 import { CSV_OPTION_KEYS } from '@functions/csv/commands';
+import {
+  JSON_TOOL_OPERATIONS,
+  JSON_TOOL_OPTION_KEYS,
+  type JsonToolOperation,
+} from '@functions/json/commands';
 import { parseInput } from '@functions/parseOptions';
 import type { BoxSource } from '@modules/BoxSource';
 import { describe, expect, it, vi } from 'vitest';
 import certificate from '../../../functions/__test__/fixtures/certificate';
+import { runTerminalSources } from '../../../tui/runBoxes';
 import { tuiBoxSources } from '../../../tui/sources';
 import {
   boxSources,
@@ -13,6 +19,20 @@ import {
 import { createLazyBoxSource } from '../lazySource';
 
 const manifestIds = sourceManifest.map((source) => source.id);
+const jsonOperations = Object.keys(JSON_TOOL_OPERATIONS) as JsonToolOperation[];
+
+const jsonToolExamples: Record<
+  JsonToolOperation,
+  { input: string; argument?: string }
+> = {
+  merge: { input: '{"a":1}\n---\n{"b":2}' },
+  pick: { input: '{"a":1,"b":2}', argument: '=a' },
+  omit: { input: '{"a":1,"b":2}', argument: '=a' },
+  pointer: { input: '{"a":1}', argument: '=/a' },
+  jsonl: { input: '[{"a":1},{"b":2}]' },
+  toJsonl: { input: '[{"a":1},{"b":2}]' },
+  fromJsonl: { input: '{"a":1}\n{"b":2}' },
+};
 
 describe('source manifest', () => {
   it('keeps the complete ordered registry in stable-id form', () => {
@@ -64,6 +84,61 @@ describe('source manifest', () => {
 
   it('lists every CSV Table option key in its manifest entry', () => {
     expect(getBoxSource('csv')?.optionKeys).toEqual(CSV_OPTION_KEYS);
+  });
+
+  it.each(
+    jsonOperations,
+  )('keeps every JSON Tools %s alias working in the registry and TUI', async (operation) => {
+    const registered = getBoxSource('json-tools');
+    const terminal = tuiBoxSources.find((source) => source.id === 'json-tools');
+    if (!registered || !terminal) throw new Error('JSON Tools is missing');
+
+    const { input, argument = '' } = jsonToolExamples[operation];
+    const run = async (key: string) => {
+      const raw = `${input}\n::${key}${argument}`;
+      const [text, options] = parseInput(raw);
+      expect(registered.canHandle?.(text, options), key).toBe(true);
+      const boxes = await registered.generateBoxes(text, options);
+      expect(boxes, key).toHaveLength(1);
+      expect(boxes[0].props.isError, key).toBeUndefined();
+      const terminalResult = await runTerminalSources(raw, [terminal]);
+      expect(terminalResult.errors, key).toEqual([]);
+      expect(terminalResult.boxes, key).toHaveLength(1);
+      expect(terminalResult.boxes[0].props.plaintextOutput, key).toBe(
+        boxes[0].props.plaintextOutput,
+      );
+      return {
+        name: boxes[0].props.name,
+        output: boxes[0].props.plaintextOutput,
+      };
+    };
+
+    const [canonicalKey, ...aliases] = JSON_TOOL_OPERATIONS[operation];
+    const canonical = await run(canonicalKey);
+    for (const alias of aliases) {
+      await expect(run(alias)).resolves.toEqual(canonical);
+    }
+  });
+
+  it('lists all JSON Tools keys and requires an explicit operation', async () => {
+    const registered = getBoxSource('json-tools');
+    if (!registered) throw new Error('JSON Tools is missing');
+    expect(registered.optionKeys).toEqual(JSON_TOOL_OPTION_KEYS);
+
+    const input = '{"a":1}';
+    expect(registered.canHandle?.(input, { jsonptr: false })).toBe(true);
+    for (const directive of ['', '\n::json', '\n::uppercase']) {
+      const raw = input + directive;
+      const [text, options] = parseInput(raw);
+      expect(registered.canHandle?.(text, options), raw).toBe(false);
+      await expect(registered.generateBoxes(text, options)).resolves.toEqual(
+        [],
+      );
+      await expect(runTerminalSources(raw, [registered])).resolves.toEqual({
+        boxes: [],
+        errors: [],
+      });
+    }
   });
 
   it('keeps conservative matchers compatible with their default inputs', () => {

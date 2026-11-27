@@ -28,10 +28,11 @@ test('reads the complete ordered source manifest without loading implementations
     sources.find((source) => source.id === 'local-ai').defaultDisabled,
     false,
   );
-  assert.equal(
-    sources.find((source) => source.id === 'json-tools').defaultDisabled,
-    true,
-  );
+  const jsonTools = sources.find((source) => source.id === 'json-tools');
+  assert.equal(jsonTools.defaultDisabled, true);
+  for (const alias of ['merge', 'jsonptr', 'ndjson']) {
+    assert.ok(jsonTools.optionKeys.includes(alias));
+  }
   assert.deepEqual(sources.find((source) => source.id === 'hash').optionKeys, [
     'hash',
     'md5',
