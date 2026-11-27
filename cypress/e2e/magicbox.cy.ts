@@ -52,6 +52,62 @@ describe('MagicBox Page', () => {
     });
   });
 
+  describe('Shared input', () => {
+    it('keeps the edited draft through browser Back from Settings and Tools', () => {
+      const input = 'textarea[name="magicInput"]';
+      cy.visit('/?input=original');
+      cy.get(input)
+        .should('have.value', 'original')
+        .clear()
+        .type('edited draft');
+
+      cy.get('header a[href="/settings"]').click();
+      cy.location('pathname').should('eq', '/settings');
+      cy.go('back');
+      cy.location('search').should('eq', '?input=original');
+      cy.get(input).should('have.value', 'edited draft').type('{end} again');
+
+      cy.get('header a[href="/list"]').click();
+      cy.location('pathname').should('eq', '/list');
+      cy.go('back');
+      cy.location('search').should('eq', '?input=original');
+      cy.get(input).should('have.value', 'edited draft again');
+    });
+
+    it('opens an empty preview from its copied link and an empty home from its query', () => {
+      const previewInput = 'textarea[data-magic-input="true"]';
+      let copiedLink = '';
+      cy.visit('/list?box=word-count');
+      cy.window().then((win) => {
+        cy.stub(win.navigator.clipboard, 'writeText')
+          .callsFake(async (url: string) => {
+            copiedLink = url;
+          })
+          .as('copyShareLink');
+      });
+      cy.get(previewInput).should('not.have.value', '').clear();
+      cy.get('[data-testid="copy-tool-share-link"]').click();
+      cy.get('@copyShareLink')
+        .should('have.been.calledOnce')
+        .then(() => {
+          const url = new URL(copiedLink);
+          expect(url.searchParams.get('input')).to.equal('');
+          cy.visit(`${url.pathname}${url.search}`);
+        });
+      cy.get(previewInput).should('have.value', '');
+
+      cy.visit('/?input=', {
+        onBeforeLoad: (win) => {
+          win.sessionStorage.setItem(
+            'mb_input_draft',
+            JSON.stringify({ version: 1, input: 'recipient draft' }),
+          );
+        },
+      });
+      cy.get('textarea[name="magicInput"]').should('have.value', '');
+    });
+  });
+
   describe('MagicBox Input', () => {
     it('shows the worker limit for a valid JSON Pointer that is too long to transfer', () => {
       cy.window().then((win) => {

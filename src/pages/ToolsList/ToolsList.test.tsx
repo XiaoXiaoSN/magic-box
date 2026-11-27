@@ -13,6 +13,7 @@ import { LocaleProvider } from '../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../contexts/PreferencesContext';
 import { SettingsProvider } from '../../contexts/SettingsContext';
 import { LOCAL_PREFS_KEY } from '../../functions/localPrefs';
+import { buildShareLink } from '../../functions/shareLink';
 import WordCountBoxSource from '../../modules/boxSources/WordCountBoxSource';
 import ToolsListPage from './index';
 
@@ -133,6 +134,25 @@ describe('/list preview input state', () => {
     expect(
       screen.getByRole('button', { name: '字數統計' }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps a shared empty preview empty and uses the default when omitted', async () => {
+    const empty = new URL(
+      buildShareLink({ box: 'word-count', input: '', pathname: '/list' }),
+    );
+    const first = renderPage([`${empty.pathname}${empty.search}`]);
+    expect(await screen.findByRole('combobox', { name: 'Input' })).toHaveValue(
+      '',
+    );
+
+    first.unmount();
+    const omitted = new URL(
+      buildShareLink({ box: 'word-count', pathname: '/list' }),
+    );
+    renderPage([`${omitted.pathname}${omitted.search}`]);
+    expect(await screen.findByRole('combobox', { name: 'Input' })).toHaveValue(
+      WordCountBoxSource.defaultInput,
+    );
   });
 
   it('uses a matching shared input and clears it when switching tools', async () => {

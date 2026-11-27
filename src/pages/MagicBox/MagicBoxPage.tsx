@@ -29,18 +29,9 @@ import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 
 const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
 
-interface SeededInput {
-  present: boolean;
-  value: string;
-}
-
-const readSeededInput = (search: string): SeededInput => {
+const readSharedInput = (search: string): string | null => {
   const params = new URLSearchParams(search);
-  const key = params.has('input') ? 'input' : params.has('i') ? 'i' : null;
-  if (!key) return { present: false, value: '' };
-  const value = params.get(key) ?? '';
-  if (isPrivateInput(value)) activateLocalAIPrivacy();
-  return { present: true, value };
+  return params.get('input') ?? params.get('i');
 };
 
 const historyPreview = (input: string): string => {
@@ -71,12 +62,14 @@ const formatRelativeTime = (
 const MagicBoxPage = (): React.JSX.Element => {
   const location = useLocation();
   const { locale, t } = useLocale();
-  const { clearVersion, draft, updateDraft } = useInputDraft();
-  const seededInput = useMemo(
-    () => readSeededInput(location.search),
+  const { applySharedInput, clearVersion, draft, shareEntryKey, updateDraft } =
+    useInputDraft();
+  const sharedInput = useMemo(
+    () => readSharedInput(location.search),
     [location.search],
   );
-  const initialInput = seededInput.present ? seededInput.value : draft;
+  const initialInput =
+    shareEntryKey === location.key ? draft : (sharedInput ?? draft);
   const [userInput, setUserInput] = useState(initialInput);
   const [magicIn, setMagicIn] = useState(initialInput);
   const [resetCounter, setResetCounter] = useState(0);
@@ -89,7 +82,6 @@ const MagicBoxPage = (): React.JSX.Element => {
   // History entries this edit session created (not ones it merely moved to the
   // top). A session ends when the input is emptied or replaced wholesale.
   const sessionAddedRef = useRef<string[]>([]);
-  const appliedSearchRef = useRef(location.search);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
@@ -112,11 +104,6 @@ const MagicBoxPage = (): React.JSX.Element => {
   const privateInput = useMemo(() => isPrivateInput(userInput), [userInput]);
 
   useEffect(() => {
-    if (!seededInput.present) return;
-    updateDraft(seededInput.value, { persist: false });
-  }, [seededInput, updateDraft]);
-
-  useEffect(() => {
     if (handledClearVersionRef.current === clearVersion) return;
     handledClearVersionRef.current = clearVersion;
     sessionAddedRef.current = [];
@@ -133,28 +120,23 @@ const MagicBoxPage = (): React.JSX.Element => {
     lastRecordedRef.current = '';
   }, []);
 
-  const applySeededInput = useCallback(
-    (value: string): void => {
-      if (isPrivateInput(value)) {
-        activateLocalAIPrivacy();
-        removeInputs(sessionAddedRef.current);
-      }
-      resetEditSession();
-      editedRef.current = false;
-      pendingCaretRef.current = value.length;
-      updateDraft(value, { persist: false });
-      setUserInput(value);
-      setMagicIn(value);
-    },
-    [removeInputs, resetEditSession, updateDraft],
-  );
-
   useLayoutEffect(() => {
-    if (appliedSearchRef.current === location.search) return;
-    appliedSearchRef.current = location.search;
-    if (!seededInput.present) return;
-    applySeededInput(seededInput.value);
-  }, [applySeededInput, location.search, seededInput]);
+    if (sharedInput === null || !applySharedInput(location.key, sharedInput)) {
+      return;
+    }
+    if (isPrivateInput(sharedInput)) removeInputs(sessionAddedRef.current);
+    resetEditSession();
+    editedRef.current = false;
+    pendingCaretRef.current = sharedInput.length;
+    setUserInput(sharedInput);
+    setMagicIn(sharedInput);
+  }, [
+    applySharedInput,
+    location.key,
+    removeInputs,
+    resetEditSession,
+    sharedInput,
+  ]);
 
   const applyInput = useCallback(
     (value: string, wholesale: boolean): void => {

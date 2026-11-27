@@ -6,10 +6,12 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { BrowserRouter, useNavigate } from 'react-router-dom';
+import { StrictMode } from 'react';
+import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InputDraftProvider } from '../../contexts/InputDraftContext';
 import { LocaleProvider, useLocale } from '../../contexts/LocaleContext';
+import { clearLocalStorage } from '../../functions/storage';
 
 // Mock the heavy children so the page can be tested in isolation without
 // pulling in SettingsContext / WASM box sources. The mocks expose the page's
@@ -77,6 +79,27 @@ const RouterNavigation = () => {
   return (
     <>
       <button
+        data-testid="navigate-first"
+        onClick={() => navigate('/?input=first')}
+        type="button"
+      >
+        first
+      </button>
+      <button
+        data-testid="navigate-settings"
+        onClick={() => navigate('/settings')}
+        type="button"
+      >
+        settings
+      </button>
+      <button
+        data-testid="navigate-list"
+        onClick={() => navigate('/list')}
+        type="button"
+      >
+        tools
+      </button>
+      <button
         data-testid="navigate-second"
         onClick={() => navigate('/?input=second')}
         type="button"
@@ -117,14 +140,20 @@ const RouterNavigation = () => {
 
 const renderRoutedPage = () =>
   render(
-    <BrowserRouter>
-      <LocaleProvider>
-        <InputDraftProvider>
-          <MagicBoxPage />
-          <RouterNavigation />
-        </InputDraftProvider>
-      </LocaleProvider>
-    </BrowserRouter>,
+    <StrictMode>
+      <BrowserRouter>
+        <LocaleProvider>
+          <InputDraftProvider>
+            <RouterNavigation />
+            <Routes>
+              <Route element={<MagicBoxPage />} path="/" />
+              <Route element={<p>Settings page</p>} path="/settings" />
+              <Route element={<p>Tools page</p>} path="/list" />
+            </Routes>
+          </InputDraftProvider>
+        </LocaleProvider>
+      </BrowserRouter>
+    </StrictMode>,
   );
 
 const LocaleSwitcher = () => {
@@ -192,6 +221,17 @@ describe('<MagicBoxPage />', () => {
     expect(getInput().value).toBe('');
   });
 
+  it('restores the session draft when the URL omits shared input', () => {
+    sessionStorage.setItem(
+      'mb_input_draft',
+      JSON.stringify({ version: 1, input: 'restored draft' }),
+    );
+
+    renderPage();
+
+    expect(getInput()).toHaveValue('restored draft');
+  });
+
   it('applies explicit query changes and browser history on the same route', async () => {
     window.history.replaceState({}, '', '/?input=first');
 
@@ -211,6 +251,69 @@ describe('<MagicBoxPage />', () => {
     await waitFor(() => expect(getInput().value).toBe('second'));
     fireEvent.click(screen.getByTestId('navigate-forward'));
     await waitFor(() => expect(getInput().value).toBe(''));
+  });
+
+  it.each([
+    'settings',
+    'list',
+  ])('restores edits after navigating from a shared input to %s and back', async (page) => {
+    window.history.replaceState({}, '', '/?input=first');
+    renderRoutedPage();
+    expect(getInput()).toHaveValue('first');
+    typeInput('edited draft');
+
+    fireEvent.click(screen.getByTestId(`navigate-${page}`));
+    expect(screen.queryByTestId('magic-input')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('navigate-back'));
+
+    const input = await screen.findByTestId('magic-input');
+    expect(input).toHaveValue('edited draft');
+    expect(screen.getByTestId('magic-input-echo')).toHaveTextContent(
+      'edited draft',
+    );
+  });
+
+  it('imports an explicit seed when a new entry has the same query', () => {
+    window.history.replaceState({}, '', '/?input=first');
+    renderRoutedPage();
+    typeInput('edited draft');
+
+    fireEvent.click(screen.getByTestId('navigate-first'));
+
+    expect(getInput()).toHaveValue('first');
+    expect(screen.getByTestId('magic-input-echo')).toHaveTextContent('first');
+  });
+
+  it('keeps a cleared draft empty when returning to the consumed share entry', async () => {
+    window.history.replaceState({}, '', '/?input=first');
+    renderRoutedPage();
+    expect(getInput()).toHaveValue('first');
+
+    fireEvent.click(screen.getByTestId('navigate-settings'));
+    act(() => clearLocalStorage());
+    fireEvent.click(screen.getByTestId('navigate-back'));
+
+    expect(await screen.findByTestId('magic-input')).toHaveValue('');
+  });
+
+  it('keeps private shared input out of drafts when returning to its entry', async () => {
+    const privateInput = 'jwt body\n::secret=dont-share';
+    window.history.replaceState(
+      {},
+      '',
+      `/?input=${encodeURIComponent(privateInput)}`,
+    );
+    renderRoutedPage();
+
+    expect(getInput()).toHaveValue(privateInput);
+    expect(isLocalAIPrivate()).toBe(true);
+    expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('navigate-settings'));
+    fireEvent.click(screen.getByTestId('navigate-back'));
+
+    expect(await screen.findByTestId('magic-input')).toHaveValue('');
   });
 
   it('keeps active input when navigation has no explicit input query', async () => {
