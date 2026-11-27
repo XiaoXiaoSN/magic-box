@@ -54,6 +54,33 @@ describe('CLI conversion diagnostics', () => {
   });
 
   it.each([
+    ['unit-converter', ['1 m to mystery'], 'Unknown target unit'],
+    ['unit-converter', ['1 m to s'], 'incompatible with length'],
+    [
+      'words-to-number',
+      ['one avocado', '::wordstonum'],
+      "couldn't parse 'avocado'",
+    ],
+    ['gcd-lcm', ['3 bad', '::gcd'], 'all tokens must be integers'],
+    ['gcd-lcm', ['3', '::gcd'], 'at least two integers are required'],
+    ['radix-convert', ['ff', '::radix=bogus'], 'Usage: ::radix=FROM:TO'],
+  ])('reports explicit conversion failures from %s as diagnostics', (source, args, diagnostic) => {
+    const result = runCli('--only', source, '--json', ...args);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe('[]\n');
+    expect(result.stderr).toContain(diagnostic);
+  });
+
+  it('keeps the bare radix directive as a usage guide', () => {
+    const result = runCli('--only', 'radix-convert', '--raw', 'ff', '::radix');
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Usage: ::radix=FROM:TO');
+    expect(result.stderr).toBe('');
+  });
+
+  it.each([
     '--raw',
     '--json',
   ])('retains a successful Base58 encoding alongside a failed decode in %s mode', (format) => {

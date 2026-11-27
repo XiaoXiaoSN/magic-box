@@ -233,6 +233,7 @@ export const WordsToNumberBoxSource = {
           'Words to Number',
           `couldn't parse '${result.unrecognized}'`,
         )
+          .setIsError()
           .setView('default')
           .setShowExpandButton(false)
 

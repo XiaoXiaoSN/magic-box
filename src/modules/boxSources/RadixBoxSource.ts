@@ -48,16 +48,12 @@ export const RadixBoxSource = {
 
     const rawSpec = extractOptionKeys(options, 'radix', 'baseconvert');
 
-    // when the option is present but has no "from:to" value, show usage hint.
-    if (
-      rawSpec === true ||
-      typeof rawSpec !== 'string' ||
-      !rawSpec.includes(':')
-    ) {
+    // Show the syntax for a bare directive or an explicit value missing its separator.
+    if (typeof rawSpec !== 'string' || !rawSpec.includes(':')) {
       return [
         makeMessageBox(
           'Usage: ::radix=FROM:TO (e.g. ::radix=16:2), bases 2-36.',
-          false,
+          typeof rawSpec === 'string' && rawSpec.length > 0,
         ),
       ];
     }
