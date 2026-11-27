@@ -1,4 +1,6 @@
+import type { BoxProps } from '@modules/Box';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../../../contexts/LocaleContext';
 import DiffBoxTemplate from '../DiffBoxTemplate';
@@ -9,22 +11,39 @@ vi.mock('../CodeBoxTemplate', () => ({
   ),
 }));
 
+function renderDiff(sourceInput: string, options: BoxProps['options']) {
+  const onClick = vi.fn();
+  const onResultChange = vi.fn();
+
+  function ControlledDiff() {
+    const [result, setResult] = useState({ options, plaintextOutput: '' });
+    return (
+      <DiffBoxTemplate
+        {...result}
+        name="Text Diff"
+        onClick={onClick}
+        onResultChange={(next) => {
+          setResult(next);
+          onResultChange(next);
+        }}
+        sourceInput={sourceInput}
+      />
+    );
+  }
+
+  render(
+    <LocaleProvider>
+      <ControlledDiff />
+    </LocaleProvider>,
+  );
+  return { onClick, onResultChange };
+}
+
 describe('interactive Diff', () => {
   it('compares pasted text, publishes the output, and copies the current diff', () => {
-    const onClick = vi.fn();
-    const onResultChange = vi.fn();
-    render(
-      <LocaleProvider>
-        <DiffBoxTemplate
-          name="Text Diff"
-          sourceInput={'a\n---\nb'}
-          plaintextOutput=""
-          options={{ language: 'yaml' }}
-          onClick={onClick}
-          onResultChange={onResultChange}
-        />
-      </LocaleProvider>,
-    );
+    const { onClick, onResultChange } = renderDiff('a\n---\nb', {
+      language: 'yaml',
+    });
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: 'a\n---\nc' },
     });
@@ -44,22 +63,16 @@ describe('interactive Diff', () => {
       plaintextOutput: '',
     });
   });
-  it('shows an error instead of allocating an excessive LCS table', () => {
-    render(
-      <LocaleProvider>
-        <DiffBoxTemplate
-          name="Diff"
-          sourceInput="a"
-          plaintextOutput=""
-          options={null}
-          onClick={vi.fn()}
-        />
-      </LocaleProvider>,
-    );
+
+  it('clears a line limit error when the target is edited', () => {
+    renderDiff('a', null);
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: 'x\n'.repeat(2001) },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Too many lines');
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'b' } });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

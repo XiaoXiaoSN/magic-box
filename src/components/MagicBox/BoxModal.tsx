@@ -2,7 +2,7 @@ import { resolveBoxTemplate } from '@components/BoxTemplate/resolveBoxTemplate';
 import ErrorBoundary, {
   TemplateErrorFallback,
 } from '@components/ErrorBoundary';
-import type { Box as BoxType } from '@modules/Box';
+import type { BoxProps, Box as BoxType } from '@modules/Box';
 import { Modal } from '@mui/material';
 import { memo, Suspense, useCallback } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -14,10 +14,18 @@ interface BoxModalProps {
   onClose: () => void;
   onCopy: (text: string) => Promise<boolean>;
   onInputCommit?: () => void;
+  onResultChange?: BoxProps['onResultChange'];
 }
 
 const BoxModal = memo(
-  ({ box, open, onClose, onCopy, onInputCommit }: BoxModalProps) => {
+  ({
+    box,
+    open,
+    onClose,
+    onCopy,
+    onInputCommit,
+    onResultChange,
+  }: BoxModalProps) => {
     const { t } = useLocale();
     const Comp = box ? resolveBoxTemplate(box) : null;
     const onClick = box?.props.onClick;
@@ -65,6 +73,7 @@ const BoxModal = memo(
               name={name}
               onClick={handleClick}
               onClose={onClose}
+              onResultChange={onResultChange}
               options={options}
               plaintextOutput={plaintextOutput}
               sourceInput={sourceInput}

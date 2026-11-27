@@ -40,6 +40,7 @@ const ExpandIcon = () => (
 
 interface BoxCardProps {
   box: BoxType;
+  resultId: symbol;
   index: number;
   selected: boolean;
   stale: boolean;
@@ -47,9 +48,9 @@ interface BoxCardProps {
   selectionTabIndex: number;
   onCopy: (text: string) => Promise<boolean>;
   onInputCommit?: () => void;
-  onExpand?: (box: BoxType) => void;
+  onExpand?: (resultId: symbol) => void;
   onResultChange?: (
-    box: BoxType,
+    resultId: symbol,
     result: Pick<BoxProps, 'options' | 'plaintextOutput'>,
   ) => void;
 }
@@ -61,6 +62,7 @@ const BoxCard = memo(
     (
       {
         box,
+        resultId,
         index,
         selected,
         stale,
@@ -178,9 +180,9 @@ const BoxCard = memo(
       const handleExpand = useCallback(
         (event: React.MouseEvent) => {
           event.stopPropagation();
-          if (!stale) onExpand?.(box);
+          if (!stale) onExpand?.(resultId);
         },
-        [box, onExpand, stale],
+        [resultId, onExpand, stale],
       );
 
       const handleCardClick = useCallback(() => {
@@ -216,9 +218,9 @@ const BoxCard = memo(
 
       const handleTemplateResultChange = useCallback(
         (result: Pick<BoxProps, 'options' | 'plaintextOutput'>): void => {
-          if (!stale) onResultChange?.(box, result);
+          if (!stale) onResultChange?.(resultId, result);
         },
-        [box, onResultChange, stale],
+        [resultId, onResultChange, stale],
       );
 
       const blockStaleInteraction = useCallback(

@@ -100,8 +100,10 @@ export function compareTexts(leftText: string, rightText: string): DiffOutcome {
       ok: false,
       message: 'Text is too large to diff (limit 20000 characters).',
     };
-  const left = leftText.replaceAll('\r\n', '\n').split('\n');
-  const right = rightText.replaceAll('\r\n', '\n').split('\n');
+  const left =
+    leftText === '' ? [] : leftText.replaceAll('\r\n', '\n').split('\n');
+  const right =
+    rightText === '' ? [] : rightText.replaceAll('\r\n', '\n').split('\n');
   if (left.length > MAX_LINES_PER_SIDE || right.length > MAX_LINES_PER_SIDE)
     return {
       ok: false,

@@ -69,15 +69,20 @@ interface Props {
 
 type RunState = 'idle' | 'pending' | 'settled';
 
+interface BoxResult {
+  id: symbol;
+  box: BoxType;
+}
+
 interface SourceResultSlot {
   sourceId: string;
-  boxes: BoxType[];
+  results: BoxResult[];
+  runId: number;
   runKey: string;
 }
 
-interface BoxEntry {
+interface BoxEntry extends BoxResult {
   sourceId: string;
-  box: BoxType;
   key: string;
   stale: boolean;
 }
@@ -135,8 +140,7 @@ const MagicBox = ({
     key: string;
     sources: BoxSource[];
   } | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalBox, setModalBox] = useState<BoxType | null>(null);
+  const [modalResultId, setModalResultId] = useState<symbol | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const itemRefs = useRef<Map<string, HTMLElement | null>>(new Map());
@@ -181,11 +185,12 @@ const MagicBox = ({
     const entries: BoxEntry[] = [];
     sourceResults.forEach((slot, sourceIndex) => {
       const seenNames = new Map<string, number>();
-      slot?.boxes.forEach((box) => {
+      slot?.results.forEach(({ id, box }) => {
         const name = box.props.name || 'box';
         const occurrence = seenNames.get(name) ?? 0;
         seenNames.set(name, occurrence + 1);
         entries.push({
+          id,
           sourceId: slot.sourceId,
           box,
           key: `${sourceIndex}:${name}:${occurrence}`,
@@ -197,6 +202,12 @@ const MagicBox = ({
   }, [currentRunKey, isStale, sourceResults]);
 
   const boxes = useMemo(() => boxEntries.map(({ box }) => box), [boxEntries]);
+  const modalBox =
+    modalResultId === null
+      ? null
+      : (boxEntries.find(({ id, stale }) => id === modalResultId && !stale)
+          ?.box ?? null);
+  const modalIsActive = modalBox !== null;
   const selectableEntries = useMemo(
     () => boxEntries.filter(({ stale }) => !stale),
     [boxEntries],
@@ -267,17 +278,14 @@ const MagicBox = ({
   }, []);
 
   const handleOpenModal = useCallback(
-    (box: BoxType): void => {
-      if (isStale) return;
-      setModalBox(box);
-      setModalOpen(true);
+    (resultId: symbol): void => {
+      if (!isStale) setModalResultId(resultId);
     },
     [isStale],
   );
 
   const handleCloseModal = useCallback((): void => {
-    setModalOpen(false);
-    setModalBox(null);
+    setModalResultId(null);
   }, []);
 
   useEffect(() => {
@@ -290,8 +298,7 @@ const MagicBox = ({
       setSourceResults([]);
       setRunState('idle');
       setSelectedKey(null);
-      setModalOpen(false);
-      setModalBox(null);
+      setModalResultId(null);
       return () => {
         controller.abort();
         if (runIdRef.current === runId) runIdRef.current += 1;
@@ -321,11 +328,11 @@ const MagicBox = ({
     );
     setRunState('pending');
     setSelectedKey(null);
-    setModalOpen(false);
-    setModalBox(null);
+    setModalResultId(null);
 
     const commitSlot = (sourceIndex: number, generated: BoxType[]): void => {
       if (controller.signal.aborted || runIdRef.current !== runId) return;
+      const results = generated.map((box) => ({ id: Symbol(), box }));
       setSourceResults((current) => {
         if (controller.signal.aborted || runIdRef.current !== runId) {
           return current;
@@ -333,7 +340,8 @@ const MagicBox = ({
         const next = current.slice();
         next[sourceIndex] = {
           sourceId: boxSources[sourceIndex].id ?? boxSources[sourceIndex].name,
-          boxes: generated,
+          results,
+          runId,
           runKey: currentRunKey,
         };
         return next;
@@ -531,15 +539,8 @@ const MagicBox = ({
   }, [boxEntries, selectedKey]);
 
   useEffect(() => {
-    if (
-      !modalBox ||
-      isStale ||
-      !boxEntries.some(({ box, stale }) => box === modalBox && !stale)
-    ) {
-      setModalOpen(false);
-      setModalBox(null);
-    }
-  }, [boxEntries, isStale, modalBox]);
+    if (!modalIsActive) setModalResultId(null);
+  }, [modalIsActive]);
 
   useEffect(() => {
     if (selectedIndex < 0) return;
@@ -585,33 +586,48 @@ const MagicBox = ({
 
   const handleResultChange = useCallback(
     (
-      target: BoxType,
+      resultId: symbol,
       result: Pick<BoxType['props'], 'options' | 'plaintextOutput'>,
     ): void => {
+      if (isStale) return;
       setSourceResults((current) => {
         let changed = false;
         const next = current.map((slot) => {
-          if (slot === null || slot.runKey !== currentRunKey) return slot;
-          const boxes = slot.boxes.map((box) => {
-            if (box !== target) return box;
-            if (
-              box.props.plaintextOutput === result.plaintextOutput &&
-              box.props.options === result.options
-            ) {
-              return box;
-            }
-            changed = true;
-            return {
-              ...box,
-              props: { ...box.props, ...result },
-            };
-          });
-          return changed ? { ...slot, boxes } : slot;
+          if (
+            slot === null ||
+            slot.runKey !== currentRunKey ||
+            slot.runId !== runIdRef.current
+          ) {
+            return slot;
+          }
+          const index = slot.results.findIndex(({ id }) => id === resultId);
+          const entry = slot.results[index];
+          if (
+            !entry ||
+            (entry.box.props.plaintextOutput === result.plaintextOutput &&
+              entry.box.props.options === result.options)
+          ) {
+            return slot;
+          }
+          const results = slot.results.slice();
+          results[index] = {
+            ...entry,
+            box: { ...entry.box, props: { ...entry.box.props, ...result } },
+          };
+          changed = true;
+          return { ...slot, results };
         });
         return changed ? next : current;
       });
     },
-    [currentRunKey],
+    [currentRunKey, isStale],
+  );
+
+  const handleModalResultChange = useCallback(
+    (result: Pick<BoxType['props'], 'options' | 'plaintextOutput'>): void => {
+      if (modalResultId !== null) handleResultChange(modalResultId, result);
+    },
+    [handleResultChange, modalResultId],
   );
 
   const pasteAsInput = useCallback((value: string): void => {
@@ -793,7 +809,7 @@ const MagicBox = ({
     // the handler reads refs so this listener is registered once per mount.
   }, [copyText, pasteAsInput]);
 
-  const renderedBoxes = boxEntries.map(({ box, key, stale }, index) => (
+  const renderedBoxes = boxEntries.map(({ id, box, key, stale }, index) => (
     <BoxCard
       key={key}
       ref={getItemRef(key)}
@@ -806,6 +822,7 @@ const MagicBox = ({
       }
       onResultChange={handleResultChange}
       onSelect={handleSelect}
+      resultId={id}
       selectionTabIndex={
         selectedIndex >= 0
           ? index === selectedIndex
@@ -843,11 +860,6 @@ const MagicBox = ({
     !isLocalAIPrivate() &&
     !isPrivateInput(displayInput) &&
     trim(displayInput) !== '';
-  const modalIsActive =
-    modalOpen &&
-    !isStale &&
-    modalBox !== null &&
-    boxEntries.some(({ box, stale }) => box === modalBox && !stale);
 
   return (
     <React.Fragment>
@@ -881,6 +893,7 @@ const MagicBox = ({
         onClose={handleCloseModal}
         onCopy={copyText}
         onInputCommit={handleInputCommit}
+        onResultChange={handleModalResultChange}
         open={modalIsActive}
       />
       <CustomizedSnackbar notify={notify} />

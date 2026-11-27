@@ -1,29 +1,25 @@
-import { compareTexts, type DiffOutcome } from '@functions/textDiff';
+import { compareTexts } from '@functions/textDiff';
 import type { BoxProps } from '@modules/Box';
-import { useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import CodeBoxTemplate from './CodeBoxTemplate';
 
 function DiffBoxTemplate({
   sourceInput = '',
   options,
+  plaintextOutput,
   onClick,
   onResultChange,
   ...props
 }: BoxProps) {
   const { t } = useLocale();
-  const [target, setTarget] = useState(String(options?.diffTarget ?? ''));
-  const [comparison, setComparison] = useState<{
-    source: string;
-    result: DiffOutcome;
-  } | null>(null);
-  const result = comparison?.source === sourceInput ? comparison.result : null;
-  const output = result?.ok ? result.output : '';
+  const { diffTarget, diffError, ...otherOptions } = options ?? {};
+  const target = String(diffTarget ?? '');
   const compare = () => {
     const next = compareTexts(sourceInput, target);
-    setComparison({ source: sourceInput, result: next });
     onResultChange?.({
-      options: { ...options, diffTarget: target },
+      options: next.ok
+        ? { ...otherOptions, diffTarget: target }
+        : { ...otherOptions, diffTarget: target, diffError: next.message },
       plaintextOutput: next.ok ? next.output : '',
     });
   };
@@ -52,38 +48,36 @@ function DiffBoxTemplate({
             color: 'inherit',
           }}
           onKeyDown={(event) => event.stopPropagation()}
-          onChange={(event) => {
-            setTarget(event.target.value);
-            setComparison(null);
+          onChange={(event) =>
             onResultChange?.({
-              options: { ...options, diffTarget: event.target.value },
+              options: { ...otherOptions, diffTarget: event.target.value },
               plaintextOutput: '',
-            });
-          }}
+            })
+          }
         />
       </label>
       <button className="btn-subtle" type="button" onClick={compare}>
         {t('diff.compare')}
       </button>
-      {result && !result.ok && <p role="alert">{result.message}</p>}
-      {output && (
+      {diffError ? <p role="alert">{diffError}</p> : null}
+      {plaintextOutput ? (
         <>
           <p role="status">{t('diff.result')}</p>
           <CodeBoxTemplate
             {...props}
             onClick={onClick}
             options={{ language: 'diff' }}
-            plaintextOutput={output}
+            plaintextOutput={plaintextOutput}
           />
           <button
             className="btn-subtle"
             type="button"
-            onClick={() => onClick(output)}
+            onClick={() => onClick(plaintextOutput)}
           >
             {t('diff.copy')}
           </button>
         </>
-      )}
+      ) : null}
     </div>
   );
 }
