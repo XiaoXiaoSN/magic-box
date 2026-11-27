@@ -609,10 +609,22 @@ impl Complex {
         }
     }
     pub fn div(&self, other: &Self) -> Result<Self> {
-        let denom = other.re * other.re + other.im * other.im;
-        if denom == 0.0 {
+        if other.re == 0.0 && other.im == 0.0 {
             return Err(Error::DivisionByZero);
         }
+        if self.is_finite() && other.is_finite() {
+            let a = ScaledFloat::from_float(self.re);
+            let b = ScaledFloat::from_float(self.im);
+            let c = ScaledFloat::from_float(other.re);
+            let d = ScaledFloat::from_float(other.im);
+            let denom = ScaledFloat::sum_products(c, c, d, d);
+            return Ok(Self {
+                re: ScaledFloat::sum_products(a, c, b, d).div(denom),
+                im: ScaledFloat::sum_products(b, c, a, d.neg()).div(denom),
+            });
+        }
+        // Retain IEEE propagation for explicitly nonfinite components.
+        let denom = other.re * other.re + other.im * other.im;
         Ok(Self {
             re: (self.re * other.re + self.im * other.im) / denom,
             im: (self.im * other.re - self.re * other.im) / denom,
@@ -624,8 +636,48 @@ impl Complex {
             im: -self.im,
         }
     }
+    fn is_finite(&self) -> bool {
+        self.re.is_finite() && self.im.is_finite()
+    }
     pub fn abs(&self) -> f64 {
-        (self.re * self.re + self.im * self.im).sqrt()
+        if self.re.is_nan() || self.im.is_nan() {
+            f64::NAN
+        } else {
+            self.re.hypot(self.im)
+        }
+    }
+    pub(crate) fn ln_abs(&self) -> f64 {
+        let radius = self.abs();
+        if self.is_finite() && (radius.is_infinite() || radius.is_subnormal()) {
+            let scale = self.re.abs().max(self.im.abs());
+            scale.ln() + (self.re / scale).hypot(self.im / scale).ln()
+        } else {
+            radius.ln()
+        }
+    }
+    pub(crate) fn sqrt(&self) -> Self {
+        if !self.is_finite() {
+            let radius = self.abs();
+            return Self::new(
+                ((radius + self.re) / 2.0).sqrt(),
+                ((radius - self.re) / 2.0).sqrt().copysign(self.im),
+            );
+        }
+        let scale = self.re.abs().max(self.im.abs());
+        if scale == 0.0 {
+            return Self::new(0.0, self.im);
+        }
+        // Form the larger root component from a scaled norm. Recover the
+        // smaller one from 2*re*im = input.im, avoiding cancellation.
+        let scaled_re = self.re / scale;
+        let radius = scaled_re.hypot(self.im / scale);
+        let major = scale.sqrt() * ((radius + scaled_re.abs()) / 2.0).sqrt();
+        let minor = self.im.abs() / (2.0 * major);
+        if self.re < 0.0 {
+            Self::new(minor, major.copysign(self.im))
+        } else {
+            Self::new(major, minor.copysign(self.im))
+        }
     }
     pub fn arg(&self) -> f64 {
         self.im.atan2(self.re)
@@ -658,6 +710,70 @@ impl Complex {
             alloc::format!("{im_abs}i")
         };
         alloc::format!("{}{sign}{im_part}", format_num(self.re))
+    }
+}
+
+// Keep product exponents separate until after complex division. Scaling an
+// entire complex operand would discard a small component that can still
+// contribute to a representable quotient.
+#[cfg(feature = "complex")]
+#[derive(Clone, Copy)]
+struct ScaledFloat {
+    significand: f64,
+    exponent: i32,
+}
+
+#[cfg(feature = "complex")]
+impl ScaledFloat {
+    fn from_float(value: f64) -> Self {
+        let (significand, exponent) = libm::frexp(value);
+        Self {
+            significand,
+            exponent,
+        }
+    }
+
+    fn neg(self) -> Self {
+        Self {
+            significand: -self.significand,
+            ..self
+        }
+    }
+
+    fn sum_products(a: Self, b: Self, c: Self, d: Self) -> Self {
+        let first_exponent = a.exponent + b.exponent;
+        let second_exponent = c.exponent + d.exponent;
+        let first_zero = a.significand == 0.0 || b.significand == 0.0;
+        let second_zero = c.significand == 0.0 || d.significand == 0.0;
+        if first_zero && second_zero {
+            // Preserve the sign of a pair of zero products for branch cuts.
+            return Self {
+                significand: a.significand * b.significand + c.significand * d.significand,
+                exponent: 0,
+            };
+        }
+        let exponent = match (first_zero, second_zero) {
+            (true, _) => second_exponent,
+            (_, true) => first_exponent,
+            _ => first_exponent.max(second_exponent),
+        };
+        let a = libm::scalbn(a.significand, (first_exponent - exponent).min(0));
+        let c = libm::scalbn(c.significand, (second_exponent - exponent).min(0));
+        let cd = c * d.significand;
+        // Compensate for the rounded product when the two terms cancel.
+        let cd_error = c.mul_add(d.significand, -cd);
+        let significand = a.mul_add(b.significand, cd) + cd_error;
+        Self {
+            significand,
+            exponent,
+        }
+    }
+
+    fn div(self, denominator: Self) -> f64 {
+        libm::scalbn(
+            self.significand / denominator.significand,
+            self.exponent - denominator.exponent,
+        )
     }
 }
 

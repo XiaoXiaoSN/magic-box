@@ -134,7 +134,23 @@ pub fn default_namespace() -> Namespace {
 
     ns.set_fn("hypot", range(1, 32), true, |a| {
         let v = values_to_f64(a)?;
-        Ok(Value::Num(v.iter().map(|x| x * x).sum::<f64>().sqrt()))
+        if v.iter().any(|x| x.is_nan()) {
+            return Ok(Value::Num(f64::NAN));
+        }
+        let scale = v
+            .iter()
+            .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+        if scale == 0.0 || scale.is_infinite() {
+            return Ok(Value::Num(scale));
+        }
+        let sum = v
+            .iter()
+            .map(|value| {
+                let scaled = value / scale;
+                scaled * scaled
+            })
+            .sum::<f64>();
+        Ok(Value::Num(scale * sum.sqrt()))
     });
 
     ns.set_fn("min", range(1, 32), true, |a| select_extreme(a, false));
@@ -424,15 +440,7 @@ fn sqrt_value(args: &[Value]) -> Result<Value> {
 
     #[cfg(feature = "complex")]
     if let Value::Complex(value) = &args[0] {
-        let radius = value.abs();
-        let re = ((radius + value.re) / 2.0).sqrt();
-        let im = ((radius - value.re) / 2.0).sqrt()
-            * if value.im.is_sign_negative() {
-                -1.0
-            } else {
-                1.0
-            };
-        return Ok(Value::Complex(crate::value::Complex::new(re, im)));
+        return Ok(Value::Complex(value.sqrt()));
     }
 
     let value = args[0].as_f64().ok_or(Error::Domain {

@@ -290,7 +290,17 @@ fn floored_num_mod(x: f64, y: f64) -> f64 {
     if y == 0.0 {
         return x;
     }
-    x - y * (x / y).floor()
+    if !x.is_finite() || !y.is_finite() {
+        return f64::NAN;
+    }
+    let remainder = x % y;
+    if remainder == 0.0 {
+        0.0
+    } else if remainder.is_sign_negative() != y.is_sign_negative() {
+        remainder + y
+    } else {
+        remainder
+    }
 }
 
 pub fn add(a: Value, b: Value) -> Result<Value> {
@@ -1565,14 +1575,27 @@ fn complex_pow_integer(base: Complex, exponent: i64) -> Result<Complex> {
 #[cfg(feature = "complex")]
 fn complex_power(base: Complex, exponent: Complex) -> Complex {
     // principal complex power: a^b = exp(b * ln(a)).
-    let radius = base.abs();
+    let log_re = base.ln_abs();
     let angle = base.arg();
-    let log_re = radius.ln();
     let log_im = angle;
     let magnitude_re = exponent.re * log_re - exponent.im * log_im;
     let magnitude_im = exponent.re * log_im + exponent.im * log_re;
     let scale = magnitude_re.exp();
-    Complex::new(scale * magnitude_im.cos(), scale * magnitude_im.sin())
+    let component = |direction: f64| {
+        if magnitude_re.is_finite() && !scale.is_normal() {
+            // The polar magnitude may overflow or lose precision as a
+            // subnormal even when this component is representable.
+            if direction == 0.0 {
+                return direction;
+            }
+            (magnitude_re + direction.abs().ln())
+                .exp()
+                .copysign(direction)
+        } else {
+            scale * direction
+        }
+    };
+    Complex::new(component(magnitude_im.cos()), component(magnitude_im.sin()))
 }
 
 pub fn neg(a: Value) -> Result<Value> {
