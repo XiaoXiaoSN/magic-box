@@ -64,6 +64,7 @@ describe('buildShareLink', () => {
     'jwt\n::SECRET = top-secret',
     'message\n::sha256=test-key\n::sha256',
     'test-password\n::pbkdf2=salt',
+    'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
   ])('omits private input from a share URL', (input) => {
     const result = buildShareLink({
       input,

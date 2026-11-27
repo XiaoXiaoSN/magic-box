@@ -1,6 +1,7 @@
 import { type BoxOptionValues, hasOptionKeys } from '@modules/Box';
 
 import { HMAC_KEY_DIRECTIVES, PBKDF2_DIRECTIVE } from './cryptoDirectives';
+import { isKubernetesSecretInput } from './kubernetesSecret';
 import { parseInput } from './parseOptions';
 
 // The single definition of the trigger. LocalAIBoxSource reads it from here so
@@ -37,24 +38,27 @@ export const shouldMaskDirectiveValue = (
 ): boolean =>
   key === 'secret' || isLocalAIDirective(key) || isHmacKey(key, value);
 
-const hasPrivateDirective = (raw: string, includeLocalAI: boolean): boolean => {
+const classifyPrivateInput = (
+  raw: string,
+  includeLocalAI: boolean,
+): boolean => {
   let privateInput = false;
   // An overridden directive can still carry a key in the original input.
-  parseInput(raw, ({ key, value }) => {
+  const [input] = parseInput(raw, ({ key, value }) => {
     privateInput ||=
       key === 'secret' ||
       key === PBKDF2_DIRECTIVE ||
       isHmacKey(key, value) ||
       (includeLocalAI && isLocalAIDirective(key));
   });
-  return privateInput;
+  return privateInput || isKubernetesSecretInput(input);
 };
 
 export const isPrivateInput = (raw: string): boolean =>
-  hasPrivateDirective(raw, true);
+  classifyPrivateInput(raw, true);
 
 export const isSensitiveInput = (raw: string): boolean =>
-  hasPrivateDirective(raw, false);
+  classifyPrivateInput(raw, false);
 
 // A private shared link can mount a box on first paint. Detect it from the
 // seeded input before any SDK is initialized rather than waiting for React.

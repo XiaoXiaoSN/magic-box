@@ -611,6 +611,29 @@ describe('MagicBox source pipeline', () => {
     expect(screen.getByText('Earlier output')).toBeInTheDocument();
   });
 
+  it('marks a Kubernetes Secret result private when pasted back into the app', async () => {
+    const input = 'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }';
+    const source = sourceWithResult('Secret', Promise.resolve([box('Secret')]));
+    const onPasteInput = vi.fn();
+    render(
+      <LocaleProvider>
+        <MagicBox
+          input={input}
+          onPasteInput={onPasteInput}
+          sources={[source]}
+        />
+      </LocaleProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select Secret' }),
+    );
+    fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+    await waitFor(() =>
+      expect(onPasteInput).toHaveBeenCalledWith('Secret output\n::secret'),
+    );
+    expect(copyTextToClipboard).toHaveBeenCalledWith('Secret output');
+  });
+
   it('ignores a late keyboard copy after the selected source is removed', async () => {
     preferenceState.copyMode = 'paste';
     const clipboard = deferred<boolean>();
@@ -1060,6 +1083,7 @@ describe('feedback snapshot integration', () => {
     'private\n::ai',
     'private\n::localai',
     'private\n::secret',
+    'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
   ])('hides collection for private input %s', async (input) => {
     preferenceState.collectFeedback = true;
     const sources = [

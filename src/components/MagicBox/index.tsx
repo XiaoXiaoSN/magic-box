@@ -4,6 +4,7 @@ import CustomizedSnackbar, {
 } from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
+import { isKubernetesSecretInput } from '@functions/kubernetesSecret';
 import { isLocalAIPrivate, isPrivateInput } from '@functions/localAIPrivacy';
 import { parseInput } from '@functions/parseOptions';
 import { type Box as BoxType, errorBox } from '@modules/Box';
@@ -658,24 +659,33 @@ const MagicBox = ({
     [handleResultChange, modalResultId],
   );
 
-  const pasteAsInput = useCallback((value: string): void => {
-    const callback = onPasteInputRef.current;
-    if (callback) {
-      callback(value);
-      return;
-    }
-    const input = document.querySelector(
-      'input[name="magicInput"], textarea[name="magicInput"]',
-    ) as HTMLInputElement | HTMLTextAreaElement | null;
-    if (!input) return;
-    input.focus();
-    input.value = value;
-    try {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    } catch {
-      /* noop */
-    }
-  }, []);
+  const pasteAsInput = useCallback(
+    (output: string, sourceInput: string): void => {
+      // The clipboard receives the exact output. Inside the app the private
+      // directive keeps pasted Kubernetes values out of subsequent stores.
+      const [payload] = parseInput(sourceInput);
+      const value = isKubernetesSecretInput(payload)
+        ? `${output}\n::secret`
+        : output;
+      const callback = onPasteInputRef.current;
+      if (callback) {
+        callback(value);
+        return;
+      }
+      const input = document.querySelector(
+        'input[name="magicInput"], textarea[name="magicInput"]',
+      ) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (!input) return;
+      input.focus();
+      input.value = value;
+      try {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch {
+        /* noop */
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
@@ -763,7 +773,7 @@ const MagicBox = ({
             .then((copied) => {
               if (!copied) return;
               onInputCommitRef.current?.(inputSnapshot);
-              pasteAsInput(stdout);
+              pasteAsInput(stdout, inputSnapshot);
             })
             .catch(() => undefined);
           selected.box.props.onClick(stdout);
@@ -826,7 +836,7 @@ const MagicBox = ({
         .then((copied) => {
           if (!copied) return;
           onInputCommitRef.current?.(inputSnapshot);
-          if (state.copyMode === 'paste') pasteAsInput(stdout);
+          if (state.copyMode === 'paste') pasteAsInput(stdout, inputSnapshot);
         })
         .catch(() => undefined);
       selected.box.props.onClick(stdout);

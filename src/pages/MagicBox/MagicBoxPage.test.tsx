@@ -492,6 +492,19 @@ describe('<MagicBoxPage />', () => {
       expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
     });
 
+    it('withdraws a draft when a Kubernetes Secret is recognized', async () => {
+      renderPage();
+      const partial = 'apiVersion: v1\nstringData:\n  token: dummy';
+      typeInput(partial);
+      await blurInput();
+      expect(readHistory().map((entry) => entry.input)).toEqual([partial]);
+      typeInput(`${partial}\nkind: Secret`);
+      await blurInput();
+      expect(readHistory()).toEqual([]);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
     it('masks HMAC key values without treating bare hash options as private', () => {
       renderPage();
       typeInput('message\n::sha256');

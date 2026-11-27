@@ -1,63 +1,15 @@
 import { decodeBase64 } from '@functions/base64';
-import { isString, trim } from '@functions/helper';
+import { isString } from '@functions/helper';
+import { isRecord, readKubernetesSecrets } from '@functions/kubernetesSecret';
 import type { Box } from '@modules/Box';
 import { errorBox, keyValueBox } from '@modules/Box';
-import type { Document, visit } from 'yaml';
 
 const InvalidBase64 = '<invalid-base64>';
 const InvalidValue = '<invalid-value>';
 const UnreadableString = '<unreadable-string>';
-const maxAliasCount = 100;
-
-const yamlKindLine =
-  /^[ \t]*(?:-[ \t]*)?(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?:[ \t]*(?:#.*)?\r?$)/m;
-const flowYamlKindProperty =
-  /(?:^|[,{}])[ \t]*(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?=[ \t]*(?:[,}]|$))/m;
-const jsonKindProperty =
-  /["']kind["'][ \t]*:[ \t]*["'](?:Secret|List)["'](?=[ \t]*[,}])/;
-
-type UnknownRecord = Record<string, unknown>;
-
 interface Match {
   data: Record<string, string>;
   name?: string;
-}
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isSecretResource(value: unknown): value is UnknownRecord {
-  if (
-    !isRecord(value) ||
-    value.apiVersion !== 'v1' ||
-    value.kind !== 'Secret'
-  ) {
-    return false;
-  }
-
-  return (
-    (value.metadata === undefined || isRecord(value.metadata)) &&
-    (value.data === undefined || isRecord(value.data)) &&
-    (value.stringData === undefined || isRecord(value.stringData))
-  );
-}
-
-function extractSecretResources(value: unknown): UnknownRecord[] {
-  if (isSecretResource(value)) {
-    return [value];
-  }
-
-  if (
-    !isRecord(value) ||
-    value.apiVersion !== 'v1' ||
-    value.kind !== 'List' ||
-    !Array.isArray(value.items)
-  ) {
-    return [];
-  }
-
-  return value.items.filter(isSecretResource);
 }
 
 function decodeDataValue(value: unknown): string {
@@ -78,7 +30,7 @@ function decodeDataValue(value: unknown): string {
   }
 }
 
-function decodeSecret(resource: UnknownRecord): Match {
+function decodeSecret(resource: Record<string, unknown>): Match {
   const data = Object.create(null) as Record<string, string>;
 
   if (isRecord(resource.data)) {
@@ -102,63 +54,16 @@ function decodeSecret(resource: UnknownRecord): Match {
   return { data, name };
 }
 
-function isPlausibleSecretInput(input: string): boolean {
-  return (
-    yamlKindLine.test(input) ||
-    flowYamlKindProperty.test(input) ||
-    jsonKindProperty.test(input)
-  );
-}
-
-function convertSecretDocument(
-  document: Document,
-  visitNodes: typeof visit,
-): unknown {
-  // The YAML merge resolver bypasses the alias limit by converting the
-  // source map directly. Limit repeated conversions for each source map.
-  visitNodes(document, {
-    Map(_key, map) {
-      const convert = map.toJSON.bind(map);
-      let conversions = 0;
-      map.toJSON = (...args) => {
-        conversions += 1;
-        if (conversions > maxAliasCount + 1) {
-          throw new Error('YAML merge expansion limit exceeded');
-        }
-        return convert(...args);
-      };
-    },
-  });
-  return document.toJS({ maxAliasCount });
-}
-
-async function parseMatches(input: string): Promise<Match[]> {
-  if (
-    !isString(input) ||
-    trim(input) === '' ||
-    !isPlausibleSecretInput(input)
-  ) {
-    return [];
-  }
-
-  try {
-    const { parseAllDocuments, visit } = await import('yaml');
-    const documents = parseAllDocuments(input, { merge: true });
-    const resources: UnknownRecord[] = [];
-
-    for (const document of documents) {
-      if (document.errors.length > 0) {
-        return [];
-      }
-      resources.push(
-        ...extractSecretResources(convertSecretDocument(document, visit)),
-      );
-    }
-
-    return resources.map(decodeSecret);
-  } catch {
-    return [];
-  }
+function parseMatches(input: string): Match[] {
+  if (!isString(input)) return [];
+  return readKubernetesSecrets(input)
+    .filter(
+      ({ metadata, data, stringData }) =>
+        (metadata === undefined || isRecord(metadata)) &&
+        (data === undefined || isRecord(data)) &&
+        (stringData === undefined || isRecord(stringData)),
+    )
+    .map(decodeSecret);
 }
 
 export const K8sSecretBoxSource = {
@@ -176,12 +81,12 @@ data:
   password: cGFzc3dvcmQ=`,
 
   async checkMatch(input: string): Promise<Match | undefined> {
-    const matches = await parseMatches(input);
+    const matches = parseMatches(input);
     return matches[0];
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const matches = await parseMatches(input);
+    const matches = parseMatches(input);
     if (matches.length === 0) {
       return [];
     }
