@@ -26,10 +26,11 @@ const DAY_MS = 24 * HOUR_MS;
 const MONTH_NAMES =
   '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
 const ORDINAL_SUFFIX = '(?:st|n[d]|rd|th)?';
+const TIMESTAMP_SHAPE = '[+-]?\\d{9,22}';
 const DATE_SHAPE = [
   '(?:now|today|tomorrow|yesterday)',
   '\\d{8}',
-  '\\d{9,22}',
+  TIMESTAMP_SHAPE,
   '\\d{4}[-/.]\\d{1,2}[-/.]\\d{1,2}',
   `\\d{4}[-/]${MONTH_NAMES}[-/]\\d{1,2}`,
   '\\d{4}年\\d{1,2}月\\d{1,2}日?',
@@ -49,6 +50,7 @@ const ADD_PATTERN = new RegExp(
   'i',
 );
 const DIFF_PATTERN = new RegExp(`^(${DATE})\\s+(?:to|-)\\s+(${DATE})$`, 'i');
+const TIMESTAMP_PATTERN = new RegExp(`^${TIMESTAMP_SHAPE}$`);
 const DATE_TIME_PATTERN =
   /^(.+?)[T\s](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([Zz]|[+-]\d{2}(?::?\d{2})?)?$/i;
 const HOUR_MS_BY_UNIT: Record<string, number> = {
@@ -163,14 +165,23 @@ function parseTimestamp(value: string): ParsedDate | null {
 
   const timestamp = BigInt(`${match[1]}${digits}`);
   let milliseconds: bigint;
+  let subMillisecondMicroseconds = 0;
   if (digits.length <= 11) milliseconds = timestamp * 1000n;
   else if (digits.length <= 14) milliseconds = timestamp;
-  else if (digits.length <= 17) milliseconds = timestamp / 1000n;
-  else milliseconds = timestamp / 1_000_000n;
+  else {
+    const unitsPerMillisecond = digits.length <= 17 ? 1000n : 1_000_000n;
+    let remainder = timestamp % unitsPerMillisecond;
+    // Anchor to the start of the millisecond, as for RFC3339 fractions.
+    if (remainder < 0n) remainder += unitsPerMillisecond;
+    milliseconds = (timestamp - remainder) / unitsPerMillisecond;
+    subMillisecondMicroseconds = Number(
+      remainder / (unitsPerMillisecond / 1000n),
+    );
+  }
 
   const date = new Date(Number(milliseconds));
   return Number.isFinite(date.getTime())
-    ? { date, dateOnly: false, zone: 'utc', subMillisecondMicroseconds: 0 }
+    ? { date, dateOnly: false, zone: 'utc', subMillisecondMicroseconds }
     : null;
 }
 
@@ -233,7 +244,10 @@ function parseDateInput(input: string, offsetAt: OffsetAt): ParsedDate | null {
     const dateInput = datetime[1];
     // The shared date parser also accepts a time suffix, so check that the
     // date portion hasn't already supplied a time.
-    if (/^\d{9,22}$/.test(dateInput) || DATE_TIME_PATTERN.test(dateInput)) {
+    if (
+      TIMESTAMP_PATTERN.test(dateInput) ||
+      DATE_TIME_PATTERN.test(dateInput)
+    ) {
       return null;
     }
     const dateParts = parseDateString(dateInput);
@@ -487,13 +501,13 @@ export const DateCalculateBoxSource = {
     const toDate = parseDateInput(diffMatch[2], offsetAt);
     if (!fromDate || !toDate) return undefined;
 
-    const timeDiffMs = toDate.date.getTime() - fromDate.date.getTime();
     const days = calendarDaysBetween(fromDate.date, toDate.date);
     const result =
       fromDate.dateOnly && toDate.dateOnly
         ? formatDayDifference(days)
         : formatDuration(
-            BigInt(timeDiffMs) * 1000n +
+            (BigInt(toDate.date.getTime()) - BigInt(fromDate.date.getTime())) *
+              1000n +
               BigInt(
                 toDate.subMillisecondMicroseconds -
                   fromDate.subMillisecondMicroseconds,
