@@ -6,13 +6,14 @@ import { getBoxSource } from '@modules/boxSources';
 import { createLazyBoxSource } from '@modules/boxSources/lazySource';
 import TimestampBoxSource from '@modules/boxSources/TimestampBoxSource';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react';
-import { memo, useState } from 'react';
+import { createContext, memo, useContext, useEffect, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BoxPreviewProvider } from '../../contexts/BoxPreviewContext';
@@ -495,6 +496,158 @@ describe('MagicBox source pipeline', () => {
     await waitFor(() =>
       expect(screen.queryByText('Old output')).not.toBeInTheDocument(),
     );
+  });
+
+  it('preserves an unrelated result and modal through a source failure and replacement', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failed = deferred<Box[]>();
+    const late = deferred<Box[]>();
+    const resultCard = screen.getAllByTestId;
+    const stable = {
+      ...sourceWithResult(
+        'Shared source name',
+        Promise.resolve([new BoxBuilder('Shared title', 'retained').build()]),
+      ),
+      id: 'retained',
+    };
+    const failure = {
+      ...sourceWithResult('Shared source name', failed.promise),
+      id: 'changed',
+    };
+    const pending = {
+      ...sourceWithResult('Shared source name', late.promise),
+      id: 'changed',
+      generateBoxes: vi.fn().mockReturnValue(late.promise),
+    };
+    const replacement = {
+      ...sourceWithResult(
+        'Shared source name',
+        Promise.resolve([
+          new BoxBuilder('Shared title', 'replacement').build(),
+        ]),
+      ),
+      id: 'changed',
+    };
+
+    try {
+      const { rerender } = render(tree('input', [stable]));
+      const retainedCard = await screen.findByTestId('magic-box-result');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Expand Shared title' }),
+      );
+      const dialog = screen.getByRole('dialog', { name: 'Shared title' });
+      expect(dialog).toHaveTextContent('retained');
+
+      rerender(tree('input', [failure, stable]));
+      expect(resultCard('magic-box-result')).toEqual([retainedCard]);
+      expect(dialog).toBeInTheDocument();
+      await act(async () => failed.reject(new Error('failed source')));
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('magic-box-pending'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(resultCard('magic-box-result')).toEqual([retainedCard]);
+
+      rerender(tree('input', [pending, stable]));
+      expect(pending.generateBoxes).toHaveBeenCalledOnce();
+      const signal = pending.generateBoxes.mock.calls[0][2].signal;
+      expect(signal.aborted).toBe(false);
+      rerender(tree('input', [replacement, stable]));
+      expect(signal.aborted).toBe(true);
+      await act(async () => late.resolve([box('Cancelled result')]));
+      await waitFor(() =>
+        expect(resultCard('magic-box-result')).toHaveLength(2),
+      );
+      const [replacementCard, sameRetainedCard] =
+        resultCard('magic-box-result');
+      expect(replacementCard).toHaveTextContent('replacement');
+      expect(sameRetainedCard).toBe(retainedCard);
+      expect(dialog).toHaveTextContent('retained');
+      expect(
+        screen.queryByText('Cancelled result output'),
+      ).not.toBeInTheDocument();
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('keeps a retained template update published during source activation', async () => {
+    const Publish = createContext(false);
+    const Template = ({
+      onResultChange,
+      plaintextOutput,
+    }: BoxProps): React.JSX.Element => {
+      const publish = useContext(Publish);
+      useEffect(() => {
+        if (publish) {
+          onResultChange?.({ options: null, plaintextOutput: 'updated value' });
+        }
+      }, [onResultChange, publish]);
+      return <div>{plaintextOutput}</div>;
+    };
+    const stable = sourceWithResult(
+      'Stable',
+      Promise.resolve([
+        new BoxBuilder('Stable', 'initial value').setTemplate(Template).build(),
+      ]),
+    );
+    const pending = deferred<Box[]>();
+    const earlier = sourceWithResult('Earlier', pending.promise);
+    const view = (sources: BoxSource[], publish: boolean) => (
+      <Publish.Provider value={publish}>
+        {tree('unchanged', sources)}
+      </Publish.Provider>
+    );
+
+    const { rerender } = render(view([stable], false));
+    await screen.findByText('initial value');
+    rerender(view([earlier, stable], true));
+    expect(await screen.findByText('updated value')).toBeInTheDocument();
+    expect(screen.getByTestId('magic-box-pending')).toBeInTheDocument();
+
+    await act(async () => pending.resolve([box('Earlier')]));
+    expect(screen.getByText('updated value')).toBeInTheDocument();
+    expect(screen.getByText('Earlier output')).toBeInTheDocument();
+  });
+
+  it('ignores a late keyboard copy after the selected source is removed', async () => {
+    preferenceState.copyMode = 'paste';
+    const clipboard = deferred<boolean>();
+    vi.mocked(copyTextToClipboard).mockReturnValue(clipboard.promise);
+    const onInputCommit = vi.fn();
+    const onPasteInput = vi.fn();
+    const removed = sourceWithResult(
+      'Removed',
+      Promise.resolve([box('Removed')]),
+    );
+    const remaining = sourceWithResult(
+      'Remaining',
+      Promise.resolve([box('Remaining')]),
+    );
+    const renderSources = (sources: BoxSource[]) => (
+      <LocaleProvider>
+        <MagicBox
+          input="input"
+          onInputCommit={onInputCommit}
+          onPasteInput={onPasteInput}
+          sources={sources}
+        />
+      </LocaleProvider>
+    );
+
+    const { rerender } = render(renderSources([removed, remaining]));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select Removed' }),
+    );
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(copyTextToClipboard).toHaveBeenCalledWith('Removed output');
+
+    rerender(renderSources([remaining]));
+    await act(async () => clipboard.resolve(true));
+    expect(screen.queryByText('Removed output')).not.toBeInTheDocument();
+    expect(onInputCommit).not.toHaveBeenCalled();
+    expect(onPasteInput).not.toHaveBeenCalled();
   });
 
   it('keeps a settled source interactive while a sibling source is pending', async () => {

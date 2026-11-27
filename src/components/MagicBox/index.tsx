@@ -16,6 +16,7 @@ import { MAX_WORKER_INPUT_LENGTH } from '@modules/computeWorker/dto';
 import React, {
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
@@ -75,11 +76,29 @@ interface BoxResult {
   box: BoxType;
 }
 
+type SourceKey = string | BoxSource;
+
+interface RunKey {
+  feedbackContextKey: string;
+  preview: boolean;
+}
+
 interface SourceResultSlot {
-  sourceId: string;
+  source: BoxSource;
+  key: number;
   results: BoxResult[];
-  runId: number;
-  runKey: string;
+  runKey: RunKey;
+  reusable: boolean;
+}
+
+const getSourceKey = (source: BoxSource): SourceKey => source.id ?? source;
+
+function getSourceSlot(
+  results: ReadonlyMap<SourceKey, SourceResultSlot>,
+  source: BoxSource,
+): SourceResultSlot | undefined {
+  const slot = results.get(getSourceKey(source));
+  return slot?.source === source ? slot : undefined;
 }
 
 interface BoxEntry extends BoxResult {
@@ -133,9 +152,11 @@ const MagicBox = ({
   resetTrigger,
 }: Props): React.JSX.Element => {
   const [notify, setNotify] = useState<SnackbarNotification | null>(null);
-  const [sourceResults, setSourceResults] = useState<
-    Array<SourceResultSlot | null>
-  >([]);
+  const [sourceResults, setSourceResults] = useState(
+    () => new Map<SourceKey, SourceResultSlot>(),
+  );
+  const readSourceResults = useEffectEvent(() => sourceResults);
+  const nextSourceSlotKey = useRef(0);
   const [runState, setRunState] = useState<RunState>('idle');
   const [feedbackSettled, setFeedbackSettled] = useState<{
     key: string;
@@ -167,15 +188,18 @@ const MagicBox = ({
 
   const isStale = liveInput !== undefined && liveInput !== magicIn;
   const displayInput = liveInput ?? magicIn;
-  const currentRunKey = `${preview ? 'preview' : 'live'}:${magicIn}`;
   const feedbackContextKey = JSON.stringify([
     magicIn,
     locale,
     prefs.timezoneMode,
     prefs.timezoneOffset,
   ]);
+  const currentRunKey = useMemo(
+    (): RunKey => ({ feedbackContextKey, preview }),
+    [feedbackContextKey, preview],
+  );
   const activeSources = sources ?? filteredBoxSources;
-  const copyKey = `${currentRunKey}:${displayInput}`;
+  const copyKey = `${preview ? 'preview' : 'live'}:${magicIn}:${displayInput}`;
   if (copyKeyRef.current !== copyKey) {
     copyKeyRef.current = copyKey;
     copySequence.current += 1;
@@ -184,23 +208,25 @@ const MagicBox = ({
 
   const boxEntries = useMemo<BoxEntry[]>(() => {
     const entries: BoxEntry[] = [];
-    sourceResults.forEach((slot, sourceIndex) => {
+    for (const source of activeSources) {
+      const slot = getSourceSlot(sourceResults, source);
+      if (!slot) continue;
       const seenNames = new Map<string, number>();
-      slot?.results.forEach(({ id, box }) => {
+      slot.results.forEach(({ id, box }) => {
         const name = box.props.name || 'box';
         const occurrence = seenNames.get(name) ?? 0;
         seenNames.set(name, occurrence + 1);
         entries.push({
           id,
-          sourceId: slot.sourceId,
+          sourceId: source.id ?? source.name,
           box,
-          key: `${sourceIndex}:${name}:${occurrence}`,
+          key: `${slot.key}:${name}:${occurrence}`,
           stale: isStale || slot.runKey !== currentRunKey,
         });
       });
-    });
+    }
     return entries;
-  }, [currentRunKey, isStale, sourceResults]);
+  }, [activeSources, currentRunKey, isStale, sourceResults]);
 
   const boxes = useMemo(() => boxEntries.map(({ box }) => box), [boxEntries]);
   const modalBox =
@@ -248,31 +274,43 @@ const MagicBox = ({
     }
   }, [resetTrigger]);
 
-  const copyText = useCallback(async (text: string): Promise<boolean> => {
-    const sequence = ++copySequence.current;
-    const copyKeyAtStart = copyKeyRef.current;
-    let copied = false;
+  const copyText = useCallback(
+    async (text: string, resultId: symbol): Promise<boolean> => {
+      const sequence = ++copySequence.current;
+      const copyKeyAtStart = copyKeyRef.current;
+      let copied = false;
 
-    if (text) {
-      try {
-        copied = (await copyTextToClipboard(text)) === true;
-      } catch {
-        copied = false;
+      if (text) {
+        try {
+          copied = (await copyTextToClipboard(text)) === true;
+        } catch {
+          copied = false;
+        }
       }
-    }
 
-    if (
-      sequence !== copySequence.current ||
-      copyKeyRef.current !== copyKeyAtStart
-    ) {
-      return false;
-    }
-    setNotify({
-      id: ++notificationId.current,
-      severity: copied ? 'success' : 'error',
-    });
-    return copied;
-  }, []);
+      if (
+        sequence !== copySequence.current ||
+        copyKeyRef.current !== copyKeyAtStart ||
+        !latestKeyboardState.current.entries.some(({ id }) => id === resultId)
+      ) {
+        return false;
+      }
+      setNotify({
+        id: ++notificationId.current,
+        severity: copied ? 'success' : 'error',
+      });
+      return copied;
+    },
+    [],
+  );
+
+  const copyModalText = useCallback(
+    (text: string): Promise<boolean> =>
+      modalResultId === null
+        ? Promise.resolve(false)
+        : copyText(text, modalResultId),
+    [copyText, modalResultId],
+  );
 
   const handleInputCommit = useCallback((): void => {
     onInputCommitRef.current?.(currentInputRef.current);
@@ -290,13 +328,12 @@ const MagicBox = ({
   }, []);
 
   useEffect(() => {
-    const boxSources = sources ?? filteredBoxSources;
     setFeedbackSettled(null);
     const controller = new AbortController();
     const runId = ++runIdRef.current;
 
     if (trim(magicIn) === '') {
-      setSourceResults([]);
+      setSourceResults(new Map());
       setRunState('idle');
       setSelectedKey(null);
       setModalResultId(null);
@@ -321,46 +358,52 @@ const MagicBox = ({
       timezoneOffset,
       timezoneMode,
     };
-    setSourceResults((current) =>
-      Array.from(
-        { length: boxSources.length },
-        (_, sourceIndex) => current[sourceIndex] ?? null,
-      ),
+    const previousResults = readSourceResults();
+    const slotKeys = new Map<BoxSource, number>();
+    const sourcesToRun: BoxSource[] = [];
+    for (const source of activeSources) {
+      const slot = getSourceSlot(previousResults, source);
+      slotKeys.set(source, slot?.key ?? nextSourceSlotKey.current++);
+      // Keep successful results for the same context while new sources load.
+      if (slot?.runKey !== currentRunKey || !slot.reusable) {
+        sourcesToRun.push(source);
+      }
+    }
+    // Apply to queued template updates as well as the last rendered snapshot.
+    setSourceResults(
+      (current) =>
+        new Map([...current].filter(([, slot]) => slotKeys.has(slot.source))),
     );
     setRunState('pending');
-    setSelectedKey(null);
-    setModalResultId(null);
 
-    const commitSlot = (sourceIndex: number, generated: BoxType[]): void => {
+    const commitSlot = (
+      source: BoxSource,
+      generated: BoxType[],
+      reusable = true,
+    ): void => {
       if (controller.signal.aborted || runIdRef.current !== runId) return;
-      const results = generated.map((box) => ({ id: Symbol(), box }));
+      const key = slotKeys.get(source);
+      if (key === undefined) return;
+      const slot: SourceResultSlot = {
+        source,
+        key,
+        results: generated.map((box) => ({ id: Symbol(), box })),
+        runKey: currentRunKey,
+        reusable,
+      };
       setSourceResults((current) => {
         if (controller.signal.aborted || runIdRef.current !== runId) {
           return current;
         }
-        const next = current.slice();
-        next[sourceIndex] = {
-          sourceId: boxSources[sourceIndex].id ?? boxSources[sourceIndex].name,
-          results,
-          runId,
-          runKey: currentRunKey,
-        };
-        return next;
+        return new Map(current).set(getSourceKey(source), slot);
       });
     };
 
     const largeInput = input.length > WORKER_AUTO_INPUT_LIMIT;
-    const workerEntries: Array<{
-      source: BoxSource;
-      sourceId: string;
-      sourceIndex: number;
-    }> = [];
-    const mainEntries: Array<{
-      source: BoxSource;
-      sourceIndex: number;
-    }> = [];
+    const workerSources = new Map<string, BoxSource>();
+    const mainSources: BoxSource[] = [];
 
-    for (const [sourceIndex, boxSource] of boxSources.entries()) {
+    for (const boxSource of sourcesToRun) {
       const sourceId = boxSource.id;
       const matches = boxSource.canHandle?.(input, options) ?? true;
       const explicitlyRequested = hasExplicitSourceOption(boxSource, options);
@@ -377,17 +420,17 @@ const MagicBox = ({
         matches;
 
       if (canUseWorker && sourceId !== undefined) {
-        workerEntries.push({ source: boxSource, sourceId, sourceIndex });
+        workerSources.set(sourceId, boxSource);
         continue;
       }
 
       if (boxSource.workerSafe === true && boxSource.canHandle && !matches) {
-        commitSlot(sourceIndex, []);
+        commitSlot(boxSource, []);
         continue;
       }
 
       if (supportsInputSize) {
-        mainEntries.push({ source: boxSource, sourceIndex });
+        mainSources.push(boxSource);
         continue;
       }
 
@@ -397,7 +440,7 @@ const MagicBox = ({
             ? MAX_WORKER_INPUT_LENGTH
             : WORKER_AUTO_INPUT_LIMIT;
         commitSlot(
-          sourceIndex,
+          boxSource,
           decorateBoxes(
             [
               sourceErrorBox(
@@ -409,41 +452,36 @@ const MagicBox = ({
           ),
         );
       } else {
-        commitSlot(sourceIndex, []);
+        commitSlot(boxSource, []);
       }
     }
 
-    const mainTasks = mainEntries.map(async ({ source, sourceIndex }) => {
+    const mainTasks = mainSources.map(async (source) => {
       try {
         const generated = await source.generateBoxes(input, options, context);
         if (controller.signal.aborted || runIdRef.current !== runId) return;
-        commitSlot(sourceIndex, decorateBoxes(generated, source));
+        commitSlot(source, decorateBoxes(generated, source));
       } catch (error) {
         if (controller.signal.aborted || runIdRef.current !== runId) return;
         console.error(`[MagicBox] boxSource "${source.name}" threw:`, error);
-        commitSlot(sourceIndex, []);
+        commitSlot(source, [], false);
       }
     });
 
-    const workerSourceIndexes = new Map(
-      workerEntries.map(({ sourceId, sourceIndex }) => [sourceId, sourceIndex]),
-    );
     const completedWorkerSources = new Set<string>();
     const reportWorkerError = (sourceId: string, message: string): void => {
       completedWorkerSources.add(sourceId);
-      const sourceIndex = workerSourceIndexes.get(sourceId);
-      const source = workerEntries.find(
-        (entry) => entry.sourceId === sourceId,
-      )?.source;
-      if (sourceIndex === undefined || source === undefined) return;
+      const source = workerSources.get(sourceId);
+      if (!source) return;
       commitSlot(
-        sourceIndex,
+        source,
         decorateBoxes([sourceErrorBox(source, message)], source),
+        false,
       );
     };
 
     let workerHandle: ComputeWorkerRunHandle | null = null;
-    if (workerEntries.length > 0) {
+    if (workerSources.size > 0) {
       if (workerClientRef.current === null) {
         workerClientRef.current = new ComputeWorkerClient({
           createWorker: () =>
@@ -462,7 +500,7 @@ const MagicBox = ({
           runId: `magic-box-${runId}`,
           input,
           options,
-          sourceIds: workerEntries.map(({ sourceId }) => sourceId),
+          sourceIds: [...workerSources.keys()],
           now,
           locale: runtimeLocale,
           timezone,
@@ -472,12 +510,8 @@ const MagicBox = ({
         {
           onSourceResult: (_workerRunId, sourceId, generated) => {
             completedWorkerSources.add(sourceId);
-            const sourceIndex = workerSourceIndexes.get(sourceId);
-            const source = workerEntries.find(
-              (entry) => entry.sourceId === sourceId,
-            )?.source;
-            if (sourceIndex === undefined || source === undefined) return;
-            commitSlot(sourceIndex, decorateBoxes(generated, source));
+            const source = workerSources.get(sourceId);
+            if (source) commitSlot(source, decorateBoxes(generated, source));
           },
           onSourceError: (_workerRunId, sourceId, message) => {
             reportWorkerError(sourceId, message);
@@ -492,7 +526,7 @@ const MagicBox = ({
             reportWorkerError(sourceId, 'Worker computation timed out.');
           },
           onFailure: (_workerRunId, message) => {
-            for (const { sourceId } of workerEntries) {
+            for (const sourceId of workerSources.keys()) {
               if (!completedWorkerSources.has(sourceId)) {
                 reportWorkerError(sourceId, message);
               }
@@ -510,7 +544,7 @@ const MagicBox = ({
     void Promise.all(tasks).then(() => {
       if (!controller.signal.aborted && runIdRef.current === runId) {
         setRunState('settled');
-        setFeedbackSettled({ key: feedbackContextKey, sources: boxSources });
+        setFeedbackSettled({ key: feedbackContextKey, sources: activeSources });
       }
     });
 
@@ -520,15 +554,14 @@ const MagicBox = ({
       if (runIdRef.current === runId) runIdRef.current += 1;
     };
   }, [
+    activeSources,
     currentRunKey,
     feedbackContextKey,
-    filteredBoxSources,
     locale,
     magicIn,
     prefs.timezoneMode,
     prefs.timezoneOffset,
     preview,
-    sources,
   ]);
 
   useEffect(() => {
@@ -590,38 +623,32 @@ const MagicBox = ({
       resultId: symbol,
       result: Pick<BoxType['props'], 'options' | 'plaintextOutput'>,
     ): void => {
-      if (isStale) return;
       setSourceResults((current) => {
-        let changed = false;
-        const next = current.map((slot) => {
-          if (
-            slot === null ||
-            slot.runKey !== currentRunKey ||
-            slot.runId !== runIdRef.current
-          ) {
-            return slot;
-          }
+        if (
+          !latestKeyboardState.current.entries.some(({ id }) => id === resultId)
+        ) {
+          return current;
+        }
+        for (const [key, slot] of current) {
           const index = slot.results.findIndex(({ id }) => id === resultId);
           const entry = slot.results[index];
+          if (!entry) continue;
           if (
-            !entry ||
-            (entry.box.props.plaintextOutput === result.plaintextOutput &&
-              entry.box.props.options === result.options)
-          ) {
-            return slot;
-          }
+            entry.box.props.plaintextOutput === result.plaintextOutput &&
+            entry.box.props.options === result.options
+          )
+            return current;
           const results = slot.results.slice();
           results[index] = {
             ...entry,
             box: { ...entry.box, props: { ...entry.box.props, ...result } },
           };
-          changed = true;
-          return { ...slot, results };
-        });
-        return changed ? next : current;
+          return new Map(current).set(key, { ...slot, results });
+        }
+        return current;
       });
     },
-    [currentRunKey, isStale],
+    [],
   );
 
   const handleModalResultChange = useCallback(
@@ -691,7 +718,7 @@ const MagicBox = ({
       const selectedPosition = state.entries.findIndex(
         ({ key }) => key === state.selectedKey,
       );
-      const selected = state.entries[selectedPosition]?.box;
+      const selected = state.entries[selectedPosition];
 
       if (
         event.altKey &&
@@ -729,17 +756,17 @@ const MagicBox = ({
         event.stopPropagation();
         if (!selected) return;
 
-        const stdout = selected.props.plaintextOutput ?? '';
+        const stdout = selected.box.props.plaintextOutput ?? '';
         if (stdout) {
           const inputSnapshot = currentInputRef.current;
-          void copyText(stdout)
+          void copyText(stdout, selected.id)
             .then((copied) => {
               if (!copied) return;
               onInputCommitRef.current?.(inputSnapshot);
               pasteAsInput(stdout);
             })
             .catch(() => undefined);
-          selected.props.onClick(stdout);
+          selected.box.props.onClick(stdout);
         }
         return;
       }
@@ -792,17 +819,17 @@ const MagicBox = ({
         event.stopPropagation();
       }
 
-      const stdout = selected.props.plaintextOutput ?? '';
+      const stdout = selected.box.props.plaintextOutput ?? '';
       if (!stdout) return;
       const inputSnapshot = currentInputRef.current;
-      void copyText(stdout)
+      void copyText(stdout, selected.id)
         .then((copied) => {
           if (!copied) return;
           onInputCommitRef.current?.(inputSnapshot);
           if (state.copyMode === 'paste') pasteAsInput(stdout);
         })
         .catch(() => undefined);
-      selected.props.onClick(stdout);
+      selected.box.props.onClick(stdout);
     };
 
     window.addEventListener('keydown', handler);
@@ -892,7 +919,7 @@ const MagicBox = ({
       <BoxModal
         box={modalBox}
         onClose={handleCloseModal}
-        onCopy={copyText}
+        onCopy={copyModalText}
         onInputCommit={handleInputCommit}
         onResultChange={handleModalResultChange}
         open={modalIsActive}

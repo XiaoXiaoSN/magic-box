@@ -46,7 +46,7 @@ interface BoxCardProps {
   stale: boolean;
   onSelect: (index: number) => void;
   selectionTabIndex: number;
-  onCopy: (text: string) => Promise<boolean>;
+  onCopy: (text: string, resultId: symbol) => Promise<boolean>;
   onInputCommit?: () => void;
   onExpand?: (resultId: symbol) => void;
   onResultChange?: (
@@ -135,7 +135,7 @@ const BoxCard = memo(
 
           let copied = false;
           try {
-            copied = await onCopy(text);
+            copied = await onCopy(text, resultId);
           } catch {
             copied = false;
           }
@@ -149,7 +149,7 @@ const BoxCard = memo(
             setJustCopied(false);
           }, COPIED_TIMEOUT_MS);
         },
-        [onCopy, onInputCommit, stale],
+        [onCopy, onInputCommit, resultId, stale],
       );
 
       const copyAndCommit = useCallback(
@@ -158,14 +158,14 @@ const BoxCard = memo(
           const sequence = ++copySequence.current;
           let copied = false;
           try {
-            copied = await onCopy(text);
+            copied = await onCopy(text, resultId);
           } catch {
             copied = false;
           }
           if (!copied || sequence !== copySequence.current || stale) return;
           onInputCommit?.();
         },
-        [onCopy, onInputCommit, stale],
+        [onCopy, onInputCommit, resultId, stale],
       );
 
       const handleCopy = useCallback(
