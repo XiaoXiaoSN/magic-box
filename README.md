@@ -419,9 +419,22 @@ six-sided die, or `::roll=3` for three dice (up to 20).
 ## Terminal UI (TUI) 🖥️
 
 Run Magic Box in your terminal after following the [local setup](DEVELOPER.md#local-setup).
-The registry contains 94 sources; 90 headless sources without network side
+The registry contains 97 sources; 93 headless sources without network side
 effects are available in the TUI. The four browser-only or network-backed
 sources are Generate QR Code, My IP, Shorten URL and Local AI.
+
+Replay up to eight local conversions using a versioned `::workflow` recipe.
+Each step's result becomes the next step's input, and all completed steps are
+available to copy. The browser discards an in-flight run when its input changes.
+
+```text
+eyJwYXlsb2FkIjp7Im4iOjQyfX0=
+::workflow={"version":1,"steps":[{"tool":"base64-decode"},{"tool":"json-pointer","pointer":"/payload"},{"tool":"json-format"}]}
+```
+
+The first version supports these three tools and has a 100,000-character limit
+for the initial input and each step's output. The same recipe runs on the web
+and in the TUI.
 
 ```bash
 bun run tui "uuid"

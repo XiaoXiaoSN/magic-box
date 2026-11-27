@@ -36,7 +36,7 @@ const jsonToolExamples: Record<
 
 describe('source manifest', () => {
   it('keeps the complete ordered registry in stable-id form', () => {
-    expect(sourceManifest).toHaveLength(96);
+    expect(sourceManifest).toHaveLength(97);
     expect(new Set(manifestIds).size).toBe(sourceManifest.length);
     expect(
       manifestIds.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),

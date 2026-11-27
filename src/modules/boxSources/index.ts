@@ -1119,6 +1119,21 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     load: () => import('./WordCountBoxSource').then((module) => module.default),
   },
   {
+    id: 'workflow',
+    name: 'Workflow',
+    description:
+      'Replay a local sequence of Base64 decode, JSON Pointer and JSON formatting with ::workflow.',
+    defaultInput:
+      'eyJwYXlsb2FkIjp7Im4iOjQyfX0=\n::workflow={"version":1,"steps":[{"tool":"base64-decode"},{"tool":"json-pointer","pointer":"/payload"},{"tool":"json-format"}]}',
+    tag: '→',
+    kind: 'Transform',
+    optionKeys: ['workflow'],
+    headless: true,
+    workerSafe: true,
+    canHandle: optionMatcher(['workflow']),
+    load: () => import('./WorkflowBoxSource').then((module) => module.default),
+  },
+  {
     id: 'markdown-toc',
     name: 'Markdown TOC',
     description:

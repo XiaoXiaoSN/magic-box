@@ -18,6 +18,7 @@ export const workerSourceIds = [
   'unit-converter',
   'week-number',
   'pbkdf2',
+  'workflow',
 ] as const;
 
 const loadBase64Sources = () => import('@modules/boxSources/Base64BoxSource');
@@ -112,6 +113,13 @@ const workerLoaders = new Map<string, WorkerSourceLoader>([
     'pbkdf2',
     () =>
       import('@modules/boxSources/Pbkdf2BoxSource').then(
+        (module) => module.default,
+      ),
+  ],
+  [
+    'workflow',
+    () =>
+      import('@modules/boxSources/WorkflowBoxSource').then(
         (module) => module.default,
       ),
   ],
