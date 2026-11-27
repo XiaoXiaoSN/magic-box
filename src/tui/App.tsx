@@ -1,6 +1,6 @@
 import type { Box as MagicBoxResult } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
-import { Box, Text, useApp, useInput } from 'ink';
+import { Box, Text, useApp, useInput, usePaste } from 'ink';
 import TextInput from 'ink-text-input';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -69,6 +69,7 @@ export function App({
   const [status, setStatus] = useState(
     'Type to search · Up/Down selects · Enter or y copies · Esc exits',
   );
+  const currentQuery = useRef(query);
   const request = useRef(0);
   const activeController = useRef<AbortController | null>(null);
   const { exit } = useApp();
@@ -91,26 +92,28 @@ export function App({
     }
   }, [boxes, copy, selected]);
 
-  const changeQuery = useCallback(
-    (value: string): void => {
-      if (value === query) return;
-      request.current += 1;
-      activeController.current?.abort();
-      activeController.current = null;
-      setQuery(value);
-      setBoxes([]);
-      setErrors([]);
-      setSelected(0);
-      setResultsFocused(false);
-      setPending(value.trim().length > 0);
-      setStatus(
-        value.trim().length > 0
-          ? 'Waiting for results…'
-          : 'Type to search · Up/Down selects · Enter or y copies · Esc exits',
-      );
-    },
-    [query],
-  );
+  const changeQuery = useCallback((value: string): void => {
+    if (value === currentQuery.current) return;
+    currentQuery.current = value;
+    request.current += 1;
+    activeController.current?.abort();
+    activeController.current = null;
+    setQuery(value);
+    setBoxes([]);
+    setErrors([]);
+    setSelected(0);
+    setResultsFocused(false);
+    setPending(value.trim().length > 0);
+    setStatus(
+      value.trim().length > 0
+        ? 'Waiting for results…'
+        : 'Type to search · Up/Down selects · Enter or y copies · Esc exits',
+    );
+  }, []);
+
+  // Ink can emit multiple events from one stdin read before React renders.
+  const appendQuery = (text: string): void =>
+    changeQuery(`${currentQuery.current}${text}`);
 
   const runQuery = useCallback(
     (value: string, requestId: number, signal: AbortSignal): void => {
@@ -191,7 +194,7 @@ export function App({
       void copySelected();
       return;
     }
-    if (resultsFocused && input === 'y') {
+    if (resultsFocused && currentQuery.current === query && input === 'y') {
       void copySelected();
       return;
     }
@@ -199,10 +202,15 @@ export function App({
       void copySelected();
       return;
     }
-    if (resultsFocused && input.length === 1 && !key.ctrl) {
-      setResultsFocused(false);
-      changeQuery(`${query}${input}`);
+    if (resultsFocused && input && !key.ctrl) {
+      appendQuery(input);
     }
+  });
+
+  // Let the editor handle paste while it is mounted. With results focused,
+  // bracketed paste has its own channel so pasted "y" is text, not a shortcut.
+  usePaste(appendQuery, {
+    isActive: resultsFocused,
   });
 
   return (

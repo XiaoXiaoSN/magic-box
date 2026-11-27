@@ -56,7 +56,73 @@ describe('interactive search', () => {
     await vi.waitFor(() => expect(screen.lastFrame()).toContain('› Second'));
     act(() => screen.stdin.write('\r'));
     await vi.waitFor(() => expect(copy).toHaveBeenCalledWith('two'));
+    act(() => screen.stdin.write('y'));
+    await vi.waitFor(() => expect(copy).toHaveBeenCalledTimes(2));
+    expect(copy).toHaveBeenLastCalledWith('two');
     screen.unmount();
+  });
+
+  it.each([
+    { kind: 'a plain paste', input: ' pasted text ', text: ' pasted text ' },
+    { kind: 'an emoji', input: '🙂', text: '🙂' },
+    {
+      kind: 'a bracketed multiline paste',
+      input: '\u001b[200~中文\tline\n🙂\u001b[201~',
+      text: '中文\tline\n🙂',
+    },
+    { kind: 'a pasted copy key', input: '\u001b[200~y\u001b[201~', text: 'y' },
+    {
+      kind: 'two pastes from one read',
+      input: '\u001b[200~first\u001b[201~\u001b[200~second\u001b[201~',
+      text: 'firstsecond',
+    },
+    {
+      kind: 'a paste followed by y from one read',
+      input: '\u001b[200~first\u001b[201~y',
+      text: 'firsty',
+    },
+  ])('resumes editing with $kind when results are focused', async ({
+    input,
+    text,
+  }) => {
+    const boxes = [
+      new BoxBuilder('First', 'one').build(),
+      new BoxBuilder('Second', 'two').build(),
+    ];
+    const generate = vi.fn(
+      async (_query: string): Promise<TerminalRunResult> => ({
+        boxes,
+        errors: [],
+      }),
+    );
+    const copy = vi.fn();
+    vi.useFakeTimers();
+    try {
+      const screen = await act(() =>
+        render(createElement(App, { initialInput: 'query', generate, copy })),
+      );
+      try {
+        await act(() => vi.advanceTimersByTimeAsync(200));
+        expect(screen.lastFrame()).toContain('First');
+        act(() => screen.stdin.write('\u001b[B'));
+        expect(screen.lastFrame()).toContain('› Second');
+        act(() => screen.stdin.write('\u001b[H'));
+        act(() => screen.stdin.write('\u0001'));
+        expect(screen.lastFrame()).toContain('› Second');
+        act(() => screen.stdin.write(input));
+
+        await act(() => vi.advanceTimersByTimeAsync(200));
+        expect(generate.mock.calls.map(([query]) => query)).toEqual([
+          'query',
+          `query${text}`,
+        ]);
+        expect(copy).not.toHaveBeenCalled();
+      } finally {
+        act(() => screen.unmount());
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('copies on Ctrl+Y and ignores a late result after the query changes', async () => {
