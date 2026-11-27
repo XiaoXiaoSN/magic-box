@@ -1373,6 +1373,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     defaultDisabled: true,
     optionKeys: ['unicodeescape', 'uescape', 'unicodeunescape', 'uunescape'],
     headless: true,
+    supportsLargeInput: true,
     canHandle: optionMatcher([
       'unicodeescape',
       'uescape',

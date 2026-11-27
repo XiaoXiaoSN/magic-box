@@ -153,14 +153,21 @@ describe('UnicodeEscapeBoxSource', () => {
   });
 
   describe('round-trip', () => {
-    it('héllo escapes and unescapes back to the original', async () => {
-      const original = 'héllo';
-
+    it.each([
+      ['ordinary Unicode text', 'héllo', 'h\\u00e9llo'],
+      ['literal fixed-width escape', String.raw`\u0041`, String.raw`\\u0041`],
+      ['literal braced escape', String.raw`\u{1f600}`, String.raw`\\u{1f600}`],
+      ['doubled backslashes', String.raw`C:\\temp`, String.raw`C:\\\\temp`],
+      ['trailing backslash', 'path\\', 'path\\\\'],
+      ['backslash before non-ASCII', String.raw`\é`, String.raw`\\\u00e9`],
+      ['backslash before emoji', String.raw`\😀`, String.raw`\\\ud83d\ude00`],
+    ])('preserves %s', async (_case, original, expectedEscape) => {
       const escapeBoxes = await UnicodeEscapeBoxSource.generateBoxes(original, {
         unicodeescape: true,
       });
       expect(escapeBoxes).toHaveLength(1);
       const escaped = escapeBoxes[0].props.plaintextOutput;
+      expect(escaped).toBe(expectedEscape);
 
       const unescapeBoxes = await UnicodeEscapeBoxSource.generateBoxes(
         escaped,
@@ -168,6 +175,35 @@ describe('UnicodeEscapeBoxSource', () => {
       );
       expect(unescapeBoxes).toHaveLength(1);
       expect(unescapeBoxes[0].props.plaintextOutput).toBe(original);
+    });
+
+    it.each([
+      ['backslashes', '\\'],
+      ['six-character escapes', '\u0000'],
+    ])('can unescape a maximum-length input encoded as %s', async (_case, character) => {
+      const original = character.repeat(100_000);
+      const [escaped] = await UnicodeEscapeBoxSource.generateBoxes(original, {
+        unicodeescape: true,
+      });
+      const [unescaped] = await UnicodeEscapeBoxSource.generateBoxes(
+        escaped.props.plaintextOutput,
+        { unicodeunescape: true },
+      );
+      expect(unescaped?.props.plaintextOutput).toBe(original);
+    });
+
+    it('retains the unescaped text limit in both directions', async () => {
+      const oversized = 'a'.repeat(100_001);
+      expect(
+        await UnicodeEscapeBoxSource.generateBoxes(oversized, {
+          unicodeescape: true,
+        }),
+      ).toEqual([]);
+      expect(
+        await UnicodeEscapeBoxSource.generateBoxes(oversized, {
+          unicodeunescape: true,
+        }),
+      ).toEqual([]);
     });
   });
 
