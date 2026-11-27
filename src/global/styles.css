@@ -1219,10 +1219,6 @@ pre,
   animation: browserFade 160ms ease;
 }
 
-.list-page[data-browser-open="true"] {
-  overflow: hidden;
-}
-
 @keyframes browserFade {
   from {
     opacity: 0;
@@ -1239,7 +1235,11 @@ pre,
   overflow: hidden;
 }
 
-@media (max-width: 899px) {
+@media (width < 900px) {
+  .list-page[data-browser-open="true"] {
+    overflow: hidden;
+  }
+
   .browser {
     position: fixed;
     top: var(--topbar-h);
@@ -1251,11 +1251,13 @@ pre,
     box-shadow: var(--shadow-md);
     transform: translateY(-100%);
     transition: transform 200ms ease;
+    visibility: hidden;
     pointer-events: none;
   }
 
   .list-page[data-browser-open="true"] .browser {
     transform: translateY(0);
+    visibility: visible;
     pointer-events: auto;
   }
 
