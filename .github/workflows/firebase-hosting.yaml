@@ -26,42 +26,6 @@ jobs:
     secrets:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-  deploy-preview:
-    name: deploy-preview
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]'
-    needs: tests
-    permissions:
-      checks: write
-      contents: read
-      pull-requests: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download shipping artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: shipping-build
-          path: build
-
-      - name: Deploy Firebase preview channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAGIC_BOX_B8BDC }}
-          projectId: ${{ env.GCP_PROJECT_ID }}
-
-  preview-skipped:
-    name: preview-skipped
-    if: always() && github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]')
-    needs: tests
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - name: Explain preview skip
-        run: echo "Firebase preview skipped for fork or Dependabot PR because repository deployment secrets are unavailable (tests=${{ needs.tests.result }})."
-
   deploy-live:
     name: deploy-live
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
