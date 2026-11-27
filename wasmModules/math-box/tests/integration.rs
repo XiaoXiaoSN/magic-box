@@ -223,6 +223,122 @@ fn exact_integer_literals_and_operations() {
     assert_eval("2^70", "1180591620717411303424");
 }
 
+#[cfg(feature = "bigint")]
+#[test]
+fn rounding_keeps_big_integers_exact() {
+    for operation in ["floor", "ceil", "round", "trunc"] {
+        for integer in ["9007199254740993", "-9007199254740993"] {
+            let input = format!("{operation}({integer}n)");
+            assert_eval(&input, integer);
+            let result = Compiled::new(&input)
+                .expect("compile rounding")
+                .evaluate_typed()
+                .expect("evaluate rounding");
+            assert_eq!(result.kind(), "big");
+            assert_eq!(result.text(), integer);
+            assert!(result.exact() && result.finite());
+        }
+    }
+}
+
+#[cfg(feature = "fraction")]
+#[test]
+fn fraction_rounding_uses_exact_quotients() {
+    for (input, expected) in [
+        ("floor(frac(-7, 3))", "-3"),
+        ("ceil(frac(7, 3))", "3"),
+        ("floor(frac(7, 3))", "2"),
+        ("ceil(frac(-7, 3))", "-2"),
+        ("trunc(frac(-7, 3))", "-2"),
+        ("trunc(frac(7, 3))", "2"),
+        ("round(frac(5, 2))", "3"),
+        ("round(frac(-5, 2))", "-3"),
+        ("round(frac(7, 3))", "2"),
+        ("round(frac(-8, 3))", "-3"),
+        ("round(frac(12, 3))", "4"),
+        ("round(frac(3, 2)) / 3", "2/3"),
+        (
+            "ceil(frac(9007199254740992, 1) + frac(1, 2))",
+            "9007199254740993",
+        ),
+        (
+            "floor(frac(-9007199254740992, 1) - frac(1, 2))",
+            "-9007199254740993",
+        ),
+    ] {
+        let result = evaluate_typed(input).expect("round fraction");
+        assert_eq!(result.kind(), "fraction");
+        assert_eq!(result.text(), expected, "input={input}");
+        assert!(result.exact() && result.finite(), "input={input}");
+    }
+
+    assert_eval("round(frac(3, 2)) + 0.5", "2.5");
+
+    #[cfg(feature = "bigint")]
+    assert_eval("ceil(frac(9007199254740993n, 2))", "4503599627370497");
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+#[test]
+fn large_fraction_converts_as_ratio_before_float_operations() {
+    for (input, expected) in [
+        ("frac(2n^1100 + 1n, 2n^1100) + 0.5", "1.5"),
+        ("frac(-2n^1100 - 1n, 2n^1100) + 0.5", "-0.5"),
+        ("sqrt(frac(2n^1100 + 1n, 2n^1100))", "1"),
+        ("sqrt(frac(2n^1100 + 1n, 2n^1300))", "7.888609052210118e-31"),
+        (
+            "sqrt(frac(2n^2100 + 1n, 2n^1100) * 0.5)",
+            "2.314636696315717e+150",
+        ),
+        ("sqrt(frac(2n^2200 + 1n, 2n^1100))", "Infinity"),
+    ] {
+        assert_eval(input, expected);
+        let compiled = Compiled::new(input).expect("compile fraction conversion");
+        assert_eq!(
+            compiled.evaluate().expect("evaluate fraction"),
+            expected,
+            "input={input}"
+        );
+    }
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint", feature = "complex"))]
+#[test]
+fn fraction_to_float_rounds_at_binary64_boundaries() {
+    for (input, expected) in [
+        ("re(frac(2n^53+1n, 2n^53))", "1"),
+        ("re(frac(2n^53+3n, 2n^53))", "1.0000000000000004"),
+        ("re(frac(1, 2n^1075))", "0"),
+        ("1 / re(frac(-1, 2n^1075))", "-Infinity"),
+        ("re(frac(3, 2n^1076))", "5e-324"),
+        ("re(frac(2n^53-1n, 2n^1075))", "2.2250738585072014e-308"),
+        ("re(frac(2n^1024-2n^970-1n, 1))", "1.7976931348623157e+308"),
+        ("re(frac(2n^1024-2n^970, 1))", "Infinity"),
+    ] {
+        assert_eval(input, expected);
+    }
+}
+
+#[test]
+fn rounding_keeps_legacy_float_coercions() {
+    assert_eval("floor(-1.25)", "-2");
+    assert_eval("ceil(-1.25)", "-1");
+    assert_eval("round(-1.5)", "-2");
+    assert_eval("trunc(-1.25)", "-1");
+    assert_eval("floor(true)", "1");
+    assert_eval("round(Infinity)", "Infinity");
+    assert!(
+        evaluate(r#"floor("text")"#)
+            .unwrap_err()
+            .contains("expected a numeric argument")
+    );
+    #[cfg(feature = "complex")]
+    {
+        assert_eval("ceil(complex(1.25, 0))", "2");
+        assert!(evaluate("ceil(complex(1.25, 1))").is_err());
+    }
+}
+
 #[test]
 fn exact_fraction_conversion_uses_full_integer_backend() {
     assert_eval("frac(1e30, 1)", "1000000000000000019884624838656");
