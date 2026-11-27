@@ -113,24 +113,48 @@ function insertIndentation(source: string, insertions: Insertion[]): string {
   return parts.join('');
 }
 
+function readDeclaredEntities(doctype: string): Set<string> {
+  const names = new Set<string>();
+  // Reuse the legacy reader's internal-subset grammar and declaration limits.
+  // This pass only collects names; the bounded legacy decoder handles values.
+  const parser = new XMLParser({
+    entityDecoder: {
+      setExternalEntities() {},
+      reset() {},
+      decode: (text) => text,
+      setXmlVersion() {},
+      addInputEntities(entities) {
+        for (const name of Object.keys(entities)) names.add(name);
+      },
+    },
+  });
+  parser.parse(`<!DOCTYPE${doctype}><entity-check/>`, true);
+  return names;
+}
+
 export function parseXmlDocument(source: string): XmlDocument {
   const parser = new SaxesParser({ xmlns: true });
   const stack: ElementFrame[] = [];
   const insertions: Insertion[] = [];
   let root: Child | undefined;
   let conversionError: string | undefined;
-  let hasDoctype = false;
+  let doctype: string | undefined;
+  let declaredEntities: Set<string> | undefined;
   let hasCustomEntities = false;
 
-  parser.on('doctype', () => {
-    hasDoctype = true;
+  parser.on('doctype', (declaration) => {
+    doctype = declaration;
   });
   parser.on('error', (error) => {
-    // Saxes does not resolve internal DTD entities. Keep the existing decoder
-    // for documents that use them while still checking XML document structure.
-    if (hasDoctype && error.message.endsWith(' undefined entity.')) {
-      hasCustomEntities = true;
-      return;
+    // Saxes reports the position just after an unresolved reference.
+    if (doctype !== undefined && error.message.endsWith(' undefined entity.')) {
+      declaredEntities ??= readDeclaredEntities(doctype);
+      const end = parser.position - 1;
+      const start = source.lastIndexOf('&', end);
+      if (declaredEntities.has(source.slice(start + 1, end))) {
+        hasCustomEntities = true;
+        return;
+      }
     }
     throw error;
   });
@@ -232,7 +256,8 @@ export function parseXmlDocument(source: string): XmlDocument {
   }
 
   return {
-    formatted: hasDoctype ? source : insertIndentation(source, insertions),
+    formatted:
+      doctype !== undefined ? source : insertIndentation(source, insertions),
     data: { [root.name]: root.value },
     conversionError,
   };

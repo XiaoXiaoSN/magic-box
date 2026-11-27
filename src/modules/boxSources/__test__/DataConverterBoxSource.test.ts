@@ -210,6 +210,21 @@ age = 30`;
     });
 
     it.each([
+      '<root>&missing;</root>',
+      '<root label="&missing;"/>',
+      '<root>&declared; &missing;</root>',
+    ])('rejects undeclared DTD references in %s', async (root) => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        `<!DOCTYPE root [<!ENTITY declared "note">]>${root}`,
+        { xml: true, json: true },
+      );
+      expect(box?.props.isError).toBe(true);
+      expect(box?.props.plaintextOutput).toMatch(
+        /Failed to parse input as XML: .*undefined entity/,
+      );
+    });
+
+    it.each([
       '<root><a>1</a><b>2</b><a>3</a></root>',
       '<p>Hello <b>world</b> !</p>',
       '<p><b>one</b> <b>two</b></p>',
