@@ -378,6 +378,70 @@ describe('DateCalculateBoxSource', () => {
       expect(result?.result).toBe('500us');
     });
 
+    it.each([
+      [
+        'microseconds within a millisecond',
+        '1704067200000001',
+        '1704067200000002',
+        '2024-01-01T00:00:00.000001Z',
+        '2024-01-01T00:00:00.000002Z',
+      ],
+      [
+        'microseconds across a millisecond',
+        '1704067200000999',
+        '1704067200001000',
+        '2024-01-01T00:00:00.000999Z',
+        '2024-01-01T00:00:00.001000Z',
+      ],
+      [
+        'microseconds before the Unix epoch',
+        '-1704067200000001',
+        '-1704067200000000',
+        '1916-01-01T23:59:59.999999Z',
+        '1916-01-02T00:00:00Z',
+      ],
+      [
+        'nanoseconds a whole microsecond apart',
+        '1704067200000001500',
+        '1704067200000002500',
+        '2024-01-01T00:00:00.000001500Z',
+        '2024-01-01T00:00:00.000002500Z',
+      ],
+      [
+        'nanoseconds before the Unix epoch',
+        '-1704067200000000500',
+        '-1704067199999999500',
+        '1916-01-01T23:59:59.999999500Z',
+        '1916-01-02T00:00:00.000000500Z',
+      ],
+    ])('matches RFC3339 for %s in both directions', (_, start, end, startIso, endIso) => {
+      const forwardIso = DateCalculateBoxSource.checkMatch(
+        `${startIso} to ${endIso}`,
+      );
+      const reverseIso = DateCalculateBoxSource.checkMatch(
+        `${endIso} to ${startIso}`,
+      );
+      expect(forwardIso?.result).toBe('1us');
+      expect(reverseIso?.result).toBe('-1us');
+      expect(DateCalculateBoxSource.checkMatch(`${start} to ${end}`)).toEqual(
+        forwardIso,
+      );
+      expect(DateCalculateBoxSource.checkMatch(`${end} to ${start}`)).toEqual(
+        reverseIso,
+      );
+    });
+
+    it('preserves milliseconds across a span larger than a safe integer', () => {
+      const start = '-8639999999999999000000';
+      const end = '8640000000000000000000';
+      expect(
+        DateCalculateBoxSource.checkMatch(`${start} to ${end}`)?.result,
+      ).toBe('199999999d 23h 59m 59s 999ms');
+      expect(
+        DateCalculateBoxSource.checkMatch(`${end} to ${start}`)?.result,
+      ).toBe('-199999999d 23h 59m 59s 999ms');
+    });
+
     it('should handle differences across different timezones', () => {
       // Both are 2024-01-01T00:00:00Z
       const result = DateCalculateBoxSource.checkDateDiffPattern(
@@ -473,6 +537,14 @@ describe('DateCalculateBoxSource', () => {
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Date Calculate');
       expect(boxes[0].props.plaintextOutput).toBe('365 days');
+    });
+
+    it('renders a submillisecond duration from numeric timestamps', async () => {
+      const [box] = await DateCalculateBoxSource.generateBoxes(
+        '1704067200000001 to 1704067200000002',
+      );
+      expect(box?.props.name).toBe('Date Calculate');
+      expect(box?.props.plaintextOutput).toBe('1us');
     });
 
     it('should set correct options in box props', async () => {
