@@ -48,14 +48,16 @@ function kvToPlaintext(entries: [string, string][]): string {
 
 function computeLunarNewYear(year: number): string | null {
   try {
+    const formatter = new Intl.DateTimeFormat('en-US-u-ca-chinese', {
+      month: 'numeric',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
     for (let m = 1; m <= 2; m++) {
       for (let d = 1; d <= 31; d++) {
         const date = new Date(Date.UTC(year, m - 1, d));
         if (date.getUTCFullYear() !== year) continue;
-        const fmt = new Intl.DateTimeFormat('en-US-u-ca-chinese', {
-          month: 'numeric',
-          day: 'numeric',
-        }).format(date);
+        const fmt = formatter.format(date);
         if (fmt === '1/1' || fmt.startsWith('1/1') || fmt.startsWith('1 / 1')) {
           return formatDate(year, m, d);
         }
