@@ -220,6 +220,12 @@ const zhTW: Translations = {
   'fileHash.cancel': '取消計算',
   'fileHash.download': '下載校驗值',
   'fileHash.clear': '清除校驗值',
+  'fileHash.expected': '預期的 SHA-256',
+  'fileHash.expectedPlaceholder': '貼上 SHA-256 校驗值或 .sha256 檔案內容',
+  'fileHash.match': '相符：檔案與預期的 SHA-256 一致。',
+  'fileHash.mismatch': '不符：檔案與預期的 SHA-256 不一致。',
+  'fileHash.invalidExpected':
+    '格式錯誤：請輸入 64 個十六進位字元的 SHA-256 校驗值。',
   'savedInputs.title': '收藏的輸入',
   'savedInputs.name': '範本名稱',
   'savedInputs.save': '收藏輸入',
