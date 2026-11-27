@@ -379,34 +379,33 @@ fn add_term(terms: &mut alloc::vec::Vec<(String, i16)>, raw: &str, sign: i16) ->
 }
 
 #[cfg(feature = "unit")]
-fn format_terms(terms: &[(String, i16)]) -> String {
-    let mut numerator = alloc::vec::Vec::new();
-    let mut denominator = alloc::vec::Vec::new();
-    for (term, exponent) in terms {
-        if *exponent > 0 {
-            numerator.push(format_term(term, *exponent));
-        } else if *exponent < 0 {
-            denominator.push(format_term(term, exponent.saturating_abs()));
-        }
-    }
-    if numerator.is_empty() {
-        if denominator.len() == 1 {
-            let Some((term, exponent)) = terms.iter().find(|(_, exponent)| *exponent < 0) else {
-                return String::new();
-            };
-            return alloc::format!("{term}^{exponent}");
-        }
-        return terms
-            .iter()
-            .filter(|(_, exponent)| *exponent < 0)
-            .map(|(term, exponent)| alloc::format!("{term}^{}", exponent))
+pub(crate) fn format_terms(terms: &[(impl AsRef<str>, i16)]) -> String {
+    let mut result = terms
+        .iter()
+        .filter(|(_, exponent)| *exponent > 0)
+        .map(|(term, exponent)| format_term(term.as_ref(), *exponent))
+        .collect::<alloc::vec::Vec<_>>()
+        .join("*");
+    let denominator = terms.iter().filter(|(_, exponent)| *exponent < 0);
+    if result.is_empty() {
+        return denominator
+            .map(|(term, exponent)| format_term(term.as_ref(), *exponent))
             .collect::<alloc::vec::Vec<_>>()
             .join("*");
     }
-    let mut result = numerator.join("*");
-    for term in denominator {
+    // The parser reads products and quotients from left to right, so
+    // each denominator factor needs its own slash.
+    for (term, exponent) in denominator {
+        let term = term.as_ref();
         result.push('/');
-        result.push_str(&term);
+        if *exponent == i16::from(i8::MIN) {
+            // The magnitude of -128 is not a valid positive exponent.
+            result.push_str(&format_term(term, i16::from(i8::MAX)));
+            result.push('/');
+            result.push_str(term);
+        } else {
+            result.push_str(&format_term(term, exponent.saturating_abs()));
+        }
     }
     result
 }
@@ -417,5 +416,38 @@ fn format_term(term: &str, exponent: i16) -> String {
         term.to_string()
     } else {
         alloc::format!("{term}^{exponent}")
+    }
+}
+
+#[cfg(all(test, feature = "unit"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn canonical_dimensions_round_trip() {
+        for dim in [
+            Dimension {
+                length: 2,
+                mass: -2,
+                time: -2,
+                temperature: 3,
+                data: -1,
+            },
+            Dimension {
+                length: 127,
+                mass: i8::MIN,
+                time: -1,
+                temperature: 0,
+                data: 0,
+            },
+            Dimension::SCALAR.with_mass(i8::MIN).with_time(-1),
+        ] {
+            let label = dim.canonical_label();
+            let spec = parse_expression(&label).unwrap_or_else(|err| panic!("{label}: {err}"));
+            assert_eq!(spec.dim, dim, "{label}");
+            assert_eq!(spec.factor, 1.0, "{label}");
+            assert_eq!(spec.offset, 0.0, "{label}");
+            assert!(!spec.affine, "{label}");
+        }
     }
 }
