@@ -38,7 +38,7 @@ const DATE_SHAPE = [
   `\\d{1,2}${ORDINAL_SUFFIX}[-/.,\\s]+(?:of\\s+)?${MONTH_NAMES}(?:[-/.,\\s]+\\d{2,4})?`,
 ].join('|');
 const DATE_TIME_SUFFIX =
-  '(?:[T ]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}(?::?\\d{2})?)?)?';
+  '(?:[T\\s]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:[Zz]|[+-]\\d{2}(?::?\\d{2})?)?)?';
 const DATE = `(?:${DATE_SHAPE})${DATE_TIME_SUFFIX}`;
 const OPERATOR = '[+-]';
 const NUMBER = '\\d+';
@@ -50,7 +50,7 @@ const ADD_PATTERN = new RegExp(
 );
 const DIFF_PATTERN = new RegExp(`^(${DATE})\\s+(?:to|-)\\s+(${DATE})$`, 'i');
 const DATE_TIME_PATTERN =
-  /^(.+?)[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([Zz]|[+-]\d{2}(?::?\d{2})?)?$/i;
+  /^(.+?)[T\s](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?([Zz]|[+-]\d{2}(?::?\d{2})?)?$/i;
 const HOUR_MS_BY_UNIT: Record<string, number> = {
   h: HOUR_MS,
   hour: HOUR_MS,
@@ -230,8 +230,13 @@ function parseDateInput(input: string, offsetAt: OffsetAt): ParsedDate | null {
 
   const datetime = DATE_TIME_PATTERN.exec(raw);
   if (datetime) {
-    if (/^\d{9,22}$/.test(datetime[1])) return null;
-    const dateParts = parseDateString(datetime[1]);
+    const dateInput = datetime[1];
+    // The shared date parser also accepts a time suffix, so check that the
+    // date portion hasn't already supplied a time.
+    if (/^\d{9,22}$/.test(dateInput) || DATE_TIME_PATTERN.test(dateInput)) {
+      return null;
+    }
+    const dateParts = parseDateString(dateInput);
     const hour = Number(datetime[2]);
     const minute = Number(datetime[3]);
     const second = Number(datetime[4]);

@@ -83,6 +83,27 @@ describe('DateCalculateBoxSource', () => {
       ).toMatch(/^2024-02-29/);
     });
 
+    it.each([
+      '02/29\t12:30:00',
+      'Feb 29\t12:30:00',
+    ])('keeps the time for %s', async (input) => {
+      const [relative] = await DateCalculateBoxSource.generateBoxes(input, {
+        relative: true,
+      });
+      expect(relative?.props.options?.ISO).toBe('2024-02-29T04:30:00.000Z');
+      expect(DateCalculateBoxSource.checkMatch(`${input} + 0d`)?.fromDate).toBe(
+        '2024-02-29T12:30:00.000+08:00',
+      );
+    });
+
+    it.each(['02/29', 'Feb 29'])('rejects two times after %s', async (date) => {
+      const input = `${date} 04:00:00 12:30:00`;
+      const [box] = await DateCalculateBoxSource.generateBoxes(input, {
+        relative: true,
+      });
+      expect(box?.props.plaintextOutput).toBe(`Invalid date: "${input}"`);
+    });
+
     it('resolves the year using the active timezone for an omitted year only', async () => {
       vi.setSystemTime(new Date('2025-01-01T02:00:00Z'));
       expect(await DateCalculateBoxSource.generateBoxes('Feb 29 + 0d')).toEqual(
