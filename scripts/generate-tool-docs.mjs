@@ -9,6 +9,7 @@ import ts from 'typescript-docs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const registryPath = path.join(root, 'src/modules/boxSources/index.ts');
+const jsonCommandsPath = path.join(root, 'src/functions/json/commands.ts');
 
 function propertyName(property) {
   return property.name?.text ?? property.name?.getText();
@@ -26,22 +27,71 @@ function declarations(file) {
   );
 }
 
+function unwrapStatic(node) {
+  while (
+    node &&
+    (ts.isAsExpression(node) ||
+      ts.isParenthesizedExpression(node) ||
+      ts.isSatisfiesExpression(node))
+  ) {
+    node = node.expression;
+  }
+  return node;
+}
+
+function readJsonToolOptionKeys() {
+  // Read the same alias groups as JSON_TOOL_OPTION_KEYS without importing TS.
+  const file = ts.createSourceFile(
+    jsonCommandsPath,
+    readFileSync(jsonCommandsPath, 'utf8'),
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const bindings = declarations(file);
+  const operations = unwrapStatic(bindings.get('JSON_TOOL_OPERATIONS'));
+  if (!operations || !ts.isObjectLiteralExpression(operations))
+    throw new Error('JSON_TOOL_OPERATIONS must be a static object');
+  return operations.properties.flatMap((property) => {
+    if (!ts.isPropertyAssignment(property))
+      throw new Error('JSON Tools option groups must be static properties');
+    return evaluateStatic(property.initializer, bindings);
+  });
+}
+
+function isJsonToolOptionKeysImport(node) {
+  return (
+    node.text === 'JSON_TOOL_OPTION_KEYS' &&
+    node.getSourceFile().statements.some((statement) => {
+      if (
+        !ts.isImportDeclaration(statement) ||
+        statement.moduleSpecifier.text !== '@functions/json/commands'
+      ) {
+        return false;
+      }
+      const named = statement.importClause?.namedBindings;
+      return (
+        named !== undefined &&
+        ts.isNamedImports(named) &&
+        named.elements.some(
+          (entry) => !entry.propertyName && entry.name.text === node.text,
+        )
+      );
+    })
+  );
+}
+
 function evaluateStatic(node, bindings, seen = new Set()) {
+  node = unwrapStatic(node);
   if (!node) throw new Error('Missing static registry expression');
   if (ts.isStringLiteralLike(node)) return node.text;
   if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
   if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (
-    ts.isAsExpression(node) ||
-    ts.isParenthesizedExpression(node) ||
-    ts.isSatisfiesExpression(node)
-  ) {
-    return evaluateStatic(node.expression, bindings, seen);
-  }
   if (ts.isIdentifier(node)) {
     if (seen.has(node.text))
       throw new Error(`Cyclic registry expression: ${node.text}`);
     const expression = bindings.get(node.text);
+    if (!expression && isJsonToolOptionKeysImport(node))
+      return readJsonToolOptionKeys();
     if (!expression)
       throw new Error(`Unsupported registry identifier: ${node.text}`);
     return evaluateStatic(expression, bindings, new Set(seen).add(node.text));

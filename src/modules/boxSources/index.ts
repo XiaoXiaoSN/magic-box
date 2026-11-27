@@ -8,6 +8,7 @@ import {
   detectTableShape,
 } from '@functions/csv/detect';
 import { parseDateString } from '@functions/helper';
+import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import type { BoxOptions } from '@modules/Box';
 import {
   hasTomlDocumentShape,
@@ -215,26 +216,10 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     tag: '{}',
     kind: 'Transform',
     defaultDisabled: true,
-    optionKeys: [
-      'jsonmerge',
-      'jsonpick',
-      'jsonomit',
-      'jsonpointer',
-      'tojsonl',
-      'fromjsonl',
-      'jsonl',
-    ],
+    optionKeys: JSON_TOOL_OPTION_KEYS,
     headless: true,
     workerSafe: true,
-    canHandle: optionMatcher([
-      'jsonmerge',
-      'jsonpick',
-      'jsonomit',
-      'jsonpointer',
-      'tojsonl',
-      'fromjsonl',
-      'jsonl',
-    ]),
+    canHandle: optionMatcher(JSON_TOOL_OPTION_KEYS),
     load: () => import('./JsonToolsBoxSource').then((module) => module.default),
   },
   {

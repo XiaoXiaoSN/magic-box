@@ -207,7 +207,7 @@ describe('MagicBox Page', () => {
   });
 
   describe('MagicBox Input', () => {
-    it('shows the worker limit for a valid JSON Pointer that is too long to transfer', () => {
+    const enableJsonTools = () => {
       cy.window().then((win) => {
         win.localStorage.setItem(
           'mb_settings',
@@ -218,6 +218,45 @@ describe('MagicBox Page', () => {
         );
       });
       cy.reload();
+    };
+
+    it('runs JSON Tools aliases through the web input', () => {
+      enableJsonTools();
+
+      const input = 'textarea[name="magicInput"]';
+      const title = '[data-testid="magic-box-result-title"]';
+      const result = '[data-testid="magic-box-result"]';
+      const output = '[data-testid="magic-box-result-text"]';
+      const typeInput = (value: string) =>
+        cy.get(input).clear().type(value, { parseSpecialCharSequences: false });
+
+      for (const [value, name, expected] of [
+        [
+          '{"a":1}\n---\n{"b":2}\n::merge',
+          'JSON Merge',
+          '{\n  "a": 1,\n  "b": 2\n}',
+        ],
+        ['{"a":1}\n::jsonptr=/a', 'JSON Pointer', '1'],
+        ['[{"a":1}]\n::ndjson', 'To JSONL', '{"a":1}'],
+      ]) {
+        typeInput(value);
+        cy.contains(title, new RegExp(`^${name}$`))
+          .closest(result)
+          .find(output)
+          .should('have.text', expected);
+      }
+
+      typeInput('{"a":1}\n::json');
+      cy.contains(title, /^JSON Output$/).should('be.visible');
+      cy.get('[data-testid="magic-box-pending"]').should('not.exist');
+      cy.contains(
+        title,
+        /^(JSON Tools|JSON Merge|JSON Pointer|To JSONL)$/,
+      ).should('not.exist');
+    });
+
+    it('shows the worker limit for a valid JSON Pointer that is too long to transfer', () => {
+      enableJsonTools();
 
       const input = 'textarea[name="magicInput"]';
       const title = '[data-testid="magic-box-result-title"]';

@@ -92,7 +92,7 @@ Example (each ::option starts a new line):
 Merge, pick/omit, query (RFC 6901 JSON Pointer) and JSONL-convert JSON. ::jsonmerge (objects separated by a --- line), ::jsonpick=a,b, ::jsonomit=a,b, ::jsonpointer=/a/0, ::tojsonl, ::fromjsonl, ::jsonl (auto).
 
 Category: Transform. Enabled by default on the web: false.
-Option keys: ::jsonmerge, ::jsonpick, ::jsonomit, ::jsonpointer, ::tojsonl, ::fromjsonl, ::jsonl.
+Option keys: ::jsonmerge, ::merge, ::jsonpick, ::jsonomit, ::jsonpointer, ::jsonptr, ::jsonl, ::ndjson, ::tojsonl, ::fromjsonl.
 
 Example (each ::option starts a new line):
 ~~~~text
