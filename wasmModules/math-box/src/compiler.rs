@@ -52,21 +52,49 @@ pub struct Program {
     pub user_fns: Vec<Shared<UserFn>>,
 }
 
-pub fn compile(expr: Expr, ns: &Namespace, budget: &mut WorkBudget) -> Result<Program> {
-    let mut shadowed = BTreeSet::new();
-    collect_shadowed_names(&expr, &mut shadowed);
-    compile_with(expr, ns, &shadowed, budget)
+#[derive(Default)]
+struct BoundNames {
+    assigned: BTreeSet<String>,
+    parameters: BTreeSet<String>,
 }
 
-// shared compile path used by both top-level entry and recursive lambda body
-// compilation. callers thread the outer shadow set so that a body's inner
-// `compile` pass cannot fold a call that the program redefined. expr is
-// taken by value so fold can move sub-expressions out of the AST without
-// re-cloning the tree at the entry point.
+#[derive(Clone, Copy)]
+struct FoldScope<'a> {
+    names: &'a BoundNames,
+    local_params: Option<&'a [String]>,
+}
+
+impl FoldScope<'_> {
+    fn shadows_constant(self, name: &str) -> bool {
+        // Function bodies can read parameters from any active caller frame.
+        self.names.assigned.contains(name)
+            || (self.local_params.is_some() && self.names.parameters.contains(name))
+    }
+
+    fn shadows_function(self, name: &str) -> bool {
+        self.names.assigned.contains(name)
+            || self
+                .local_params
+                .is_some_and(|params| params.iter().any(|param| param == name))
+    }
+}
+
+pub fn compile(expr: Expr, ns: &Namespace, budget: &mut WorkBudget) -> Result<Program> {
+    let mut names = BoundNames::default();
+    collect_bound_names(&expr, &mut names);
+    let shadowed = FoldScope {
+        names: &names,
+        local_params: None,
+    };
+    compile_with(expr, ns, shadowed, budget)
+}
+
+// Top-level expressions and function bodies share the program's binding names.
+// Take the expr by value so folding can move sub-expressions out of the AST.
 fn compile_with(
     expr: Expr,
     ns: &Namespace,
-    shadowed: &BTreeSet<String>,
+    shadowed: FoldScope<'_>,
     budget: &mut WorkBudget,
 ) -> Result<Program> {
     let folded = fold(expr, ns, shadowed, budget)?;
@@ -75,30 +103,33 @@ fn compile_with(
     Ok(prog)
 }
 
-fn collect_shadowed_names(e: &Expr, set: &mut BTreeSet<String>) {
+fn collect_bound_names(e: &Expr, names: &mut BoundNames) {
     match e {
         Expr::Assign { name, value } => {
-            set.insert(name.clone());
-            collect_shadowed_names(value, set);
+            names.assigned.insert(name.clone());
+            collect_bound_names(value, names);
         }
         Expr::Block(stmts) => {
             for s in stmts {
-                collect_shadowed_names(s, set);
+                collect_bound_names(s, names);
             }
         }
         Expr::Bin { lhs, rhs, .. } => {
-            collect_shadowed_names(lhs, set);
-            collect_shadowed_names(rhs, set);
+            collect_bound_names(lhs, names);
+            collect_bound_names(rhs, names);
         }
         Expr::Neg(x) | Expr::Pos(x) | Expr::Not(x) | Expr::Percent(x) | Expr::Fact(x) => {
-            collect_shadowed_names(x, set);
+            collect_bound_names(x, names);
         }
         Expr::Call { args, .. } => {
             for a in args {
-                collect_shadowed_names(a, set);
+                collect_bound_names(a, names);
             }
         }
-        Expr::Lambda { body, .. } => collect_shadowed_names(body, set),
+        Expr::Lambda { params, body } => {
+            names.parameters.extend(params.iter().cloned());
+            collect_bound_names(body, names);
+        }
         Expr::Num(_) | Expr::BigLit(_) | Expr::Bool(_) | Expr::Str(_) | Expr::Var(_) => {}
     }
 }
@@ -126,12 +157,7 @@ fn literal_value(expr: &Expr) -> Option<Value> {
     }
 }
 
-fn fold(
-    e: Expr,
-    ns: &Namespace,
-    shadowed: &BTreeSet<String>,
-    budget: &mut WorkBudget,
-) -> Result<Expr> {
+fn fold(e: Expr, ns: &Namespace, shadowed: FoldScope<'_>, budget: &mut WorkBudget) -> Result<Expr> {
     budget.consume(1)?;
     Ok(match e {
         Expr::Num(_) => e,
@@ -139,7 +165,7 @@ fn fold(
         Expr::Bool(_) => e,
         Expr::Str(_) => e,
 
-        Expr::Var(name) if !shadowed.contains(&name) => match ns.lookup_const(&name) {
+        Expr::Var(name) if !shadowed.shadows_constant(&name) => match ns.lookup_const(&name) {
             Some(Value::Num(v)) => Expr::Num(v),
             // non-numeric constants (e.g. complex `i`) cannot be folded into
             // an Expr::Num; leave as Var, runtime LoadVar will resolve.
@@ -249,7 +275,7 @@ fn fold(
                 folded.push(fold(a, ns, shadowed, budget)?);
             }
 
-            if !shadowed.contains(&name)
+            if !shadowed.shadows_function(&name)
                 && let Some(entry) = ns.lookup_fn(&name)
                 && entry.pure
             {
@@ -296,7 +322,7 @@ fn lower(
     e: Expr,
     prog: &mut Program,
     ns: &Namespace,
-    shadowed: &BTreeSet<String>,
+    shadowed: FoldScope<'_>,
     budget: &mut WorkBudget,
 ) -> Result<()> {
     budget.consume(1)?;
@@ -383,12 +409,11 @@ fn lower(
         }
         Expr::Assign { name, value } => {
             if let Expr::Lambda { params, body } = *value {
-                // recurse with the *outer* shadow set so that calls inside
-                // the body cannot be folded against builtins of the same
-                // name as a user-defined function in the surrounding program.
-                let mut body_shadowed = shadowed.clone();
-                body_shadowed.extend(params.iter().cloned());
-                let body_prog = compile_with(*body, ns, &body_shadowed, budget)?;
+                let body_scope = FoldScope {
+                    local_params: Some(&params),
+                    ..shadowed
+                };
+                let body_prog = compile_with(*body, ns, body_scope, budget)?;
                 let fn_idx = prog.user_fns.len();
                 let param_count = params.len();
                 prog.user_fns.push(Shared::new(UserFn {
@@ -426,4 +451,28 @@ fn lower(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{builtins::default_namespace, lexer, parser};
+    use core::f64::consts::{E, TAU};
+
+    #[test]
+    fn folds_constants_unaffected_by_caller_parameters() {
+        let input = "f() = 2 * pi; g(e) = f() + e; 2 * e";
+        let tokens = lexer::tokenize(input).expect("tokenize");
+        let expr = parser::parse(&tokens).expect("parse");
+        let program = compile(expr, &default_namespace(), &mut WorkBudget::new()).expect("compile");
+
+        assert!(matches!(
+            program.user_fns[0].body.code.as_slice(),
+            [Inst::PushVal(Value::Num(value))] if *value == TAU
+        ));
+        assert!(matches!(
+            program.code.last(),
+            Some(Inst::PushVal(Value::Num(value))) if *value == 2.0 * E
+        ));
+    }
 }
