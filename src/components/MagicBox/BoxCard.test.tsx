@@ -299,6 +299,30 @@ describe('BoxCard click handling', () => {
 });
 
 describe('Local AI card output across input edits', () => {
+  it('publishes a retained answer only once when the wrapper remounts', async () => {
+    const onResultChange = vi.fn();
+    const renderWrapper = () =>
+      render(
+        <LocalAIBoxTemplate
+          name="Local AI"
+          onClick={() => {}}
+          onResultChange={onResultChange}
+          options={null}
+          plaintextOutput=""
+        />,
+      );
+    const first = renderWrapper();
+    await screen.findByTestId('panel');
+    first.unmount();
+    onResultChange.mockClear();
+
+    renderWrapper();
+    await screen.findByTestId('panel');
+    expect(onResultChange.mock.calls).toEqual([
+      [{ options: null, plaintextOutput: 'the answer' }],
+    ]);
+  });
+
   it('keeps copying the answer on screen after the box is regenerated', async () => {
     // Regression: every edit of the magic input replaced the box with one
     // whose `plaintextOutput` was empty, while the same mounted panel still

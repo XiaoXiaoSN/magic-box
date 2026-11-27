@@ -1,5 +1,5 @@
 import type { BoxProps } from '@modules/Box';
-import { lazy, Suspense, useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 // Lazy so neither the panel nor its worker-facing modules land in the initial
 // bundle: the box only renders once the user asks for `::ai`.
@@ -16,30 +16,20 @@ const LocalAIBoxTemplate = ({
   plaintextOutput,
   sourceInput,
 }: BoxProps): React.JSX.Element => {
-  // What this box last told the card it holds. The panel outlives the Box
-  // object: every edit of the magic input regenerates boxes, and the fresh one
-  // arrives with an empty `plaintextOutput` while the same mounted panel still
-  // shows its answer. Without re-publishing, the card's Copy button and Enter
-  // shortcut went silent on an answer that is on screen.
-  const publishedRef = useRef<string | null>(null);
-  const handleOutput = useCallback(
-    (text: string) => {
-      publishedRef.current = text;
-      onResultChange?.({ options: null, plaintextOutput: text });
-    },
-    [onResultChange],
-  );
+  // The panel outlives the Box object when edits to the magic input regenerate
+  // boxes. Keep its last report so the same effect can publish to both the
+  // initial card and replacements that arrive with empty `plaintextOutput`.
+  const [published, setPublished] = useState<string | null>(null);
 
   useEffect(() => {
-    const published = publishedRef.current;
     if (published !== null && plaintextOutput !== published) {
       onResultChange?.({ options: null, plaintextOutput: published });
     }
-  }, [plaintextOutput, onResultChange]);
+  }, [published, plaintextOutput, onResultChange]);
 
   return (
     <Suspense fallback={<div className="loader" />}>
-      <LocalAIPanel onOutput={handleOutput} sourceInput={sourceInput} />
+      <LocalAIPanel onOutput={setPublished} sourceInput={sourceInput} />
     </Suspense>
   );
 };

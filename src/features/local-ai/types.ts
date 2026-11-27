@@ -67,6 +67,8 @@ export interface AIState {
   phase: AIPhase;
   loaded: boolean;
   info: ModelInfo | null;
+  // Tracks the submitted answer independently of model preparation and release.
+  resultStatus: 'idle' | 'streaming' | 'complete' | 'stopped' | 'error';
   output: string;
   submitted: AIRequest | null;
   error: AIErrorCode | null;

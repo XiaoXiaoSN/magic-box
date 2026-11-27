@@ -29,12 +29,12 @@ const setup = ({ onOutput, sourceInput }: SetupOptions = {}) => {
     workers.push(worker);
     return worker;
   };
-  const tree = (input?: string) => (
+  const tree = (input?: string, reportOutput = onOutput) => (
     <LocaleProvider>
       <PreferencesProvider>
         <LocalAIPanel
           createWorker={createWorker}
-          onOutput={onOutput}
+          onOutput={reportOutput}
           sourceInput={input}
         />
       </PreferencesProvider>
@@ -45,7 +45,8 @@ const setup = ({ onOutput, sourceInput }: SetupOptions = {}) => {
     // The magic input settled on new text in front of `::ai`.
     retype: (input: string) => view.rerender(tree(input)),
     unmount: view.unmount,
-    remount: (input?: string) => render(tree(input ?? sourceInput)),
+    remount: (input?: string, reportOutput?: SetupOptions['onOutput']) =>
+      render(tree(input ?? sourceInput, reportOutput)),
   });
 };
 
@@ -238,6 +239,16 @@ describe('LocalAIPanel', () => {
     workers[0].reply({ type: 'complete' });
     expect(onOutput).toHaveBeenCalledTimes(1);
     expect(onOutput).toHaveBeenCalledWith('Partial');
+
+    fireEvent.click(screen.getByTestId('local-ai-run'));
+    expect(onOutput.mock.calls).toEqual([['Partial'], ['']]);
+    workers[0].reply({ type: 'delta', text: 'Stopped text' });
+    expect(onOutput).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByTestId('local-ai-stop'));
+    workers[0].reply({ type: 'cancelled' });
+    expect(screen.getByText('Partial output')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy output' })).toBeEnabled();
+    expect(onOutput.mock.calls).toEqual([['Partial'], [''], ['Stopped text']]);
   });
 
   it('counts the full task and language request after the tokenizer is ready', async () => {
@@ -445,40 +456,79 @@ describe('LocalAIPanel', () => {
       expect(workers[0].terminated).toBe(true);
     });
 
-    it('uses a hidden-tab grace period and reloads only a verified cache', () => {
+    it('keeps a completed answer copyable when the hidden model reloads and the panel remounts', () => {
       vi.useFakeTimers();
-      const previousHidden = Object.getOwnPropertyDescriptor(
-        document,
-        'hidden',
+      localStorage.setItem(
+        LOCAL_PREFS_KEY,
+        JSON.stringify({ aiAutoRun: false }),
       );
-      const setHidden = (hidden: boolean) =>
-        Object.defineProperty(document, 'hidden', {
-          configurable: true,
-          value: hidden,
+      const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+      const onOutput = vi.fn();
+      const remountedOutput = vi.fn();
+      const answer = 'Complete answer\nwith a second line.';
+      try {
+        const workers = setup({ onOutput, sourceInput: 'Write two lines' });
+        loadModel(workers);
+        expect(workers[0].generates()).toHaveLength(0);
+
+        fireEvent.click(screen.getByTestId('local-ai-run'));
+        workers[0].reply({ type: 'delta', text: answer });
+        expect(screen.getByText('Partial output')).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Copy output' }),
+        ).toBeDisabled();
+        expect(onOutput).not.toHaveBeenCalled();
+        workers[0].reply({
+          type: 'complete',
+          metrics: {
+            outputTokens: 8,
+            tokensPerSecond: 4,
+            timeToFirstTokenMs: 125,
+          },
         });
-      const workers = setup();
-      loadModel(workers);
+        expect(onOutput.mock.calls).toEqual([[answer]]);
+        const stats = screen.getByTestId(
+          'local-ai-generation-stats',
+        ).textContent;
 
-      setHidden(true);
-      fireEvent(document, new Event('visibilitychange'));
-      act(() => vi.advanceTimersByTime(29_999));
-      expect(workers[0].terminated).toBe(false);
-      act(() => vi.advanceTimersByTime(1));
-      expect(workers[0].terminated).toBe(true);
+        hidden.mockReturnValue(true);
+        fireEvent(document, new Event('visibilitychange'));
+        act(() => vi.advanceTimersByTime(29_999));
+        expect(workers[0].terminated).toBe(false);
+        act(() => vi.advanceTimersByTime(1));
+        expect(workers[0].terminated).toBe(true);
 
-      setHidden(false);
-      fireEvent(document, new Event('visibilitychange'));
-      expect(workers).toHaveLength(2);
-      expect(workers[1].commands.at(-1)).toEqual({
-        type: 'prepare',
-        id: 3,
-        cacheOnly: true,
-      });
+        hidden.mockReturnValue(false);
+        fireEvent(document, new Event('visibilitychange'));
+        expect(workers).toHaveLength(2);
+        expect(workers[1].commands).toEqual([
+          { type: 'prepare', id: expect.any(Number), cacheOnly: true },
+        ]);
+        expect(screen.queryByText('Partial output')).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Copy output' }),
+        ).toBeEnabled();
+        workers[1].reply({ type: 'ready' });
+        expect(screen.getByTestId('local-ai-status')).toHaveTextContent(
+          'Model ready',
+        );
+        expect(screen.queryByText('Partial output')).not.toBeInTheDocument();
+        expect(onOutput.mock.calls).toEqual([[answer]]);
 
-      if (previousHidden) {
-        Object.defineProperty(document, 'hidden', previousHidden);
-      } else {
-        Reflect.deleteProperty(document, 'hidden');
+        workers.unmount();
+        workers.remount(undefined, remountedOutput);
+        expect(screen.getByTestId('local-ai-output').textContent).toBe(answer);
+        expect(
+          screen.getByTestId('local-ai-generation-stats').textContent,
+        ).toBe(stats);
+        expect(screen.queryByText('Partial output')).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: 'Copy output' }),
+        ).toBeEnabled();
+        expect(remountedOutput.mock.calls).toEqual([[answer]]);
+        expect(workers[1].generates()).toHaveLength(0);
+      } finally {
+        hidden.mockRestore();
       }
     });
 

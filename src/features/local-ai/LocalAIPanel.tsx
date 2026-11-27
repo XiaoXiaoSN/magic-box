@@ -100,7 +100,10 @@ const LocalAIPanel = ({
   const busy = isBusy(state.phase);
   // Only a generation locks the draft. The check a box starts by itself, and
   // the download, leave the user free to write the prompt meanwhile.
-  const generating = state.phase === 'generating' || state.phase === 'stopping';
+  const generating = state.resultStatus === 'streaming';
+  const complete = state.resultStatus === 'complete';
+  const stopped = state.resultStatus === 'stopped';
+  const publishedOutput = complete || stopped ? state.output : '';
   const hostPrompt = (sourceInput ?? '').trim();
   const prompt = hostPrompt || draft;
   const task = prefs.aiTask;
@@ -161,13 +164,10 @@ const LocalAIPanel = ({
   // reset must not leave the card copying an answer no longer on screen.
   // Streaming deltas stay local to this component.
   useEffect(() => {
-    const settled = state.phase === 'complete' || state.phase === 'stopped';
-    if (!settled && state.output) return;
-    const text = settled ? state.output : '';
-    if (text === publishedRef.current) return;
-    publishedRef.current = text;
-    onOutputRef.current?.(text);
-  }, [state.phase, state.output]);
+    if (publishedOutput === publishedRef.current) return;
+    publishedRef.current = publishedOutput;
+    onOutputRef.current?.(publishedOutput);
+  }, [publishedOutput]);
 
   useEffect(() => {
     client.invalidateCount();
@@ -384,7 +384,7 @@ const LocalAIPanel = ({
           {m.errors.inputLimit}
         </p>
       ) : null}
-      {state.phase === 'stopped' && state.output ? (
+      {stopped && state.output ? (
         <p className="local-ai-note">{m.stoppedNote}</p>
       ) : null}
 
@@ -399,11 +399,9 @@ const LocalAIPanel = ({
 
       {state.output ? (
         <div className="local-ai-result">
-          {state.phase !== 'complete' ? (
-            <p className="local-ai-note">{m.partial}</p>
-          ) : null}
+          {!complete ? <p className="local-ai-note">{m.partial}</p> : null}
           {/* Text only: no HTML, remote images, executable links or tools. */}
-          <pre aria-busy={busy} data-testid="local-ai-output">
+          <pre aria-busy={generating} data-testid="local-ai-output">
             {state.output}
           </pre>
           {state.metrics ? (
@@ -426,7 +424,7 @@ const LocalAIPanel = ({
           <div className="local-ai-actions">
             <button
               className="local-ai-button"
-              disabled={busy}
+              disabled={generating}
               onClick={() => void copyOutput()}
               type="button"
             >
@@ -435,7 +433,7 @@ const LocalAIPanel = ({
             {hostPrompt ? null : (
               <button
                 className="local-ai-button"
-                disabled={busy}
+                disabled={generating}
                 onClick={() => {
                   setDraft(state.output);
                   inputRef.current?.focus();

@@ -10,6 +10,7 @@ const idle: AIState = {
   phase: 'idle',
   loaded: false,
   info: null,
+  resultStatus: 'idle',
   output: '',
   submitted: null,
   error: null,
