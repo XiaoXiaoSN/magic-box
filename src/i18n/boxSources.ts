@@ -359,7 +359,7 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
   'text-diff': {
     name: 'Text Diff',
     description:
-      'Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.',
+      'Compare two texts with ::diff, compare JSON with ::jsondiff, or separate two texts with --- and use ::textdiff.',
   },
   'text-reverse': {
     name: 'Text Reverse',
@@ -788,7 +788,7 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   'text-diff': {
     name: '文字差異',
     description:
-      '使用 ::diff 貼上第二段文字，或以 --- 分隔兩段文字並使用 ::textdiff。',
+      '使用 ::diff 比較文字、::jsondiff 比較 JSON，或以 --- 分隔兩段文字並使用 ::textdiff。',
   },
   'text-reverse': {
     name: '文字反轉',

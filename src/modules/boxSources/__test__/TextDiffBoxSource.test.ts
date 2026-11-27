@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { TextDiffBoxSource } from '../TextDiffBoxSource';
 
 describe('TextDiffBoxSource', () => {
+  it('opens the JSON comparison view, or emits a patch for paired input', async () => {
+    const [interactive] = await TextDiffBoxSource.generateBoxes('{"a":1}', {
+      jsondiff: true,
+    });
+    expect(interactive.view).toBe('diff');
+    expect(interactive.props.options).toMatchObject({
+      language: 'json',
+      jsonDiff: true,
+    });
+    const [patch] = await TextDiffBoxSource.generateBoxes(
+      '{"a":1}\n---\n{"a":2}',
+      { jsondiff: 'patch' },
+    );
+    expect(JSON.parse(patch.props.plaintextOutput)).toEqual([
+      { op: 'replace', path: '/a', value: 2 },
+    ]);
+  });
+
   it.each([
     'lang',
     'language',

@@ -1,4 +1,5 @@
 import { isString } from '@functions/helper';
+import { compareJson } from '@functions/json/diff';
 import { computeDiff } from '@functions/textDiff';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
@@ -13,7 +14,7 @@ const MAX_INPUT = 20_000;
 export const TextDiffBoxSource = {
   name: 'Text Diff',
   description:
-    'Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.',
+    'Compare two texts with ::diff, compare JSON with ::jsondiff, or separate two texts with --- and use ::textdiff.',
   defaultInput: 'foo\nbar\n---\nfoo\nbaz\n::textdiff',
   tag: '#',
   kind: 'Analyze',
@@ -22,7 +23,8 @@ export const TextDiffBoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    if (!hasOptionKeys(options, 'diff', 'textdiff', 'linediff')) return [];
+    if (!hasOptionKeys(options, 'diff', 'jsondiff', 'textdiff', 'linediff'))
+      return [];
     if (!isString(input)) return [];
     if (input.length > MAX_INPUT) {
       return [
@@ -32,13 +34,37 @@ export const TextDiffBoxSource = {
         ),
       ];
     }
-    if (hasOptionKeys(options, 'diff')) {
+    const jsonDiff = hasOptionKeys(options, 'jsondiff');
+    const separator = jsonDiff ? /^---[\t ]*\r?$/m.exec(input) : null;
+    if (separator) {
+      const before = input.slice(0, separator.index);
+      const after = input.slice(separator.index + separator[0].length);
+      const result = compareJson(before, after);
+      const exportPatch = options?.jsondiff === 'patch';
+      return result.ok
+        ? [
+            new BoxBuilder(
+              exportPatch ? 'JSON Patch' : 'JSON Diff',
+              exportPatch ? result.patch : result.output,
+            )
+              .setOptions({ language: 'json' })
+              .setView('code')
+              .build(),
+          ]
+        : [errorBox('JSON Diff', result.message)];
+    }
+    if (jsonDiff || hasOptionKeys(options, 'diff')) {
       const language = extractOptionKeys(options, 'lang', 'language', 'l');
       return [
-        new BoxBuilder('Text Diff', '')
+        new BoxBuilder(jsonDiff ? 'JSON Diff' : 'Text Diff', '')
           .setSourceInput(input)
           .setOptions({
-            language: typeof language === 'string' ? language : 'plaintext',
+            language: jsonDiff
+              ? 'json'
+              : typeof language === 'string'
+                ? language
+                : 'plaintext',
+            ...(jsonDiff ? { jsonDiff: true } : {}),
             diffTarget: '',
           })
           .setView('diff')

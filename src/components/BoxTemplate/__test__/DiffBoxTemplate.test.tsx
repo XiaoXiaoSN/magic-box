@@ -1,5 +1,5 @@
 import type { BoxProps } from '@modules/Box';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../../../contexts/LocaleContext';
@@ -74,5 +74,58 @@ describe('interactive Diff', () => {
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'b' } });
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('makes JSON work cancellable and publishes only the current comparison', () => {
+    const workers: FakeWorker[] = [];
+    class FakeWorker {
+      onmessage?: (event: { data: unknown }) => void;
+      postMessage = vi.fn();
+      terminate = vi.fn();
+      constructor() {
+        workers.push(this);
+      }
+    }
+    vi.stubGlobal('Worker', FakeWorker);
+    try {
+      const { onResultChange } = renderDiff('{"a":1}', { jsonDiff: true });
+      fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: '{"a":2}' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+      expect(workers[0].postMessage).toHaveBeenCalledWith({
+        before: '{"a":1}',
+        after: '{"a":2}',
+      });
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel comparison' }),
+      );
+      expect(workers[0].terminate).toHaveBeenCalled();
+
+      const diff = {
+        ok: true,
+        output: '[{"before":1,"after":2}]',
+        patch: '[{"op":"replace","path":"/a","value":2}]',
+      };
+      act(() => workers[0].onmessage?.({ data: diff }));
+      expect(
+        screen.queryByRole('button', { name: 'Download JSON Patch' }),
+      ).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+      act(() => workers[1].onmessage?.({ data: diff }));
+      expect(onResultChange).toHaveBeenLastCalledWith({
+        options: {
+          jsonDiff: true,
+          diffTarget: '{"a":2}',
+          diffPatch: diff.patch,
+        },
+        plaintextOutput: diff.output,
+      });
+      expect(
+        screen.getByRole('button', { name: 'Download JSON Patch' }),
+      ).toBeEnabled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
