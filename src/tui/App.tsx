@@ -1,6 +1,6 @@
 import type { Box as MagicBoxResult } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
-import { Box, Text, useApp, useInput } from 'ink';
+import { Box, Text, useApp, useInput, usePaste } from 'ink';
 import TextInput from 'ink-text-input';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -199,10 +199,15 @@ export function App({
       void copySelected();
       return;
     }
-    if (resultsFocused && input.length === 1 && !key.ctrl) {
-      setResultsFocused(false);
+    if (resultsFocused && input && !key.ctrl) {
       changeQuery(`${query}${input}`);
     }
+  });
+
+  // Let the editor handle paste while it is mounted. With results focused,
+  // bracketed paste has its own channel so pasted "y" is text, not a shortcut.
+  usePaste((text) => changeQuery(`${query}${text}`), {
+    isActive: resultsFocused,
   });
 
   return (
