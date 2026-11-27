@@ -14,6 +14,7 @@ import {
   releaseRuntimeCacheOnlyAssets,
   type TransformersRuntime,
 } from '../runtime';
+import { LocalAICacheMiss } from '../types';
 
 const WASM_URL =
   'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.25.0/dist/ort-wasm-simd-threaded.asyncify.wasm';
@@ -90,10 +91,33 @@ describe('local AI pinned runtime cache', () => {
         createObjectURL: objectUrl,
         revokeObjectURL: vi.fn(),
       }),
-    ).rejects.toMatchObject({ code: 'load' });
+    ).rejects.toBeInstanceOf(LocalAICacheMiss);
 
     expect(fetcher).not.toHaveBeenCalled();
     expect(importer).not.toHaveBeenCalled();
+  });
+
+  it('only replaces an unusable cached runtime entry during a network load', async () => {
+    const { storage, cache } = createStorage();
+    await cache.put(RUNTIME_URL, new Response('invalid', { status: 503 }));
+    const fetcher = vi.fn(async () => new Response('runtime source'));
+    const options = {
+      storage,
+      fetch: fetcher,
+      importModule: async () => createRuntime(),
+      createObjectURL: objectUrl,
+      revokeObjectURL: vi.fn(),
+    };
+
+    await expect(loadRuntime(true, options)).rejects.toBeInstanceOf(
+      LocalAICacheMiss,
+    );
+    expect(fetcher).not.toHaveBeenCalled();
+
+    await loadRuntime(false, options);
+
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(RUNTIME_URL);
+    expect((await cache.match(RUNTIME_URL))?.ok).toBe(true);
   });
 
   it('loads the cached runtime without a service worker controller', async () => {

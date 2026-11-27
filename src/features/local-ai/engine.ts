@@ -19,7 +19,7 @@ import {
 } from './runtime';
 import { buildMessages, checkTokenBudget } from './tasks';
 import type { AICommand, AIEvent, AIRequest } from './types';
-import { LocalAIError } from './types';
+import { LocalAICacheMiss, LocalAIError } from './types';
 
 interface Session {
   runtime: TransformersRuntime;
@@ -89,6 +89,20 @@ export class LocalAIEngine {
         await this.generate(command.id, command.request);
       }
     } catch (error) {
+      if (
+        command.type === 'prepare' &&
+        command.cacheOnly &&
+        error instanceof LocalAICacheMiss
+      ) {
+        // Report the incomplete cache so the next action can disclose a
+        // download. A cache-only command never falls back to the network.
+        this.send({
+          type: 'available',
+          id: command.id,
+          info: { bytes: MODEL.downloadBytes, cached: false },
+        });
+        return;
+      }
       // Raw model exceptions can embed user content. Only allowlisted codes
       // cross back to the UI — never a message, console.log or telemetry body.
       const code =
@@ -110,33 +124,16 @@ export class LocalAIEngine {
 
   private async prepare(id: number, cacheOnly: boolean): Promise<void> {
     const cached = await this.inspectCache();
-    if (cacheOnly && !cached) {
-      this.send({
-        type: 'available',
-        id,
-        info: { bytes: MODEL.downloadBytes, cached: false },
-      });
-      return;
-    }
+    if (cacheOnly && !cached) throw new LocalAICacheMiss();
     let runtime: TransformersRuntime | undefined;
     if (cacheOnly) {
       const runtimeWasLoaded = this.runtimePromise !== null;
       runtime = await this.getRuntime(true);
-      if (!(await this.inspectOrtCache(runtime))) {
-        this.send({
-          type: 'available',
-          id,
-          info: { bytes: MODEL.downloadBytes, cached: false },
-        });
-        return;
-      }
-      if (!runtimeWasLoaded && !(await this.inspectRuntimeCache(runtime))) {
-        this.send({
-          type: 'available',
-          id,
-          info: { bytes: MODEL.downloadBytes, cached: false },
-        });
-        return;
+      if (
+        !(await this.inspectOrtCache(runtime)) ||
+        (!runtimeWasLoaded && !(await this.inspectRuntimeCache(runtime)))
+      ) {
+        throw new LocalAICacheMiss();
       }
     }
     if (cached) this.send({ type: 'progress', id, progress: 100 });

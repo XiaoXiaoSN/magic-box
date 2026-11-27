@@ -35,7 +35,7 @@ export function useLocalAISetup(
     if (typeof navigator.storage?.persist === 'function') {
       void navigator.storage.persist().catch(() => false);
     }
-    client.prepare();
+    client.prepare({ cacheOnly: step.cacheOnly });
   };
 
   const removeDownloads = async () => {

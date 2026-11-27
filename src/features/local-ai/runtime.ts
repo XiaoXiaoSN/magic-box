@@ -6,7 +6,7 @@ import {
   RUNTIME_VERSION,
 } from './modelCatalog';
 import type { ChatMessage } from './tasks';
-import { LocalAIError } from './types';
+import { LocalAICacheMiss, LocalAIError } from './types';
 
 export interface ModelInputs {
   input_ids: { dims: number[] };
@@ -167,8 +167,8 @@ export async function loadRuntime(
   } catch {
     if (cacheOnly) throw new LocalAIError('load');
   }
-  if (!response) {
-    if (cacheOnly) throw new LocalAIError('load');
+  if (!response?.ok) {
+    if (cacheOnly) throw new LocalAICacheMiss();
     const fetcher = options.fetch ?? browserFetch;
     response = await fetcher(RUNTIME_URL);
     if (!response.ok) throw new LocalAIError('load');
@@ -178,7 +178,6 @@ export async function loadRuntime(
       // An explicit load can still use the fetched module when storage is full.
     }
   }
-  if (!response.ok) throw new LocalAIError('load');
 
   const source = await response.text();
   const createObjectURL = options.createObjectURL ?? URL.createObjectURL;
@@ -278,7 +277,7 @@ export async function configureRuntimeCacheOnly(
     cache.match(paths.mjs),
   ]);
   if (!wasmResponse?.ok || !factoryResponse?.ok) {
-    throw new LocalAIError('load');
+    throw new LocalAICacheMiss();
   }
 
   const wasmBinary = await wasmResponse.arrayBuffer();
@@ -297,7 +296,7 @@ export async function configureRuntimeCacheOnly(
   runtime.env.allowRemoteModels = false;
   runtime.env.fetch = async (input) => {
     const response = await cache.match(input);
-    if (!response?.ok) throw new LocalAIError('load');
+    if (!response?.ok) throw new LocalAICacheMiss();
     return response;
   };
   runtime.env.useWasmCache = false;

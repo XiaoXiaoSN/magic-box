@@ -83,5 +83,12 @@ export class LocalAIError extends Error {
   }
 }
 
+export class LocalAICacheMiss extends LocalAIError {
+  constructor() {
+    super('load');
+    this.name = 'LocalAICacheMiss';
+  }
+}
+
 export const isBusy = (phase: AIPhase): boolean =>
   ['inspecting', 'loading', 'generating', 'stopping'].includes(phase);

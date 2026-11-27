@@ -3,15 +3,16 @@ import { localAIMessages } from './messages';
 import type { AIState } from './types';
 import { isBusy } from './types';
 
-export interface SetupStep {
-  // The client call this step performs. Never more than one per click.
-  action: 'inspect' | 'prepare';
+export type SetupStep = (
+  | { action: 'inspect' }
+  | { action: 'prepare'; cacheOnly: boolean }
+) & {
   label: string;
   // Disclosure rendered under the button, naming what the click costs. It is
   // attached to the action, not to a first run: the sources are part of the
   // offer every time bytes are about to move.
   note: string | null;
-}
+};
 
 // The single definition of "what is the next setup step". The box and the
 // settings page both render from it, so one action can never be presented as
@@ -30,6 +31,7 @@ export function describeSetupStep(
   const size = formatModelSize(state.info.bytes, locale);
   return {
     action: 'prepare',
+    cacheOnly: state.info.cached,
     label: `${state.info.cached ? m.loadAction : m.downloadAction} · ${size}`,
     note: state.info.cached ? m.cached : m.sourceNote,
   };
