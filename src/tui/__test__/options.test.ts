@@ -10,7 +10,9 @@ import {
   withTerminalDirectives,
 } from '../options';
 
-afterEach(() => setRuntimePrefs({ timezoneOffset: 8, locale: 'en' }));
+afterEach(() =>
+  setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed', locale: 'en' }),
+);
 
 describe('terminal preferences and argument parsing', () => {
   it('parses options, negative timezones and the literal-input boundary', () => {
@@ -115,11 +117,39 @@ describe('terminal preferences and argument parsing', () => {
     expect(getTimezoneOffset()).toBe(0);
     expect(getLocale()).toBe('en');
   });
+  it('preserves imported system offsets per date until a fixed CLI override', () => {
+    const previousTZ = process.env.TZ;
+    process.env.TZ = 'America/New_York';
+    try {
+      const winter = new Date('2026-01-15T12:00:00Z');
+      const summer = new Date('2026-07-15T12:00:00Z');
+      const systemPrefs = { timezoneOffset: 8, timezoneMode: 'system' };
+      applyTerminalPreferences(parseArguments([]), systemPrefs);
+      expect([getTimezoneOffset(winter), getTimezoneOffset(summer)]).toEqual([
+        -5, -4,
+      ]);
+      applyTerminalPreferences(
+        parseArguments(['--timezone', '0']),
+        systemPrefs,
+      );
+      expect([getTimezoneOffset(winter), getTimezoneOffset(summer)]).toEqual([
+        0, 0,
+      ]);
+      applyTerminalPreferences(parseArguments([]), { timezoneOffset: 8 });
+      expect([getTimezoneOffset(winter), getTimezoneOffset(summer)]).toEqual([
+        8, 8,
+      ]);
+    } finally {
+      if (previousTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTZ;
+    }
+  });
   it.each([
     null,
     [],
     { timezoneOffset: '8' },
     { timezoneOffset: 99 },
+    { timezoneMode: 'unknown' },
     { locale: 'other' },
   ])('rejects malformed preferences %j', (saved) => {
     expect(() => applyTerminalPreferences(parseArguments([]), saved)).toThrow();

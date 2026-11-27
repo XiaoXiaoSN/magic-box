@@ -1,5 +1,6 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { setRuntimePrefs } from '@functions/runtimePrefs';
+import { describe, expect, it, vi } from 'vitest';
 
 import { runBoxes, runTerminalSources } from '../runBoxes';
 import { tuiBoxSources } from '../sources';
@@ -47,6 +48,48 @@ describe('headless box generation', () => {
     const names = boxes.map((box) => box.props.name);
     expect(names).toContain('RFC 3339');
     expect(boxes.every((box) => box.boxTemplate === undefined)).toBe(true);
+  });
+
+  it.each([
+    'now',
+    'timestamp',
+  ])('applies both timezone directives and isolates terminal runs for %s', async (id) => {
+    const source = tuiBoxSources.find((entry) => entry.id === id);
+    if (!source) throw new Error(`Missing terminal source: ${id}`);
+    const input = id === 'now' ? 'now' : '1700000000';
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2023-11-14T22:13:20Z'));
+    setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed' });
+    const output = async (directive: string) => {
+      const result = await runTerminalSources(`${input}\n${directive}`, [
+        source,
+      ]);
+      return result.boxes.map(({ props }) => props.plaintextOutput);
+    };
+    try {
+      await expect(
+        Promise.all([output('::tz=-5'), output('::timezone=0'), output('')]),
+      ).resolves.toEqual([
+        expect.arrayContaining(['2023-11-14T17:13:20.000-05:00']),
+        expect.arrayContaining(['2023-11-14T22:13:20.000+00:00']),
+        expect.arrayContaining(['2023-11-15T06:13:20.000+08:00']),
+      ]);
+      await expect(output('::tz=-5\n::timezone=0')).resolves.toContain(
+        '2023-11-14T17:13:20.000-05:00',
+      );
+      await expect(output('::tz\n::timezone=0')).resolves.toContain(
+        '2023-11-14T22:13:20.000+00:00',
+      );
+      const invalid = await runTerminalSources(`${input}\n::tz=invalid-zone`, [
+        source,
+      ]);
+      expect(invalid.boxes).toEqual([]);
+      expect(invalid.errors).toEqual([
+        expect.objectContaining({ message: 'Unknown timezone "invalid-zone"' }),
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns no boxes for unmatched input', async () => {

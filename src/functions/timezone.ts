@@ -8,6 +8,7 @@ export const MAX_TIMEZONE_OFFSET = 14;
 
 export const DEFAULT_TIMEZONE_OFFSET = 8;
 export type TimezoneMode = 'fixed' | 'system';
+export const TIMEZONE_DIRECTIVE_KEYS = ['tz', 'timezone'] as const;
 
 export const isValidTimezoneOffset = (value: number): boolean =>
   Number.isFinite(value) &&

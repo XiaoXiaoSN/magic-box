@@ -94,9 +94,12 @@ requires clipboard support in the terminal and can work over SSH. The OSC 52
 fallback rejects payloads above 100,000 UTF-8 bytes; that limit does not apply
 to the macOS system clipboard path.
 
-Timezone defaults to UTC+8, using the same supported offsets as the web.
-`--timezone` overrides the preferences file; `--locale en|tw` overrides its
-locale (`zh_TW` is also accepted). Without a file or override, locale is `en`.
+Timezone defaults to UTC+8. Importing `timezoneMode: "system"` uses the terminal
+host's timezone, including daylight saving time for the date being evaluated.
+`--timezone` selects a fixed UTC offset and overrides the imported mode.
+`::tz=-5` or `::timezone=0` overrides the timezone for a single input.
+`--locale en|tw` overrides the imported locale (`zh_TW` is also accepted).
+Without a file or override, locale is `en`.
 The preferences file accepts the web `mb_prefs` JSON object, for example:
 
 ```json

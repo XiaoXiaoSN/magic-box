@@ -52,6 +52,22 @@ describe('MagicBox Page', () => {
     });
   });
 
+  it('uses inline timezone directives for worker-backed Timestamp and Now', () => {
+    const input = 'textarea[name="magicInput"]';
+    const title = '[data-testid="magic-box-result-title"]';
+    const output = '[data-testid="magic-box-result-text"]';
+    cy.get(input).type('1700000000\n::tz=-5');
+    cy.contains(title, /^RFC 3339 \(UTC-5\)$/).should('be.visible');
+    cy.contains(output, '2023-11-14T17:13:20.000-05:00').should('be.visible');
+
+    cy.get(input).clear().type('now\n::timezone=0');
+    cy.contains(title, /^RFC 3339 \(UTC\+0\)$/).should('be.visible');
+    cy.contains(title, 'Timestamp (s)').should('be.visible');
+
+    cy.get(input).clear().type('now\n::tz=invalid-zone');
+    cy.contains(output, 'Unknown timezone "invalid-zone"').should('be.visible');
+  });
+
   describe('Shared input', () => {
     it('keeps the edited draft through browser Back from Settings and Tools', () => {
       const input = 'textarea[name="magicInput"]';

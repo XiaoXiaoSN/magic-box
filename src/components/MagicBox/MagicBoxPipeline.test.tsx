@@ -3,6 +3,7 @@ import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
 import { createLazyBoxSource } from '@modules/boxSources/lazySource';
+import TimestampBoxSource from '@modules/boxSources/TimestampBoxSource';
 import {
   cleanup,
   fireEvent,
@@ -139,6 +140,22 @@ const tree = (input: string, sources: BoxSource[], liveInput = input) => (
 afterEach(() => {
   cleanup();
   vi.mocked(copyTextToClipboard).mockReset().mockResolvedValue(true);
+});
+
+it('applies inline timezone overrides and reports invalid values in the web main-thread pipeline', async () => {
+  const sources = [TimestampBoxSource];
+  const { rerender } = render(tree('1700000000\n::tz=-5', sources));
+  expect(
+    await screen.findByText('2023-11-14T17:13:20.000-05:00'),
+  ).toBeInTheDocument();
+  rerender(tree('1700000000\n::timezone=0', sources));
+  expect(
+    await screen.findByText('2023-11-14T22:13:20.000+00:00'),
+  ).toBeInTheDocument();
+  rerender(tree('1700000000\n::tz=invalid-zone', sources));
+  expect(
+    await screen.findByText('Unknown timezone "invalid-zone"'),
+  ).toBeInTheDocument();
 });
 
 beforeEach(() => {

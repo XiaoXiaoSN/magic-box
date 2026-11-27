@@ -1,4 +1,5 @@
 import { parseInput } from '@functions/parseOptions';
+import { getRuntimeTimezonePreferences } from '@functions/runtimePrefs';
 import { type Box, errorBox } from '@modules/Box';
 import type { BoxSource, BoxSourceContext } from '@modules/BoxSource';
 
@@ -27,7 +28,12 @@ export async function runTerminalSources(
   signal: AbortSignal = new AbortController().signal,
 ): Promise<TerminalRunResult> {
   const [input, options] = parseInput(rawInput);
-  const context: BoxSourceContext = { signal, preview: false };
+  const context: BoxSourceContext = {
+    signal,
+    preview: false,
+    now: Date.now(),
+    ...getRuntimeTimezonePreferences(),
+  };
   const grouped: SourceRunResult[] = await Promise.all(
     sources.map(async (source): Promise<SourceRunResult> => {
       if (signal.aborted) return { boxes: [], errors: [] };

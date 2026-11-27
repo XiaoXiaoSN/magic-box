@@ -1,7 +1,8 @@
-import { getTimezoneOffset } from '@functions/runtimePrefs';
+import { resolveBoxTimezone } from '@functions/runtimePrefs';
 import { formatOffsetLabel, toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
 
 interface Match {
   date: Date;
@@ -45,6 +46,7 @@ export const TimestampBoxSource = {
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
     const match = this.checkMatch(input, options);
     if (!match) {
@@ -52,7 +54,9 @@ export const TimestampBoxSource = {
     }
 
     const { date } = match;
-    const offset = getTimezoneOffset(date);
+    const timezone = resolveBoxTimezone(options, context);
+    if ('error' in timezone) return [errorBox('Timestamp', timezone.error)];
+    const offset = timezone.offsetAt(date);
     return [
       new BoxBuilder('RFC 3339', date.toISOString())
         .setShowExpandButton(false)

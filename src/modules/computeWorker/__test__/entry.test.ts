@@ -1,3 +1,4 @@
+import { parseInput } from '@functions/parseOptions';
 import {
   getLocale,
   getTimezoneOffset,
@@ -5,6 +6,8 @@ import {
 } from '@functions/runtimePrefs';
 import { BoxBuilder } from '@modules/Box';
 import { describe, expect, it } from 'vitest';
+import NowBoxSource from '../../boxSources/NowBoxSource';
+import TimestampBoxSource from '../../boxSources/TimestampBoxSource';
 import type { ComputeWorkerEvent, ComputeWorkerRunRequest } from '../dto';
 import { type ComputeWorkerSource, executeComputeWorkerRun } from '../entry';
 
@@ -154,6 +157,67 @@ describe('compute worker entry', () => {
         runtimeOffset: -5,
       },
     ]);
+  });
+
+  it.each([
+    ['now', NowBoxSource, 'now'],
+    ['timestamp', TimestampBoxSource, '1700000000'],
+  ] as const)('applies both input timezone directives in the worker for %s', async (id, tool, value) => {
+    const run = async (directive: string) => {
+      const [input, options] = parseInput(`${value}\n${directive}`);
+      const events: ComputeWorkerEvent[] = [];
+      await executeComputeWorkerRun(
+        {
+          ...request,
+          input,
+          options,
+          sourceIds: [id],
+          now: 1_700_000_000_000,
+          timezoneOffset: 8,
+        },
+        () => tool,
+        { postMessage: (event) => events.push(event) },
+      );
+      return events.find((event) => event.type === 'source-result');
+    };
+
+    try {
+      await expect(run('::tz=-5\n::timezone=0')).resolves.toMatchObject({
+        boxes: expect.arrayContaining([
+          expect.objectContaining({
+            plaintextOutput: '2023-11-14T17:13:20.000-05:00',
+          }),
+        ]),
+      });
+      await expect(run('::timezone=0')).resolves.toMatchObject({
+        boxes: expect.arrayContaining([
+          expect.objectContaining({
+            plaintextOutput: '2023-11-14T22:13:20.000+00:00',
+          }),
+        ]),
+      });
+      await expect(run('::tz=invalid-zone')).resolves.toMatchObject({
+        boxes: [
+          expect.objectContaining({
+            isError: true,
+            plaintextOutput: 'Unknown timezone "invalid-zone"',
+          }),
+        ],
+      });
+      await expect(run('')).resolves.toMatchObject({
+        boxes: expect.arrayContaining([
+          expect.objectContaining({
+            plaintextOutput: '2023-11-15T06:13:20.000+08:00',
+          }),
+        ]),
+      });
+    } finally {
+      setRuntimePrefs({
+        locale: 'en',
+        timezoneOffset: 8,
+        timezoneMode: 'fixed',
+      });
+    }
   });
 
   it('reports oversized valid output instead of silently dropping the box', async () => {

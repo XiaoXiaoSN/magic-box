@@ -4,20 +4,15 @@ import {
   parseDateString,
   trim,
 } from '@functions/helper';
-import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
 import {
-  offsetForSpec,
-  parseTimezoneSpec,
-  shiftDateToOffset,
-  toOffsetISOString,
-} from '@functions/timezone';
+  getLocale,
+  getTimezoneOffset,
+  resolveBoxTimezone,
+} from '@functions/runtimePrefs';
+import { shiftDateToOffset, toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import {
-  BoxBuilder,
-  errorBox,
-  extractOptionKeys,
-  hasOptionKeys,
-} from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
 import { toIntlLocale } from '../../i18n';
 
 const MINUTE_MS = 60_000;
@@ -539,6 +534,7 @@ export const DateCalculateBoxSource = {
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
     const wantsRelative = hasOptionKeys(
       options,
@@ -547,19 +543,13 @@ export const DateCalculateBoxSource = {
       'timelater',
       'relativetime',
     );
-    // `::tz` / `::timezone` replaces the settings timezone for this query only.
-    // a bare `::tz` (value `true`) is still being typed, so it is ignored.
-    const tzOption = extractOptionKeys(options, 'tz', 'timezone');
-    let offsetAt: OffsetAt = getTimezoneOffset;
-    if (typeof tzOption === 'string') {
-      const spec = parseTimezoneSpec(tzOption);
-      if (!spec) {
-        return wantsRelative || this.checkMatch(input)
-          ? [errorBox('Date Calculate', `Unknown timezone "${tzOption}"`)]
-          : [];
-      }
-      offsetAt = (date) => offsetForSpec(spec, date);
+    const timezone = resolveBoxTimezone(options, context);
+    if ('error' in timezone) {
+      return wantsRelative || this.checkMatch(input)
+        ? [errorBox('Date Calculate', timezone.error)]
+        : [];
     }
+    const { offsetAt } = timezone;
 
     if (wantsRelative) {
       if (!isString(input) || trim(input).length === 0 || input.length > 100) {

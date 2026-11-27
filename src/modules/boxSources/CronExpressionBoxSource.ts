@@ -1,8 +1,13 @@
 import { isString, trim } from '@functions/helper';
-import { getLocale, getTimezoneOffset } from '@functions/runtimePrefs';
+import { getLocale, resolveBoxTimezone } from '@functions/runtimePrefs';
 import { toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys, keyValueBox } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  keyValueBox,
+} from '@modules/Box';
 import type { BoxSourceContext } from '@modules/BoxSource';
 import {
   isCronExpressionSyntax,
@@ -124,17 +129,17 @@ export const CronExpressionBoxSource = {
     context?: BoxSourceContext,
   ): Promise<Box[]> {
     const capturedNow = new Date(context?.now ?? Date.now());
+    const timezone = resolveBoxTimezone(options, context);
     const match = await this.checkMatch(input, options);
     if (!match) {
       return [];
     }
 
+    if ('error' in timezone)
+      return [errorBox('Cron Expression', timezone.error)];
     const { answer } = match;
-    const nextTimes = nextCronOccurrences(
-      input,
-      capturedNow,
-      getTimezoneOffset,
-    );
+    const { offsetAt } = timezone;
+    const nextTimes = nextCronOccurrences(input, capturedNow, offsetAt);
     const nextBox =
       nextTimes.status === 'ok'
         ? keyValueBox(
@@ -143,7 +148,7 @@ export const CronExpressionBoxSource = {
             Object.fromEntries(
               nextTimes.occurrences.map((date, index) => [
                 String(index + 1),
-                toOffsetISOString(date, getTimezoneOffset(date)),
+                toOffsetISOString(date, offsetAt(date)),
               ]),
             ),
             { showExpandButton: false },

@@ -1,8 +1,9 @@
 import { isValidCalendarDate, parseDateString, trim } from '@functions/helper';
-import { getTimezoneOffset } from '@functions/runtimePrefs';
+import { resolveBoxTimezone } from '@functions/runtimePrefs';
 import { shiftDateToOffset } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, hasOptionKeys } from '@modules/Box';
+import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
 
 // day names indexed by ISO weekday (1=Mon..7=Sun)
 const DAY_NAMES = [
@@ -86,16 +87,19 @@ export const WeekNumberBoxSource = {
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
     if (!hasOptionKeys(options, 'weeknum', 'isoweek')) return [];
 
+    const timezone = resolveBoxTimezone(options, context);
+    if ('error' in timezone) return [errorBox('Week Number', timezone.error)];
+    const now = new Date(context?.now ?? Date.now());
     const raw = trim(input).slice(0, 64);
 
     // resolve the target date
     let date: Date;
     if (raw === '' || /^(today|now)$/i.test(raw)) {
-      const now = new Date();
-      const localDate = shiftDateToOffset(now, getTimezoneOffset(now));
+      const localDate = shiftDateToOffset(now, timezone.offsetAt(now));
       date = utcDate(
         localDate.getUTCFullYear(),
         localDate.getUTCMonth(),
@@ -106,8 +110,7 @@ export const WeekNumberBoxSource = {
       if (parsed) {
         let year = parsed.year;
         if (year === undefined) {
-          const now = new Date();
-          const localDate = shiftDateToOffset(now, getTimezoneOffset(now));
+          const localDate = shiftDateToOffset(now, timezone.offsetAt(now));
           year = localDate.getUTCFullYear();
         }
         date = isValidCalendarDate(year, parsed.month, parsed.day)
