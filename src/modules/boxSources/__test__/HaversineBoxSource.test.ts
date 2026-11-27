@@ -109,13 +109,16 @@ describe('HaversineBoxSource', () => {
   });
 
   describe('generateBoxes - same point (0,0 to 0,0)', () => {
-    it('Kilometers is 0', async () => {
+    it('reports zero distance in all units', async () => {
       const boxes = await HaversineBoxSource.generateBoxes('0,0 to 0,0', {
         haversine: true,
       });
       expect(boxes).toHaveLength(1);
-      const kv = boxes[0].props.options as Record<string, string>;
-      expect(kv.Kilometers).toBe('0');
+      expect(boxes[0].props.options).toMatchObject({
+        Kilometers: '0',
+        Miles: '0',
+        'Nautical Miles': '0',
+      });
     });
   });
 
@@ -143,6 +146,34 @@ describe('HaversineBoxSource', () => {
       // half circumference: 2 * pi * R / 2 = pi * 6371.0088 ≈ 20015
       expect(km).toBeGreaterThan(20000);
       expect(km).toBeLessThan(20060);
+    });
+  });
+
+  describe('generateBoxes - high-latitude antipodes', () => {
+    it.each([
+      '-88.2,0 to 88.2,180',
+      '88.2,180 to -88.2,0',
+    ])('reports half the circumference for %s', async (input) => {
+      const [box] = await HaversineBoxSource.generateBoxes(input, {
+        haversine: true,
+      });
+      expect(box.props.options).toMatchObject({
+        Kilometers: '20015.114',
+        Miles: '12436.816',
+        'Nautical Miles': '10807.297',
+      });
+    });
+
+    it('preserves a slightly shorter distance for near-antipodes', async () => {
+      const [box] = await HaversineBoxSource.generateBoxes(
+        '-88.2,0 to 88.199,180',
+        { haversine: true },
+      );
+      expect(box.props.options).toMatchObject({
+        Kilometers: '20015.003',
+        Miles: '12436.746',
+        'Nautical Miles': '10807.237',
+      });
     });
   });
 
