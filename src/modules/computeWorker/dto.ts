@@ -6,6 +6,8 @@ export const MAX_WORKER_BOX_COUNT = 64;
 export const MAX_WORKER_STRING_LENGTH = 1024 * 1024;
 export const MAX_WORKER_OUTPUT_LENGTH = 4 * MAX_WORKER_STRING_LENGTH;
 export const MAX_WORKER_OPTION_COUNT = 128;
+const MAX_WORKER_OPTION_NAME_LENGTH = 128;
+const MAX_WORKER_OPTION_VALUE_LENGTH = 4096;
 
 export interface WorkerBoxDTO {
   name: string;
@@ -134,20 +136,27 @@ function isNonEmptyBoundedString(
   return isBoundedString(value, max) && value.length > 0;
 }
 
-function isOptionValue(value: unknown): value is string | boolean {
-  return typeof value === 'boolean' || isBoundedString(value, 4096);
-}
-
-function isWorkerOptions(
-  value: unknown,
-): value is Record<string, string | boolean> | null {
-  if (value === null) return true;
-  if (!isRecord(value)) return false;
-  const keys = Object.keys(value);
-  if (keys.length > MAX_WORKER_OPTION_COUNT) return false;
-  return keys.every(
-    (key) => key.length > 0 && key.length <= 128 && isOptionValue(value[key]),
-  );
+function workerOptionsError(options: unknown): string | null {
+  if (options === null) return null;
+  if (!isRecord(options)) return 'Worker options must be a plain object.';
+  const keys = Object.keys(options);
+  if (keys.length > MAX_WORKER_OPTION_COUNT) {
+    return `Worker requests support at most ${MAX_WORKER_OPTION_COUNT} options.`;
+  }
+  for (const key of keys) {
+    if (key.length === 0 || key.length > MAX_WORKER_OPTION_NAME_LENGTH) {
+      return `Worker option names must contain 1 to ${MAX_WORKER_OPTION_NAME_LENGTH} characters.`;
+    }
+    const value = options[key];
+    if (typeof value === 'boolean') continue;
+    if (typeof value !== 'string') {
+      return 'Worker option values must be text or booleans.';
+    }
+    if (value.length > MAX_WORKER_OPTION_VALUE_LENGTH) {
+      return `A worker option value exceeds the ${MAX_WORKER_OPTION_VALUE_LENGTH}-character limit.`;
+    }
+  }
+  return null;
 }
 
 function isBoxView(value: unknown): value is BoxView {
@@ -180,7 +189,7 @@ export function isWorkerBoxDTO(value: unknown): value is WorkerBoxDTO {
   if (!isRecord(value)) return false;
   if (!isBoundedString(value.name, 512)) return false;
   if (!isBoundedString(value.plaintextOutput)) return false;
-  if (!isWorkerOptions(value.options)) return false;
+  if (workerOptionsError(value.options) !== null) return false;
   if (value.sourceInput !== undefined && !isBoundedString(value.sourceInput)) {
     return false;
   }
@@ -206,22 +215,31 @@ export function isWorkerBoxDTO(value: unknown): value is WorkerBoxDTO {
 export function isComputeWorkerRunRequest(
   value: unknown,
 ): value is ComputeWorkerRunRequest {
-  if (!isRecord(value) || value.type !== 'run') return false;
-  if (!isNonEmptyBoundedString(value.runId, 128)) return false;
-  if (!isBoundedString(value.input, MAX_WORKER_INPUT_LENGTH)) return false;
-  if (!isWorkerOptions(value.options)) return false;
+  return getComputeWorkerRunRequestError(value) === null;
+}
+
+export function getComputeWorkerRunRequestError(value: unknown): string | null {
+  const invalidRequest = 'Invalid compute worker request.';
+  if (!isRecord(value) || value.type !== 'run') return invalidRequest;
+  if (!isNonEmptyBoundedString(value.runId, 128)) return invalidRequest;
+  if (typeof value.input !== 'string') return invalidRequest;
+  if (value.input.length > MAX_WORKER_INPUT_LENGTH) {
+    return `Worker input exceeds the ${MAX_WORKER_INPUT_LENGTH}-character limit.`;
+  }
+  const optionsError = workerOptionsError(value.options);
+  if (optionsError !== null) return optionsError;
   if (
     !Array.isArray(value.sourceIds) ||
     value.sourceIds.length > MAX_WORKER_SOURCE_COUNT ||
     value.sourceIds.some((sourceId) => !isNonEmptyBoundedString(sourceId, 256))
   ) {
-    return false;
+    return invalidRequest;
   }
   if (typeof value.now !== 'number' || !Number.isSafeInteger(value.now)) {
-    return false;
+    return invalidRequest;
   }
-  if (!isNonEmptyBoundedString(value.locale, 128)) return false;
-  if (!isNonEmptyBoundedString(value.timezone, 128)) return false;
+  if (!isNonEmptyBoundedString(value.locale, 128)) return invalidRequest;
+  if (!isNonEmptyBoundedString(value.timezone, 128)) return invalidRequest;
   if (
     typeof value.timezoneOffset !== 'number' ||
     !Number.isFinite(value.timezoneOffset) ||
@@ -229,12 +247,12 @@ export function isComputeWorkerRunRequest(
     value.timezoneOffset > 14 ||
     !Number.isInteger(value.timezoneOffset * 4)
   ) {
-    return false;
+    return invalidRequest;
   }
   if (value.timezoneMode !== 'fixed' && value.timezoneMode !== 'system') {
-    return false;
+    return invalidRequest;
   }
-  return true;
+  return null;
 }
 
 export function isComputeWorkerRequest(

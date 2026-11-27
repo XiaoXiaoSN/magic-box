@@ -1,8 +1,8 @@
 import {
   type ComputeWorkerEvent,
   type ComputeWorkerRunRequest,
+  getComputeWorkerRunRequestError,
   isComputeWorkerEvent,
-  isComputeWorkerRunRequest,
   rehydrateWorkerBox,
   type WorkerBoxDTO,
 } from './dto';
@@ -94,13 +94,13 @@ export class ComputeWorkerClient {
     request: ComputeWorkerRunRequest,
     handlers: ComputeWorkerRunHandlers = {},
   ): ComputeWorkerRunHandle {
-    if (!isComputeWorkerRunRequest(request)) {
-      const promise = Promise.reject(
-        new Error('Invalid compute worker request.'),
-      );
+    const validationError = getComputeWorkerRunRequestError(request);
+    if (validationError !== null) {
+      const runId = typeof request?.runId === 'string' ? request.runId : '';
+      handlers.onFailure?.(runId, validationError);
       return {
-        runId: (request as { runId?: string }).runId ?? '',
-        promise,
+        runId,
+        promise: Promise.reject(new Error(validationError)),
         cancel: () => {},
       };
     }
