@@ -5,16 +5,19 @@ import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 const MAX_INPUT = 100_000;
 const UNICODE_ESCAPE_REGEX = /\\u(?:\{([0-9a-fA-F]{1,6})\}|([0-9a-fA-F]{4}))/y;
 
-// escape each UTF-16 code unit: keep printable ASCII (0x20–0x7e), \uXXXX everything else.
-// astral chars (e.g. emoji) are naturally emitted as surrogate pairs (\uD800–\uDFFF).
+// Double backslashes and preserve other printable ASCII (0x20–0x7e).
+// Encode other UTF-16 code units as \uXXXX, including each half of surrogate pairs.
 function escapeUnicode(input: string): string {
   let result = '';
   for (let i = 0; i < input.length; i++) {
-    const cp = input.charCodeAt(i);
-    if (cp >= 0x20 && cp <= 0x7e) {
-      result += input[i];
+    const character = input[i];
+    const codeUnit = input.charCodeAt(i);
+    if (character === '\\') {
+      result += '\\\\';
+    } else if (codeUnit >= 0x20 && codeUnit <= 0x7e) {
+      result += character;
     } else {
-      result += `\\u${cp.toString(16).padStart(4, '0')}`;
+      result += `\\u${codeUnit.toString(16).padStart(4, '0')}`;
     }
   }
   return result;

@@ -153,14 +153,21 @@ describe('UnicodeEscapeBoxSource', () => {
   });
 
   describe('round-trip', () => {
-    it('héllo escapes and unescapes back to the original', async () => {
-      const original = 'héllo';
-
+    it.each([
+      ['ordinary Unicode text', 'héllo', 'h\\u00e9llo'],
+      ['literal fixed-width escape', String.raw`\u0041`, String.raw`\\u0041`],
+      ['literal braced escape', String.raw`\u{1f600}`, String.raw`\\u{1f600}`],
+      ['doubled backslashes', String.raw`C:\\temp`, String.raw`C:\\\\temp`],
+      ['trailing backslash', 'path\\', 'path\\\\'],
+      ['backslash before non-ASCII', String.raw`\é`, String.raw`\\\u00e9`],
+      ['backslash before emoji', String.raw`\😀`, String.raw`\\\ud83d\ude00`],
+    ])('preserves %s', async (_case, original, expectedEscape) => {
       const escapeBoxes = await UnicodeEscapeBoxSource.generateBoxes(original, {
         unicodeescape: true,
       });
       expect(escapeBoxes).toHaveLength(1);
       const escaped = escapeBoxes[0].props.plaintextOutput;
+      expect(escaped).toBe(expectedEscape);
 
       const unescapeBoxes = await UnicodeEscapeBoxSource.generateBoxes(
         escaped,
