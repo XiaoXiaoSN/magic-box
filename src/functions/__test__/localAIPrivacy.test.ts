@@ -49,6 +49,34 @@ describe('isLocalAIInput', () => {
 
 describe('private input detection', () => {
   it.each([
+    'apiVersion: v1\nkind: Secret\ndata:\n  token: ZHVtbXk=',
+    '{"apiVersion":"v1","kind":"Secret","stringData":{"token":"dummy"}}',
+    '{"apiVersion":"v1","kind":\n"Secret","stringData":{"token":"dummy"}}',
+    '{"apiVersion":"v1","ki\\u006ed":"\\u0053ecret","stringData":{"token":"dummy"}}',
+    'apiVersion: v1\nkind:\n  Secret\nstringData: { token: dummy }',
+    'apiVersion: v1\nkind: List\nitems:\n  - apiVersion: v1\n    kind: Secret\n    stringData: { token: dummy }',
+    'apiVersion: v1\nkind: ConfigMap\n---\napiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
+    'apiVersion: v1\nkind: Secret\nstringData: { token: unfinished',
+    `apiVersion: v1\nkind: Secret\nstringData:\n  token: ${'x'.repeat(65_536)}`,
+  ])('protects Kubernetes Secret input %# before persistence or telemetry', async (input) => {
+    const { privacy } = await load();
+    expect(privacy.isPrivateInput(input)).toBe(true);
+    expect(privacy.isSensitiveInput(input)).toBe(true);
+    expect(
+      privacy.isPrivateInputMode(`?${new URLSearchParams({ input })}`),
+    ).toBe(true);
+  });
+
+  it.each([
+    'apiVersion: v1\nkind: ConfigMap\ndata:\n  sample: |\n    kind: Secret',
+    'apiVersion: v1\nkind: List\nitems:\n  - apiVersion: v1\n    kind: ConfigMap',
+    '{"kind":"Secret","unrelated":true}',
+  ])('keeps non-secret YAML and JSON shareable %#', async (input) => {
+    const { privacy } = await load();
+    expect(privacy.isPrivateInput(input)).toBe(false);
+  });
+
+  it.each([
     'hmac',
     'hmacsha1',
     'hmacsha256',

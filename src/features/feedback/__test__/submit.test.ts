@@ -65,6 +65,28 @@ describe('feedback upload boundary', () => {
     expect(sendFeedback).not.toHaveBeenCalled();
   });
 
+  it('rejects a Kubernetes Secret together with its decoded candidate before transport', async () => {
+    await expect(
+      submitFeedback(
+        {
+          ...sample(),
+          input: 'apiVersion: v1\nkind: Secret\ndata: { token: ZHVtbXk= }',
+          candidates: [
+            {
+              id: 'one',
+              sourceId: 'k8s-secret',
+              name: 'Kubernetes Secret',
+              output: 'token: dummy',
+              isError: false,
+            },
+          ],
+        },
+        () => true,
+      ),
+    ).rejects.toMatchObject({ reason: 'invalid' });
+    expect(sendFeedback).not.toHaveBeenCalled();
+  });
+
   it('forwards the validated immutable snapshot with a live permission check', async () => {
     const example = sample();
     const allowed = () => true;
