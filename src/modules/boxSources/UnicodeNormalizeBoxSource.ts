@@ -1,6 +1,6 @@
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, extractOptionKeys, hasOptionKeys } from '@modules/Box';
+import { extractOptionKeys, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const MAX_INPUT = 100_000;
 
@@ -47,18 +47,7 @@ export const UnicodeNormalizeBoxSource = {
       Changed: String(normalized !== input),
     };
 
-    // plaintext k:v lines for headless/TUI consumers
-    const plaintextOutput = Object.entries(kvOptions)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('\n');
-
-    return [
-      new BoxBuilder('Unicode Normalize', plaintextOutput)
-        .setOptions(kvOptions)
-        .setView('keyValue')
-
-        .build(),
-    ];
+    return [keyValueBox('keyValue', 'Unicode Normalize', kvOptions)];
   },
 };
 
