@@ -798,50 +798,13 @@ impl Dimension {
     }
 
     pub fn canonical_label(&self) -> String {
-        let mut numerator = Vec::new();
-        let mut denominator = Vec::new();
-        for (unit, exponent) in [
-            ("m", self.length),
-            ("kg", self.mass),
-            ("s", self.time),
-            ("K", self.temperature),
-            ("B", self.data),
-        ] {
-            if exponent > 0 {
-                numerator.push(dimension_factor(unit, i16::from(exponent)));
-            } else if exponent < 0 {
-                denominator.push(dimension_factor(unit, -i16::from(exponent)));
-            }
-        }
-        let numerator = numerator.join("*");
-        let denominator = denominator.join("*");
-        if denominator.is_empty() {
-            numerator
-        } else if numerator.is_empty() {
-            [
-                ("m", self.length),
-                ("kg", self.mass),
-                ("s", self.time),
-                ("K", self.temperature),
-                ("B", self.data),
-            ]
-            .into_iter()
-            .filter(|(_, exponent)| *exponent < 0)
-            .map(|(unit, exponent)| dimension_factor(unit, i16::from(exponent)))
-            .collect::<Vec<_>>()
-            .join("*")
-        } else {
-            alloc::format!("{numerator}/{denominator}")
-        }
-    }
-}
-
-#[cfg(feature = "unit")]
-fn dimension_factor(unit: &str, exponent: i16) -> String {
-    if exponent == 1 {
-        unit.into()
-    } else {
-        alloc::format!("{unit}^{exponent}")
+        crate::units::format_terms(&[
+            ("m", i16::from(self.length)),
+            ("kg", i16::from(self.mass)),
+            ("s", i16::from(self.time)),
+            ("K", i16::from(self.temperature)),
+            ("B", i16::from(self.data)),
+        ])
     }
 }
 

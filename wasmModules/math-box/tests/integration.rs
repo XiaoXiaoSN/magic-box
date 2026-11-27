@@ -704,6 +704,44 @@ fn unit_dimensions_are_checked_and_labels_are_canonical() {
 }
 
 #[test]
+#[cfg(feature = "unit")]
+fn canonical_unit_output_can_be_reentered_and_converted() {
+    let product = "(1 m/kg/s)*(1 m/kg/s)";
+    let displayed = evaluate(product).expect("product");
+    assert_eq!(displayed, "1 m^2/kg^2/s^2");
+    let target = "cm^2/kg^2/s^2";
+    assert_eval(&format!("({product}) to {target}"), "10000 cm^2/kg^2/s^2");
+    assert_eval(&format!("{displayed} to {target}"), "10000 cm^2/kg^2/s^2");
+}
+
+#[test]
+#[cfg(feature = "unit")]
+fn square_root_canonical_fallback_can_be_reentered_for_arithmetic() {
+    // The dimensions are even but the separate kg/g and s/ms factors
+    // have odd powers, so the square root must use canonical units.
+    let root = "sqrt(4 m^2/kg/g/s/ms)";
+    let displayed = evaluate(root).expect("square root");
+    assert_eq!(displayed, "2000 m/kg/s");
+    assert_eval(&format!("({root} * 3 s) to cm/g"), "600 cm/g");
+    assert_eval(&format!("({displayed} * 3 s) to cm/g"), "600 cm/g");
+}
+
+#[test]
+#[cfg(feature = "unit")]
+fn canonical_minimum_exponent_survives_follow_up_arithmetic() {
+    let displayed = evaluate("(1 m/kg^64/s)*(1 m/kg^64/s)").expect("product");
+    assert_eval(
+        &format!("{displayed} to m^2*kg^-128/s^2"),
+        "1 m^2*kg^-128/s^2",
+    );
+    let scaled = evaluate(&format!("{displayed} * 2 K")).expect("multiply");
+    assert_eval(
+        &format!("{scaled} to m^2*K*kg^-128/s^2"),
+        "2 m^2*K*kg^-128/s^2",
+    );
+}
+
+#[test]
 fn typed_math_b_operations() {
     assert_eval("10 km / 2 h", "5 km/h");
     assert_eval("1 km / 1 s", "1 km/s");
