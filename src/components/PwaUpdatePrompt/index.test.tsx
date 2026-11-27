@@ -61,6 +61,19 @@ function installServiceWorkerMock(
   return container;
 }
 
+function stalledVersionResponse(signal?: AbortSignal | null): Response {
+  return new Response(
+    new ReadableStream<Uint8Array>({
+      start(stream) {
+        stream.enqueue(new TextEncoder().encode('{"version":'));
+        signal?.addEventListener('abort', () => stream.error(signal.reason), {
+          once: true,
+        });
+      },
+    }),
+  );
+}
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -72,6 +85,84 @@ afterEach(() => {
 });
 
 describe('<PwaUpdatePrompt />', () => {
+  it('aborts a stalled version body at the discovery deadline and recovers on an online event', async () => {
+    vi.useFakeTimers();
+    installServiceWorkerMock(vi.fn().mockResolvedValue({}));
+    let activeSignal: AbortSignal | null | undefined;
+    const fetchVersion = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementationOnce(async (_input, init) => {
+        activeSignal = init?.signal;
+        return stalledVersionResponse(activeSignal);
+      })
+      .mockResolvedValueOnce(
+        Response.json({ serviceWorker: '/sw-next.js', version: 'next' }),
+      );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(7_999);
+    });
+    expect(activeSignal?.aborted).toBe(false);
+    expect(fetchVersion).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(activeSignal?.aborted).toBe(true);
+    expect(
+      screen.queryByText('New version available.'),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(fetchVersion).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('New version available.')).toBeVisible();
+  });
+
+  it('aborts the discovery body on unmount without running a queued check', async () => {
+    vi.useFakeTimers();
+    installServiceWorkerMock(vi.fn().mockResolvedValue({}));
+    let activeSignal: AbortSignal | null | undefined;
+    const fetchVersion = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementationOnce(async (_input, init) => {
+        activeSignal = init?.signal;
+        return stalledVersionResponse(activeSignal);
+      });
+
+    const { unmount } = render(
+      <LocaleProvider>
+        <PwaUpdatePrompt />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(activeSignal?.aborted).toBe(false);
+    expect(fetchVersion).toHaveBeenCalledOnce();
+
+    await act(async () => {
+      unmount();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(activeSignal?.aborted).toBe(true);
+    expect(fetchVersion).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    expect(
+      screen.queryByText('New version available.'),
+    ).not.toBeInTheDocument();
+  });
+
   it('asks before installing and activating the latest worker', async () => {
     const latestVersion = '0.2.0-2026-09-02T08:00:00.000Z';
     const latestWorkerPath = '/sw-0-2-0-2026-09-02T08-00-00-000Z.js';

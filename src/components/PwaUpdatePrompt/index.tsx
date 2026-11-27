@@ -7,6 +7,7 @@ import { buildVersion, serviceWorkerUrl } from '../../global/buildInfo';
 import './styles.css';
 
 const checkIntervalMs = 60 * 60 * 1000;
+const discoveryTimeoutMs = 8_000;
 const updateTimeoutMs = 10 * 1000;
 
 interface VersionManifest {
@@ -120,23 +121,32 @@ const PwaUpdatePrompt = ({
 
     mountedRef.current = true;
     let disposed = false;
-    let checking = false;
+    let activeCheck: {
+      controller: AbortController;
+      timeout: ReturnType<typeof setTimeout>;
+    } | null = null;
     let checkAgain = false;
     const serviceWorker = navigator.serviceWorker;
     controlledAtMount.current = serviceWorker.controller !== null;
 
     const checkForUpdate = async (): Promise<void> => {
       if (disposed) return;
-      if (checking) {
+      if (activeCheck) {
         checkAgain = true;
         return;
       }
-      checking = true;
+      const controller = new AbortController();
+      const { signal } = controller;
+      const timeout = setTimeout(() => controller.abort(), discoveryTimeoutMs);
+      activeCheck = { controller, timeout };
       try {
-        const response = await fetch('/version.json', { cache: 'no-store' });
-        if (!response.ok) return;
+        const response = await fetch('/version.json', {
+          cache: 'no-store',
+          signal,
+        });
+        if (!response.ok || signal.aborted) return;
         const manifest: unknown = await response.json();
-        if (!isVersionManifest(manifest) || disposed) return;
+        if (signal.aborted || disposed || !isVersionManifest(manifest)) return;
 
         if (
           manifest.version === buildVersion &&
@@ -152,7 +162,8 @@ const PwaUpdatePrompt = ({
       } catch {
         // update discovery is best-effort while offline or during deployment
       } finally {
-        checking = false;
+        clearTimeout(timeout);
+        activeCheck = null;
         if (checkAgain && !disposed) {
           checkAgain = false;
           void checkForUpdate();
@@ -187,6 +198,10 @@ const PwaUpdatePrompt = ({
 
     return () => {
       disposed = true;
+      if (activeCheck) {
+        clearTimeout(activeCheck.timeout);
+        activeCheck.controller.abort();
+      }
       mountedRef.current = false;
       updateAttemptRef.current += 1;
       clearInterval(updateIntervalId);

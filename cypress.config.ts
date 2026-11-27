@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, extname, join } from 'node:path';
 import { promisify } from 'node:util';
@@ -38,6 +38,27 @@ export async function preprocessCypressFile(
   return outputPath;
 }
 
+async function buildPwaUpdateManifest(): Promise<unknown> {
+  const outputDir = await mkdtemp(join(tmpdir(), 'magic-box-pwa-update-'));
+  try {
+    await execFileAsync(
+      'bun',
+      ['x', '--no-install', 'vite', 'build', '--outDir', outputDir],
+      {
+        env: {
+          ...process.env,
+          GITHUB_SHA: randomBytes(6).toString('hex'),
+          SENTRY_AUTH_TOKEN: '',
+        },
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+    return JSON.parse(await readFile(join(outputDir, 'version.json'), 'utf8'));
+  } finally {
+    await rm(outputDir, { recursive: true, force: true });
+  }
+}
+
 export default defineConfig({
   projectId: 'sjqi3t',
   e2e: {
@@ -47,6 +68,7 @@ export default defineConfig({
     excludeSpecPattern: ['cypress/e2e/math-wasm-offline.cy.ts'],
     setupNodeEvents(on) {
       on('file:preprocessor', preprocessCypressFile);
+      on('task', { buildPwaUpdateManifest });
     },
   },
   component: {
