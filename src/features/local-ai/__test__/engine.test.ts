@@ -474,43 +474,98 @@ describe('local AI engine', () => {
     });
   });
 
-  it('reports generated token count, token rate and time to first visible output', async () => {
+  it.each([
+    {
+      name: 'buffered output after several token steps',
+      steps: [{ at: 4_000 }, { at: 7_000 }, { at: 10_000, text: 'answer' }],
+      finishedAt: 10_001,
+      tokensPerSecond: 3 / 9.001,
+      timeToFirstTokenMs: 9_000,
+    },
+    {
+      name: 'a single token flushed at completion',
+      steps: [{ at: 2_000, text: 'answer' }],
+      finishedAt: 2_000,
+      tokensPerSecond: 1,
+      timeToFirstTokenMs: 1_000,
+    },
+    {
+      name: 'several visible chunks',
+      steps: [
+        { at: 1_200, text: 'one ' },
+        { at: 1_700, text: 'two ' },
+        { at: 2_400, text: 'three' },
+      ],
+      finishedAt: 2_500,
+      tokensPerSecond: 2,
+      timeToFirstTokenMs: 200,
+    },
+    {
+      name: 'a zero-length generation interval',
+      steps: [{ at: 1_000, text: 'answer' }],
+      finishedAt: 1_000,
+      tokensPerSecond: null,
+      timeToFirstTokenMs: 0,
+    },
+    {
+      name: 'a generated token with no visible text',
+      steps: [{ at: 1_500, text: '' }],
+      finishedAt: 2_000,
+      tokensPerSecond: 1,
+      timeToFirstTokenMs: null,
+    },
+    {
+      name: 'completion without generated tokens',
+      steps: [],
+      finishedAt: 2_000,
+      tokensPerSecond: null,
+      timeToFirstTokenMs: null,
+    },
+  ])('measures throughput across the whole generation for $name', async ({
+    steps,
+    finishedAt,
+    tokensPerSecond,
+    timeToFirstTokenMs,
+  }) => {
     const setup = await prepared(setupEngine());
-    const times = [1_000, 1_100, 3_100];
-    vi.spyOn(performance, 'now').mockImplementation(
-      () => times.shift() ?? 3_100,
-    );
+    let now = 1_000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
     setup.options.generate = async (config) => {
-      const processor = (
-        config.logits_processor as ((
-          inputIds: bigint[][],
-          logits: Logits,
-        ) => Logits)[]
-      )[0];
-      for (let token = 0; token < 3; token++) {
-        processor([new Array(20 + token).fill(0n)], {
+      const [processor] = config.logits_processor as ((
+        inputIds: bigint[][],
+        logits: Logits,
+      ) => Logits)[];
+      const streamer = config.streamer as { callback: (text: string) => void };
+      for (const [index, { at, text }] of steps.entries()) {
+        now = at;
+        processor([new Array(setup.options.tokens + index).fill(0n)], {
           0: { data: new Float32Array(8).fill(1) },
         });
+        if (text !== undefined) streamer.callback(text);
       }
-      (config.streamer as { callback: (text: string) => void }).callback(
-        'text',
-      );
+      now = finishedAt;
     };
+
     await setup.engine.handle({
       type: 'generate',
       id: 13,
       request: { input: 'A prompt', task: 'ask', language: 'en' },
     });
-    expect(setup.events.at(-1)).toEqual({
-      type: 'complete',
-      id: 13,
-      metrics: {
-        outputTokens: 3,
-        tokensPerSecond: 1.5,
-        timeToFirstTokenMs: 100,
+
+    expect(setup.events).toEqual([
+      ...steps.flatMap(({ text }) =>
+        text ? [{ type: 'delta', id: 13, text }] : [],
+      ),
+      {
+        type: 'complete',
+        id: 13,
+        metrics: {
+          outputTokens: steps.length,
+          tokensPerSecond,
+          timeToFirstTokenMs,
+        },
       },
-    });
-    vi.restoreAllMocks();
+    ]);
   });
 
   it('rejects an over-budget tokenized prompt before calling generate', async () => {
