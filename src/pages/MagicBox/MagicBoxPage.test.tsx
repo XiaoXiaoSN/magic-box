@@ -193,6 +193,69 @@ describe('<MagicBoxPage />', () => {
     vi.restoreAllMocks();
   });
 
+  it('saves, renames, loads and deletes a preset independently of recent history', () => {
+    const input = '{"value":42}\n::jsonpointer=/value';
+    const first = renderPage();
+    typeInput(input);
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+      target: { value: 'JSON lookup' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save input' }));
+    expect(screen.getByRole('button', { name: 'JSON lookup' })).toBeEnabled();
+    first.unmount();
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(
+        Array.from({ length: 55 }, (_, index) => ({
+          id: String(index),
+          timestamp: index,
+          input: `recent ${index}`,
+        })),
+      ),
+    );
+    renderPage();
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename JSON lookup' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+      target: { value: 'Read a value' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Read a value' }));
+    expect(getInput()).toHaveValue(input);
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete Read a value' }),
+    );
+    expect(screen.queryByRole('button', { name: 'Read a value' })).toBeNull();
+  });
+
+  it('does not offer to save sensitive inputs', () => {
+    renderPage();
+    typeInput('payload\n::secret=test-key');
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    expect(screen.getByRole('textbox', { name: 'Preset name' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save input' })).toBeDisabled();
+    expect(localStorage.getItem('mb_saved_inputs')).toBeNull();
+  });
+
+  it('saves a preset without the secure-context UUID helper', () => {
+    vi.stubGlobal('crypto', {});
+    try {
+      renderPage();
+      typeInput('hello');
+      fireEvent.click(screen.getByTestId('history-toggle'));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+        target: { value: 'Example' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save input' }));
+      expect(screen.getByRole('button', { name: 'Example' })).toBeEnabled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('prefills state from the ?input query param on mount', () => {
     window.history.replaceState({}, '', '/?input=hello%20world');
 

@@ -657,6 +657,33 @@ pre,
   animation: history-slide-in 160ms ease-out;
 }
 
+.saved-inputs {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.saved-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.saved-input-row :is(input, .history-item-btn) {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-input-row input {
+  padding: 6px 8px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
 @keyframes history-slide-in {
   from {
     opacity: 0;
