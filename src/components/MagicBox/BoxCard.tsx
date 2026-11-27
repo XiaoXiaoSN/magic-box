@@ -108,6 +108,7 @@ const BoxCard = memo(
           window.clearTimeout(copiedTimer.current);
           copiedTimer.current = null;
         }
+        setJustCopied(false);
       }, [stale]);
 
       useLayoutEffect(() => {
