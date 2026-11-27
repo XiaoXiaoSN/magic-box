@@ -1,3 +1,4 @@
+import { retryableLazy } from '@components/ErrorBoundary';
 import CustomizedSnackbar, {
   type SnackbarNotification,
 } from '@components/Snackbar';
@@ -27,7 +28,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import BoxCard from './BoxCard';
 import BoxModal from './BoxModal';
 
-const FeedbackPanel = React.lazy(
+const FeedbackPanel = retryableLazy(
   () => import('../../features/feedback/FeedbackPanel'),
 );
 

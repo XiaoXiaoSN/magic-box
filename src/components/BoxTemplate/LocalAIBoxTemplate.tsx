@@ -1,10 +1,11 @@
+import { retryableLazy } from '@components/ErrorBoundary';
 import type { BoxProps } from '@modules/Box';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 // Lazy so neither the panel nor its worker-facing modules land in the initial
 // bundle: the box only renders once the user asks for `::ai`.
-const LocalAIPanel = lazy(
-  async () => import('../../features/local-ai/LocalAIPanel'),
+const LocalAIPanel = retryableLazy(
+  () => import('../../features/local-ai/LocalAIPanel'),
 );
 
 // Adapts the framework-agnostic panel to the Box contract. The panel publishes

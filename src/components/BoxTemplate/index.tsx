@@ -1,13 +1,15 @@
-import { lazy } from 'react';
+import { retryableLazy } from '@components/ErrorBoundary';
 import DefaultBoxTemplate from './DefaultBoxTemplate';
 import KeyValueBoxTemplate from './KeyValueBoxTemplate';
 import ShortenURLBoxTemplate from './ShortenURLBoxTemplate';
 
-const CodeBoxTemplate = lazy(async () => import('./CodeBoxTemplate'));
-const DiffBoxTemplate = lazy(async () => import('./DiffBoxTemplate'));
-const DiceRollBoxTemplate = lazy(async () => import('./DiceRollBoxTemplate'));
-const LocalAIBoxTemplate = lazy(async () => import('./LocalAIBoxTemplate'));
-const QRCodeBoxTemplate = lazy(async () => import('./QRCodeBoxTemplate'));
+const CodeBoxTemplate = retryableLazy(() => import('./CodeBoxTemplate'));
+const DiffBoxTemplate = retryableLazy(() => import('./DiffBoxTemplate'));
+const DiceRollBoxTemplate = retryableLazy(
+  () => import('./DiceRollBoxTemplate'),
+);
+const LocalAIBoxTemplate = retryableLazy(() => import('./LocalAIBoxTemplate'));
+const QRCodeBoxTemplate = retryableLazy(() => import('./QRCodeBoxTemplate'));
 
 export {
   CodeBoxTemplate,

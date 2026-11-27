@@ -1,8 +1,9 @@
+import { retryableLazy } from '@components/ErrorBoundary';
 import type { ThemeMode } from '@global/theme';
 import type { BoxProps } from '@modules/Box';
 import { CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { lazy, memo, Suspense } from 'react';
+import { memo, Suspense } from 'react';
 import type { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 
 interface HighlighterProps {
@@ -16,7 +17,7 @@ interface HighlighterProps {
 // lazy-load the Light build so the highlighter stays out of the main bundle.
 // only the languages actually used by the app are registered, avoiding the
 // 500+ per-language chunks emitted when importing the full build.
-const LazyHighlighter = lazy(async () => {
+const LazyHighlighter = retryableLazy(async () => {
   const [
     { default: SyntaxHighlighter },
     atomOneLight,

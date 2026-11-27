@@ -1,3 +1,4 @@
+import { retryableLazy } from '@components/ErrorBoundary';
 import MagicBox from '@components/MagicBox';
 import DirectiveAutocomplete, {
   DirectiveChips,
@@ -8,7 +9,8 @@ import {
   isPrivateInput,
 } from '@functions/localAIPrivacy';
 import { buildShareLink } from '@functions/shareLink';
-import React, {
+import type React from 'react';
+import {
   Suspense,
   useCallback,
   useEffect,
@@ -27,7 +29,7 @@ import {
 } from '../../hooks/useSearchHistory';
 import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 
-const QRCodeReader = React.lazy(async () => import('@components/QRCodeReader'));
+const QRCodeReader = retryableLazy(() => import('@components/QRCodeReader'));
 
 const readSharedInput = (search: string): string | null => {
   const params = new URLSearchParams(search);

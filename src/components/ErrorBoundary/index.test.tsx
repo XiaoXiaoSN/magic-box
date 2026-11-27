@@ -5,13 +5,14 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
 import ErrorBoundary, {
   handleRootCaughtError,
   RootErrorFallback,
+  retryableLazy,
 } from './index';
 
 const ThrowingChild = (): React.JSX.Element => {
@@ -27,7 +28,9 @@ describe('<ErrorBoundary />', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
-      <ErrorBoundary fallback={(retry) => <RootErrorFallback retry={retry} />}>
+      <ErrorBoundary
+        fallback={({ retry }) => <RootErrorFallback retry={retry} />}
+      >
         <ThrowingChild />
       </ErrorBoundary>,
     );
@@ -51,7 +54,7 @@ describe('<ErrorBoundary />', () => {
             fix
           </button>
           <ErrorBoundary
-            fallback={(retry) => (
+            fallback={({ retry }) => (
               <button onClick={retry} type="button">
                 retry
               </button>
@@ -102,6 +105,56 @@ describe('<ErrorBoundary />', () => {
     errorSpy.mockRestore();
   });
 
+  it('retries a failed loader when its reset key changes', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const load = vi
+      .fn(async () => ({ default: () => <p>recovered lazy content</p> }))
+      .mockRejectedValueOnce(new Error('offline'));
+    const LazyContent = retryableLazy(load);
+    const renderBoundary = (resetKey: string) => (
+      <ErrorBoundary resetKey={resetKey}>
+        <Suspense fallback={null}>
+          <LazyContent />
+        </Suspense>
+      </ErrorBoundary>
+    );
+    const { rerender } = render(renderBoundary('initial'));
+    await screen.findByTestId('error-boundary-fallback');
+    expect(load).toHaveBeenCalledTimes(1);
+
+    rerender(renderBoundary('changed'));
+
+    expect(
+      await screen.findByText('recovered lazy content'),
+    ).toBeInTheDocument();
+    expect(load).toHaveBeenCalledTimes(2);
+    errorSpy.mockRestore();
+  });
+
+  it('offers only reload for a failed Vite stylesheet preload', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const load = vi
+      .fn(async () => ({ default: () => null }))
+      .mockRejectedValueOnce(
+        new Error('Unable to preload CSS for /assets/template-01234567.css'),
+      );
+    const LazyContent = retryableLazy(load);
+    render(
+      <ErrorBoundary>
+        <Suspense fallback={null}>
+          <LazyContent />
+        </Suspense>
+      </ErrorBoundary>,
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'Reload page' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
+    expect(load).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
+  });
+
   it('redacts caught errors from the production root callback', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const container = document.createElement('div');
@@ -113,7 +166,7 @@ describe('<ErrorBoundary />', () => {
     await act(async () => {
       root.render(
         <ErrorBoundary
-          fallback={(retry) => <RootErrorFallback retry={retry} />}
+          fallback={({ retry }) => <RootErrorFallback retry={retry} />}
         >
           <ThrowingChild />
         </ErrorBoundary>,

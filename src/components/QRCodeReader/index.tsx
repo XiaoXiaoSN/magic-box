@@ -1,11 +1,12 @@
+import { retryableLazy } from '@components/ErrorBoundary';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import type { SxProps, Theme } from '@mui/material/styles';
 import React, { useEffect, useRef, useState } from 'react';
 
-const QRCodeReaderWrapper = React.lazy(
-  async () => import('./QRCodeReaderWrapper'),
+const QRCodeReaderWrapper = retryableLazy(
+  () => import('./QRCodeReaderWrapper'),
 );
 
 interface QRCodeReaderProps {

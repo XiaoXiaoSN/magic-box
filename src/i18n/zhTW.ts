@@ -193,7 +193,11 @@ const zhTW: Translations = {
 
   'errorBoundary.boxTitle': '此 Box 無法顯示',
   'errorBoundary.boxMessage': '請重試或更換輸入內容。',
+  'errorBoundary.loadMessage':
+    '請確認網路連線後重試。若仍無法載入，請重新載入頁面。',
   'errorBoundary.retry': '重試',
+  'errorBoundary.reloadMessage': '請確認網路連線，然後重新載入頁面。',
+  'errorBoundary.reload': '重新載入頁面',
 
   'toolsList.noBoxes': '沒有可用的 Box',
   'toolsList.noBoxesHint': '請在設定中啟用一些 Box 以開始使用。',

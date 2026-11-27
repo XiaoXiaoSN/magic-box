@@ -63,7 +63,7 @@ const BoxModal = memo(
         titleId="box-modal-title"
       >
         <ErrorBoundary
-          fallback={(retry) => <TemplateErrorFallback retry={retry} />}
+          fallback={(actions) => <TemplateErrorFallback {...actions} />}
           resetKey={box}
         >
           <Suspense fallback={null}>
