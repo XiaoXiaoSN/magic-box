@@ -657,6 +657,17 @@ pre,
   animation: history-slide-in 160ms ease-out;
 }
 
+.file-hash-panel {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  overflow-wrap: anywhere;
+}
+
+.file-hash-panel p {
+  margin: 6px 0;
+}
+
 .saved-inputs {
   display: grid;
   gap: 6px;

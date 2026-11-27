@@ -50,6 +50,11 @@ explicit option (such as `::sha256`).
 - Enter: copy the selected Box output to clipboard
 - Cmd/Ctrl + Enter: copy the selected Box output and paste it into the input field (recalculates results)
 
+Use **Hash a file** below the input, or drop one file in that area, to compute
+SHA-256 from its original bytes. Files up to 32 MiB are processed locally in a
+worker. You can cancel before completion or download the checksum as a
+`.sha256` text file containing the digest and a newline.
+
 ## Tools 🧰
 
 Browse the [interactive tool list](https://mb.10oz.tw/list) or the

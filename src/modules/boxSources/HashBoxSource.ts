@@ -1,3 +1,4 @@
+import { bytesToHex, digestHex } from '@functions/digest';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, hasOptionKeys } from '@modules/Box';
 
@@ -40,19 +41,11 @@ function hasValuedShaOption(options: BoxOptions): boolean {
   );
 }
 
-function bufToHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 async function computeHash(
   algorithm: SupportedAlgorithm,
   input: string,
 ): Promise<string> {
-  const encoded = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest(algorithm, encoded);
-  return bufToHex(digest);
+  return digestHex(algorithm, new TextEncoder().encode(input));
 }
 
 const MD5_SHIFT = [
@@ -135,7 +128,7 @@ function computeMd5(input: string): string {
   digestView.setUint32(4, b0 >>> 0, true);
   digestView.setUint32(8, c0 >>> 0, true);
   digestView.setUint32(12, d0 >>> 0, true);
-  return bufToHex(digest);
+  return bytesToHex(digest);
 }
 
 export const HashBoxSource = {
