@@ -259,7 +259,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
     id: 'date-calculate',
     name: 'Date Calculate',
     description:
-      'Add or subtract calendar or time units from a date, or compute the duration between two dates.',
+      'Add or subtract time, calculate a duration, or compare multiple time zones with ::tzcompare.',
     defaultInput: 'now + 7d',
     tag: '⏱',
     kind: 'Time',
@@ -270,6 +270,7 @@ const definitions: readonly LazyBoxSourceDefinition[] = [
       'relativetime',
       'tz',
       'timezone',
+      'tzcompare',
     ],
     headless: true,
     workerSafe: true,

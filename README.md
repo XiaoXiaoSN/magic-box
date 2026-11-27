@@ -179,6 +179,11 @@ Any of these options also reads input that is too irregular to guess (ragged row
 
 `now`, `today` and dates without an explicit offset use the timezone from Settings. Override it per query with `::tz` (alias `::timezone`): an offset (`::tz=0`, `::tz=-8`, `::tz=+05:30`, `::tz=UTC+9`), an IANA id (`::tz=Asia/Taipei`) or a city (`::tz=taipei`, `::tz=new york`). Named zones follow DST.
 
+Use `::tzcompare=Asia/Taipei,America/New_York,Europe/London` to compare the
+same instant across cities. Supply `now`, a Unix timestamp, or an ISO date and
+time with an explicit offset such as `2025-11-02T05:30:00Z`. The results include
+the UTC reference and use the offsets in effect at that instant.
+
 </details>
 
 <details>

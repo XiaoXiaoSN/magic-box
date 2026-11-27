@@ -9,9 +9,22 @@ import {
   getTimezoneOffset,
   resolveBoxTimezone,
 } from '@functions/runtimePrefs';
-import { shiftDateToOffset, toOffsetISOString } from '@functions/timezone';
+import {
+  formatOffsetLabel,
+  formatOffsetSuffix,
+  offsetForSpec,
+  parseTimezoneSpec,
+  shiftDateToOffset,
+  toOffsetISOString,
+} from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
-import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
+import {
+  BoxBuilder,
+  errorBox,
+  extractOptionKeys,
+  hasOptionKeys,
+  keyValueBox,
+} from '@modules/Box';
 import type { BoxSourceContext } from '@modules/BoxSource';
 import { toIntlLocale } from '../../i18n';
 
@@ -300,6 +313,68 @@ function formatDateOnly(date: Date): string {
   return `${String(date.getUTCFullYear()).padStart(4, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
+const TIME_COMPARISON_NAME = 'Time Zone Comparison';
+
+function compareTimezones(
+  input: string,
+  zoneList: string | true,
+  now: number,
+): Box {
+  const fail = (message: string) => errorBox(TIME_COMPARISON_NAME, message);
+  if (typeof zoneList !== 'string' || zoneList.length > 300) {
+    return fail(
+      'Enter up to 12 comma-separated zones, e.g. ::tzcompare=Asia/Taipei,America/New_York,Europe/London.',
+    );
+  }
+  const labels = zoneList.split(',').map((zone) => zone.trim());
+  if (labels.length > 12 || labels.some((label) => label === ''))
+    return fail('Enter between 1 and 12 nonempty time zones.');
+
+  const raw = trim(input);
+  const absolute =
+    TIMESTAMP_PATTERN.test(raw) ||
+    (/^\d{4}-\d{2}-\d{2}[Tt ]/.test(raw) &&
+      DATE_TIME_PATTERN.exec(raw)?.[6] !== undefined);
+  const date =
+    raw === '' || raw.toLowerCase() === 'now'
+      ? new Date(now)
+      : absolute
+        ? parseDateInput(raw, () => 0)?.date
+        : undefined;
+  if (!date || !Number.isFinite(date.getTime())) {
+    return fail(
+      'Enter now, a Unix timestamp, or an ISO date and time with Z or an explicit offset.',
+    );
+  }
+
+  const values: Record<string, string> = { UTC: date.toISOString() };
+  for (const label of labels) {
+    const spec = parseTimezoneSpec(label);
+    if (!spec) return fail(`Unknown time zone "${label}".`);
+    const key =
+      spec.kind === 'iana'
+        ? spec.timeZone
+        : formatOffsetLabel(spec.offsetHours);
+    const offset = offsetForSpec(spec, date);
+    if (!Number.isFinite(shiftDateToOffset(date, offset).getTime()))
+      return fail(`Date outside the supported range in ${key}.`);
+    const offsetSeconds = Math.round(offset * 3600);
+    if (offsetSeconds % 60 === 0) {
+      values[key] = toOffsetISOString(date, offset);
+    } else {
+      // Some historical zones have second-precision offsets.
+      const sign = offsetSeconds < 0 ? '-' : '+';
+      const minuteSuffix = formatOffsetSuffix(
+        Math.floor(Math.abs(offsetSeconds) / 60) / 60,
+      ).slice(1);
+      const seconds = String(Math.abs(offsetSeconds % 60)).padStart(2, '0');
+      values[key] =
+        `${shiftDateToOffset(date, offset).toISOString().slice(0, -1)}${sign}${minuteSuffix}:${seconds}`;
+    }
+  }
+  return keyValueBox('keyValue', TIME_COMPARISON_NAME, values);
+}
+
 function formatParsedDate(parsed: ParsedDate, offsetAt: OffsetAt): string {
   if (parsed.dateOnly) return formatDateOnly(parsed.date);
   if (parsed.zone === 'preferred') {
@@ -433,7 +508,7 @@ function formatDuration(diffMicroseconds: bigint): string {
 export const DateCalculateBoxSource = {
   name: 'Date Calculate',
   description:
-    'Add or subtract calendar or time units from a date, or compute the duration between two dates.',
+    'Add or subtract time, calculate a duration, or compare multiple time zones with ::tzcompare.',
   defaultInput: 'now + 7d',
   tag: '⏱',
   kind: 'Time',
@@ -536,6 +611,10 @@ export const DateCalculateBoxSource = {
     options: BoxOptions = null,
     context?: BoxSourceContext,
   ): Promise<Box[]> {
+    const comparison = extractOptionKeys(options, 'tzcompare');
+    if (comparison !== null && comparison !== false) {
+      return [compareTimezones(input, comparison, context?.now ?? Date.now())];
+    }
     const wantsRelative = hasOptionKeys(
       options,
       'relative',

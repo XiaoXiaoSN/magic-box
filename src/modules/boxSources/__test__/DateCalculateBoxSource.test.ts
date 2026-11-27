@@ -19,6 +19,48 @@ describe('DateCalculateBoxSource', () => {
     setRuntimePrefs({ timezoneOffset: 8, timezoneMode: 'fixed', locale: 'en' });
   });
 
+  describe('time zone comparison', () => {
+    const zones = { tzcompare: 'Asia/Taipei,New York,Europe/London,UTC+5:45' };
+
+    it('uses each zone’s offset at the same instant and ignores default timezone settings', async () => {
+      const raw = '2025-03-09T07:00:00Z';
+      const [result] = await DateCalculateBoxSource.generateBoxes(raw, zones);
+      expect(result.view).toBe('keyValue');
+      expect(result.props.options).toEqual({
+        UTC: '2025-03-09T07:00:00.000Z',
+        'Asia/Taipei': '2025-03-09T15:00:00.000+08:00',
+        'America/New_York': '2025-03-09T03:00:00.000-04:00',
+        'Europe/London': '2025-03-09T07:00:00.000+00:00',
+        'UTC+5:45': '2025-03-09T12:45:00.000+05:45',
+      });
+      setRuntimePrefs({ timezoneOffset: -5, timezoneMode: 'system' });
+      const [other] = await DateCalculateBoxSource.generateBoxes(raw, zones);
+      expect(other.props.plaintextOutput).toBe(result.props.plaintextOutput);
+    });
+
+    it.each([
+      ['2025-11-02T05:30:00Z', '2025-11-02T01:30:00.000-04:00'],
+      ['2025-11-02T06:30:00Z', '2025-11-02T01:30:00.000-05:00'],
+    ])('distinguishes repeated wall-clock times for %s', async (raw, expected) => {
+      const [result] = await DateCalculateBoxSource.generateBoxes(raw, zones);
+      expect(result.props.options?.['America/New_York']).toBe(expected);
+    });
+
+    it('rejects an ambiguous wall time and an unknown zone', async () => {
+      const [ambiguous] = await DateCalculateBoxSource.generateBoxes(
+        '2025-11-02T01:30:00',
+        zones,
+      );
+      const [unknown] = await DateCalculateBoxSource.generateBoxes('now', {
+        tzcompare: 'not-a-city',
+      });
+      expect(ambiguous.props.plaintextOutput).toContain('explicit offset');
+      expect(unknown.props.plaintextOutput).toContain('Unknown time zone');
+      expect(ambiguous.props.isError).toBe(true);
+      expect(unknown.props.isError).toBe(true);
+    });
+  });
+
   describe('parseDate', () => {
     it.each([
       ['2024-01-01', '2024-01-01T00:00:00.000Z'],

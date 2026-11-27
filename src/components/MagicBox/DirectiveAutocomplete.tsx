@@ -30,6 +30,7 @@ const MAX_VISIBLE_SUGGESTIONS = 8;
 const VALUE_HINTS: Readonly<Record<string, string>> = {
   tz: '+8',
   timezone: '+8',
+  tzcompare: 'Asia/Taipei,America/New_York,Europe/London',
   locale: 'en',
   lang: 'en',
   l: 'en',
