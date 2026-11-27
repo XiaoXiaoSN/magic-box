@@ -1,3 +1,4 @@
+import { PBKDF2_DIRECTIVE } from '@functions/cryptoDirectives';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
   errorBox,
@@ -175,7 +176,7 @@ export const Pbkdf2BoxSource = {
     input: string,
     options: BoxOptions = null,
   ): Promise<Box[]> {
-    const salt = extractOptionKeys(options, 'pbkdf2');
+    const salt = extractOptionKeys(options, PBKDF2_DIRECTIVE);
 
     // no ::pbkdf2 option at all — not our trigger
     if (salt === null) return [];

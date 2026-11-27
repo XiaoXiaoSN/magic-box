@@ -3,8 +3,20 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { LocaleProvider } from '../contexts/LocaleContext';
-import { PreferencesProvider } from '../contexts/PreferencesContext';
-import { SettingsProvider, useSettings } from '../contexts/SettingsContext';
+import {
+  DEFAULT_PREFS,
+  PreferencesProvider,
+} from '../contexts/PreferencesContext';
+import {
+  buildDefaultSettings,
+  SETTINGS_STORAGE_KEY,
+  SettingsProvider,
+  useSettings,
+} from '../contexts/SettingsContext';
+import {
+  encodePortableConfig,
+  portablePrefs,
+} from '../features/cloud-settings/config';
 import { boxSources } from '../modules/boxSources';
 import SettingsPage from './SettingsPage';
 
@@ -35,6 +47,69 @@ function mount() {
 }
 
 describe('Settings timezone and defaults', () => {
+  it('previews and restores a file while preserving device-only settings', async () => {
+    localStorage.setItem(
+      LOCAL_PREFS_KEY,
+      JSON.stringify({
+        collectFeedback: true,
+        toolboxUrl: 'https://example.com',
+      }),
+    );
+    localStorage.setItem('mb_search_history', '[]');
+    const settings = buildDefaultSettings();
+    settings.boxes.hash.enabled = false;
+    settings.boxes.hash.secondaryOrder = 1;
+    const before = localStorage.getItem(LOCAL_PREFS_KEY);
+    const file = JSON.stringify(
+      encodePortableConfig({
+        locale: 'en',
+        prefs: {
+          ...portablePrefs(DEFAULT_PREFS),
+          theme: 'dark',
+          timezoneOffset: 5.75,
+        },
+        settings,
+      }),
+    );
+    mount();
+    fireEvent.change(screen.getByLabelText('Open settings file'), {
+      target: { files: [{ size: file.length, text: async () => file }] },
+    });
+    const apply = await screen.findByRole('button', { name: 'Apply settings' });
+    expect(localStorage.getItem(LOCAL_PREFS_KEY)).toBe(before);
+    expect(
+      screen.getByText('Tools with changes to order or availability (1)'),
+    ).toBeVisible();
+    fireEvent.click(apply);
+    expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked();
+    expect(
+      screen.getByRole('combobox', { name: 'Default timezone' }),
+    ).toHaveValue('5.75');
+    expect(
+      JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}'),
+    ).toMatchObject({
+      collectFeedback: true,
+      toolboxUrl: 'https://example.com',
+    });
+    expect(
+      JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}').boxes.hash,
+    ).toMatchObject({ enabled: false, secondaryOrder: 1 });
+    expect(localStorage.getItem('mb_search_history')).toBe('[]');
+  });
+
+  it('rejects an unsupported input file without changing current settings', async () => {
+    mount();
+    const before = localStorage.getItem(LOCAL_PREFS_KEY);
+    fireEvent.change(screen.getByLabelText('Open settings file'), {
+      target: { files: [{ size: 13, text: async () => '{"version":2}' }] },
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'unsupported version',
+    );
+    expect(screen.queryByRole('button', { name: 'Apply settings' })).toBeNull();
+    expect(localStorage.getItem(LOCAL_PREFS_KEY)).toBe(before);
+  });
+
   it('requires explicit opt-in for training feedback independently of analytics', () => {
     mount();
     const mode = screen.getByRole('button', { name: 'Data collection mode' });
@@ -46,6 +121,11 @@ describe('Settings timezone and defaults', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Restore all defaults' }),
     );
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Restore defaults',
+      }),
+    );
     expect(mode).toHaveAttribute('aria-pressed', 'false');
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').collectFeedback,
@@ -55,16 +135,18 @@ describe('Settings timezone and defaults', () => {
   it('shows UTC+8 as default, saves fractional offsets, and follows the system', () => {
     mount();
     const select = screen.getByRole('combobox', { name: 'Default timezone' });
-    expect(select).toHaveValue('8');
+    expect(select).toHaveTextContent('UTC+8 (default)');
+    fireEvent.mouseDown(select);
     expect(
       screen.getByRole('option', { name: 'UTC+8 (default)' }),
     ).toBeTruthy();
     expect(screen.getByRole('option', { name: 'UTC+5:45' })).toBeTruthy();
-    fireEvent.change(select, { target: { value: '5.75' } });
+    fireEvent.click(screen.getByRole('option', { name: 'UTC+5:45' }));
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneOffset,
     ).toBe(5.75);
-    fireEvent.change(select, { target: { value: 'system' } });
+    fireEvent.mouseDown(select);
+    fireEvent.click(screen.getByRole('option', { name: /follow system/i }));
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneMode,
     ).toBe('system');
@@ -93,8 +175,26 @@ describe('Settings timezone and defaults', () => {
     );
     localStorage.setItem('history-marker', 'keep');
     mount();
+    const reset = screen.getByRole('button', { name: 'Restore all defaults' });
+    fireEvent.click(reset);
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Restore all defaults?',
+    });
+    const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
+    expect(cancel).toHaveFocus();
+    fireEvent.click(cancel);
+    expect(
+      JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}'),
+    ).toMatchObject({
+      theme: 'dark',
+      timezoneOffset: -5,
+    });
+
+    fireEvent.click(reset);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Restore all defaults' }),
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Restore defaults',
+      }),
     );
     const prefs = JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}');
     expect(prefs).toMatchObject({

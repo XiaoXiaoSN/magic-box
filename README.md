@@ -35,6 +35,10 @@ https://youtu.be/dQw4w9WgXcQ
 
 Each `::option` must start its own line; `hello ::base32` on one line is read as plain input. `::option=` with nothing after `=` is the same as a bare `::option`.
 
+Open input history to save a frequently used input and its directives under a
+name. Saved inputs can be loaded, renamed, or deleted from the same panel. They
+stay in the current browser separately from recent history.
+
 Tools match either the input itself (such as a color or timestamp) or an
 explicit option (such as `::sha256`).
 

@@ -11,9 +11,12 @@ the central dataset.
 
 The current input and **all** candidate outputs are submitted, not just the
 chosen result. Review the example before sending and avoid personal data or
-secrets. Previews, private `::ai` / `::localai` / `::secret` inputs, and pending
-or stale results cannot be submitted. The existing sticky private-session gate
-also hides feedback for the rest of a private session; reload to start a new one.
+secrets. Previews, pending or stale results, and private inputs cannot be
+submitted. Private inputs include `::ai`, `::localai`, `::secret`, keyed HMAC
+directives, `::pbkdf2` passwords, and Kubernetes Secret manifests. Copying a
+Kubernetes Secret result back into the app applies `::secret` to the new input.
+The private-session gate also hides feedback for the rest of the session.
+Reload to start a new session.
 There is no automatic recording on focus, navigation, copy, or typing, and no
 local feedback queue. A network failure can be retried from the same form with
 the same sample ID.

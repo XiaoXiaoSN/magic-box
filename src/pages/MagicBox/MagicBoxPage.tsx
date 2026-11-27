@@ -29,6 +29,7 @@ import {
 } from '../../hooks/useSearchHistory';
 import { type Locale, type Translations, toIntlLocale } from '../../i18n';
 import FileHasher from './FileHasher';
+import SavedInputs from './SavedInputs';
 
 const QRCodeReader = retryableLazy(() => import('@components/QRCodeReader'));
 
@@ -65,8 +66,15 @@ const formatRelativeTime = (
 const MagicBoxPage = (): React.JSX.Element => {
   const location = useLocation();
   const { locale, t } = useLocale();
-  const { applySharedInput, clearVersion, draft, shareEntryKey, updateDraft } =
-    useInputDraft();
+  const {
+    applySharedInput,
+    clearVersion,
+    draft,
+    rememberDraftHistoryEntry,
+    shareEntryKey,
+    takeDraftHistoryEntries,
+    updateDraft,
+  } = useInputDraft();
   const sharedInput = useMemo(
     () => readSharedInput(location.search),
     [location.search],
@@ -82,14 +90,11 @@ const MagicBoxPage = (): React.JSX.Element => {
   const lastRecordedRef = useRef<string>('');
   const editedRef = useRef(false);
   const handledClearVersionRef = useRef(clearVersion);
-  // History entries this edit session created (not ones it merely moved to the
-  // top). A session ends when the input is emptied or replaced wholesale.
-  const sessionAddedRef = useRef<string[]>([]);
   // caret index to restore after a programmatic (non-typing) value update;
   // null means "leave the caret where the browser puts it" (normal typing).
   const pendingCaretRef = useRef<number | null>(null);
 
-  const { history, addEntry, removeEntry, removeInputs, clearHistory } =
+  const { history, addEntry, removeEntry, removeEntries, clearHistory } =
     useSearchHistory();
 
   // Focus the textarea on first load so users can start typing without an
@@ -109,7 +114,6 @@ const MagicBoxPage = (): React.JSX.Element => {
   useEffect(() => {
     if (handledClearVersionRef.current === clearVersion) return;
     handledClearVersionRef.current = clearVersion;
-    sessionAddedRef.current = [];
     lastRecordedRef.current = '';
     editedRef.current = false;
     pendingCaretRef.current = null;
@@ -119,43 +123,35 @@ const MagicBoxPage = (): React.JSX.Element => {
   }, [clearVersion]);
 
   const resetEditSession = useCallback((): void => {
-    sessionAddedRef.current = [];
+    takeDraftHistoryEntries();
     lastRecordedRef.current = '';
-  }, []);
+  }, [takeDraftHistoryEntries]);
 
   useLayoutEffect(() => {
     if (sharedInput === null || !applySharedInput(location.key, sharedInput)) {
       return;
     }
-    if (isPrivateInput(sharedInput)) removeInputs(sessionAddedRef.current);
     resetEditSession();
     editedRef.current = false;
     pendingCaretRef.current = sharedInput.length;
     setUserInput(sharedInput);
     setMagicIn(sharedInput);
-  }, [
-    applySharedInput,
-    location.key,
-    removeInputs,
-    resetEditSession,
-    sharedInput,
-  ]);
+  }, [applySharedInput, location.key, resetEditSession, sharedInput]);
 
   const applyInput = useCallback(
-    (value: string, wholesale: boolean): void => {
-      if (wholesale || value === '') resetEditSession();
-      editedRef.current = !wholesale && value !== '';
+    (value: string): void => {
+      if (value === '') resetEditSession();
+      editedRef.current = value !== '';
 
       if (isPrivateInput(value)) {
-        activateLocalAIPrivacy();
-        removeInputs(sessionAddedRef.current);
-        resetEditSession();
+        removeEntries(takeDraftHistoryEntries());
+        lastRecordedRef.current = '';
       }
 
       updateDraft(value);
       setUserInput(value);
     },
-    [removeInputs, resetEditSession, updateDraft],
+    [removeEntries, resetEditSession, takeDraftHistoryEntries, updateDraft],
   );
 
   const recordInput = useCallback(
@@ -167,35 +163,35 @@ const MagicBoxPage = (): React.JSX.Element => {
       }
 
       if (isPrivateInput(trimmed)) {
-        activateLocalAIPrivacy();
-        removeInputs(sessionAddedRef.current);
-        resetEditSession();
+        removeEntries(takeDraftHistoryEntries());
+        lastRecordedRef.current = '';
         updateDraft(rawInput);
         return;
       }
 
       if (trimmed === lastRecordedRef.current) return;
       lastRecordedRef.current = trimmed;
-      if (!history.some((item) => item.input === trimmed)) {
-        sessionAddedRef.current.push(trimmed);
-      }
-      addEntry(trimmed);
+      const id = addEntry(trimmed);
+      if (id !== undefined) rememberDraftHistoryEntry(id);
     },
-    [addEntry, history, removeInputs, resetEditSession, updateDraft],
+    [
+      addEntry,
+      rememberDraftHistoryEntry,
+      removeEntries,
+      resetEditSession,
+      takeDraftHistoryEntries,
+      updateDraft,
+    ],
   );
 
   useEffect(() => {
-    if (!privateInput) return;
-    activateLocalAIPrivacy();
-    if (sessionAddedRef.current.length === 0) return;
-    removeInputs(sessionAddedRef.current);
-    sessionAddedRef.current = [];
-  }, [privateInput, removeInputs]);
+    if (privateInput) activateLocalAIPrivacy();
+  }, [privateInput]);
 
   const replaceDirective = useCallback(
     (value: string, caret: number): void => {
       pendingCaretRef.current = caret;
-      applyInput(value, false);
+      applyInput(value);
     },
     [applyInput],
   );
@@ -325,6 +321,7 @@ const MagicBoxPage = (): React.JSX.Element => {
 
           {historyOpen ? (
             <div className="history-panel" data-testid="history-panel">
+              <SavedInputs input={userInput} onLoad={handleHistorySelect} />
               {history.length > 0 ? (
                 <>
                   <div className="history-list">
@@ -381,7 +378,7 @@ const MagicBoxPage = (): React.JSX.Element => {
               data-testid="magic-input"
               name="magicInput"
               onBlur={handleInputBlur}
-              onChange={(value) => applyInput(value, false)}
+              onChange={applyInput}
               onFocus={() => setResetCounter((c) => c + 1)}
               onReplace={replaceDirective}
               placeholder={t('magicBox.placeholder')}

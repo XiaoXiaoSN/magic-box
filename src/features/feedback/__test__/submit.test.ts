@@ -44,6 +44,9 @@ describe('feedback upload boundary', () => {
     '::localai',
     '::secret',
     '::SECRET=true',
+    '::HMAC=test-key',
+    '::sha256=test-key\n::sha256',
+    '::PBKDF2=salt',
   ])('rejects private directives %s before SDK initialization', async (directive) => {
     await expect(
       submitFeedback(
@@ -59,6 +62,28 @@ describe('feedback upload boundary', () => {
     const pending = submitFeedback(sample(), () => allowed);
     allowed = false;
     await expect(pending).rejects.toMatchObject({ reason: 'cancelled' });
+    expect(sendFeedback).not.toHaveBeenCalled();
+  });
+
+  it('rejects a Kubernetes Secret together with its decoded candidate before transport', async () => {
+    await expect(
+      submitFeedback(
+        {
+          ...sample(),
+          input: 'apiVersion: v1\nkind: Secret\ndata: { token: ZHVtbXk= }',
+          candidates: [
+            {
+              id: 'one',
+              sourceId: 'k8s-secret',
+              name: 'Kubernetes Secret',
+              output: 'token: dummy',
+              isError: false,
+            },
+          ],
+        },
+        () => true,
+      ),
+    ).rejects.toMatchObject({ reason: 'invalid' });
     expect(sendFeedback).not.toHaveBeenCalled();
   });
 

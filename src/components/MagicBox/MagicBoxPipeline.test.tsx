@@ -1,4 +1,5 @@
 import copyTextToClipboard from '@functions/clipboard';
+import { isPrivateInput } from '@functions/localAIPrivacy';
 import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
@@ -611,6 +612,36 @@ describe('MagicBox source pipeline', () => {
     expect(screen.getByText('Earlier output')).toBeInTheDocument();
   });
 
+  it.each([
+    'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
+    '::secret\nprevious decoded output',
+  ])('preserves private output across paste-back %#', async (input) => {
+    const output = 'a,b\n1,"dummy';
+    const source = sourceWithResult(
+      'Secret',
+      Promise.resolve([new BoxBuilder('Secret', output).build()]),
+    );
+    const onPasteInput = vi.fn();
+    render(
+      <LocaleProvider>
+        <MagicBox
+          input={input}
+          onPasteInput={onPasteInput}
+          sources={[source]}
+        />
+      </LocaleProvider>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Select Secret' }),
+    );
+    fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
+    await waitFor(() =>
+      expect(onPasteInput).toHaveBeenCalledWith(`::secret\n${output}`),
+    );
+    expect(isPrivateInput(onPasteInput.mock.calls[0][0])).toBe(true);
+    expect(copyTextToClipboard).toHaveBeenCalledWith(output);
+  });
+
   it('ignores a late keyboard copy after the selected source is removed', async () => {
     preferenceState.copyMode = 'paste';
     const clipboard = deferred<boolean>();
@@ -1060,6 +1091,7 @@ describe('feedback snapshot integration', () => {
     'private\n::ai',
     'private\n::localai',
     'private\n::secret',
+    'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
   ])('hides collection for private input %s', async (input) => {
     preferenceState.collectFeedback = true;
     const sources = [

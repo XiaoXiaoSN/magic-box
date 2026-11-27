@@ -49,13 +49,15 @@ function isMap(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function decodeConfig(data: Record<string, unknown>): SavedConfig {
-  const { revision, prefs, settings, locale } = data;
+export function encodePortableConfig(config: Config): { version: 1 } & Config {
+  return { version: 1, ...config };
+}
+
+export function decodePortableConfig(data: unknown): Config {
+  if (!isMap(data)) throw new Error('Unsupported settings backup');
+  const { prefs, settings, locale } = data;
   if (
     data.version !== 1 ||
-    typeof revision !== 'number' ||
-    !Number.isSafeInteger(revision) ||
-    revision < 1 ||
     !isLocale(locale) ||
     !isMap(prefs) ||
     !isMap(settings) ||
@@ -77,11 +79,20 @@ export function decodeConfig(data: Record<string, unknown>): SavedConfig {
     throw new Error('Invalid settings backup');
   }
   return {
-    revision,
-    config: {
-      prefs: normalized,
-      locale,
-      settings: normalizeSettings(settings),
-    },
+    prefs: normalized,
+    locale,
+    settings: normalizeSettings(settings),
   };
+}
+
+export function decodeConfig(data: Record<string, unknown>): SavedConfig {
+  const { revision } = data;
+  if (
+    typeof revision !== 'number' ||
+    !Number.isSafeInteger(revision) ||
+    revision < 1
+  ) {
+    throw new Error('Unsupported settings backup');
+  }
+  return { revision, config: decodePortableConfig(data) };
 }

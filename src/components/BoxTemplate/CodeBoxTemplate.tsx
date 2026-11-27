@@ -6,12 +6,26 @@ import { useTheme } from '@mui/material/styles';
 import { memo, Suspense } from 'react';
 import type { SyntaxHighlighterProps } from 'react-syntax-highlighter';
 
+const MAX_HIGHLIGHT_CHARACTERS = 20_000;
+const MAX_HIGHLIGHT_LINES = 600;
+const RESULT_TEST_ID = 'magic-box-result-text';
+const codeStyle = {
+  margin: 0,
+  background: 'transparent',
+  padding: 0,
+  overflow: 'auto',
+  textAlign: 'left',
+  fontSize: '13px',
+  lineHeight: 1.5,
+} as const;
+const previewStyle = { ...codeStyle, maxHeight: '250px' };
+const modalStyle = { ...codeStyle, maxHeight: '60vh' };
+
 interface HighlighterProps {
   language: string;
   children: string;
   mode: ThemeMode;
   customStyle?: SyntaxHighlighterProps['customStyle'];
-  dataTestId?: string;
 }
 
 // lazy-load the Light build so the highlighter stays out of the main bundle.
@@ -41,7 +55,6 @@ const LazyHighlighter = retryableLazy(async () => {
   // xml covers HTML as well
   SyntaxHighlighter.registerLanguage('xml', xml.default);
   SyntaxHighlighter.registerLanguage('diff', diff.default);
-  // hljs has no toml grammar; toml output falls back to plaintext highlighting
 
   // both hljs palettes are plain style objects (a few KB each) and the theme
   // can flip at any time, so they are resolved once here rather than reloaded
@@ -52,18 +65,11 @@ const LazyHighlighter = retryableLazy(async () => {
   };
 
   return {
-    default: ({
-      language,
-      children,
-      mode,
-      customStyle,
-      dataTestId,
-    }: HighlighterProps) => (
+    default: ({ language, children, mode, customStyle }: HighlighterProps) => (
       <SyntaxHighlighter
         customStyle={customStyle}
-        data-testid={dataTestId}
-        // map toml to 'plaintext' since hljs has no toml grammar
-        language={language === 'toml' ? 'plaintext' : language}
+        data-testid={RESULT_TEST_ID}
+        language={language}
         style={hljsStyles[mode]}
       >
         {children}
@@ -72,22 +78,46 @@ const LazyHighlighter = retryableLazy(async () => {
   };
 });
 
-const CodeBoxTemplateComponent = ({
-  plaintextOutput,
-  options,
-  largeModal = false,
-}: BoxProps): React.JSX.Element => {
+function shouldHighlight(language: string, code: string): boolean {
+  if (
+    language === 'plaintext' ||
+    language === 'text' ||
+    language === 'toml' ||
+    code.length > MAX_HIGHLIGHT_CHARACTERS
+  )
+    return false;
+
+  let lines = 1;
+  for (
+    let index = code.indexOf('\n');
+    index !== -1;
+    index = code.indexOf('\n', index + 1)
+  ) {
+    if (++lines > MAX_HIGHLIGHT_LINES) return false;
+  }
+  return true;
+}
+
+const CodeOutput = memo(function CodeOutput({
+  code,
+  language,
+  largeModal,
+}: {
+  code: string;
+  language: string;
+  largeModal: boolean;
+}): React.JSX.Element {
   // AppThemeProvider mirrors the resolved app theme onto the MUI palette, so
   // this stays in step with it. Rendered outside a provider (isolated tests)
   // MUI's default light theme applies, matching the previous behaviour.
   const mode: ThemeMode = useTheme().palette.mode;
-  let language = 'yaml';
-  if (
-    options &&
-    'language' in options &&
-    typeof options.language === 'string'
-  ) {
-    language = options.language;
+  const style = largeModal ? modalStyle : previewStyle;
+  if (!shouldHighlight(language, code)) {
+    return (
+      <pre data-testid={RESULT_TEST_ID} style={style}>
+        <code className="language-plaintext">{code}</code>
+      </pre>
+    );
   }
 
   return (
@@ -105,26 +135,27 @@ const CodeBoxTemplateComponent = ({
         </div>
       }
     >
-      <LazyHighlighter
-        dataTestId="magic-box-result-text"
-        language={language}
-        mode={mode}
-        customStyle={{
-          margin: 0,
-          background: 'transparent',
-          padding: 0,
-          maxHeight: largeModal ? '60vh' : '250px',
-          textAlign: 'left',
-          fontSize: '13px',
-          lineHeight: 1.5,
-        }}
-      >
-        {plaintextOutput}
+      <LazyHighlighter language={language} mode={mode} customStyle={style}>
+        {code}
       </LazyHighlighter>
     </Suspense>
   );
-};
+});
 
-const CodeBoxTemplate = memo(CodeBoxTemplateComponent);
+function CodeBoxTemplate({
+  plaintextOutput,
+  options,
+  largeModal = false,
+}: BoxProps): React.JSX.Element {
+  const language =
+    typeof options?.language === 'string' ? options.language : 'yaml';
+  return (
+    <CodeOutput
+      code={plaintextOutput}
+      language={language}
+      largeModal={largeModal}
+    />
+  );
+}
 
 export default CodeBoxTemplate;

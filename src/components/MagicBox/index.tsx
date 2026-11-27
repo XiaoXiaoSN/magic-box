@@ -657,24 +657,33 @@ const MagicBox = ({
     [handleResultChange, modalResultId],
   );
 
-  const pasteAsInput = useCallback((value: string): void => {
-    const callback = onPasteInputRef.current;
-    if (callback) {
-      callback(value);
-      return;
-    }
-    const input = document.querySelector(
-      'input[name="magicInput"], textarea[name="magicInput"]',
-    ) as HTMLInputElement | HTMLTextAreaElement | null;
-    if (!input) return;
-    input.focus();
-    input.value = value;
-    try {
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    } catch {
-      /* noop */
-    }
-  }, []);
+  const pasteAsInput = useCallback(
+    (output: string, sourceInput: string): void => {
+      // Prefix the marker before any potentially quoted text. A subsequent
+      // paste from the same private input must carry the marker forward.
+      const value =
+        isPrivateInput(sourceInput) && !isPrivateInput(output)
+          ? `::secret\n${output}`
+          : output;
+      const callback = onPasteInputRef.current;
+      if (callback) {
+        callback(value);
+        return;
+      }
+      const input = document.querySelector(
+        'input[name="magicInput"], textarea[name="magicInput"]',
+      ) as HTMLInputElement | HTMLTextAreaElement | null;
+      if (!input) return;
+      input.focus();
+      input.value = value;
+      try {
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch {
+        /* noop */
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     const handler = (event: KeyboardEvent): void => {
@@ -762,7 +771,7 @@ const MagicBox = ({
             .then((copied) => {
               if (!copied) return;
               onInputCommitRef.current?.(inputSnapshot);
-              pasteAsInput(stdout);
+              pasteAsInput(stdout, inputSnapshot);
             })
             .catch(() => undefined);
           selected.box.props.onClick(stdout);
@@ -825,7 +834,7 @@ const MagicBox = ({
         .then((copied) => {
           if (!copied) return;
           onInputCommitRef.current?.(inputSnapshot);
-          if (state.copyMode === 'paste') pasteAsInput(stdout);
+          if (state.copyMode === 'paste') pasteAsInput(stdout, inputSnapshot);
         })
         .catch(() => undefined);
       selected.box.props.onClick(stdout);

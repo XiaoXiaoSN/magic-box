@@ -715,10 +715,10 @@ Example (each ::option starts a new line):
 
 ### Text Diff (text-diff)
 
-Paste a second text with ::diff, or separate two texts with --- and use ::textdiff.
+Compare two texts with ::diff, compare JSON with ::jsondiff, or separate two texts with --- and use ::textdiff.
 
 Category: Analyze. Enabled by default on the web: true.
-Option keys: ::diff, ::textdiff, ::linediff, ::lang, ::language, ::l.
+Option keys: ::diff, ::jsondiff, ::textdiff, ::linediff, ::lang, ::language, ::l.
 
 Example (each ::option starts a new line):
 ~~~~text

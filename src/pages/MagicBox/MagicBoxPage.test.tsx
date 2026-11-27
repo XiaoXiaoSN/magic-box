@@ -193,6 +193,69 @@ describe('<MagicBoxPage />', () => {
     vi.restoreAllMocks();
   });
 
+  it('saves, renames, loads and deletes a preset independently of recent history', () => {
+    const input = '{"value":42}\n::jsonpointer=/value';
+    const first = renderPage();
+    typeInput(input);
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+      target: { value: 'JSON lookup' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save input' }));
+    expect(screen.getByRole('button', { name: 'JSON lookup' })).toBeEnabled();
+    first.unmount();
+
+    localStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify(
+        Array.from({ length: 55 }, (_, index) => ({
+          id: String(index),
+          timestamp: index,
+          input: `recent ${index}`,
+        })),
+      ),
+    );
+    renderPage();
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename JSON lookup' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+      target: { value: 'Read a value' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Read a value' }));
+    expect(getInput()).toHaveValue(input);
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete Read a value' }),
+    );
+    expect(screen.queryByRole('button', { name: 'Read a value' })).toBeNull();
+  });
+
+  it('does not offer to save sensitive inputs', () => {
+    renderPage();
+    typeInput('payload\n::secret=test-key');
+    fireEvent.click(screen.getByTestId('history-toggle'));
+    expect(screen.getByRole('textbox', { name: 'Preset name' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save input' })).toBeDisabled();
+    expect(localStorage.getItem('mb_saved_inputs')).toBeNull();
+  });
+
+  it('saves a preset without the secure-context UUID helper', () => {
+    vi.stubGlobal('crypto', {});
+    try {
+      renderPage();
+      typeInput('hello');
+      fireEvent.click(screen.getByTestId('history-toggle'));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+        target: { value: 'Example' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save input' }));
+      expect(screen.getByRole('button', { name: 'Example' })).toBeEnabled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('prefills state from the ?input query param on mount', () => {
     window.history.replaceState({}, '', '/?input=hello%20world');
 
@@ -441,6 +504,79 @@ describe('<MagicBoxPage />', () => {
 
       expect(readHistory()).toEqual([]);
       expect(isLocalAIPrivate()).toBe(true);
+    });
+
+    it.each([
+      '::ai',
+      '::secret=test-key',
+      '::sha256=test-key',
+      '::pbkdf2=salt',
+    ])('withdraws draft history after returning from Settings with %s', async (directive) => {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'older', timestamp: 1, input: 'prior input' }]),
+      );
+      renderRoutedPage();
+      typeInput('prior input');
+      await blurInput();
+      typeInput('private draft');
+      await blurInput();
+      expect(readHistory().map((entry) => entry.input)).toEqual([
+        'private draft',
+        'prior input',
+      ]);
+
+      fireEvent.click(screen.getByTestId('navigate-settings'));
+      expect(screen.getByText('Settings page')).toBeInTheDocument();
+      vi.useRealTimers();
+      fireEvent.click(screen.getByTestId('navigate-back'));
+      await screen.findByTestId('magic-input');
+      expect(getInput()).toHaveValue('private draft');
+      typeInput(`private draft\n${directive}`);
+
+      expect(readHistory().map((entry) => entry.id)).toEqual(['older']);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
+    it('removes previously stored sensitive history and draft inputs', () => {
+      const input = 'message\n::hmac=test-key';
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'old', timestamp: 1, input }]),
+      );
+      sessionStorage.setItem(
+        'mb_input_draft',
+        JSON.stringify({ version: 1, input }),
+      );
+      renderPage();
+      expect(getInput()).toHaveValue('');
+      expect(readHistory()).toEqual([]);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+    });
+
+    it('withdraws a draft when a Kubernetes Secret is recognized', async () => {
+      renderPage();
+      const partial = 'apiVersion: v1\nstringData:\n  token: dummy';
+      typeInput(partial);
+      await blurInput();
+      expect(readHistory().map((entry) => entry.input)).toEqual([partial]);
+      typeInput(`${partial}\nkind: Secret`);
+      await blurInput();
+      expect(readHistory()).toEqual([]);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
+    it('masks HMAC key values without treating bare hash options as private', () => {
+      renderPage();
+      typeInput('message\n::sha256');
+      expect(screen.getByTestId('copy-share-link')).toBeEnabled();
+      typeInput('message\n::SHA256=test-key');
+      expect(screen.getByTestId('directive-chip-sha256')).not.toHaveTextContent(
+        'test-key',
+      );
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
     });
 
     it('withdraws partial input before a secret directive and hides its value', async () => {

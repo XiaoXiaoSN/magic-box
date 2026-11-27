@@ -86,6 +86,21 @@ const en = {
     'Could not complete sign-in or sign-out. Check your connection and allow the Google sign-in window, then try again.',
   'cloud.error':
     'Could not access the settings backup. Check your connection and try again.',
+  'portable.title': 'Settings file',
+  'portable.export': 'Download settings',
+  'portable.import': 'Open settings file',
+  'portable.preview': 'Review the changes before applying this file.',
+  'portable.apply': 'Apply settings',
+  'portable.cancel': 'Cancel',
+  'portable.language': 'Language changes to {{language}}',
+  'portable.toolsChanged':
+    'Tools with changes to order or availability ({{count}})',
+  'portable.copyMode': 'Enter behavior',
+  'portable.timezoneOffset': 'UTC offset',
+  'portable.invalid':
+    'This settings file is invalid or uses an unsupported version.',
+  'portable.error': 'The settings could not be saved. Try again.',
+  'portable.applied': 'Settings applied.',
 
   'settings.title': 'Settings',
   'settings.section.boxOrder': 'Box order',
@@ -114,6 +129,9 @@ const en = {
   'settings.timezoneSystem': 'Auto — follow system timezone',
   'settings.default': 'default',
   'settings.resetPreferences': 'Restore all defaults',
+  'settings.resetDefaultsTitle': 'Restore all defaults?',
+  'settings.cancelReset': 'Cancel',
+  'settings.confirmReset': 'Restore defaults',
   'settings.defaultsHint':
     'Reset preferences, box order and availability. Keep input and history.',
   'settings.section.server': 'Server',
@@ -201,6 +219,16 @@ const en = {
   'fileHash.cancel': 'Cancel hashing',
   'fileHash.download': 'Download checksum',
   'fileHash.clear': 'Clear checksum',
+  'savedInputs.title': 'Saved inputs',
+  'savedInputs.name': 'Preset name',
+  'savedInputs.save': 'Save input',
+  'savedInputs.rename': 'Rename',
+  'savedInputs.renameLabel': 'Rename {{name}}',
+  'savedInputs.delete': 'Delete',
+  'savedInputs.deleteLabel': 'Delete {{name}}',
+  'savedInputs.cancel': 'Cancel',
+  'savedInputs.storageError': 'Saved inputs could not be accessed. Try again.',
+  'savedInputs.unavailableInput': 'Private or oversized input cannot be saved.',
   'magicBox.openHistory': 'Open history',
   'magicBox.closeHistory': 'Close history',
   'magicBox.placeholder':
@@ -298,6 +326,10 @@ const en = {
   'diff.compare': 'Compare',
   'diff.result': 'Comparison result',
   'diff.copy': 'Copy diff',
+  'diff.cancel': 'Cancel comparison',
+  'diff.jsonTarget': 'Paste the second JSON document',
+  'diff.downloadPatch': 'Download JSON Patch',
+  'diff.workerError': 'The JSON comparison could not run. Try again.',
 };
 
 export type Translations = typeof en;

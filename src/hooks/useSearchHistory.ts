@@ -66,8 +66,7 @@ function persistHistory(items: HistoryItem[]): void {
 
 type HistoryOperation =
   | { type: 'add'; entry: HistoryItem; maxItems: number }
-  | { type: 'removeEntry'; id: string }
-  | { type: 'removeInputs'; inputs: readonly string[] }
+  | { type: 'removeEntries'; ids: readonly string[] }
   | { type: 'clear' };
 
 interface HistoryState extends LoadedHistory {
@@ -84,16 +83,18 @@ const applyHistoryOperation = (
   operation: HistoryOperation,
 ): HistoryItem[] => {
   switch (operation.type) {
-    case 'add':
+    case 'add': {
+      const existing = items.find(
+        (item) => item.input === operation.entry.input,
+      );
       return [
-        operation.entry,
+        existing ? { ...operation.entry, id: existing.id } : operation.entry,
         ...items.filter((item) => item.input !== operation.entry.input),
       ].slice(0, operation.maxItems);
-    case 'removeEntry':
-      return items.filter((item) => item.id !== operation.id);
-    case 'removeInputs': {
-      const removed = new Set(operation.inputs);
-      return items.filter((item) => !removed.has(item.input));
+    }
+    case 'removeEntries': {
+      const removed = new Set(operation.ids);
+      return items.filter((item) => !removed.has(item.id));
     }
     case 'clear':
       return [];
@@ -146,10 +147,9 @@ interface UseSearchHistoryOptions {
 
 interface UseSearchHistoryReturn {
   history: HistoryItem[];
-  addEntry: (input: string) => void;
+  addEntry: (input: string) => string | undefined;
   removeEntry: (id: string) => void;
-  // Removes every entry whose text is one of `inputs`.
-  removeInputs: (inputs: readonly string[]) => void;
+  removeEntries: (ids: readonly string[]) => void;
   clearHistory: () => void;
 }
 
@@ -206,33 +206,36 @@ export function useSearchHistory(
         return;
       }
 
+      const id = createHistoryId();
       dispatch({
         type: 'mutate',
         operation: {
           type: 'add',
           entry: {
-            id: createHistoryId(),
+            id,
             timestamp: Date.now(),
             input: trimmed,
           },
           maxItems,
         },
       });
+      return id;
     },
     [maxItems],
   );
 
-  const removeEntry = useCallback((id: string) => {
-    dispatch({ type: 'mutate', operation: { type: 'removeEntry', id } });
-  }, []);
-
-  const removeInputs = useCallback((inputs: readonly string[]) => {
-    if (!inputs.length) return;
+  const removeEntries = useCallback((ids: readonly string[]) => {
+    if (!ids.length) return;
     dispatch({
       type: 'mutate',
-      operation: { type: 'removeInputs', inputs },
+      operation: { type: 'removeEntries', ids },
     });
   }, []);
+
+  const removeEntry = useCallback(
+    (id: string) => removeEntries([id]),
+    [removeEntries],
+  );
 
   const clearHistory = useCallback(() => {
     dispatch({ type: 'mutate', operation: { type: 'clear' } });
@@ -242,7 +245,7 @@ export function useSearchHistory(
     history: state.items,
     addEntry,
     removeEntry,
-    removeInputs,
+    removeEntries,
     clearHistory,
   };
 }

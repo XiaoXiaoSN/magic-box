@@ -75,6 +75,14 @@ items:
 `;
 
   describe('checkMatch', () => {
+    it('accepts a JSON Secret with a line break before the kind value', async () => {
+      const input =
+        '{"apiVersion":"v1","kind":\n"Secret","stringData":{"token":"dummy"}}';
+      await expect(K8sSecretBoxSource.checkMatch(input)).resolves.toMatchObject(
+        { data: { token: 'dummy' } },
+      );
+    });
+
     it('should return undefined for empty input', async () => {
       await expect(K8sSecretBoxSource.checkMatch('')).resolves.toBeUndefined();
     });
