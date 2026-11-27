@@ -157,9 +157,28 @@ bootstrap_tools() {
   local bootstrap_root="$1"
   local bootstrap_crate="$bootstrap_root/crate"
   local bootstrap_trace="$output_root/3/bootstrap-wasm-pack.strace"
+  local bindgen_lockfile="$repo_dir/wasmModules/math-box/Cargo.lock"
+  local bindgen_version
+
+  # wasm-bindgen-cli must match the library pinned in the measured crates.
+  if ! bindgen_version="$(awk '
+    $0 == "[[package]]" { bindgen = 0 }
+    $0 == "name = \"wasm-bindgen\"" { bindgen = 1 }
+    bindgen && /^version = "[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.+-]+)?"$/ {
+      version = substr($3, 2, length($3) - 2)
+      matches++
+    }
+    END {
+      if (matches != 1) exit 1
+      print version
+    }
+  ' "$bindgen_lockfile")"; then
+    echo "expected exactly one wasm-bindgen version in $bindgen_lockfile" >&2
+    return 1
+  fi
 
   mkdir -p "$bootstrap_crate/src" "$(dirname "$bootstrap_trace")"
-  cat > "$bootstrap_crate/Cargo.toml" <<'EOF'
+  cat > "$bootstrap_crate/Cargo.toml" <<EOF
 [package]
 name = "magic-box-wasm-tool-bootstrap"
 version = "0.0.0"
@@ -169,7 +188,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "=0.2.129"
+wasm-bindgen = "=$bindgen_version"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ["-O"]

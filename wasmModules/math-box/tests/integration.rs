@@ -116,6 +116,28 @@ fn assigned_and_parameter_names_shadow_constants() {
 }
 
 #[test]
+fn caller_parameters_shadow_constants_in_other_functions() {
+    for input in [
+        "f(x) = x + e; g(e) = f(2); g(5)",
+        "f(x) = x + pi; g(pi) = f(2); g(5)",
+        "f(x) = x + E; g(x) = f(x); h(E) = g(2); h(5)",
+        "f(x) = x + Infinity; g(Infinity) = f(2); g(5)",
+        "f(x) = x + pi; g(pi) = f(2); h(pi) = g(pi + 1); h(4)",
+    ] {
+        assert_eval(input, "7");
+        assert_eq!(
+            Compiled::new(input)
+                .expect("compile")
+                .evaluate()
+                .expect("evaluate"),
+            "7",
+            "input={input}",
+        );
+    }
+    assert_eval("f() = e; g(e) = f(); g(5) == 5 && f() == E", "true");
+}
+
+#[test]
 fn user_defined_function() {
     assert_eval("f(x) = x * 2; f(5)", "10");
     assert_eval("g(a, b) = a + b * 2; g(1, 3)", "7");
