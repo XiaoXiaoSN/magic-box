@@ -96,18 +96,9 @@ export const RadixBoxSource = {
           : fromBase === 8
             ? '0o'
             : null;
-    const hasPrefix = /^0[xbo]/i.test(unsignedInput);
-    if (hasPrefix && prefix !== expectedPrefix) {
-      return [
-        makeErrorBox(`Input prefix ${prefix} does not match base ${fromBase}.`),
-      ];
-    }
-
-    const withoutPrefix = expectedPrefix
-      ? unsignedInput.slice(0, 2).toLowerCase() === expectedPrefix
-        ? unsignedInput.slice(2)
-        : unsignedInput
-      : unsignedInput;
+    // A prefix for another base can be ordinary digits in the selected base.
+    const withoutPrefix =
+      prefix === expectedPrefix ? unsignedInput.slice(2) : unsignedInput;
     const digits = withoutPrefix.replace(/\s+/g, '').toLowerCase();
 
     if (!digits) {
