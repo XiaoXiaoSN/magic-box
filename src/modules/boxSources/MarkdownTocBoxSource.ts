@@ -8,6 +8,7 @@ const MAX_INPUT = 100_000;
 interface Heading {
   level: number;
   text: string;
+  slug: string;
 }
 
 let parserPromise: Promise<MarkdownIt> | null = null;
@@ -50,48 +51,19 @@ function visibleText(tokens: readonly Token[]): string {
   return visible.join('');
 }
 
-/** parses top-level ATX headings and resolves their inline markdown */
-async function parseHeadings(input: string): Promise<Heading[]> {
+async function parseTocHeadings(input: string): Promise<Heading[]> {
   const parser = await loadMarkdownParser();
   const tokens = parser.parse(input, {});
   const headings: Heading[] = [];
+  const nextSuffix = new Map<string, number>();
+  const usedSlugs = new Set<string>();
 
   for (let index = 0; index + 1 < tokens.length; index++) {
     const opening = tokens[index];
     const inline = tokens[index + 1];
-    if (
-      opening.type !== 'heading_open' ||
-      opening.level !== 0 ||
-      !opening.markup.startsWith('#') ||
-      inline.type !== 'inline'
-    ) {
-      continue;
-    }
+    if (opening.type !== 'heading_open' || inline.type !== 'inline') continue;
 
-    headings.push({
-      level: Number(opening.tag.slice(1)),
-      text: visibleText(inline.children ?? []),
-    });
-  }
-
-  return headings;
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
-    .replace(/\s/g, '-');
-}
-
-/** builds the nested bullet list string with github-style duplicate slug disambiguation */
-function buildToc(headings: Heading[]): string {
-  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
-  const nextSuffix = new Map<string, number>();
-  const usedSlugs = new Set<string>();
-  const lines: string[] = [];
-
-  for (const { level, text } of headings) {
+    const text = visibleText(inline.children ?? []);
     const baseSlug = slugify(text);
     let slug = baseSlug;
 
@@ -105,6 +77,27 @@ function buildToc(headings: Heading[]): string {
     }
     usedSlugs.add(slug);
 
+    // Every parsed heading reserves an anchor, even when the TOC omits it.
+    if (opening.level === 0 && opening.markup.startsWith('#')) {
+      headings.push({ level: Number(opening.tag.slice(1)), text, slug });
+    }
+  }
+
+  return headings;
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '')
+    .replace(/\s/g, '-');
+}
+
+function buildToc(headings: Heading[]): string {
+  const minLevel = headings.reduce((min, h) => Math.min(min, h.level), 6);
+  const lines: string[] = [];
+
+  for (const { level, text, slug } of headings) {
     const indent = ' '.repeat((level - minLevel) * 2);
     const label = text
       .replace(/([\\[\]])/g, '\\$1')
@@ -132,7 +125,7 @@ export const MarkdownTocBoxSource = {
     if (!isString(input) || input.length === 0 || input.length > MAX_INPUT)
       return [];
 
-    const headings = await parseHeadings(input);
+    const headings = await parseTocHeadings(input);
 
     if (headings.length === 0) {
       return [

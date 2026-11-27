@@ -120,6 +120,34 @@ describe('MarkdownTocBoxSource', () => {
       );
     });
 
+    it('counts a Setext heading before a duplicate top-level ATX heading', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        'Title\n=====\n\n## Title',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe('- [Title](#title-1)');
+    });
+
+    it('counts blockquote and list headings in document order', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        '> # Title\n\n## Title\n\n- # Title\n\n### Title',
+        { tableofcontents: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [Title](#title-1)\n  - [Title](#title-3)',
+      );
+    });
+
+    it('reserves suffixes from omitted headings and skips fenced code', async () => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(
+        'A-1\n===\n\n## A\n\n```\n## A-2\n```\n\n## A\n\n> ## A-3\n\n## A\n\n## A-2',
+        { toc: true },
+      );
+      expect(boxes[0].props.plaintextOutput).toBe(
+        '- [A](#a)\n- [A](#a-2)\n- [A](#a-4)\n- [A-2](#a-2-1)',
+      );
+    });
+
     it('reserves slugs emitted before a matching suffixed heading', async () => {
       const boxes = await MarkdownTocBoxSource.generateBoxes(
         '## A\n## A\n## A-1',
@@ -223,8 +251,11 @@ describe('MarkdownTocBoxSource', () => {
   });
 
   describe('no headings found', () => {
-    it('returns a box mentioning no headings when input has no ATX headings', async () => {
-      const boxes = await MarkdownTocBoxSource.generateBoxes('just text', {
+    it.each([
+      'just text',
+      'Title\n=====\n\n> # Quote\n\n- # List',
+    ])('reports no top-level ATX headings in %j', async (input) => {
+      const boxes = await MarkdownTocBoxSource.generateBoxes(input, {
         toc: true,
       });
       expect(boxes).toHaveLength(1);
