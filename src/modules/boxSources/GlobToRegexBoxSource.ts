@@ -62,7 +62,8 @@ function parseCharacterClass(
   const content = glob.slice(contentStart, index);
   if (content.length === 0) return null;
 
-  let regex = `[${negated ? '^' : ''}`;
+  // Check the separator separately so ranges and negation keep their meaning.
+  let regex = `(?!\\/)[${negated ? '^' : ''}`;
   for (let charIndex = 0; charIndex < content.length; charIndex++) {
     const char = content[charIndex];
     if (char === '\\' && charIndex + 1 < content.length) {
