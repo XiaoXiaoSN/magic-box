@@ -1,4 +1,5 @@
 import { parseInput } from '@functions/parseOptions';
+import { TIMEZONE_DIRECTIVE_KEYS } from '@functions/timezone';
 import type { BoxSource } from '@modules/BoxSource';
 import { boxSources, sharedOptionOwners } from '@modules/boxSources';
 import type * as React from 'react';
@@ -47,11 +48,10 @@ interface GlobalDirective {
 }
 
 const GLOBAL_DIRECTIVES: readonly GlobalDirective[] = [
-  { key: 'tz', descriptionKey: 'directiveAutocomplete.globalTimezone' },
-  {
-    key: 'timezone',
-    descriptionKey: 'directiveAutocomplete.globalTimezone',
-  },
+  ...TIMEZONE_DIRECTIVE_KEYS.map((key) => ({
+    key,
+    descriptionKey: 'directiveAutocomplete.globalTimezone' as const,
+  })),
   { key: 'locale', descriptionKey: 'directiveAutocomplete.globalLocale' },
 ];
 

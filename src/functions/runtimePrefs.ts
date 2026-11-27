@@ -1,7 +1,14 @@
 import env from '@global/env';
+import { type BoxOptions, extractOptionKeys } from '@modules/Box';
 
 import { isLocalAIPrivate, subscribeLocalAIPrivacy } from './localAIPrivacy';
-import { DEFAULT_TIMEZONE_OFFSET, type TimezoneMode } from './timezone';
+import {
+  DEFAULT_TIMEZONE_OFFSET,
+  offsetForSpec,
+  parseTimezoneSpec,
+  TIMEZONE_DIRECTIVE_KEYS,
+  type TimezoneMode,
+} from './timezone';
 
 // runtime preferences are the single source of truth read by non-react code
 // (box sources, telemetry). the PreferencesContext owns the react state and
@@ -34,10 +41,46 @@ export const setRuntimePrefs = (next: Partial<RuntimePrefs>): void => {
   notifyAnalyticsPermission();
 };
 
-export const getTimezoneOffset = (date = new Date()): number =>
-  current.timezoneMode === 'system'
+type TimezonePreferences = Pick<
+  RuntimePrefs,
+  'timezoneMode' | 'timezoneOffset'
+>;
+export type TimezoneOffsetResolver = (date: Date) => number;
+
+export const getRuntimeTimezonePreferences = (): TimezonePreferences => ({
+  timezoneMode: current.timezoneMode,
+  timezoneOffset: current.timezoneOffset,
+});
+
+const resolveOffset = (prefs: TimezonePreferences, date: Date): number =>
+  prefs.timezoneMode === 'system'
     ? -date.getTimezoneOffset() / 60
-    : current.timezoneOffset;
+    : prefs.timezoneOffset;
+
+export const getTimezoneOffset = (date = new Date()): number =>
+  resolveOffset(current, date);
+
+// The inline override belongs to this evaluation. Snapshot defaults so an
+// asynchronous source stays on the same settings until it finishes.
+export const resolveBoxTimezone = (
+  options: BoxOptions,
+  context?: Partial<TimezonePreferences>,
+): { offsetAt: TimezoneOffsetResolver } | { error: string } => {
+  for (const key of TIMEZONE_DIRECTIVE_KEYS) {
+    const value = extractOptionKeys(options, key);
+    // Autocomplete inserts a bare directive before its value is typed.
+    if (typeof value !== 'string') continue;
+    const spec = parseTimezoneSpec(value);
+    return spec
+      ? { offsetAt: (date) => offsetForSpec(spec, date) }
+      : { error: `Unknown timezone "${value}"` };
+  }
+  const prefs = {
+    timezoneMode: context?.timezoneMode ?? current.timezoneMode,
+    timezoneOffset: context?.timezoneOffset ?? current.timezoneOffset,
+  };
+  return { offsetAt: (date) => resolveOffset(prefs, date) };
+};
 
 // resolve a configured host, falling back to the env default when blank.
 export const getToolboxUrl = (): string =>

@@ -1,5 +1,9 @@
 import { trim } from '@functions/helper';
-import { getTimezoneOffset } from '@functions/runtimePrefs';
+import {
+  getTimezoneOffset,
+  resolveBoxTimezone,
+  type TimezoneOffsetResolver,
+} from '@functions/runtimePrefs';
 import { toOffsetISOString } from '@functions/timezone';
 import type { Box, BoxOptions } from '@modules/Box';
 import {
@@ -8,6 +12,7 @@ import {
   extractOptionKeys,
   hasOptionKeys,
 } from '@modules/Box';
+import type { BoxSourceContext } from '@modules/BoxSource';
 
 const MAX_JWT_LENGTH = 16_384;
 const MAX_DATE_SECONDS = 8_640_000_000_000;
@@ -75,19 +80,26 @@ function decodeJson(value: string): unknown | null {
   }
 }
 
-function formatClaimDate(value: number): string | null {
+function formatClaimDate(
+  value: number,
+  offsetAt: TimezoneOffsetResolver,
+): string | null {
   if (!Number.isFinite(value) || Math.abs(value) > MAX_DATE_SECONDS)
     return null;
   const date = new Date(value * 1000);
   if (!Number.isFinite(date.getTime())) return null;
   try {
-    return toOffsetISOString(date, getTimezoneOffset(date));
+    return toOffsetISOString(date, offsetAt(date));
   } catch {
     return null;
   }
 }
 
-function readNumericDate(body: unknown, key: string): NumericDateClaim {
+function readNumericDate(
+  body: unknown,
+  key: string,
+  offsetAt: TimezoneOffsetResolver,
+): NumericDateClaim {
   if (!isJsonObject(body) || !Object.hasOwn(body, key)) {
     return { present: false, valid: false, value: null, iso: null };
   }
@@ -95,7 +107,7 @@ function readNumericDate(body: unknown, key: string): NumericDateClaim {
   if (typeof value !== 'number') {
     return { present: true, valid: false, value: null, iso: null };
   }
-  const iso = formatClaimDate(value);
+  const iso = formatClaimDate(value, offsetAt);
   return {
     present: true,
     valid: iso !== null,
@@ -123,10 +135,11 @@ function formatRemaining(seconds: number): string {
 function buildDetails(
   body: unknown,
   signature: string,
+  offsetAt: TimezoneOffsetResolver,
 ): Record<string, string> {
-  const exp = readNumericDate(body, 'exp');
-  const iat = readNumericDate(body, 'iat');
-  const nbf = readNumericDate(body, 'nbf');
+  const exp = readNumericDate(body, 'exp', offsetAt);
+  const iat = readNumericDate(body, 'iat', offsetAt);
+  const nbf = readNumericDate(body, 'nbf', offsetAt);
   const details: Record<string, string> = { Signature: signature };
   if (exp.present) details.Expiration = exp.iso ?? 'Invalid NumericDate';
   if (iat.present) details['Issued At'] = iat.iso ?? 'Invalid NumericDate';
@@ -159,7 +172,10 @@ function renderJwt(
   return JSON.stringify({ header, body, details }, null, '    ');
 }
 
-function parseJwt(input: string): Match | undefined {
+function parseJwt(
+  input: string,
+  offsetAt: TimezoneOffsetResolver,
+): Match | undefined {
   const regularInput = trim(input).replace(/^Bearer\s+/i, '');
   if (regularInput.length > MAX_JWT_LENGTH) return undefined;
 
@@ -187,7 +203,7 @@ function parseJwt(input: string): Match | undefined {
     return undefined;
   }
 
-  const details = buildDetails(body, 'Unverified (decode only)');
+  const details = buildDetails(body, 'Unverified (decode only)', offsetAt);
   return {
     header: headerValue,
     body,
@@ -244,15 +260,23 @@ export const JWTBoxSource = {
   tag: '🔑',
   kind: 'Decode',
 
-  checkMatch(input: string): Match | undefined {
-    return parseJwt(input);
+  checkMatch(
+    input: string,
+    offsetAt: TimezoneOffsetResolver = getTimezoneOffset,
+  ): Match | undefined {
+    return parseJwt(input, offsetAt);
   },
 
   async generateBoxes(
     input: string,
     options: BoxOptions = null,
+    context?: BoxSourceContext,
   ): Promise<Box[]> {
-    const match = this.checkMatch(input);
+    const timezone = resolveBoxTimezone(options, context);
+    if ('error' in timezone) {
+      return this.checkMatch(input) ? [errorBox('JWT', timezone.error)] : [];
+    }
+    const match = this.checkMatch(input, timezone.offsetAt);
     if (match === undefined) return [];
 
     const hasSecret = hasOptionKeys(options, 'secret');
@@ -282,7 +306,7 @@ export const JWTBoxSource = {
       }
     }
 
-    const details = buildDetails(match.body, signature);
+    const details = buildDetails(match.body, signature, timezone.offsetAt);
     const jwtStr = renderJwt(match.header, match.body, details);
     const displayOptions: Record<string, string> = {
       language: 'json',

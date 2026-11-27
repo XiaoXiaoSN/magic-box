@@ -134,10 +134,20 @@ export function applyTerminalPreferences(
   ) {
     throw new TerminalUsageError('Invalid timezoneOffset in preferences');
   }
-  const locale = prefs.locale;
+  const { timezoneMode, locale } = prefs;
+  if (
+    timezoneMode !== undefined &&
+    timezoneMode !== 'fixed' &&
+    timezoneMode !== 'system'
+  )
+    throw new TerminalUsageError('Invalid timezoneMode in preferences');
   if (locale !== undefined && !['en', 'tw', 'zh_TW'].includes(String(locale)))
     throw new TerminalUsageError('Invalid locale in preferences');
   setRuntimePrefs({
+    timezoneMode:
+      options.timezoneOffset !== undefined
+        ? 'fixed'
+        : (timezoneMode ?? 'fixed'),
     timezoneOffset:
       options.timezoneOffset ??
       (prefs.timezoneOffset as number | undefined) ??

@@ -1,3 +1,4 @@
+import { parseInput } from '@functions/parseOptions';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -58,6 +59,51 @@ describe('directive catalog and context', () => {
       expect.objectContaining({ id: 'directive-global', enabled: true }),
     ]);
     expect(filterDirectiveCatalog(catalog, '').length).toBeLessThanOrEqual(8);
+  });
+
+  it('advertises only global directives that have a runtime consumer', async () => {
+    const [
+      { default: TimestampBoxSource },
+      { default: CronExpressionBoxSource },
+    ] = await Promise.all([
+      import('../../modules/boxSources/TimestampBoxSource'),
+      import('../../modules/boxSources/CronExpressionBoxSource'),
+    ]);
+    const consumers = {
+      locale: {
+        source: CronExpressionBoxSource,
+        input: '0 9 * * *',
+        value: 'es',
+        expected: /A las 09:00/,
+      },
+      timezone: {
+        source: TimestampBoxSource,
+        input: '1700000000',
+        value: '0',
+        expected: /2023-11-14T22:13:20.000\+00:00/,
+      },
+      tz: {
+        source: TimestampBoxSource,
+        input: '1700000000',
+        value: '-5',
+        expected: /2023-11-14T17:13:20.000-05:00/,
+      },
+    };
+    const globalKeys = buildDirectiveCatalog('en', [])
+      .filter(({ owners }) =>
+        owners.some(({ id }) => id === 'directive-global'),
+      )
+      .map(({ key }) => key);
+    expect(globalKeys).toEqual(Object.keys(consumers));
+    for (const [key, example] of Object.entries(consumers)) {
+      const [input, options] = parseInput(
+        `${example.input}\n::${key}=${example.value}`,
+      );
+      const boxes = await example.source.generateBoxes(input, options);
+      expect(
+        boxes.map(({ props }) => props.plaintextOutput).join('\n'),
+      ).toMatch(example.expected);
+    }
   });
 
   it('uses the parser boundary so IPv6 and value editing never open completion', () => {
