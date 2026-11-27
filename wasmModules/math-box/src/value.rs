@@ -603,10 +603,34 @@ impl Complex {
         }
     }
     pub fn mul(&self, other: &Self) -> Self {
-        Self {
-            re: self.re * other.re - self.im * other.im,
-            im: self.re * other.im + self.im * other.re,
+        let ac = self.re * other.re;
+        let bd = self.im * other.im;
+        let ad = self.re * other.im;
+        let bc = self.im * other.re;
+        let result = Self::new(ac - bd, ad + bc);
+
+        let product_lost_range =
+            |product: f64, lhs, rhs| lhs != 0.0 && rhs != 0.0 && !product.is_normal();
+        if self.is_finite()
+            && other.is_finite()
+            && (!result.is_finite()
+                || product_lost_range(ac, self.re, other.re)
+                || product_lost_range(bd, self.im, other.im)
+                || product_lost_range(ad, self.re, other.im)
+                || product_lost_range(bc, self.im, other.re))
+        {
+            // Squaring a root or reciprocal can overflow in a product even
+            // when cancellation leaves a representable complex result.
+            let a = ScaledFloat::from_float(self.re);
+            let b = ScaledFloat::from_float(self.im);
+            let c = ScaledFloat::from_float(other.re);
+            let d = ScaledFloat::from_float(other.im);
+            return Self::new(
+                ScaledFloat::sum_products(a, c, b, d.neg()).to_float(),
+                ScaledFloat::sum_products(a, d, b, c).to_float(),
+            );
         }
+        result
     }
     pub fn div(&self, other: &Self) -> Result<Self> {
         if other.re == 0.0 && other.im == 0.0 {
@@ -713,9 +737,9 @@ impl Complex {
     }
 }
 
-// Keep product exponents separate until after complex division. Scaling an
-// entire complex operand would discard a small component that can still
-// contribute to a representable quotient.
+// Keep product exponents separate until after multiplication or division.
+// Scaling an entire complex operand could discard a small component that
+// still contributes to a representable result.
 #[cfg(feature = "complex")]
 #[derive(Clone, Copy)]
 struct ScaledFloat {
@@ -767,6 +791,10 @@ impl ScaledFloat {
             significand,
             exponent,
         }
+    }
+
+    fn to_float(self) -> f64 {
+        libm::scalbn(self.significand, self.exponent)
     }
 
     fn div(self, denominator: Self) -> f64 {

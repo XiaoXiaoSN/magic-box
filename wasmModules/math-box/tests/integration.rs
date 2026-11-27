@@ -547,6 +547,15 @@ fn complex_division_and_reciprocal_keep_representable_components() {
         ("re(1/complex(1e200,1e200))", 5e-201),
         ("im(complex(1e-200,1e-200)^-1)", -5e199),
         ("re(complex(1e200,1e200)^-2)", 0.0),
+        ("re(complex(2e-162,2e-162)*complex(1e-162,-1e-162))", 5e-324),
+        (
+            "re(complex(6.48e-155,-2.38e-155)^-2)",
+            1.5995737783336916e308,
+        ),
+        (
+            "im(complex(6.48e-155,-2.38e-155)^-2)",
+            1.3582154181012788e308,
+        ),
         (
             "arg(complex(-1,-0.0)/complex(1,-0.0))",
             -core::f64::consts::PI,
@@ -603,6 +612,8 @@ fn complex_norm_and_square_root_keep_representable_components() {
         ("arg(sqrt(complex(-4,-0.0)))", -core::f64::consts::FRAC_PI_2),
         ("z = sqrt(complex(-1e16,-1)); re(z*z)", -1e16),
         ("z = sqrt(complex(-1e16,-1)); im(z*z)", -1.0),
+        ("z = sqrt(complex(1.7e308,1.7e308)); re(z*z)", 1.7e308),
+        ("z = sqrt(complex(1.7e308,1.7e308)); im(z*z)", 1.7e308),
     ] {
         assert_float_eval(input, expected);
     }
