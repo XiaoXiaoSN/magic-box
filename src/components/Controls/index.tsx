@@ -67,3 +67,51 @@ export const Select = <T extends string>({
     ))}
   </select>
 );
+
+interface FieldProps {
+  label: string;
+  hint?: string;
+  controlId?: string;
+  group?: boolean;
+  children: React.ReactNode;
+}
+
+export const Field = ({
+  label,
+  hint,
+  controlId,
+  group = false,
+  children,
+}: FieldProps): React.JSX.Element => {
+  const fieldInfo = (
+    <div className="field-info">
+      {controlId ? (
+        <label className="field-label" htmlFor={controlId}>
+          {label}
+        </label>
+      ) : (
+        <div className="field-label">{label}</div>
+      )}
+      {hint ? <div className="field-hint">{hint}</div> : null}
+    </div>
+  );
+  if (group) {
+    return (
+      <fieldset className="field field-group">
+        <legend className="field-label">{label}</legend>
+        {hint ? (
+          <div className="field-info">
+            <div className="field-hint">{hint}</div>
+          </div>
+        ) : null}
+        <div className="field-control">{children}</div>
+      </fieldset>
+    );
+  }
+  return (
+    <div className="field">
+      {fieldInfo}
+      <div className="field-control">{children}</div>
+    </div>
+  );
+};

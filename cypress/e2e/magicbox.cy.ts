@@ -83,8 +83,8 @@ describe('MagicBox Page', () => {
       cy.location('search').should('eq', '?input=original');
       cy.get(input).should('have.value', 'edited draft').type('{end} again');
 
-      cy.get('header a[href="/list"]').click();
-      cy.location('pathname').should('eq', '/list');
+      cy.get('header a[href="/boxes"]').click();
+      cy.location('pathname').should('eq', '/boxes');
       cy.go('back');
       cy.location('search').should('eq', '?input=original');
       cy.get(input).should('have.value', 'edited draft again');
@@ -93,7 +93,10 @@ describe('MagicBox Page', () => {
     it('opens an empty preview from its copied link and an empty home from its query', () => {
       const previewInput = 'textarea[data-magic-input="true"]';
       let copiedLink = '';
-      cy.visit('/list?box=word-count');
+      cy.visit('/list?box=word-count#preview');
+      cy.location('pathname').should('eq', '/boxes');
+      cy.location('search').should('eq', '?box=word-count');
+      cy.location('hash').should('eq', '#preview');
       cy.window().then((win) => {
         cy.stub(win.navigator.clipboard, 'writeText')
           .callsFake(async (url: string) => {
@@ -130,7 +133,7 @@ describe('MagicBox Page', () => {
     const output = '[data-testid="magic-box-result-text"]';
 
     function openPreview(copyMode: 'enter' | 'paste') {
-      cy.visit('/list?box=base64-encode&input=Hello');
+      cy.visit('/boxes?box=base64-encode&input=Hello');
       if (copyMode === 'paste') {
         cy.get('header a[href="/settings"]').click();
         cy.findByRole('radio', { name: 'Copy & paste back' })
@@ -677,51 +680,44 @@ describe('Interactive Text Diff', () => {
 });
 
 describe('Tool browser accessibility', () => {
-  it('keeps closed mobile controls out of keyboard navigation and restores focus on close', () => {
+  it('moves focus between the mobile library and detail and keeps desktop selection focused', () => {
     cy.viewport(390, 844);
-    cy.visit('/list?box=word-count');
+    cy.visit('/boxes');
 
-    const toggle = () => cy.get('.browser-toggle');
+    const back = () => cy.findByRole('button', { name: /All boxes/ });
     const search = () => cy.findByRole('textbox', { name: 'Search boxes' });
+    const tool = () => cy.findByRole('button', { name: 'UUID' });
 
-    toggle().should('have.attr', 'aria-expanded', 'false').focus();
-    search().should('not.exist');
-    cy.findByRole('button', { name: 'UUID' }).should('not.exist');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.focused().should('have.attr', 'data-testid', 'copy-tool-share-link');
-
-    toggle().focus();
-    cy.press(Cypress.Keyboard.Keys.SPACE);
-    toggle().should('have.attr', 'aria-expanded', 'true');
-    search().should('be.focused').type('UUID');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.findByRole('button', { name: 'UUID' }).should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.ESC);
-    toggle().should('be.focused').and('have.attr', 'aria-expanded', 'false');
-
-    cy.press(Cypress.Keyboard.Keys.SPACE);
-    search().should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.press(Cypress.Keyboard.Keys.TAB);
+    search().type('UUID');
+    tool().focus();
     cy.press(Cypress.Keyboard.Keys.SPACE);
     cy.findByRole('heading', { name: 'UUID' }).should('be.visible');
-    toggle().should('be.focused').and('have.attr', 'aria-expanded', 'false');
+    back().should('be.focused');
     search().should('not.exist');
+    tool().should('not.exist');
+
+    cy.press(Cypress.Keyboard.Keys.ESC);
+    tool().should('be.focused');
+    search().should('have.value', 'UUID');
+    back().should('not.exist');
+
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    back().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    tool().should('be.focused');
 
     cy.viewport(900, 844);
-    cy.findByRole('button', { name: 'Collapse sidebar' }).focus();
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    search().should('be.focused');
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.press(Cypress.Keyboard.Keys.TAB);
-    cy.findByRole('button', { name: 'UUID' }).should('be.focused');
+    tool().focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.findByRole('heading', { name: 'UUID' }).should('be.visible');
+    tool().should('be.focused');
+    search().should('be.visible');
   });
 });
 
 describe('Shared dialog accessibility', () => {
   it('names the expanded result, traps focus, and restores it after Escape or a backdrop click', () => {
-    cy.visit('/list?box=word-count&input=Hello');
+    cy.visit('/boxes?box=word-count&input=Hello');
     const expand = () => cy.findByRole('button', { name: 'Expand Word Count' });
     const dialog = () => cy.findByRole('dialog', { name: 'Word Count' });
 
@@ -746,7 +742,7 @@ describe('Shared dialog accessibility', () => {
   });
 
   it('names the AI settings dialog and returns focus to its opener', () => {
-    cy.visit('/list?box=local-ai', {
+    cy.visit('/boxes?box=local-ai', {
       onBeforeLoad: (window) => {
         cy.stub(window, 'Worker').returns({
           postMessage: () => {},

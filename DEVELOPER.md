@@ -81,7 +81,7 @@ canonical benchmark. Use `--output <path>` for a temporary report.
 ### Updating tools
 
 The 93-entry `sourceManifest` in `src/modules/boxSources/index.ts` is also the
-source for the interactive `/list` page, TUI source selection and generated
+source for the interactive `/boxes` page, TUI source selection and generated
 documentation. After adding a source or changing its metadata/options, run:
 
 ```sh

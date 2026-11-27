@@ -14,7 +14,7 @@ separate page mode. It is enabled by default but **option-gated**, exactly like
 `::roll`:
 
 - `::ai` or `::localai` on the home screen renders the panel.
-- `/list` shows it as an ordinary tool (its `defaultInput` is `::ai`), so the box
+- `/boxes` shows it as an ordinary tool (its `defaultInput` is `::ai`), so the box
   is selectable and testable there like every other box.
 - Settings can reorder or disable it.
 
@@ -58,7 +58,7 @@ Three surfaces, and no two of them do the same job:
 - **AI settings dialog** (the gear) — configures. Task, output language,
   auto-run, releasing the loaded model, the model readout, and the long-form privacy, caution and limitation notes. It has no
   setup button: the box's button is the setup button.
-- **Settings → Local AI** — provisions. The same preferences, plus the same step
+- **Boxes → Local AI → Settings** — provisions. The same preferences, plus the same step
   button so the weights can be fetched ahead of time with no box open, and
   **Delete AI downloads**.
 
@@ -103,7 +103,7 @@ updated from that same revision.
 
 `useLocalAI({ autoInspect })` runs step 1 once on mount, so the box opens already
 on `Download model · <size>` — or `Load model · <size>` when the files are
-cached. Reaching the box means typing `::ai` or picking Local AI from `/list`;
+cached. Reaching the box means typing `::ai` or picking Local AI from `/boxes`;
 "can this device run it, and how big is it" is a question the user has already
 asked, so charging a click to answer it bought nothing.
 
@@ -112,13 +112,12 @@ jsDelivr, a WebGPU adapter probe, and a local CacheStorage inspection. It makes
 no Hugging Face model-file request and fetches zero weights. The 467.3 MiB stays
 behind the size-labelled button, always, on every visit.
 
-`prefs.aiAutoCheck` (default **on**) is the off-switch, in Settings → Local AI
-only, for anyone who does not want a mounted box contacting jsDelivr by itself. With it off, the box falls back to the explicit `Check device & model`
+`prefs.aiAutoCheck` (default **on**) is the off-switch, in the Local AI Settings tab only, for anyone who does not want a mounted box contacting jsDelivr by itself. With it off, the box falls back to the explicit `Check device & model`
 button — the same state machine, one extra click.
 
 Three places deliberately do **not** check themselves open:
 
-- **`/list` previews.** The catalog mounts the real box so the demonstration
+- **`/boxes` previews.** The catalog mounts the real box so the demonstration
   cannot drift from the tool, which would make browsing the shelf reach the
   network. `BoxPreviewProvider` marks that subtree and `LocalAIPanel` reads it
   (`useIsBoxPreview`). It is a context and not a Box-contract prop because it is
@@ -126,8 +125,8 @@ Three places deliberately do **not** check themselves open:
   the sticky telemetry gate open in a preview until it is actually used — a
   typed or carried prompt, or a setup click — so browsing the list does not
   switch error reporting off for the rest of the visit.
-- **Settings → Local AI.** That section renders for everyone who opens Settings,
-  so its presence is not a request to use local AI. It keeps the manual check.
+- **Local AI Settings tab.** The model setup keeps the manual device and cache
+  check.
 - **A failed check, or a known answer.** The effect runs once per mount and
   only from a blank client (`phase: 'idle'`, no `info`). The client is shared
   (see *Lifecycle*), so a remount must not re-check a size it already knows, and
@@ -338,10 +337,9 @@ terminated worker's queued message can never revive a stale phase.
   prompt.
 - **One session per tab.** `useLocalAI` owns one `LocalAIClient` per worker
   factory at module level (one in production), reference-counted by the
-  surfaces that show it: the box, the `/list` preview and Settings → Local AI.
+  surfaces that show it: the box, the `/boxes` preview and Local AI’s Settings tab.
   A model loaded in one is loaded in the others, and clearing the input to type
-  the next question, or visiting Settings and coming back, no longer terminates
-  it. Tests pass their own factory and so get an isolated client.
+  the next question or switching between Preview and Settings keeps it loaded. Tests pass their own factory and so get an isolated client.
 - **One model across tabs.** Web Locks gives one tab exclusive model ownership.
   A second tab receives a clear busy state instead of allocating another GPU
   session. Deletion broadcasts a release request and clears CacheStorage only
@@ -375,7 +373,7 @@ terminated worker's queued message can never revive a stale phase.
   and is deliberately excluded from search history. A share link the user
   creates would still carry it, which the box states while that mode is active.
 - `src/functions/localAIPrivacy.ts` holds a **sticky** flag. It is set when the
-  panel mounts (in a `/list` preview: on first real use), when an `::ai` input
+  panel mounts (in a `/boxes` preview: on first real use), when an `::ai` input
   settles in the magic input, and before the Sentry/Firebase SDKs are
   constructed when the URL already carries `::ai`. It only ever closes: re-enabling telemetry on the way
   out could flush breadcrumbs collected while a private prompt was on screen.
@@ -467,7 +465,7 @@ Automated (`bun run test`):
   stale counts ignored after prompt edits, over-budget counts blocking a run,
   an editable draft during the check; a loaded model surviving a remount and
   released after the grace period.
-- `src/features/local-ai/__test__/LocalAIPanelPreview.test.tsx` — a `/list`
+- `src/features/local-ai/__test__/LocalAIPanelPreview.test.tsx` — a `/boxes`
   preview leaves telemetry on until a prompt or a setup click.
 - `src/components/MagicBox/BoxCard.test.tsx` — control and portal clicks never
   copy, card clicks do, and the Local AI card keeps its answer across a
@@ -500,7 +498,7 @@ Automated (`bun run test`):
 - `src/pages/MagicBox/MagicBoxPage.test.tsx` — an `::ai` input is never written
   to search history, the partial prompt recorded before `::ai` was typed is
   withdrawn, and entries from before the edit session are kept.
-- `src/pages/ToolsList/ToolsList.test.tsx` — the box is listed on `/list`, its
+- `src/pages/Boxes/BoxesPreview.test.tsx` — the box is listed on `/boxes`, its
   panel mounts, and it spawns no worker just by being on screen.
 
 These inject a fake worker and a fake runtime. **No test downloads a model or
