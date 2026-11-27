@@ -165,6 +165,7 @@ describe('local AI client ownership', () => {
     workers[0].reply({ type: 'cancelled' });
     expect(client.getSnapshot()).toMatchObject({
       phase: 'stopped',
+      resultStatus: 'stopped',
       output: 'partial',
       loaded: true,
     });
@@ -204,6 +205,7 @@ describe('local AI client ownership', () => {
     });
     expect(client.getSnapshot()).toMatchObject({
       phase: 'stopped',
+      resultStatus: 'stopped',
       output: 'partial',
       metrics: null,
     });
@@ -545,6 +547,7 @@ describe('local AI client ownership', () => {
     workers[0].reply({ type: 'error', code: 'inputLimit' });
     expect(client.getSnapshot()).toMatchObject({
       phase: 'error',
+      resultStatus: 'error',
       error: 'inputLimit',
       loaded: true,
     });
@@ -555,12 +558,22 @@ describe('local AI client ownership', () => {
   it('discards a poisoned worker on a runtime error instead of reusing it', () => {
     const { client, workers } = setupClient(true);
     client.generate(request());
+    workers[0].reply({ type: 'delta', text: 'partial' });
     workers[0].reply({ type: 'error', code: 'generation' });
     expect(client.getSnapshot()).toMatchObject({
       phase: 'error',
+      resultStatus: 'error',
       loaded: false,
     });
     expect(workers[0].terminated).toBe(true);
+
+    expect(client.prepare()).toBe(true);
+    client.stop();
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'stopped',
+      resultStatus: 'error',
+      output: 'partial',
+    });
   });
 
   it('sanitizes raw worker failures and suppresses default error reporting', () => {
@@ -589,11 +602,20 @@ describe('local AI client ownership', () => {
     client.release();
     expect(client.getSnapshot()).toMatchObject({
       phase: 'complete',
+      resultStatus: 'complete',
       output: 'answer',
       loaded: false,
     });
     expect(workers[0].terminated).toBe(true);
     expect(client.generate(request())).toBe(false);
+
+    expect(client.inspect()).toBe(true);
+    workers[1].reply({ type: 'error', code: 'inspect' });
+    expect(client.getSnapshot()).toMatchObject({
+      phase: 'error',
+      resultStatus: 'complete',
+      output: 'answer',
+    });
   });
 
   it('clears private text on reset and honors unsubscribe', () => {
@@ -609,6 +631,7 @@ describe('local AI client ownership', () => {
     expect(listener).not.toHaveBeenCalled();
     expect(client.getSnapshot()).toMatchObject({
       phase: 'idle',
+      resultStatus: 'idle',
       output: '',
       submitted: null,
       info: null,
@@ -715,6 +738,7 @@ describe('describeSetupStep', () => {
     phase: 'idle',
     loaded: false,
     info: null,
+    resultStatus: 'idle',
     output: '',
     submitted: null,
     error: null,
@@ -776,6 +800,7 @@ describe('describePhase', () => {
     phase: 'loading',
     loaded: false,
     info: { bytes: 490_035_255, cached: false },
+    resultStatus: 'idle',
     output: '',
     submitted: null,
     error: null,

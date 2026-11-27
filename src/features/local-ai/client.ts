@@ -20,6 +20,7 @@ const initialState = (): AIState => ({
   phase: 'idle',
   loaded: false,
   info: null,
+  resultStatus: 'idle',
   output: '',
   submitted: null,
   error: null,
@@ -152,7 +153,6 @@ export class LocalAIClient {
     // what was actually submitted, or what the result is attributed to.
     const snapshot = { ...request };
     this.stopReason = null;
-    this.update({ output: '', submitted: snapshot, metrics: null });
     return this.start(
       { type: 'generate', id: ++this.nextId, request: snapshot },
       'generating',
@@ -286,6 +286,10 @@ export class LocalAIClient {
     this.terminate();
     this.update({
       phase,
+      resultStatus:
+        this.state.resultStatus === 'streaming'
+          ? 'stopped'
+          : this.state.resultStatus,
       loaded: false,
       progress: null,
       inputTokens: null,
@@ -322,8 +326,17 @@ export class LocalAIClient {
     onTimeout?: () => void,
     waitForOwnership = false,
   ): boolean {
+    const generation =
+      command.type === 'generate'
+        ? {
+            resultStatus: 'streaming' as const,
+            output: '',
+            submitted: command.request,
+            metrics: null,
+          }
+        : {};
     this.activeId = command.id;
-    this.update({ phase, error: null, progress: null });
+    this.update({ phase, error: null, progress: null, ...generation });
     if (this.activeId !== command.id) return false;
     this.arm(timeout, onTimeout);
     if (command.type === 'prepare' && this.ownership) {
@@ -428,13 +441,7 @@ export class LocalAIClient {
     this.activeId = null;
     if (event.type === 'error') {
       const error = this.stopReason === 'timeout' ? 'timeout' : event.code;
-      this.stopReason = null;
-      if (error === 'inputLimit' || error === 'invalidRequest') {
-        // Recoverable: the loaded model stays usable for a shorter prompt.
-        this.update({ phase: 'error', error });
-      } else {
-        this.fail(error);
-      }
+      this.fail(error);
     } else if (event.type === 'available') {
       this.ownership?.release();
       this.update({
@@ -459,17 +466,21 @@ export class LocalAIClient {
     } else if (event.type === 'complete') {
       const wasStopping = this.state.phase === 'stopping';
       const timedOut = this.stopReason === 'timeout';
+      const phase = timedOut ? 'error' : wasStopping ? 'stopped' : 'complete';
       this.stopReason = null;
       this.update({
-        phase: timedOut ? 'error' : wasStopping ? 'stopped' : 'complete',
+        phase,
+        resultStatus: phase,
         error: timedOut ? 'timeout' : null,
         metrics: timedOut || wasStopping ? null : event.metrics,
       });
     } else {
       const timedOut = this.stopReason === 'timeout';
+      const phase = timedOut ? 'error' : 'stopped';
       this.stopReason = null;
       this.update({
-        phase: timedOut ? 'error' : 'stopped',
+        phase,
+        resultStatus: phase,
         loaded: true,
         error: timedOut ? 'timeout' : null,
       });
@@ -495,12 +506,24 @@ export class LocalAIClient {
   }
 
   private fail(error: AIErrorCode): void {
-    // Terminating also discards a poisoned ORT initialization chain, so a retry
-    // starts from a clean worker instead of re-awaiting a rejected promise.
-    this.terminate();
+    // A request validation error leaves the loaded model usable.
+    const recoverable = error === 'inputLimit' || error === 'invalidRequest';
+    if (!recoverable) {
+      // Discard a poisoned ORT initialization chain so a retry starts clean.
+      this.terminate();
+      this.latestCountId = null;
+    }
     this.stopReason = null;
-    this.latestCountId = null;
-    this.update({ phase: 'error', loaded: false, error, progress: null });
+    this.update({
+      phase: 'error',
+      resultStatus:
+        this.state.resultStatus === 'streaming'
+          ? 'error'
+          : this.state.resultStatus,
+      loaded: recoverable && this.state.loaded,
+      error,
+      progress: null,
+    });
   }
 
   private terminate(): void {
