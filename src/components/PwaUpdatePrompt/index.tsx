@@ -144,7 +144,11 @@ const PwaUpdatePrompt = ({
           cache: 'no-store',
           signal,
         });
-        if (!response.ok || signal.aborted) return;
+        if (signal.aborted) return;
+        if (!response.ok) {
+          controller.abort();
+          return;
+        }
         const manifest: unknown = await response.json();
         if (signal.aborted || disposed || !isVersionManifest(manifest)) return;
 

@@ -61,7 +61,10 @@ function installServiceWorkerMock(
   return container;
 }
 
-function stalledVersionResponse(signal?: AbortSignal | null): Response {
+function stalledVersionResponse(
+  signal?: AbortSignal | null,
+  status = 200,
+): Response {
   return new Response(
     new ReadableStream<Uint8Array>({
       start(stream) {
@@ -71,6 +74,7 @@ function stalledVersionResponse(signal?: AbortSignal | null): Response {
         });
       },
     }),
+    { status },
   );
 }
 
@@ -161,6 +165,44 @@ describe('<PwaUpdatePrompt />', () => {
     expect(
       screen.queryByText('New version available.'),
     ).not.toBeInTheDocument();
+  });
+
+  it('cancels an unread error body and runs a queued online check', async () => {
+    vi.useFakeTimers();
+    installServiceWorkerMock(vi.fn().mockResolvedValue({}));
+    let failedSignal: AbortSignal | null | undefined;
+    let sendErrorHeaders: ((response: Response) => void) | undefined;
+    const fetchVersion = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementationOnce((_input, init) => {
+        failedSignal = init?.signal;
+        return new Promise<Response>((resolve) => {
+          sendErrorHeaders = resolve;
+        });
+      })
+      .mockResolvedValueOnce(
+        Response.json({ serviceWorker: '/sw-next.js', version: 'next' }),
+      );
+
+    render(
+      <LocaleProvider>
+        <PwaUpdatePrompt />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+      window.dispatchEvent(new Event('online'));
+    });
+    expect(fetchVersion).toHaveBeenCalledOnce();
+    expect(failedSignal?.aborted).toBe(false);
+
+    await act(async () => {
+      sendErrorHeaders?.(stalledVersionResponse(failedSignal, 503));
+    });
+    expect(failedSignal?.aborted).toBe(true);
+    expect(fetchVersion).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('New version available.')).toBeVisible();
   });
 
   it('asks before installing and activating the latest worker', async () => {
