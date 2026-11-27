@@ -7,7 +7,6 @@ import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
-import { XMLBuilder, XMLParser, XMLValidator } from 'fast-xml-parser';
 import {
   isInteger,
   isLosslessNumber,
@@ -37,6 +36,12 @@ import {
   hasXmlDocumentShape,
   hasYamlDocumentShape,
 } from './dataConverterShape';
+import {
+  buildXml,
+  invalidXmlName,
+  parseXmlDocument,
+  type XmlDocument,
+} from './dataConverterXml';
 
 enum DataFormat {
   JSON = 'json',
@@ -69,6 +74,7 @@ interface DetectedData {
   // documents, in which case `data` is the array of their values.
   multiDocument: boolean;
   yamlDocuments?: readonly Document[];
+  xmlDocument?: XmlDocument;
 }
 
 interface FormatError {
@@ -84,19 +90,6 @@ type DetectResult =
 
 const errorMessage = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
-
-const xmlParser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_',
-  parseTagValue: false,
-  parseAttributeValue: false,
-});
-const xmlBuilder = new XMLBuilder({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@_',
-  format: true,
-  indentBy: '    ',
-});
 
 function isEmptyYamlDocument(document: Document): boolean {
   return (
@@ -292,6 +285,8 @@ function xmlCompatibleValue(value: unknown): unknown {
       unknown
     >;
     for (const key of Object.keys(value)) {
+      // Processing instructions and declarations belong to XML inputs only.
+      if (key.startsWith('?')) invalidXmlName(key);
       result[key] = xmlCompatibleValue((value as Record<string, unknown>)[key]);
     }
     return result;
@@ -326,22 +321,18 @@ function detectFormat(
   }
 
   // Try XML
-  if (
-    hasXmlDocumentShape(trimmed) ||
-    (allowSingleLineYaml && trimmed.startsWith('<') && trimmed.endsWith('>'))
-  ) {
+  if (hasXmlDocumentShape(trimmed)) {
     try {
-      const validation = XMLValidator.validate(trimmed);
-      if (validation !== true) {
-        throw new Error(validation.err.msg);
-      }
-      const data = xmlParser.parse(trimmed);
-      if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-        return {
-          ok: true,
-          detected: { format: DataFormat.XML, data, multiDocument: false },
-        };
-      }
+      const xmlDocument = parseXmlDocument(trimmed);
+      return {
+        ok: true,
+        detected: {
+          format: DataFormat.XML,
+          data: xmlDocument.data,
+          multiDocument: false,
+          xmlDocument,
+        },
+      };
     } catch (e) {
       errors.push({ format: DataFormat.XML, message: errorMessage(e) });
     }
@@ -464,13 +455,14 @@ const FORMATS: readonly OutputFormat[] = [
     stringify: (d) => {
       const xmlData = xmlCompatibleValue(d);
       if (Array.isArray(xmlData)) {
-        return xmlBuilder.build({ root: { item: xmlData } });
+        return buildXml({ root: { item: xmlData } });
       }
-      const values = Object.values(xmlData as Record<string, unknown>);
+      const xmlObject = xmlData as Record<string, unknown>;
+      const values = Object.values(xmlObject);
       // The builder emits each array item as a sibling with the same name.
       const needsRoot =
         values.length > 1 || (Array.isArray(values[0]) && values[0].length > 1);
-      return xmlBuilder.build(needsRoot ? { root: xmlData } : xmlData);
+      return buildXml(needsRoot ? { root: xmlObject } : xmlObject);
     },
   },
 ];
@@ -537,6 +529,7 @@ export const DataConverterBoxSource = {
       data,
       multiDocument,
       yamlDocuments,
+      xmlDocument,
     } = result.detected;
     const conversionData =
       srcFormat === DataFormat.YAML && yamlDocuments
@@ -558,18 +551,25 @@ export const DataConverterBoxSource = {
       }
 
       try {
+        if (xmlDocument?.conversionError && !isSourceFormat) {
+          throw new Error(xmlDocument.conversionError);
+        }
         const output =
-          fmt.id === DataFormat.YAML &&
-          srcFormat === DataFormat.YAML &&
-          yamlDocuments
-            ? stringifyYamlDocuments(yamlDocuments)
-            : fmt.stringify(conversionData, multiDocument);
+          fmt.id === DataFormat.XML && xmlDocument
+            ? xmlDocument.formatted
+            : fmt.id === DataFormat.YAML && yamlDocuments
+              ? stringifyYamlDocuments(yamlDocuments)
+              : fmt.stringify(conversionData, multiDocument);
         if (output.trim() === '') {
           throw new Error(`${fmt.name} cannot represent this value`);
         }
 
-        // For the source format, only show if it actually changed (formatted) the input
-        if (isSourceFormat && trim(output) === trim(input)) {
+        // Explicit XML formatting may preserve text exactly as entered.
+        if (
+          isSourceFormat &&
+          trim(output) === trim(input) &&
+          !(xmlDocument && isTargetRequested)
+        ) {
           continue;
         }
 

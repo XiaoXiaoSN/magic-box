@@ -126,6 +126,175 @@ age = 30`;
     });
   });
 
+  describe('XML documents', () => {
+    function parseXml(input: string): Document {
+      const document = new DOMParser().parseFromString(
+        input,
+        'application/xml',
+      );
+      expect(document.querySelector('parsererror')).toBeNull();
+      return document;
+    }
+
+    async function xmlOutput(input: string, explicit = true): Promise<string> {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        input,
+        explicit ? { xml: true } : {},
+      );
+      expect(box?.props.name).toBe('XML Output');
+      return box?.props.plaintextOutput ?? '';
+    }
+
+    it('indents XML while keeping interleaved elements in order', async () => {
+      const input = '<root><a>1</a><b>2</b><a>3</a></root>';
+      const output = await xmlOutput(input, false);
+      expect(output).toContain('\n    <b>2</b>\n');
+
+      function orderedContent(document: Document) {
+        const root = document.documentElement;
+        return [
+          root.tagName,
+          Array.from(root.children, (child) => [
+            child.tagName,
+            child.textContent,
+          ]),
+        ];
+      }
+
+      expect(orderedContent(parseXml(output))).toEqual(
+        orderedContent(parseXml(input)),
+      );
+    });
+
+    it.each([
+      '<p>Hello <b>world</b> !</p>',
+      '<p><b>one</b> <b>two</b></p>',
+      '<p>\n <b>one</b>\n <b>two</b> </p>',
+      '<p>\n <b><i>one</i><i>two</i></b>\n</p>',
+      '<p>Hello <b><i>world</i><i>again</i></b> !</p>',
+      '<p xml:space="preserve"><b><i>one</i><i>two</i></b></p>',
+    ])('preserves text-node whitespace in %s', async (input) => {
+      const output = await xmlOutput(input);
+      const expected = parseXml(input).documentElement;
+      expect(parseXml(output).documentElement.isEqualNode(expected)).toBe(true);
+    });
+
+    it('keeps declarations, processing instructions, CDATA and namespaces', async () => {
+      const declaration = '<?xml version="1.0" standalone="yes"?>';
+      const input = `${declaration}<?view a > b?><ns:root xmlns:ns="urn:notes" ns:mode=" x > y "><ns:item><![CDATA[<b>]]></ns:item><!-- keep --></ns:root>`;
+      const output = await xmlOutput(input, false);
+      expect(output).toMatch(/^<\?xml /);
+      expect(output).toContain(declaration);
+      const expected = parseXml(input);
+      const actual = parseXml(output);
+      expect(actual.isEqualNode(expected)).toBe(true);
+      expect(actual.documentElement.namespaceURI).toBe('urn:notes');
+      expect(actual.documentElement.getAttributeNS('urn:notes', 'mode')).toBe(
+        ' x > y ',
+      );
+    });
+
+    it('preserves a doctype and still converts simple internal entities', async () => {
+      const input =
+        '<!DOCTYPE root [<!ENTITY label "note">]><root>&label;</root>';
+      const output = await xmlOutput(input);
+      expect(output).toBe(input);
+      expect(parseXml(output).documentElement.textContent).toBe('note');
+      const [json] = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+      });
+      expect(json?.props.name).toBe('JSON Output');
+      expect(JSON.parse(json?.props.plaintextOutput ?? '')).toEqual({
+        root: 'note',
+      });
+    });
+
+    it.each([
+      '<root>&missing;</root>',
+      '<root label="&missing;"/>',
+      '<root>&declared; &missing;</root>',
+    ])('rejects undeclared DTD references in %s', async (root) => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        `<!DOCTYPE root [<!ENTITY declared "note">]>${root}`,
+        { xml: true, json: true },
+      );
+      expect(box?.props.isError).toBe(true);
+      expect(box?.props.plaintextOutput).toMatch(
+        /Failed to parse input as XML: .*undefined entity/,
+      );
+    });
+
+    it.each([
+      '<root><a>1</a><b>2</b><a>3</a></root>',
+      '<p>Hello <b>world</b> !</p>',
+      '<p><b>one</b> <b>two</b></p>',
+    ])('explains when %s cannot be represented in other formats', async (input) => {
+      const boxes = await DataConverterBoxSource.generateBoxes(input, {
+        xml: true,
+        json: true,
+        yaml: true,
+        toml: true,
+      });
+      expect(boxes.filter(({ props }) => props.isError)).toHaveLength(3);
+      expect(
+        boxes.find(({ props }) => props.name === 'XML Output'),
+      ).toBeDefined();
+      for (const { props } of boxes.filter(({ props }) => props.isError)) {
+        expect(props.plaintextOutput).toMatch(
+          /cannot convert to .*xml.*use XML output/i,
+        );
+      }
+    });
+
+    it('keeps the simple XML object mapping and preserves leaf text', async () => {
+      const input =
+        '<root id=" x ">\n<item>  one  </item>\n<item>two</item>\n</root>';
+      const [box] = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+      });
+      expect(box?.props.name).toBe('JSON Output');
+      expect(JSON.parse(box?.props.plaintextOutput ?? '')).toEqual({
+        root: { '@_id': ' x ', item: ['  one  ', 'two'] },
+      });
+    });
+
+    it.each([
+      'a b',
+      '123',
+      '',
+      '@_a b',
+      '?xml',
+      'a:b',
+    ])('rejects an invalid generated XML name %j', async (name) => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        JSON.stringify({ root: { [name]: 1 } }),
+        { xml: true },
+      );
+      expect(box?.props.isError).toBe(true);
+      expect(box?.props.plaintextOutput).toMatch(/Cannot convert to XML/);
+      expect(box?.props.plaintextOutput).toMatch(
+        /XML name|unbound namespace prefix/i,
+      );
+    });
+
+    it('accepts declared namespaces and Unicode names in generated XML', async () => {
+      const output = await xmlOutput(
+        JSON.stringify({
+          root: {
+            '@_xmlns:ns': 'urn:notes',
+            'ns:內容': { '@_ns:mode': ' text ', '#text': '一與二' },
+          },
+        }),
+      );
+      const element = parseXml(output).getElementsByTagNameNS(
+        'urn:notes',
+        '內容',
+      )[0];
+      expect(element?.getAttributeNS('urn:notes', 'mode')).toBe(' text ');
+      expect(element?.textContent).toBe('一與二');
+    });
+  });
+
   describe('YAML 1.1 features', () => {
     it('should resolve anchors and aliases', async () => {
       const yamlInput = `defaults: &defaults
