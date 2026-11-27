@@ -463,12 +463,14 @@ const FORMATS: readonly OutputFormat[] = [
     keys: ['xml', 'toxml'],
     stringify: (d) => {
       const xmlData = xmlCompatibleValue(d);
-      const wrapData = Array.isArray(xmlData)
-        ? { root: { item: xmlData } }
-        : Object.keys(xmlData as object).length > 1
-          ? { root: xmlData }
-          : xmlData;
-      return xmlBuilder.build(wrapData);
+      if (Array.isArray(xmlData)) {
+        return xmlBuilder.build({ root: { item: xmlData } });
+      }
+      const values = Object.values(xmlData as Record<string, unknown>);
+      // The builder emits each array item as a sibling with the same name.
+      const needsRoot =
+        values.length > 1 || (Array.isArray(values[0]) && values[0].length > 1);
+      return xmlBuilder.build(needsRoot ? { root: xmlData } : xmlData);
     },
   },
 ];

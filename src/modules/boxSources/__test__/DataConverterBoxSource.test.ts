@@ -374,6 +374,28 @@ dates=[1979-05-27,1979-05-28]`;
       ).toEqual(dateStrings.nested.dates);
     });
 
+    it('gives a standalone TOML date array one XML document root', async () => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        'dates=[1979-05-27,1979-05-28]',
+        { xml: true },
+      );
+      expect(box?.props.name).toBe('XML Output');
+      const xml = new DOMParser().parseFromString(
+        box?.props.plaintextOutput ?? '',
+        'application/xml',
+      );
+      expect(xml.documentElement.tagName).toBe('root');
+      expect(
+        Array.from(xml.documentElement.children, (node) => [
+          node.tagName,
+          node.textContent,
+        ]),
+      ).toEqual([
+        ['dates', '1979-05-27'],
+        ['dates', '1979-05-28'],
+      ]);
+    });
+
     it('round-trips signed int64 and integers around the JS safe range', async () => {
       const values = [
         -9223372036854775808n,
@@ -395,10 +417,11 @@ dates=[1979-05-27,1979-05-28]`;
         values,
       );
 
-      const boxes = await DataConverterBoxSource.generateBoxes(
-        toml.replace('values =', 'values='),
-        { json: true, yaml: true, toml: true, xml: true },
-      );
+      const boxes = await DataConverterBoxSource.generateBoxes(toml, {
+        json: true,
+        yaml: true,
+        xml: true,
+      });
       const output = Object.fromEntries(
         boxes.map((box) => [box.props.name, box.props.plaintextOutput]),
       );
@@ -406,7 +429,11 @@ dates=[1979-05-27,1979-05-28]`;
       expect(
         parseYaml(output['YAML Output'] ?? '', { intAsBigInt: true }),
       ).toEqual({ values, label: 'integers' });
-      expect(output['TOML Output']).toBe(toml);
+      const [reformatted] = await DataConverterBoxSource.generateBoxes(
+        toml.replace('values =', 'values='),
+        { toml: true },
+      );
+      expect(reformatted?.props.plaintextOutput).toBe(toml);
       const xml = new DOMParser().parseFromString(
         output['XML Output'] ?? '',
         'application/xml',
