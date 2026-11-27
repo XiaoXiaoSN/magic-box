@@ -28,6 +28,7 @@ import {
   useSearchHistory,
 } from '../../hooks/useSearchHistory';
 import { type Locale, type Translations, toIntlLocale } from '../../i18n';
+import SavedInputs from './SavedInputs';
 
 const QRCodeReader = retryableLazy(() => import('@components/QRCodeReader'));
 
@@ -324,6 +325,7 @@ const MagicBoxPage = (): React.JSX.Element => {
 
           {historyOpen ? (
             <div className="history-panel" data-testid="history-panel">
+              <SavedInputs input={userInput} onLoad={handleHistorySelect} />
               {history.length > 0 ? (
                 <>
                   <div className="history-list">
