@@ -274,14 +274,42 @@ impl Fraction {
         Self(RatioInner::from_integer(num))
     }
 
+    pub(crate) fn floor(&self) -> Self {
+        use num_integer::Integer;
+        Self::raw_from_int_backend(self.0.numer().div_floor(self.0.denom()))
+    }
+
+    pub(crate) fn ceil(&self) -> Self {
+        use num_integer::Integer;
+        Self::raw_from_int_backend(self.0.numer().div_ceil(self.0.denom()))
+    }
+
+    pub(crate) fn round(&self) -> Self {
+        Self(self.0.round())
+    }
+
+    pub(crate) fn trunc(&self) -> Self {
+        Self(self.0.trunc())
+    }
+
     pub fn to_f64(&self) -> f64 {
-        // num_rational's ToPrimitive impl is gated on num-bigint-std; sidestep
-        // it by converting numerator/denominator separately. ToPrimitive is
-        // implemented on both BigInt and i64 unconditionally.
-        use num_traits::ToPrimitive;
-        let n = self.0.numer().to_f64().unwrap_or(0.0);
-        let d = self.0.denom().to_f64().unwrap_or(1.0);
-        n / d
+        #[cfg(feature = "bigint")]
+        {
+            let numerator = self.0.numer();
+            let magnitude = big_ratio_to_f64(numerator.magnitude(), self.0.denom().magnitude());
+            if numerator.sign() == num_bigint::Sign::Minus {
+                -magnitude
+            } else {
+                magnitude
+            }
+        }
+        #[cfg(not(feature = "bigint"))]
+        {
+            use num_traits::ToPrimitive;
+            self.0
+                .to_f64()
+                .expect("a normalized i64 fraction has a finite quotient")
+        }
     }
 
     pub fn to_display_string(&self) -> String {
@@ -466,6 +494,70 @@ fn decimal_digits_upper_bound(bits: u64) -> usize {
     bits.saturating_mul(30_103)
         .saturating_add(99_999)
         .div_ceil(100_000) as usize
+}
+
+#[cfg(all(feature = "fraction", feature = "bigint"))]
+fn big_ratio_to_f64(numerator: &num_bigint::BigUint, denominator: &num_bigint::BigUint) -> f64 {
+    use core::cmp::Ordering;
+    use num_integer::Integer;
+    use num_traits::ToPrimitive;
+
+    const FRACTION_BITS: i32 = f64::MANTISSA_DIGITS as i32 - 1;
+    const MIN_NORMAL_EXPONENT: i32 = f64::MIN_EXP - 1;
+    const MIN_SUBNORMAL_EXPONENT: i32 = MIN_NORMAL_EXPONENT - FRACTION_BITS;
+    const MAX_EXPONENT: i32 = f64::MAX_EXP - 1;
+
+    if numerator.bits().max(denominator.bits()) <= f64::MANTISSA_DIGITS as u64 {
+        // Both operands are exactly representable, so native division rounds once.
+        return numerator.to_f64().unwrap() / denominator.to_f64().unwrap();
+    }
+
+    // The bit-length difference gives either floor(log2(n/d)) or one more.
+    // Exclude obvious range extremes before allocating shifted integers.
+    let bit_difference = numerator.bits() as i32 - denominator.bits() as i32;
+    if bit_difference > MAX_EXPONENT + 1 {
+        return f64::INFINITY;
+    }
+    if bit_difference < MIN_SUBNORMAL_EXPONENT - 1 {
+        return 0.0;
+    }
+    let below_power = if bit_difference >= 0 {
+        numerator < &(denominator << bit_difference as usize)
+    } else {
+        &(numerator << (-bit_difference) as usize) < denominator
+    };
+    let exponent = bit_difference - i32::from(below_power);
+    if exponent > MAX_EXPONENT {
+        return f64::INFINITY;
+    }
+
+    // Express the exact ratio in units of the target float's least significant
+    // bit. Subnormals all use the same unit, 2^-1074.
+    let unit_exponent = (exponent - FRACTION_BITS).max(MIN_SUBNORMAL_EXPONENT);
+    let scaled_numerator;
+    let scaled_denominator;
+    let (numerator, denominator) = if unit_exponent < 0 {
+        scaled_numerator = numerator << (-unit_exponent) as usize;
+        (&scaled_numerator, denominator)
+    } else {
+        scaled_denominator = denominator << unit_exponent as usize;
+        (numerator, &scaled_denominator)
+    };
+    let (quotient, remainder) = numerator.div_rem(denominator);
+    let mut significand = quotient.to_u64().expect("quotient fits in 53 bits");
+    // IEEE 754 rounds ties to the even significand.
+    let midpoint = (&remainder << 1usize).cmp(denominator);
+    if midpoint == Ordering::Greater || (midpoint == Ordering::Equal && significand % 2 != 0) {
+        significand += 1;
+    }
+
+    let power_bits = if unit_exponent < MIN_NORMAL_EXPONENT {
+        1 << (unit_exponent - MIN_SUBNORMAL_EXPONENT)
+    } else {
+        ((unit_exponent + MAX_EXPONENT) as u64) << FRACTION_BITS
+    };
+    // The rounded significand and the power of two are each exact.
+    significand as f64 * f64::from_bits(power_bits)
 }
 
 #[cfg(feature = "fraction")]

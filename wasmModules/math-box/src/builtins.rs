@@ -68,10 +68,22 @@ pub fn default_namespace() -> Namespace {
     ns.set_fn("sqrt", exact(1), true, sqrt_value);
     num1!("cbrt", f64::cbrt);
 
-    num1!("floor", f64::floor);
-    num1!("ceil", f64::ceil);
-    num1!("round", f64::round);
-    num1!("trunc", f64::trunc);
+    macro_rules! rounding {
+        ($operation:ident) => {
+            ns.set_fn(stringify!($operation), exact(1), true, |a| match &a[0] {
+                #[cfg(feature = "bigint")]
+                Value::Big(value) => Ok(Value::Big(value.clone())),
+                #[cfg(feature = "fraction")]
+                Value::Frac(value) => Ok(Value::Frac(value.$operation())),
+                _ => Ok(Value::Num(values_to_f64(a)?[0].$operation())),
+            });
+        };
+    }
+
+    rounding!(floor);
+    rounding!(ceil);
+    rounding!(round);
+    rounding!(trunc);
 
     ns.set_fn("log", range(1, 2), true, |a| {
         let v = values_to_f64(a)?;
