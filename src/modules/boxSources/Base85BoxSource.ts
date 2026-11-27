@@ -172,6 +172,7 @@ export const Base85BoxSource = {
       if (!decodedResult.ok) {
         boxes.push(
           new BoxBuilder('Base85 (Decode)', decodedResult.message)
+            .setIsError()
             .setView('default')
             .setShowExpandButton(false)
 

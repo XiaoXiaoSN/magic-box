@@ -133,13 +133,16 @@ export const PunycodeBoxSource = {
 
     if (wantToAscii) {
       let result: string;
+      let isError = false;
       try {
         result = toAscii(domain);
       } catch {
+        isError = true;
         result = 'Invalid domain: unable to encode to Punycode.';
       }
       boxes.push(
         new BoxBuilder('Punycode (ToASCII)', result)
+          .setIsError(isError)
           .setView('default')
           .setShowExpandButton(false)
 
@@ -149,13 +152,16 @@ export const PunycodeBoxSource = {
 
     if (wantToUnicode) {
       let result: string;
+      let isError = false;
       try {
         result = toUnicode(domain);
       } catch {
+        isError = true;
         result = 'Invalid domain: unable to decode from Punycode.';
       }
       boxes.push(
         new BoxBuilder('Punycode (ToUnicode)', result)
+          .setIsError(isError)
           .setView('default')
           .setShowExpandButton(false)
 

@@ -704,6 +704,7 @@ export const UnitConverterBoxSource = {
         .join('\n');
       return [
         new BoxBuilder(title, plaintext)
+          .setIsError()
           .setView('keyValue')
           .setOptions(kvOptions)
 

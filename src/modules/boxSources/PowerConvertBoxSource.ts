@@ -53,6 +53,7 @@ export const PowerConvertBoxSource = {
       };
       return [
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
+          .setIsError()
           .setView('keyValue')
           .setOptions(pairs)
 
@@ -70,6 +71,7 @@ export const PowerConvertBoxSource = {
       };
       return [
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
+          .setIsError()
           .setView('keyValue')
           .setOptions(pairs)
 
@@ -85,6 +87,7 @@ export const PowerConvertBoxSource = {
       };
       return [
         new BoxBuilder('Power Convert', kvToPlaintext(pairs))
+          .setIsError()
           .setView('keyValue')
           .setOptions(pairs)
 

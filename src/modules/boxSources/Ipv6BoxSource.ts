@@ -20,6 +20,7 @@ function invalidIPv6Box(raw: string, error: string): Box[] {
   };
   return [
     new BoxBuilder('IPv6', kvToPlaintext(kv))
+      .setIsError()
       .setOptions(kv)
       .setView('keyValue')
 

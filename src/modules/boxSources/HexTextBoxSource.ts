@@ -118,6 +118,7 @@ export const HexTextBoxSource = {
       } else {
         boxes.push(
           new BoxBuilder('Hex to Text', result.message)
+            .setIsError()
             .setShowExpandButton(false)
 
             .build(),

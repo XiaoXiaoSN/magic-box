@@ -104,6 +104,7 @@ export const EasterBoxSource = {
           'Easter',
           'Invalid year. Enter a year between 1583 and 9999.',
         )
+          .setIsError()
           .setView('keyValue')
           .setOptions({
             Error: 'Invalid year. Enter a year between 1583 and 9999.',
@@ -120,6 +121,7 @@ export const EasterBoxSource = {
       const msg = `Year must be between ${MIN_YEAR} and ${MAX_YEAR} for the Gregorian computus.`;
       return [
         new BoxBuilder('Easter', msg)
+          .setIsError()
           .setView('keyValue')
           .setOptions({ Error: msg })
           .setShowExpandButton(false)

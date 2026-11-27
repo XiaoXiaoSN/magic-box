@@ -129,6 +129,7 @@ export const PasswordBoxSource = {
           'Password Generator',
           'Error: crypto.getRandomValues is unavailable. A secure context (HTTPS or localhost) is required.',
         )
+          .setIsError()
           .setView('default')
           .setShowExpandButton(false)
 
@@ -156,6 +157,7 @@ export const PasswordBoxSource = {
           'Password Generator',
           'Error: all character classes are excluded. Enable at least one class.',
         )
+          .setIsError()
           .setView('default')
           .setShowExpandButton(false)
 

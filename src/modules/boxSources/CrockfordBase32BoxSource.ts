@@ -92,6 +92,7 @@ export const CrockfordBase32BoxSource = {
             'Crockford Base32 (Decode)',
             'invalid Crockford Base32 input',
           )
+            .setIsError()
             .setView('default')
             .setShowExpandButton(false)
 

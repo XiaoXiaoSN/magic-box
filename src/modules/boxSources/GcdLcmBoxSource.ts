@@ -89,6 +89,7 @@ export const GcdLcmBoxSource = {
       const kv = { Note: 'all tokens must be integers (e.g. 12, -5, 0)' };
       return [
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
+          .setIsError()
           .setOptions(kv)
           .setView('keyValue')
 
@@ -100,6 +101,7 @@ export const GcdLcmBoxSource = {
       const kv = { Note: 'at least two integers are required' };
       return [
         new BoxBuilder('GCD / LCM', kvToPlaintext(kv))
+          .setIsError()
           .setOptions(kv)
           .setView('keyValue')
 

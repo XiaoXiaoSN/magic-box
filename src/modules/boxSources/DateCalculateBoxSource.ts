@@ -560,6 +560,7 @@ export const DateCalculateBoxSource = {
       if (!parsed) {
         return [
           new BoxBuilder('Relative Time', `Invalid date: "${raw}"`)
+            .setIsError()
             .setShowExpandButton(false)
 
             .build(),

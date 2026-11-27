@@ -178,10 +178,11 @@ describe('HashBoxSource', () => {
       });
     });
 
-    it('returns a single informational box when crypto.subtle is unavailable', async () => {
+    it('returns a diagnostic box when crypto.subtle is unavailable', async () => {
       const boxes = await HashBoxSource.generateBoxes('abc', { sha256: true });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.plaintextOutput).toMatch(/secure context/i);
+      expect(boxes[0].props.isError).toBe(true);
     });
   });
 

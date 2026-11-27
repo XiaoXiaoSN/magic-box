@@ -71,6 +71,7 @@ export const BinaryTextBoxSource = {
             'Binary to Text',
             'invalid binary: input must be a multiple of 8 bits containing only 0 and 1',
           )
+            .setIsError()
             .setView('default')
             .setShowExpandButton(false)
 

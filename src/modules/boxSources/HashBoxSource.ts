@@ -178,6 +178,7 @@ export const HashBoxSource = {
           'Hash',
           'Hashing requires a secure context (HTTPS). crypto.subtle is not available.',
         )
+          .setIsError()
           .setView('default')
           .setShowExpandButton(false)
 
