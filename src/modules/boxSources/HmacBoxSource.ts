@@ -1,3 +1,7 @@
+import {
+  HMAC_DIRECTIVE_KEYS,
+  HMAC_KEY_DIRECTIVES,
+} from '@functions/cryptoDirectives';
 import { isString } from '@functions/helper';
 import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
@@ -22,13 +26,6 @@ const ALGORITHMS: AlgorithmEntry[] = [
   { hash: 'SHA-1', keys: ['sha1', 'hmacsha1'], label: 'HMAC-SHA1' },
   { hash: 'SHA-512', keys: ['sha512', 'hmacsha512'], label: 'HMAC-SHA512' },
 ];
-
-// keys that activate this source on their own, even without a value
-const TRIGGER_KEYS = ['hmac', 'hmacsha256', 'hmacsha1', 'hmacsha512'];
-
-// keys whose value may carry the HMAC key, in lookup order. bare `::sha256`
-// is NOT a trigger (that is the plain Hash box); `::sha256=secret` is.
-const KEY_VALUE_KEYS = [...TRIGGER_KEYS, 'sha256', 'sha1', 'sha512'];
 
 function bufToHex(buf: ArrayBuffer): string {
   return Array.from(new Uint8Array(buf))
@@ -61,7 +58,7 @@ async function computeHmac(
 // first non-empty string value among the key-carrying options, or null
 function resolveKey(options: BoxOptions): string | null {
   if (options === null) return null;
-  for (const k of KEY_VALUE_KEYS) {
+  for (const k of HMAC_KEY_DIRECTIVES) {
     const v = options[k];
     if (typeof v === 'string' && v.length > 0) return v;
   }
@@ -93,7 +90,7 @@ export const HmacBoxSource = {
     const key = resolveKey(options);
 
     // trigger: an explicit hmac option, or a sha option carrying a key
-    if (!hasOptionKeys(options, ...TRIGGER_KEYS) && key === null) {
+    if (!hasOptionKeys(options, ...HMAC_DIRECTIVE_KEYS) && key === null) {
       return [];
     }
 

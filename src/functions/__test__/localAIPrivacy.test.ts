@@ -48,6 +48,30 @@ describe('isLocalAIInput', () => {
 });
 
 describe('private input detection', () => {
+  it.each([
+    'hmac',
+    'hmacsha1',
+    'hmacsha256',
+    'hmacsha512',
+    'sha1',
+    'sha256',
+    'sha512',
+  ])('protects values carried by ::%s even if overridden', async (key) => {
+    const { privacy } = await load();
+    const keyed = `some text\n::${key.toUpperCase()}=test-key`;
+    expect(privacy.isSensitiveInput(keyed)).toBe(true);
+    expect(privacy.isPrivateInput(`${keyed}\n::${key}`)).toBe(true);
+    expect(privacy.isPrivateInput(`some text\n::${key}`)).toBe(false);
+    expect(privacy.shouldMaskDirectiveValue(key, 'test-key')).toBe(true);
+  });
+
+  it('protects a PBKDF2 password as soon as the directive is present', async () => {
+    const { privacy } = await load();
+    expect(privacy.isSensitiveInput('test-password\n::pbkdf2')).toBe(true);
+    expect(privacy.isPrivateInput('test-password\n::PBKDF2=salt')).toBe(true);
+    expect(privacy.shouldMaskDirectiveValue('pbkdf2', 'salt')).toBe(false);
+  });
+
   it('recognizes secret directives with parser case and value forms', async () => {
     const { privacy } = await load();
     for (const raw of [

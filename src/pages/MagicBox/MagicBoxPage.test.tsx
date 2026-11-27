@@ -443,6 +443,66 @@ describe('<MagicBoxPage />', () => {
       expect(isLocalAIPrivate()).toBe(true);
     });
 
+    it.each([
+      '::ai',
+      '::secret=test-key',
+      '::sha256=test-key',
+      '::pbkdf2=salt',
+    ])('withdraws draft history after returning from Settings with %s', async (directive) => {
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'older', timestamp: 1, input: 'prior input' }]),
+      );
+      renderRoutedPage();
+      typeInput('prior input');
+      await blurInput();
+      typeInput('private draft');
+      await blurInput();
+      expect(readHistory().map((entry) => entry.input)).toEqual([
+        'private draft',
+        'prior input',
+      ]);
+
+      fireEvent.click(screen.getByTestId('navigate-settings'));
+      expect(screen.getByText('Settings page')).toBeInTheDocument();
+      vi.useRealTimers();
+      fireEvent.click(screen.getByTestId('navigate-back'));
+      await screen.findByTestId('magic-input');
+      expect(getInput()).toHaveValue('private draft');
+      typeInput(`private draft\n${directive}`);
+
+      expect(readHistory().map((entry) => entry.id)).toEqual(['older']);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
+    it('removes previously stored sensitive history and draft inputs', () => {
+      const input = 'message\n::hmac=test-key';
+      localStorage.setItem(
+        HISTORY_KEY,
+        JSON.stringify([{ id: 'old', timestamp: 1, input }]),
+      );
+      sessionStorage.setItem(
+        'mb_input_draft',
+        JSON.stringify({ version: 1, input }),
+      );
+      renderPage();
+      expect(getInput()).toHaveValue('');
+      expect(readHistory()).toEqual([]);
+      expect(sessionStorage.getItem('mb_input_draft')).toBeNull();
+    });
+
+    it('masks HMAC key values without treating bare hash options as private', () => {
+      renderPage();
+      typeInput('message\n::sha256');
+      expect(screen.getByTestId('copy-share-link')).toBeEnabled();
+      typeInput('message\n::SHA256=test-key');
+      expect(screen.getByTestId('directive-chip-sha256')).not.toHaveTextContent(
+        'test-key',
+      );
+      expect(screen.getByTestId('copy-share-link')).toBeDisabled();
+    });
+
     it('withdraws partial input before a secret directive and hides its value', async () => {
       renderPage();
 

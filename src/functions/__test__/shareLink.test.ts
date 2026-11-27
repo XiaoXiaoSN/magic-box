@@ -60,15 +60,18 @@ describe('buildShareLink', () => {
     expect(url.searchParams.get('input')).toBe('dGVzdA==');
   });
 
-  it('omits private input rather than putting it in a share URL', () => {
+  it.each([
+    'jwt\n::SECRET = top-secret',
+    'message\n::sha256=test-key\n::sha256',
+    'test-password\n::pbkdf2=salt',
+  ])('omits private input from a share URL', (input) => {
     const result = buildShareLink({
-      input: 'jwt\n::SECRET = top-secret',
+      input,
       pathname: '/',
       origin: 'http://localhost:3000',
     });
     const url = new URL(result);
     expect(url.searchParams.has('input')).toBe(false);
-    expect(result).not.toContain('top-secret');
   });
 
   it('uses window.location.origin by default', () => {

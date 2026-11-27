@@ -44,6 +44,9 @@ describe('feedback upload boundary', () => {
     '::localai',
     '::secret',
     '::SECRET=true',
+    '::HMAC=test-key',
+    '::sha256=test-key\n::sha256',
+    '::PBKDF2=salt',
   ])('rejects private directives %s before SDK initialization', async (directive) => {
     await expect(
       submitFeedback(

@@ -73,7 +73,9 @@ function parseDirectiveLine(line: string): ParsedDirective | null {
   return null;
 }
 
-function parseLines(input: string): ParsedInput {
+type OnDirective = (directive: ParsedDirective) => void;
+
+function parseLines(input: string, onDirective?: OnDirective): ParsedInput {
   const normalized = input.replace(/\r\n?/g, '\n');
   const quotedLines = quotedCsvDirectiveOffsets(normalized);
   const retainedLines: string[] = [];
@@ -90,6 +92,7 @@ function parseLines(input: string): ParsedInput {
     if (directive === null) {
       retainedLines.push(line);
     } else {
+      onDirective?.(directive);
       options[directive.key] = directive.value;
     }
     lineStart = index + 1;
@@ -107,8 +110,11 @@ function parseLines(input: string): ParsedInput {
 }
 
 // parses line-anchored `::option=value` directives and returns clean input.
-export function parseInput(input: string): [string, BoxOptions] {
-  const parsed = parseLines(input);
+export function parseInput(
+  input: string,
+  onDirective?: OnDirective,
+): [string, BoxOptions] {
+  const parsed = parseLines(input, onDirective);
   return [parsed.input, parsed.options];
 }
 
