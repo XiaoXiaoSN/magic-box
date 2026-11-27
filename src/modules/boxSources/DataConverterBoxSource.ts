@@ -7,12 +7,7 @@ import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
-import {
-  isInteger,
-  isLosslessNumber,
-  isSafeNumber,
-  LosslessNumber,
-} from 'lossless-json';
+import { isLosslessNumber, LosslessNumber } from 'lossless-json';
 import {
   parse as parseToml,
   stringify as stringifyToml,
@@ -20,12 +15,11 @@ import {
 } from 'smol-toml';
 import {
   type Document,
-  isMap,
   isScalar,
-  isSeq,
   type ParseOptions,
   parseAllDocuments,
   Scalar,
+  type ScalarTag,
   type SchemaOptions,
   stringify as stringifyYaml,
   type ToJSOptions,
@@ -50,6 +44,8 @@ enum DataFormat {
   XML = 'xml',
 }
 
+const YAML_FLOAT_TAG = 'tag:yaml.org,2002:float';
+
 // YAML 1.2 dropped merge keys from the core schema, so the `yaml` package
 // disables them by default. Every real-world producer (k8s, docker-compose, CI
 // configs) still relies on `<<: *anchor`, so enable them explicitly; docs that
@@ -63,6 +59,44 @@ const yamlParseOptions: ParseOptions & SchemaOptions & ToJSOptions = {
   merge: true,
   maxAliasCount: 2500,
   intAsBigInt: true,
+  uniqueKeys: (a, b) =>
+    a === b ||
+    (isScalar(a) && isScalar(b) && areYamlScalarValuesEqual(a.value, b.value)),
+  customTags: (tags) =>
+    tags.map((tag) => {
+      if (
+        typeof tag === 'string' ||
+        tag.collection ||
+        tag.tag !== YAML_FLOAT_TAG
+      ) {
+        return tag;
+      }
+      return {
+        ...tag,
+        identify: (value) =>
+          value instanceof LosslessNumber || !!tag.identify?.(value),
+        resolve(source, ...args) {
+          const lexeme = yamlFloatLexeme(source, tag.format);
+          return lexeme === undefined
+            ? tag.resolve(source, ...args)
+            : new LosslessNumber(lexeme);
+        },
+        stringify(node, ...args) {
+          if (node.source && !/\s/.test(node.source)) return node.source;
+          if (node.value instanceof LosslessNumber)
+            return node.value.toString();
+          return tag.stringify?.(node, ...args) ?? String(node.value);
+        },
+      } satisfies ScalarTag;
+    }),
+};
+
+const losslessYamlNumberTag: ScalarTag = {
+  tag: YAML_FLOAT_TAG,
+  default: true,
+  identify: (value) => value instanceof LosslessNumber,
+  resolve: (source) => new LosslessNumber(source),
+  stringify: ({ value }) => String(value),
 };
 
 const AUTO_INPUT_LIMIT = 256 * 1024;
@@ -99,55 +133,58 @@ function isEmptyYamlDocument(document: Document): boolean {
   );
 }
 
-function yamlScalarValue(source: string, value: unknown): unknown {
-  if (typeof value === 'bigint') return new LosslessNumber(value.toString());
-  if (typeof value !== 'number' || !Number.isFinite(value)) return value;
-  if (!source || !isSafeNumber(source))
-    return new LosslessNumber(String(value));
-  try {
-    return new LosslessNumber(source);
-  } catch {
-    return new LosslessNumber(String(value));
+function yamlFloatLexeme(
+  source: string,
+  format: string | undefined,
+): string | undefined {
+  const raw = source.trimEnd().replaceAll('_', '');
+  if (format === 'TIME') {
+    // YAML 1.1 sexagesimal fractions use units of 60 to the left of the dot.
+    const [whole, fraction] = raw.replace(/^[-+]/, '').split('.');
+    const seconds = whole
+      .split(':')
+      .reduce((total, part) => total * 60n + BigInt(part), 0n);
+    return `${raw.startsWith('-') ? '-' : ''}${seconds}.${fraction || '0'}`;
   }
+
+  const decimal = /^([-+]?)(\d*)(?:\.(\d*))?([eE][-+]?\d+)?$/.exec(raw);
+  if (!decimal) return undefined;
+  const [, sign, whole, fraction, exponent = ''] = decimal;
+  if (!whole && !fraction) return undefined;
+  const integer = whole.replace(/^0+(?=\d)/, '') || '0';
+  return `${sign === '-' ? '-' : ''}${integer}${fraction === undefined ? '' : `.${fraction || '0'}`}${exponent}`;
 }
 
-function setLosslessYamlScalars(node: unknown): Array<[Scalar, unknown]> {
-  const changed: Array<[Scalar, unknown]> = [];
-  if (isScalar(node)) {
-    if (
-      node.type === Scalar.PLAIN &&
-      (typeof node.value === 'number' || typeof node.value === 'bigint')
-    ) {
-      changed.push([node, node.value]);
-      node.value = yamlScalarValue(node.source ?? '', node.value);
-    }
-    return changed;
+// The parser compares each scalar map key with earlier keys. Cache the
+// canonical form so spelling or a large exponent does not require repeated work.
+const yamlNumberKeys = new WeakMap<LosslessNumber, string>();
+
+function yamlNumberKey(value: LosslessNumber): string {
+  const previous = yamlNumberKeys.get(value);
+  if (previous !== undefined) return previous;
+
+  const [mantissa, exponent = '0'] = value.toString().split(/[eE]/);
+  const [whole, fraction = ''] = mantissa.replace(/^-/, '').split('.');
+  const digits = (whole + fraction).replace(/^0+/, '');
+  let length = digits.length;
+  while (digits[length - 1] === '0') length -= 1;
+
+  let key = '0';
+  if (length > 0) {
+    const power =
+      BigInt(exponent) + BigInt(digits.length - length - fraction.length);
+    const sign = mantissa.startsWith('-') ? '-' : '';
+    key = `${sign}${digits.slice(0, length)}e${power}`;
   }
-  if (isMap(node)) {
-    for (const pair of node.items) {
-      changed.push(...setLosslessYamlScalars(pair.key));
-      changed.push(...setLosslessYamlScalars(pair.value));
-    }
-  } else if (isSeq(node)) {
-    for (const item of node.items)
-      changed.push(...setLosslessYamlScalars(item));
-  }
-  return changed;
+  yamlNumberKeys.set(value, key);
+  return key;
 }
 
-function yamlDocumentsToLosslessData(
-  documents: readonly Document[],
-  multiDocument: boolean,
-): unknown {
-  const values = documents.map((document) => {
-    const changed = setLosslessYamlScalars(document.contents);
-    try {
-      return document.toJS(yamlParseOptions);
-    } finally {
-      for (const [node, value] of changed.reverse()) node.value = value;
-    }
-  });
-  return multiDocument ? values : values[0];
+function areYamlScalarValuesEqual(a: unknown, b: unknown): boolean {
+  if (a instanceof LosslessNumber && b instanceof LosslessNumber) {
+    return yamlNumberKey(a) === yamlNumberKey(b);
+  }
+  return a === b;
 }
 
 function stringifyYamlDocuments(documents: readonly Document[]): string {
@@ -166,17 +203,7 @@ function yamlCompatibleValue(value: unknown): unknown {
     scalar.type = Scalar.QUOTE_DOUBLE;
     return scalar;
   }
-  if (isLosslessNumber(value)) {
-    const raw = value.toString();
-    if (isInteger(raw)) return BigInt(raw);
-    if (!isSafeNumber(raw)) {
-      throw new Error(`number ${raw} cannot be represented losslessly in YAML`);
-    }
-    const scalar = new Scalar(Number(raw));
-    const fraction = raw.match(/^[+-]?\d+\.(\d+)(?:[eE][+-]?\d+)?$/)?.[1];
-    if (fraction) scalar.minFractionDigits = fraction.length;
-    return scalar;
-  }
+  if (value instanceof LosslessNumber) return new Scalar(value);
   if (Array.isArray(value)) return value.map(yamlCompatibleValue);
   if (value !== null && typeof value === 'object') {
     const result: Record<string, unknown> = Object.create(null) as Record<
@@ -191,6 +218,12 @@ function yamlCompatibleValue(value: unknown): unknown {
     return result;
   }
   return value;
+}
+
+function stringifyYamlLossless(value: unknown): string {
+  return stringifyYaml(yamlCompatibleValue(value), {
+    customTags: [losslessYamlNumberTag],
+  });
 }
 
 interface TomlNumberPlaceholders {
@@ -376,7 +409,12 @@ function detectFormat(
     const multiDocument = values.length > 1;
     const data = multiDocument ? values : values[0];
     // YAML is very permissive, we only accept objects/arrays and exclude simple primitives
-    if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+    if (
+      data &&
+      typeof data === 'object' &&
+      !(data instanceof LosslessNumber) &&
+      Object.keys(data).length > 0
+    ) {
       return {
         ok: true,
         detected: {
@@ -429,7 +467,15 @@ const FORMATS: readonly OutputFormat[] = [
     id: DataFormat.JSON,
     name: 'JSON',
     keys: ['json', 'tojson'],
-    stringify: (d) => stringifyJson(d, '    '),
+    stringify: (d) =>
+      stringifyJson(d, '    ', (_key, value) => {
+        if (typeof value === 'number' && !Number.isFinite(value)) {
+          throw new Error(
+            `JSON cannot represent the non-finite number ${value}.`,
+          );
+        }
+        return value;
+      }),
   },
   {
     id: DataFormat.YAML,
@@ -439,8 +485,8 @@ const FORMATS: readonly OutputFormat[] = [
     // rather than collapsing into a single sequence node
     stringify: (d, multiDocument) =>
       multiDocument && Array.isArray(d)
-        ? d.map((doc) => stringifyYaml(yamlCompatibleValue(doc))).join('---\n')
-        : stringifyYaml(yamlCompatibleValue(d)),
+        ? d.map(stringifyYamlLossless).join('---\n')
+        : stringifyYamlLossless(d),
   },
   {
     id: DataFormat.TOML,
@@ -531,10 +577,6 @@ export const DataConverterBoxSource = {
       yamlDocuments,
       xmlDocument,
     } = result.detected;
-    const conversionData =
-      srcFormat === DataFormat.YAML && yamlDocuments
-        ? yamlDocumentsToLosslessData(yamlDocuments, multiDocument)
-        : data;
     const boxes: Box[] = [];
 
     for (const fmt of FORMATS) {
@@ -559,7 +601,7 @@ export const DataConverterBoxSource = {
             ? xmlDocument.formatted
             : fmt.id === DataFormat.YAML && yamlDocuments
               ? stringifyYamlDocuments(yamlDocuments)
-              : fmt.stringify(conversionData, multiDocument);
+              : fmt.stringify(data, multiDocument);
         if (output.trim() === '') {
           throw new Error(`${fmt.name} cannot represent this value`);
         }

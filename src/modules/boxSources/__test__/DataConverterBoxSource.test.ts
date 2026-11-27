@@ -733,6 +733,118 @@ dates=[1979-05-27,1979-05-28]`;
       expect(toml?.props.plaintextOutput).toContain('price = 1.10');
     });
 
+    it('round-trips precise YAML decimals and finite exponents through JSON', async () => {
+      const values = [
+        '0.12345678901234567890',
+        '-1e-400',
+        '1.7976931348623159e+308',
+        '-1.25000000000000000001',
+      ];
+      const input = `values:   [${values.join(',')}] # exact numbers`;
+      const boxes = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+        yaml: true,
+      });
+      const json = boxes.find((box) => box.props.name === 'JSON Output')?.props
+        .plaintextOutput;
+      const yaml = boxes.find((box) => box.props.name === 'YAML Output')?.props
+        .plaintextOutput;
+      expect(json).toBe(
+        `{\n    "values": [\n        ${values.join(',\n        ')}\n    ]\n}`,
+      );
+      for (const value of values) expect(yaml).toContain(value);
+      expect(yaml).toContain('# exact numbers');
+
+      const [fromYaml] = await DataConverterBoxSource.generateBoxes(
+        yaml ?? '',
+        {
+          json: true,
+        },
+      );
+      expect(fromYaml.props.plaintextOutput).toBe(json);
+      const [fromJson] = await DataConverterBoxSource.generateBoxes(
+        json ?? '',
+        {
+          yaml: true,
+        },
+      );
+      const [roundTrip] = await DataConverterBoxSource.generateBoxes(
+        fromJson.props.plaintextOutput,
+        { json: true },
+      );
+      expect(roundTrip.props.plaintextOutput).toBe(json);
+    });
+
+    it('keeps exact YAML numeric values in anchors and YAML 1.1 forms', async () => {
+      const input = [
+        '%YAML 1.1',
+        '---',
+        'value: &value !!float "+001_234.5678901234567890"',
+        'alias: *value',
+        'small: -.00000000000000000001',
+        'time: -1:02.12345678901234567890',
+        'trailing: 2.',
+        'integer: 0x20000000000001',
+        'text: "0.12345678901234567890"',
+      ].join('\n');
+      const [box] = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+      });
+      const output = box.props.plaintextOutput;
+      expect(box.props.name).toBe('JSON Output');
+      expect(output).toContain('"value": 1234.5678901234567890');
+      expect(output).toContain('"alias": 1234.5678901234567890');
+      expect(output).toContain('"small": -0.00000000000000000001');
+      expect(output).toContain('"time": -62.12345678901234567890');
+      expect(output).toContain('"trailing": 2.0');
+      expect(output).toContain('"integer": 9007199254740993');
+      expect(output).toContain('"text": "0.12345678901234567890"');
+    });
+
+    it('compares YAML numeric map keys at their original precision', async () => {
+      const distinct = await DataConverterBoxSource.generateBoxes(
+        '0.12345678901234567890: first\n0.12345678901234567891: second\n',
+        { json: true },
+      );
+      expect(distinct[0].props.name).toBe('JSON Output');
+      expect(JSON.parse(distinct[0].props.plaintextOutput)).toEqual({
+        '0.12345678901234567890': 'first',
+        '0.12345678901234567891': 'second',
+      });
+
+      const duplicate = await DataConverterBoxSource.generateBoxes(
+        '1e-400: first\n0.01e-398: second',
+        { json: true },
+      );
+      expect(duplicate[0].props.isError).toBe(true);
+      expect(duplicate[0].props.plaintextOutput).toContain(
+        'Map keys must be unique',
+      );
+    });
+
+    it.each([
+      '.nan',
+      '.inf',
+      '-.Inf',
+    ])('reports a JSON error for explicit YAML non-finite value %s', async (number) => {
+      const input = `values:   [${number}]\n`;
+      const boxes = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+        yaml: true,
+        toml: true,
+      });
+      const error = boxes.find((box) => box.props.isError);
+      expect(error?.props.plaintextOutput).toMatch(
+        /Cannot convert to JSON: .*non-finite/,
+      );
+      expect(boxes.some((box) => box.props.name === 'JSON Output')).toBe(false);
+      expect(
+        boxes.find((box) => box.props.name === 'YAML Output')?.props
+          .plaintextOutput,
+      ).toContain(number);
+      expect(boxes.some((box) => box.props.name === 'TOML Output')).toBe(true);
+    });
+
     it('keeps XML element values as strings and rejects incomplete XML', async () => {
       const boxes = await DataConverterBoxSource.generateBoxes(
         '<a><zip>01234</zip><v>1.0</v></a>',

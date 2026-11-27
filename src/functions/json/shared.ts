@@ -4,6 +4,7 @@ import {
   isSafeNumber,
   LosslessNumber,
   parse as parseLossless,
+  type Replacer,
   stringify as stringifyLossless,
 } from 'lossless-json';
 
@@ -172,8 +173,12 @@ export function describeType(value: JsonValue): string {
   return `a ${typeof value}`;
 }
 
-export function stringifyJson(value: unknown, space?: number | string): string {
-  const output = stringifyLossless(value, null, space);
+export function stringifyJson(
+  value: unknown,
+  space?: number | string,
+  replacer?: Replacer,
+): string {
+  const output = stringifyLossless(value, replacer, space);
   if (output === undefined) {
     throw new JsonToolError('The result cannot be represented as JSON.');
   }
