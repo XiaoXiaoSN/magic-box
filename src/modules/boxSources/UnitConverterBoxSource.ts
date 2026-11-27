@@ -589,9 +589,12 @@ function convertValue(val: number, srcDef: UnitDef, dstDef: UnitDef): number {
   return baseVal / (dstDef.ratio || 1);
 }
 
-// Regex to parse expressions like "100 km", "500 MB in GB", "37 C to F".
+const UNIT_TOKEN = '[°²³a-z%/][°²³a-z0-9%/]*';
+
+// Commit to the full quantity before matching units, so "1e2" cannot split
+// into a quantity of 1 and an unknown unit of "e2".
 const UNIT_INPUT_RE = new RegExp(
-  `^\\s*(${STRICT_NUMBER_TOKEN})(\\s*)([°²³a-zA-Z%/]+)(?:(?:\\s+(?:to|in)\\s+|\\s*(?:->|=|:)\\s*)([°²³a-zA-Z%/]+))?\\s*$`,
+  `^\\s*(?=(${STRICT_NUMBER_TOKEN}))\\1(\\s*)(${UNIT_TOKEN})(?:(?:\\s+(?:to|in)\\s+|\\s*(?:->|=|:)\\s*)(${UNIT_TOKEN}))?\\s*$`,
   'i',
 );
 const MAX_UNIT_INPUT_LENGTH = 64;
