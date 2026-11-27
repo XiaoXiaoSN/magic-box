@@ -161,6 +161,21 @@ export default defineConfig(({ command }) => {
     // pinned transformers build), which requires the es output format.
     worker: {
       format: 'es',
+      rollupOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              // Share the small result and string helpers without bundling
+              // individual tools or their deferred locale imports.
+              {
+                name: 'worker-box-helpers',
+                test: /[\\/]src[\\/](?:modules[\\/]Box|functions[\\/](?:helper|base64))\.ts$/,
+                includeDependenciesRecursively: false,
+              },
+            ],
+          },
+        },
+      },
     },
     server: {
       port: 3000,

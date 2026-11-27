@@ -33,12 +33,7 @@ export function hasYamlDocumentShape(input: string): boolean {
   return structuralLines >= 2 || hasNestedStructure;
 }
 
-const XML_NAME = '[A-Za-z_][A-Za-z0-9_.:-]*';
-const XML_ELEMENT = new RegExp(
-  String.raw`^<(${XML_NAME})(?:\s[^<>]*)?>(?:[\s\S]*)</\1>$|^<${XML_NAME}(?:\s[^<>]*)?\s*/>$`,
-);
-
 export function hasXmlDocumentShape(input: string): boolean {
-  const withoutDeclaration = input.trim().replace(/^<\?xml\b[^?]*\?>\s*/i, '');
-  return XML_ELEMENT.test(withoutDeclaration);
+  const trimmed = input.trim();
+  return trimmed.startsWith('<') && trimmed.endsWith('>');
 }

@@ -36,6 +36,7 @@
     "react-router-dom": "^7.15.0",
     "react-syntax-highlighter": "^16.1.1",
     "reflect-metadata": "0.2.2",
+    "saxes": "6.0.0",
     "smol-toml": "^1.6.1",
     "yaml": "^2.8.4"
   },
