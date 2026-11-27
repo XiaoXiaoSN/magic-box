@@ -176,6 +176,35 @@ describe('UnicodeEscapeBoxSource', () => {
       expect(unescapeBoxes).toHaveLength(1);
       expect(unescapeBoxes[0].props.plaintextOutput).toBe(original);
     });
+
+    it.each([
+      ['backslashes', '\\'],
+      ['six-character escapes', '\u0000'],
+    ])('can unescape a maximum-length input encoded as %s', async (_case, character) => {
+      const original = character.repeat(100_000);
+      const [escaped] = await UnicodeEscapeBoxSource.generateBoxes(original, {
+        unicodeescape: true,
+      });
+      const [unescaped] = await UnicodeEscapeBoxSource.generateBoxes(
+        escaped.props.plaintextOutput,
+        { unicodeunescape: true },
+      );
+      expect(unescaped?.props.plaintextOutput).toBe(original);
+    });
+
+    it('retains the unescaped text limit in both directions', async () => {
+      const oversized = 'a'.repeat(100_001);
+      expect(
+        await UnicodeEscapeBoxSource.generateBoxes(oversized, {
+          unicodeescape: true,
+        }),
+      ).toEqual([]);
+      expect(
+        await UnicodeEscapeBoxSource.generateBoxes(oversized, {
+          unicodeunescape: true,
+        }),
+      ).toEqual([]);
+    });
   });
 
   describe('metadata', () => {

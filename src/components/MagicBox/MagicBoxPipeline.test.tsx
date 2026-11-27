@@ -2,6 +2,7 @@ import copyTextToClipboard from '@functions/clipboard';
 import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
+import { getBoxSource } from '@modules/boxSources';
 import { createLazyBoxSource } from '@modules/boxSources/lazySource';
 import TimestampBoxSource from '@modules/boxSources/TimestampBoxSource';
 import {
@@ -305,6 +306,15 @@ describe('MagicBox source pipeline', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('unescapes Unicode output longer than the automatic input limit', async () => {
+    const source = getBoxSource('unicode-escape');
+    if (!source) throw new Error('Unicode Escape must be registered.');
+    const escaped = '\\u00e9'.repeat(100_000);
+    render(tree(`${escaped}\n::unicodeunescape`, [source]));
+    const output = await screen.findByTestId('magic-box-result-text');
+    expect(output.textContent).toBe('é'.repeat(100_000));
   });
 
   it('clears a skipped source slot when a large run replaces a short result', async () => {
