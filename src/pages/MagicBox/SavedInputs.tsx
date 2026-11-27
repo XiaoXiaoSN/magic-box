@@ -131,12 +131,10 @@ export default function SavedInputs({
       )
         endEdit();
     } else if (canSave(input)) {
-      if (
-        updateItems((current) => [
-          { id: crypto.randomUUID(), name: label, input },
-          ...current,
-        ])
-      )
+      const id =
+        globalThis.crypto?.randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      if (updateItems((current) => [{ id, name: label, input }, ...current]))
         endEdit();
     }
   };

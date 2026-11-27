@@ -240,6 +240,22 @@ describe('<MagicBoxPage />', () => {
     expect(localStorage.getItem('mb_saved_inputs')).toBeNull();
   });
 
+  it('saves a preset without the secure-context UUID helper', () => {
+    vi.stubGlobal('crypto', {});
+    try {
+      renderPage();
+      typeInput('hello');
+      fireEvent.click(screen.getByTestId('history-toggle'));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Preset name' }), {
+        target: { value: 'Example' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Save input' }));
+      expect(screen.getByRole('button', { name: 'Example' })).toBeEnabled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('prefills state from the ?input query param on mount', () => {
     window.history.replaceState({}, '', '/?input=hello%20world');
 
