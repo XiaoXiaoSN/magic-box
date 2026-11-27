@@ -52,22 +52,52 @@ describe('GlobToRegexBoxSource', () => {
   });
 
   describe('generateBoxes - character class', () => {
-    it('preserves [0-9] and escapes dot in file[0-9].txt', async () => {
+    it('matches a digit and a literal dot in file[0-9].txt', async () => {
       const boxes = await GlobToRegexBoxSource.generateBoxes('file[0-9].txt', {
         glob2regex: true,
       });
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.plaintextOutput).toBe('^file[0-9]\\.txt$');
+      const regex = new RegExp(boxes[0].props.plaintextOutput);
+      expect(regex.test('file5.txt')).toBe(true);
+      expect(regex.test('filea.txt')).toBe(false);
+      expect(regex.test('file5-txt')).toBe(false);
     });
-  });
 
-  describe('generateBoxes - negated character class', () => {
-    it('converts [!a] to [^a] in [!a].txt', async () => {
+    it('keeps negated classes within a path segment', async () => {
       const boxes = await GlobToRegexBoxSource.generateBoxes('[!a].txt', {
         glob2regex: true,
       });
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.plaintextOutput).toBe('^[^a]\\.txt$');
+      const regex = new RegExp(boxes[0].props.plaintextOutput);
+      expect(regex.test('b.txt')).toBe(true);
+      expect(regex.test('a.txt')).toBe(false);
+      expect(regex.test('/.txt')).toBe(false);
+    });
+
+    it.each([
+      ['dir[!a]file', 'dirbfile'],
+      ['dir[b/]file', 'dirbfile'],
+      [String.raw`dir[b\/]file`, 'dirbfile'],
+      ['dir[.-0]file', 'dir.file'],
+    ])('keeps the class in %s from consuming a separator', async (pattern, filename) => {
+      const boxes = await GlobToRegexBoxSource.generateBoxes(pattern, {
+        glob2regex: true,
+      });
+      const regex = new RegExp(boxes[0].props.plaintextOutput);
+      expect(regex.test(filename)).toBe(true);
+      expect(regex.test('dir/file')).toBe(false);
+    });
+
+    it('leaves literal separators, escaped brackets and globstar intact', async () => {
+      const boxes = await GlobToRegexBoxSource.generateBoxes(
+        String.raw`src/**/\[tag\]/[!a].txt`,
+        { glob2regex: true },
+      );
+      const regex = new RegExp(boxes[0].props.plaintextOutput);
+      expect(regex.test('src/[tag]/b.txt')).toBe(true);
+      expect(regex.test('src/lib/nested/[tag]/b.txt')).toBe(true);
+      expect(regex.test('src/lib/nested/[tag]//.txt')).toBe(false);
+      expect(regex.test('src/lib/nested/tag/b.txt')).toBe(false);
     });
   });
 
