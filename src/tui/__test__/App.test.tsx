@@ -71,6 +71,16 @@ describe('interactive search', () => {
       text: '中文\tline\n🙂',
     },
     { kind: 'a pasted copy key', input: '\u001b[200~y\u001b[201~', text: 'y' },
+    {
+      kind: 'two pastes from one read',
+      input: '\u001b[200~first\u001b[201~\u001b[200~second\u001b[201~',
+      text: 'firstsecond',
+    },
+    {
+      kind: 'a paste followed by y from one read',
+      input: '\u001b[200~first\u001b[201~y',
+      text: 'firsty',
+    },
   ])('resumes editing with $kind when results are focused', async ({
     input,
     text,
