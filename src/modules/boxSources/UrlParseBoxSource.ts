@@ -3,6 +3,7 @@ import type { Box, BoxOptions } from '@modules/Box';
 import { errorBox, hasOptionKeys, keyValueBox } from '@modules/Box';
 
 const MAX_INPUT = 100_000;
+const EMPTY_QUERY_KEY_LABEL = '(empty key)';
 
 const DEFAULT_PORTS: Readonly<Record<string, string>> = {
   'ftp:': '21',
@@ -34,7 +35,11 @@ function appendQueryParameters(
   }
 
   for (const [key, values] of valuesByKey) {
-    const label = key || '(empty key)';
+    let label = key || EMPTY_QUERY_KEY_LABEL;
+    // Reserve leading double quotes for escaped names.
+    if (key === EMPTY_QUERY_KEY_LABEL || key.startsWith('"')) {
+      label = JSON.stringify(key);
+    }
     output[`Query · ${label}`] = values.join('\n');
   }
 }
