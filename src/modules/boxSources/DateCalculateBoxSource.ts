@@ -508,7 +508,7 @@ function formatDuration(diffMicroseconds: bigint): string {
 export const DateCalculateBoxSource = {
   name: 'Date Calculate',
   description:
-    'Add or subtract calendar or time units from a date, or compute the duration between two dates.',
+    'Add or subtract time, calculate a duration, or compare multiple time zones with ::tzcompare.',
   defaultInput: 'now + 7d',
   tag: '⏱',
   kind: 'Time',
