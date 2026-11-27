@@ -36,11 +36,42 @@ describe('RadixBoxSource', () => {
       expect(binary[0].props.options?.Result).toBe('f0');
     });
 
-    it('rejects a prefix from a different base', async () => {
-      const boxes = await RadixBoxSource.generateBoxes('0xff', {
-        radix: '10:2',
+    it.each([
+      ['0bad', '16:10', '2989'],
+      ['0b00', '16:10', '2816'],
+      ['-0bad', '16:10', '-2989'],
+      ['0x', '36:10', '33'],
+      ['0O', '36:10', '24'],
+    ])('converts %s with explicit bases %s', async (input, radix, expected) => {
+      const boxes = await RadixBoxSource.generateBoxes(input, { radix });
+      expect(boxes[0].props.options?.Result).toBe(expected);
+      expect(boxes[0].props.options?.Decimal).toBe(expected);
+    });
+
+    it.each([
+      ['0xff', '2:10'],
+      ['0xff', '10:2'],
+      ['0b102', '2:10'],
+      ['0o8', '8:10'],
+    ])('rejects invalid digits in %s with explicit bases %s', async (input, radix) => {
+      const boxes = await RadixBoxSource.generateBoxes(input, { radix });
+      expect(boxes[0].props.options?.Info).toMatch(/digit not valid/i);
+    });
+
+    it.each([
+      ['0B101', '2:10', '5'],
+      ['-0O17', '8:10', '-15'],
+      ['-0X FF', '16:10', '-255'],
+    ])('strips the matching prefix in %s with explicit bases %s', async (input, radix, expected) => {
+      const boxes = await RadixBoxSource.generateBoxes(input, { radix });
+      expect(boxes[0].props.options?.Result).toBe(expected);
+    });
+
+    it('rejects a matching prefix without digits', async () => {
+      const boxes = await RadixBoxSource.generateBoxes('0x', {
+        radix: '16:10',
       });
-      expect(boxes[0].props.options?.Info).toMatch(/prefix/i);
+      expect(boxes[0].props.options?.Info).toMatch(/empty/i);
     });
 
     it('rejects extra radix segments', async () => {
@@ -103,12 +134,12 @@ describe('RadixBoxSource', () => {
       expect(info).toMatch(/2-36/);
     });
 
-    it('also triggers on ::baseconvert alias', async () => {
-      const boxes = await RadixBoxSource.generateBoxes('ff', {
-        baseconvert: '16:2',
+    it('respects explicit digits through the ::baseconvert alias', async () => {
+      const boxes = await RadixBoxSource.generateBoxes('0bad', {
+        baseconvert: '16:10',
       });
       expect(boxes).toHaveLength(1);
-      expect(boxes[0].props.options?.Result).toBe('11111111');
+      expect(boxes[0].props.options?.Result).toBe('2989');
     });
 
     it('handles large values exactly via BigInt', async () => {
