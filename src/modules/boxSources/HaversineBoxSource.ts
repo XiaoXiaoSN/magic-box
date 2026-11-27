@@ -52,7 +52,9 @@ function haversineKm(a: Coord, b: Coord): number {
   const sinDφ = Math.sin(dφ / 2);
   const sinDλ = Math.sin(dλ / 2);
   const val = sinDφ * sinDφ + Math.cos(φ1) * Math.cos(φ2) * sinDλ * sinDλ;
-  const c = 2 * Math.atan2(Math.sqrt(val), Math.sqrt(1 - val));
+  // Roundoff at antipodes can push the haversine outside [0, 1].
+  const clamped = Math.min(1, Math.max(0, val));
+  const c = 2 * Math.atan2(Math.sqrt(clamped), Math.sqrt(1 - clamped));
   return EARTH_RADIUS_KM * c;
 }
 
