@@ -286,6 +286,10 @@ const en = {
   'diff.compare': 'Compare',
   'diff.result': 'Comparison result',
   'diff.copy': 'Copy diff',
+  'diff.cancel': 'Cancel comparison',
+  'diff.jsonTarget': 'Paste the second JSON document',
+  'diff.downloadPatch': 'Download JSON Patch',
+  'diff.workerError': 'The JSON comparison could not run. Try again.',
 };
 
 export type Translations = typeof en;

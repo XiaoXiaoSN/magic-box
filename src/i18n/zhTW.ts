@@ -274,6 +274,10 @@ const zhTW: Translations = {
   'diff.compare': '比較',
   'diff.result': '比較結果',
   'diff.copy': '複製差異',
+  'diff.cancel': '取消比較',
+  'diff.jsonTarget': '貼上第二份 JSON 文件',
+  'diff.downloadPatch': '下載 JSON Patch',
+  'diff.workerError': '無法執行 JSON 比較，請再試一次。',
 };
 
 export default zhTW;
