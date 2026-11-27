@@ -14,6 +14,7 @@ import type { BoxSource } from '@modules/BoxSource';
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -106,6 +107,10 @@ const ToolsListPage = (): React.JSX.Element => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const browserId = useId();
+  const browserToggleRef = useRef<HTMLButtonElement>(null);
+  const browserSearchRef = useRef<HTMLInputElement>(null);
+  const wasDrawerOpen = useRef(false);
   const [collapsed, setCollapsed] = useState(
     () => readStorageItem(COLLAPSED_KEY) === '1',
   );
@@ -127,11 +132,19 @@ const ToolsListPage = (): React.JSX.Element => {
     }
   }, [searchParams, selectedId]);
 
-  // Drawer Esc-to-close.
+  useLayoutEffect(() => {
+    if (drawerOpen) {
+      browserSearchRef.current?.focus({ preventScroll: true });
+    } else if (wasDrawerOpen.current) {
+      browserToggleRef.current?.focus({ preventScroll: true });
+    }
+    wasDrawerOpen.current = drawerOpen;
+  }, [drawerOpen]);
+
   useEffect(() => {
     if (!drawerOpen) return undefined;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDrawerOpen(false);
+      if (e.key === 'Escape' && !e.defaultPrevented) setDrawerOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -213,9 +226,11 @@ const ToolsListPage = (): React.JSX.Element => {
       data-sidebar-collapsed={collapsed ? 'true' : 'false'}
     >
       <button
+        aria-controls={browserId}
         aria-expanded={drawerOpen}
         className="browser-toggle"
         onClick={() => setDrawerOpen((o) => !o)}
+        ref={browserToggleRef}
         type="button"
       >
         <span className="browser-toggle-label">{t('toolsList.box')}</span>
@@ -249,7 +264,7 @@ const ToolsListPage = (): React.JSX.Element => {
       ) : null}
 
       <div className="list-shell">
-        <aside className="browser">
+        <aside className="browser" id={browserId}>
           <header className="browser-head">
             <div>
               <h1 className="browser-title">{t('toolsList.boxes')}</h1>
@@ -273,6 +288,7 @@ const ToolsListPage = (): React.JSX.Element => {
               aria-label={t('toolsList.search')}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('toolsList.search')}
+              ref={browserSearchRef}
               value={query}
             />
             {query ? (

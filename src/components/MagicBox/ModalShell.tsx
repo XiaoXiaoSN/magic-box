@@ -30,8 +30,13 @@ const ModalShell = ({
   testId,
   children,
 }: ModalShellProps) => (
-  <Modal aria-labelledby={titleId} onClose={onClose} open={open}>
-    <div className="box-modal-root">
+  <Modal onClose={onClose} open={open}>
+    <div
+      aria-labelledby={titleId}
+      aria-modal="true"
+      className="box-modal-root"
+      role="dialog"
+    >
       <button
         aria-label={backdropLabel}
         className="box-modal-overlay"

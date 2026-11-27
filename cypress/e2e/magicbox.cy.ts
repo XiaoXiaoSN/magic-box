@@ -636,3 +636,98 @@ describe('Interactive Text Diff', () => {
       });
   });
 });
+
+describe('Tool browser accessibility', () => {
+  it('keeps closed mobile controls out of keyboard navigation and restores focus on close', () => {
+    cy.viewport(390, 844);
+    cy.visit('/list?box=word-count');
+
+    const toggle = () => cy.get('.browser-toggle');
+    const search = () => cy.findByRole('textbox', { name: 'Search boxes' });
+
+    toggle().should('have.attr', 'aria-expanded', 'false').focus();
+    search().should('not.exist');
+    cy.findByRole('button', { name: 'UUID' }).should('not.exist');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.focused().should('have.attr', 'data-testid', 'copy-tool-share-link');
+
+    toggle().focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    toggle().should('have.attr', 'aria-expanded', 'true');
+    search().should('be.focused').type('UUID');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.findByRole('button', { name: 'UUID' }).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ESC);
+    toggle().should('be.focused').and('have.attr', 'aria-expanded', 'false');
+
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    search().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.findByRole('heading', { name: 'UUID' }).should('be.visible');
+    toggle().should('be.focused').and('have.attr', 'aria-expanded', 'false');
+    search().should('not.exist');
+
+    cy.viewport(900, 844);
+    cy.findByRole('button', { name: 'Collapse sidebar' }).focus();
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    search().should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.findByRole('button', { name: 'UUID' }).should('be.focused');
+  });
+});
+
+describe('Shared dialog accessibility', () => {
+  it('names the expanded result, traps focus, and restores it after Escape or a backdrop click', () => {
+    cy.visit('/list?box=word-count&input=Hello');
+    const expand = () => cy.findByRole('button', { name: 'Expand Word Count' });
+    const dialog = () => cy.findByRole('dialog', { name: 'Word Count' });
+
+    expand().focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    dialog().should('have.attr', 'aria-modal', 'true').and('be.focused');
+    dialog().findByRole('heading', { name: 'Word Count' }).should('be.visible');
+
+    for (let index = 0; index < 4; index += 1) {
+      cy.press(Cypress.Keyboard.Keys.TAB);
+      cy.focused().closest('[role="dialog"]').should('exist');
+    }
+
+    cy.press(Cypress.Keyboard.Keys.ESC);
+    dialog().should('not.exist');
+    expand().should('be.focused');
+
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    dialog().click(8, 8);
+    dialog().should('not.exist');
+    expand().should('be.focused');
+  });
+
+  it('names the AI settings dialog and returns focus to its opener', () => {
+    cy.visit('/list?box=local-ai', {
+      onBeforeLoad: (window) => {
+        cy.stub(window, 'Worker').returns({
+          postMessage: () => {},
+          terminate: () => {},
+        });
+      },
+    });
+    const gear = () => cy.findByRole('button', { name: 'AI settings' });
+    const dialog = () => cy.findByRole('dialog', { name: 'AI settings' });
+
+    gear().focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    dialog().should('have.attr', 'aria-modal', 'true').and('be.focused');
+    dialog()
+      .findByRole('heading', { name: 'AI settings' })
+      .should('be.visible');
+    cy.press(Cypress.Keyboard.Keys.TAB);
+    cy.focused().closest('[role="dialog"]').should('exist');
+    cy.press(Cypress.Keyboard.Keys.ESC);
+    dialog().should('not.exist');
+    gear().should('be.focused');
+  });
+});
