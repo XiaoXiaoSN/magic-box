@@ -734,6 +734,7 @@ describe('describeSetupStep', () => {
   it('puts the pinned exact size on the button and the sources under it', () => {
     expect(describeSetupStep({ ...base, info }, 'en')).toEqual({
       action: 'prepare',
+      cacheOnly: false,
       label: 'Download model · 467.3 MiB',
       note: expect.stringContaining('jsDelivr'),
     });
@@ -749,7 +750,11 @@ describe('describeSetupStep', () => {
   it('offers a load, not a download, for cached files', () => {
     const cached = { ...base, info: { ...info, cached: true } };
     const step = describeSetupStep(cached, 'en');
-    expect(step?.label).toBe('Load model · 467.3 MiB');
+    expect(step).toMatchObject({
+      action: 'prepare',
+      cacheOnly: true,
+      label: 'Load model · 467.3 MiB',
+    });
     // Cached replaces the source note: nothing is fetched, so naming the
     // sources would describe a request this click will not make.
     expect(step?.note).toContain('cache');
