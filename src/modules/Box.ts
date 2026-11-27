@@ -82,6 +82,7 @@ export class BoxBuilder {
   public showExpandButton: boolean = true;
   public sourceInput?: string;
   public view?: BoxView;
+  private isError = false;
 
   constructor(
     public name: string,
@@ -118,6 +119,11 @@ export class BoxBuilder {
     return this;
   }
 
+  setIsError(isError = true): BoxBuilder {
+    this.isError = isError;
+    return this;
+  }
+
   setTag(tag: string): BoxBuilder {
     this.tag = tag;
     return this;
@@ -144,6 +150,7 @@ export class BoxBuilder {
         showExpandButton: this.showExpandButton,
         tag: this.tag,
         kind: this.kind,
+        ...(this.isError ? { isError: true } : {}),
       },
       boxTemplate: this.boxTemplate,
       view: this.view,
@@ -178,8 +185,8 @@ export function keyValueBox(
 // undefined so the web layer falls back to DefaultBoxTemplate and the headless
 // layer renders the message — never a blank KeyValue grid.
 export function errorBox(name: string, message: string): Box {
-  const builder = new BoxBuilder(name, message).setShowExpandButton(false);
-  const box = builder.build();
-  box.props.isError = true;
-  return box;
+  return new BoxBuilder(name, message)
+    .setShowExpandButton(false)
+    .setIsError()
+    .build();
 }

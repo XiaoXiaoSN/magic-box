@@ -71,7 +71,9 @@ export const Base62BoxSource = {
           new BoxBuilder(
             'Base62',
             'Invalid input: a non-negative integer is required for encoding.',
-          ).build(),
+          )
+            .setIsError()
+            .build(),
         );
       } else {
         const decimal = BigInt(raw);
@@ -92,7 +94,9 @@ export const Base62BoxSource = {
           new BoxBuilder(
             'Base62',
             'Invalid input: only base62 characters (0–9, A–Z, a–z) are allowed.',
-          ).build(),
+          )
+            .setIsError()
+            .build(),
         );
       } else {
         const decoded = decodeBase62(raw);

@@ -134,6 +134,7 @@ export const Base32BoxSource = {
         const message = err instanceof Error ? err.message : 'invalid Base32';
         boxes.push(
           new BoxBuilder('Base32 (Decode)', message)
+            .setIsError()
             .setView('default')
             .setShowExpandButton(false)
 

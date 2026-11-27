@@ -124,6 +124,7 @@ export const Base58BoxSource = {
       if (bytes === null) {
         boxes.push(
           new BoxBuilder('Base58 (Decode)', 'invalid Base58 input')
+            .setIsError()
             .setView('default')
             .setShowExpandButton(false)
 

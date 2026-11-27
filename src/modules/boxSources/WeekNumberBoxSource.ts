@@ -125,6 +125,7 @@ export const WeekNumberBoxSource = {
       const errText = `Invalid date: "${raw}"`;
       return [
         new BoxBuilder('Week Number', errText)
+          .setIsError()
           .setView('keyValue')
           .setOptions({ Error: errText })
 

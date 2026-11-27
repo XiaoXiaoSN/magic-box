@@ -96,6 +96,7 @@ export const QueryStringBoxSource = {
         const message = err instanceof Error ? err.message : String(err);
         return [
           new BoxBuilder('JSON → Query String (error)', message)
+            .setIsError()
             .setView('code')
             .setShowExpandButton(false)
 
@@ -118,6 +119,7 @@ export const QueryStringBoxSource = {
       const message = err instanceof Error ? err.message : String(err);
       return [
         new BoxBuilder('Query String → JSON (error)', message)
+          .setIsError()
           .setView('code')
           .setShowExpandButton(false)
 

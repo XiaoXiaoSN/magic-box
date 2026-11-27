@@ -129,6 +129,7 @@ export const MacAddressBoxSource = {
       };
       return [
         new BoxBuilder('MAC Address', kvToPlaintext(kv))
+          .setIsError()
           .setView('keyValue')
           .setOptions(kv)
 

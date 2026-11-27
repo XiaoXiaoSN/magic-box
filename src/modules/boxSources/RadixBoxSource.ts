@@ -20,8 +20,9 @@ function parseBaseString(str: string, base: number): bigint | null {
   return result;
 }
 
-function makeErrorBox(message: string): Box {
+function makeMessageBox(message: string, isError = true): Box {
   return new BoxBuilder('Radix Convert', message)
+    .setIsError(isError)
     .setView('keyValue')
     .setOptions({ Info: message })
 
@@ -54,7 +55,10 @@ export const RadixBoxSource = {
       !rawSpec.includes(':')
     ) {
       return [
-        makeErrorBox('Usage: ::radix=FROM:TO (e.g. ::radix=16:2), bases 2-36.'),
+        makeMessageBox(
+          'Usage: ::radix=FROM:TO (e.g. ::radix=16:2), bases 2-36.',
+          false,
+        ),
       ];
     }
 
@@ -64,7 +68,9 @@ export const RadixBoxSource = {
       !specParts.every((part) => /^\d+$/.test(part))
     ) {
       return [
-        makeErrorBox('Both FROM and TO bases must be integers in range 2-36.'),
+        makeMessageBox(
+          'Both FROM and TO bases must be integers in range 2-36.',
+        ),
       ];
     }
     const [fromStr, toStr] = specParts;
@@ -80,7 +86,9 @@ export const RadixBoxSource = {
       toBase > 36
     ) {
       return [
-        makeErrorBox('Both FROM and TO bases must be integers in range 2-36.'),
+        makeMessageBox(
+          'Both FROM and TO bases must be integers in range 2-36.',
+        ),
       ];
     }
 
@@ -103,14 +111,14 @@ export const RadixBoxSource = {
 
     if (!digits) {
       return [
-        makeErrorBox(`Input is empty; expected a base-${fromBase} integer.`),
+        makeMessageBox(`Input is empty; expected a base-${fromBase} integer.`),
       ];
     }
 
     const magnitude = parseBaseString(digits, fromBase);
     if (magnitude === null) {
       return [
-        makeErrorBox(
+        makeMessageBox(
           `Input "${rawInput}" contains a digit not valid in base ${fromBase}.`,
         ),
       ];

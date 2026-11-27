@@ -94,6 +94,7 @@ function buildErrorBox(input: string): Box {
       : input;
   const message = `Invalid CIDR or subnet notation: "${shown}".`;
   return new BoxBuilder('Subnet', message)
+    .setIsError()
     .setView('keyValue')
     .setOptions({ Error: message })
     .setShowExpandButton(false)

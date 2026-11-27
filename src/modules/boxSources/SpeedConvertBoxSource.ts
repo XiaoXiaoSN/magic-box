@@ -52,6 +52,7 @@ export const SpeedConvertBoxSource = {
       };
       return [
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
+          .setIsError()
           .setOptions(errorOutput)
           .setView('keyValue')
 
@@ -69,6 +70,7 @@ export const SpeedConvertBoxSource = {
       };
       return [
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
+          .setIsError()
           .setOptions(errorOutput)
           .setView('keyValue')
 
@@ -84,6 +86,7 @@ export const SpeedConvertBoxSource = {
       };
       return [
         new BoxBuilder('Speed Convert', kvToPlaintext(errorOutput))
+          .setIsError()
           .setOptions(errorOutput)
           .setView('keyValue')
 

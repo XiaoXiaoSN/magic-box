@@ -82,9 +82,10 @@ function buildCodePointBox(cp: number): Box {
 }
 
 // build an informational box when the input is not a valid lookup
-function buildInfoBox(message: string): Box {
+function buildInfoBox(message: string, isError = false): Box {
   const kv: Record<string, string> = { Info: message };
   return new BoxBuilder('ASCII Code', kvToPlaintext(kv))
+    .setIsError(isError)
     .setOptions(kv)
     .setView('keyValue')
 
@@ -132,7 +133,7 @@ export const AsciiTableBoxSource = {
       const cp = trimmed.codePointAt(0) as number;
       const invalidMessage = invalidCodePointMessage(cp);
       if (invalidMessage) {
-        return [buildInfoBox(invalidMessage)];
+        return [buildInfoBox(invalidMessage, true)];
       }
       return [buildCodePointBox(cp)];
     }
@@ -142,7 +143,7 @@ export const AsciiTableBoxSource = {
     if (cp >= 0) {
       const invalidMessage = invalidCodePointMessage(cp);
       if (invalidMessage) {
-        return [buildInfoBox(invalidMessage)];
+        return [buildInfoBox(invalidMessage, true)];
       }
       return [buildCodePointBox(cp)];
     }

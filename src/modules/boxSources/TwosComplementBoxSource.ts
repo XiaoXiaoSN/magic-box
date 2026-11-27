@@ -44,6 +44,7 @@ export const TwosComplementBoxSource = {
       };
       return [
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
+          .setIsError()
           .setView('keyValue')
           .setOptions(kv)
 
@@ -66,6 +67,7 @@ export const TwosComplementBoxSource = {
       };
       return [
         new BoxBuilder("Two's Complement", kvToPlaintext(kv))
+          .setIsError()
           .setView('keyValue')
           .setOptions(kv)
 

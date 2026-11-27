@@ -154,6 +154,7 @@ export const FractionBoxSource = {
         const kv = { Error: 'denominator cannot be zero' };
         return [
           new BoxBuilder('Fraction', kvToPlaintext(kv))
+            .setIsError()
             .setView('keyValue')
             .setOptions(kv)
 

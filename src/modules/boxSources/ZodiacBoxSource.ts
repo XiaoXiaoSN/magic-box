@@ -106,6 +106,7 @@ export const ZodiacBoxSource = {
       const kv = { Error: `Invalid date "${raw}" — use MM-DD or YYYY-MM-DD` };
       return [
         new BoxBuilder('Zodiac Sign', kvToPlaintext(kv))
+          .setIsError()
           .setView('keyValue')
           .setOptions(kv)
 

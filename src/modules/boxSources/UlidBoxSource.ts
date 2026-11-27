@@ -128,7 +128,7 @@ export const UlidBoxSource = {
       typeof crypto.getRandomValues !== 'function'
     ) {
       const errorContent = 'ULID generation requires a secure context (HTTPS).';
-      return [new BoxBuilder('ULID', errorContent).build()];
+      return [new BoxBuilder('ULID', errorContent).setIsError().build()];
     }
 
     const ulid = generateUlid();

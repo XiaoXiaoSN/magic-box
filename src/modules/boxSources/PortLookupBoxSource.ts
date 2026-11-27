@@ -95,6 +95,7 @@ export const PortLookupBoxSource = {
         };
         return [
           new BoxBuilder('Port Lookup', kvToPlaintext(kv))
+            .setIsError()
             .setView('keyValue')
             .setOptions(kv)
 
