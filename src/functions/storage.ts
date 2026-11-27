@@ -8,7 +8,15 @@ export const getLocalStorage = (): Storage | null => {
   }
 };
 
-/** Keep open tabs in step when another tab restores or clears settings. */
+const LOCAL_STORAGE_CHANGED_EVENT = 'magic-box:storage-changed';
+
+export function notifyLocalStorageChange(key: string): void {
+  window.dispatchEvent(
+    new CustomEvent(LOCAL_STORAGE_CHANGED_EVENT, { detail: key }),
+  );
+}
+
+/** Keep settings subscribers in step after writes in this or another tab. */
 export function onStorageChange(key: string, reload: () => void): () => void {
   const listener = (event: StorageEvent) => {
     if (
@@ -17,8 +25,15 @@ export function onStorageChange(key: string, reload: () => void): () => void {
     )
       reload();
   };
+  const onLocalChange = (event: Event) => {
+    if (event instanceof CustomEvent && event.detail === key) reload();
+  };
   window.addEventListener('storage', listener);
-  return () => window.removeEventListener('storage', listener);
+  window.addEventListener(LOCAL_STORAGE_CHANGED_EVENT, onLocalChange);
+  return () => {
+    window.removeEventListener('storage', listener);
+    window.removeEventListener(LOCAL_STORAGE_CHANGED_EVENT, onLocalChange);
+  };
 }
 
 export const LOCAL_DATA_CLEARED_EVENT = 'magic-box:local-data-cleared';

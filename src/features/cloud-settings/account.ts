@@ -7,7 +7,12 @@ import {
   runTransaction,
 } from 'firebase/firestore/lite';
 import { firebaseApp } from '../../firebaseApp';
-import { type Config, decodeConfig, type SavedConfig } from './config';
+import {
+  type Config,
+  decodeConfig,
+  encodePortableConfig,
+  type SavedConfig,
+} from './config';
 
 // Feedback uses an in-memory anonymous session on the default app.
 const app = initializeApp(firebaseApp.options, 'settings');
@@ -45,7 +50,10 @@ export async function saveBackup(
       ...config.settings,
       boxes: { ...stored?.settings.boxes, ...config.settings.boxes },
     };
-    transaction.set(ref, { ...config, settings, revision, version: 1 });
+    transaction.set(ref, {
+      ...encodePortableConfig({ ...config, settings }),
+      revision,
+    });
     return { conflict: false, backup: { config, revision } };
   });
 }

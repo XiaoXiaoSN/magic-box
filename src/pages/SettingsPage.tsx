@@ -13,6 +13,7 @@ import {
   usePreferences,
 } from '../contexts/PreferencesContext';
 import { buildDefaultSettings, useSettings } from '../contexts/SettingsContext';
+import SettingsFile from '../features/cloud-settings/SettingsFile';
 import { clearLocalStorage } from '../functions/storage';
 import {
   DEFAULT_TIMEZONE_OFFSET,
@@ -263,6 +264,10 @@ const SettingsPage = (): React.JSX.Element => {
               {cloudLoad === 'error' && <p role="alert">{t('cloud.error')}</p>}
             </>
           )}
+        </Section>
+
+        <Section title={t('portable.title')}>
+          <SettingsFile />
         </Section>
 
         <Section title={t('settings.section.appearance')}>
