@@ -292,7 +292,6 @@ export class LocalAIEngine {
     checkTokenBudget(promptLength);
     this.interruptor = new runtime.InterruptableStoppingCriteria();
     if (this.interrupted) this.interruptor.interrupt();
-    const startedAt = performance.now();
     let firstTokenAt: number | null = null;
     let outputTokens = 0;
     const guard = createRepetitionGuard(promptLength);
@@ -305,6 +304,7 @@ export class LocalAIEngine {
         }
       },
     });
+    const startedAt = performance.now();
     await model.generate({
       ...inputs,
       max_new_tokens: MAX_NEW_TOKENS,
@@ -326,9 +326,8 @@ export class LocalAIEngine {
     if (this.interrupted) {
       this.send({ type: 'cancelled', id });
     } else {
-      const finishedAt = performance.now();
-      const generationSeconds =
-        firstTokenAt === null ? 0 : (finishedAt - firstTokenAt) / 1000;
+      // Generated tokens include steps buffered before the first visible text.
+      const generationSeconds = (performance.now() - startedAt) / 1000;
       this.send({
         type: 'complete',
         id,
