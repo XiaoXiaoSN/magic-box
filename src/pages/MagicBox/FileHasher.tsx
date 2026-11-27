@@ -1,7 +1,9 @@
 import { downloadFile } from '@functions/download';
 import {
+  compareSha256,
   type FileHashResult,
   MAX_HASH_FILE_BYTES,
+  type Sha256Comparison,
 } from '@functions/fileSha256';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -14,11 +16,18 @@ type State =
       message: 'fileHash.limit' | 'fileHash.oneFile' | 'fileHash.failed';
     };
 
+const comparisonMessages = {
+  match: 'fileHash.match',
+  mismatch: 'fileHash.mismatch',
+  invalid: 'fileHash.invalidExpected',
+} as const satisfies Record<Sha256Comparison, string>;
+
 export default function FileHasher() {
   const { t } = useLocale();
   const inputRef = useRef<HTMLInputElement>(null);
   const workerRef = useRef<Worker | null>(null);
   const [state, setState] = useState<State | null>(null);
+  const [expected, setExpected] = useState('');
 
   const stop = useCallback(() => {
     workerRef.current?.terminate();
@@ -119,6 +128,21 @@ export default function FileHasher() {
         <div>
           <p role="status">{t('fileHash.result', { name: state.name })}</p>
           <code>{state.digest}</code>
+          <div className="file-hash-compare">
+            <input
+              aria-label={t('fileHash.expected')}
+              autoComplete="off"
+              onChange={(event) => setExpected(event.currentTarget.value)}
+              placeholder={t('fileHash.expectedPlaceholder')}
+              spellCheck={false}
+              value={expected}
+            />
+            <p aria-live="polite">
+              {expected.trim()
+                ? t(comparisonMessages[compareSha256(expected, state.digest)])
+                : null}
+            </p>
+          </div>
           <div className="cloud-actions">
             <button
               className="btn-subtle"
