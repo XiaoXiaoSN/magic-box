@@ -90,8 +90,17 @@ export class LocalAIModelOwnership implements ModelOwnership {
       this.leaseId = leaseId;
       this.leaseType = type;
       this.releaseLock = unlock;
+      // Web Locks stops listening to its request signal once granted. The
+      // client can still cancel before it receives the acquisition result.
+      const releaseIfCancelled = (): void => {
+        if (this.leaseId === leaseId) this.release();
+      };
+      options?.signal.addEventListener('abort', releaseIfCancelled, {
+        once: true,
+      });
       resolveAcquired('acquired');
       await held;
+      options?.signal.removeEventListener('abort', releaseIfCancelled);
       if (this.leaseId === leaseId) {
         this.releaseLock = null;
         this.leaseType = null;

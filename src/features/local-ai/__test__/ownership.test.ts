@@ -236,6 +236,39 @@ describe('LocalAIModelOwnership', () => {
     }
   });
 
+  it('releases a model lock granted just before a cache-only restore is cancelled', async () => {
+    vi.stubGlobal('navigator', { locks: createLocks() });
+    vi.stubGlobal('BroadcastChannel', TestBroadcastChannel);
+    const worker = new FakeWorker();
+    const restoring = new LocalAIClient(
+      () => worker,
+      new LocalAIModelOwnership(),
+    );
+    const peer = new LocalAIModelOwnership();
+    try {
+      restoring.inspect();
+      worker.reply({ type: 'available', info: { bytes: 500, cached: true } });
+      expect(
+        restoring.prepare({ cacheOnly: true, waitForOwnership: true }),
+      ).toBe(true);
+      const cancelled = Promise.withResolvers<boolean>();
+      // The Web Lock grant callback is queued before this microtask, while the
+      // client's ownership continuation still waits for the acquire result.
+      queueMicrotask(() => {
+        cancelled.resolve(restoring.cancelPendingCacheOnlyPrepare());
+      });
+      expect(await cancelled.promise).toBe(true);
+
+      await vi.waitFor(async () => {
+        expect(await peer.acquire()).toBe('acquired');
+      });
+      expect(worker.commands).toEqual([{ type: 'inspect', id: 1 }]);
+    } finally {
+      restoring.dispose();
+      peer.dispose();
+    }
+  });
+
   it('times out waiting for a running cache operation and releases its model lock', async () => {
     vi.useFakeTimers();
     vi.stubGlobal('navigator', { locks: createLocks() });
