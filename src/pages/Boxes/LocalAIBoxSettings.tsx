@@ -1,5 +1,6 @@
 import { Field, Select, Toggle } from '@components/Controls';
-import { lazy, Suspense } from 'react';
+import { retryableLazy } from '@components/ErrorBoundary';
+import { Suspense } from 'react';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import {
@@ -8,8 +9,8 @@ import {
 } from '../../features/local-ai/labels';
 
 // model setup stays lazy until its settings are opened.
-const LocalAIModelSettings = lazy(
-  async () => import('../../features/local-ai/LocalAIModelSettings'),
+const LocalAIModelSettings = retryableLazy(
+  () => import('../../features/local-ai/LocalAIModelSettings'),
 );
 
 export default function LocalAIBoxSettings(): React.JSX.Element {

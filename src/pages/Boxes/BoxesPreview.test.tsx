@@ -15,7 +15,7 @@ import { SettingsProvider } from '../../contexts/SettingsContext';
 import { LOCAL_PREFS_KEY } from '../../functions/localPrefs';
 import { buildShareLink } from '../../functions/shareLink';
 import WordCountBoxSource from '../../modules/boxSources/WordCountBoxSource';
-import ToolsListPage from './index';
+import BoxesPage from './index';
 
 const RouterState = () => {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ const RouterState = () => {
       <button onClick={() => navigate(-1)} type="button">
         Back
       </button>
-      <button onClick={() => navigate('/list')} type="button">
+      <button onClick={() => navigate('/boxes')} type="button">
         Open list
       </button>
     </>
@@ -36,7 +36,7 @@ const RouterState = () => {
 };
 
 const renderPage = (
-  initialEntries: string[] = ['/list'],
+  initialEntries: string[] = ['/boxes'],
   initialIndex = initialEntries.length - 1,
   strictMode = false,
 ) => {
@@ -49,7 +49,7 @@ const renderPage = (
             initialIndex={initialIndex}
           >
             <RouterState />
-            <ToolsListPage />
+            <BoxesPage />
           </MemoryRouter>
         </SettingsProvider>
       </PreferencesProvider>
@@ -75,7 +75,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('/list exposes the Local AI box', () => {
+describe('/boxes exposes the Local AI box', () => {
   it('lists Local AI and renders a live, inert panel when it is selected', async () => {
     // The panel must not construct a worker just by being on screen.
     const worker = vi.fn();
@@ -123,10 +123,10 @@ describe('/list exposes the Local AI box', () => {
   });
 });
 
-describe('/list preview input state', () => {
+describe('/boxes preview input state', () => {
   it('localizes source metadata and searches localized names', async () => {
     localStorage.setItem(LOCAL_PREFS_KEY, JSON.stringify({ locale: 'tw' }));
-    renderPage(['/list?box=Word%20Count']);
+    renderPage(['/boxes?box=Word%20Count']);
 
     expect(
       await screen.findByRole('heading', { name: '字數統計' }),
@@ -144,7 +144,7 @@ describe('/list preview input state', () => {
 
   it('keeps a shared empty preview empty and uses the default when omitted', async () => {
     const empty = new URL(
-      buildShareLink({ box: 'word-count', input: '', pathname: '/list' }),
+      buildShareLink({ box: 'word-count', input: '', pathname: '/boxes' }),
     );
     const first = renderPage([`${empty.pathname}${empty.search}`]);
     expect(await screen.findByRole('combobox', { name: 'Input' })).toHaveValue(
@@ -153,7 +153,7 @@ describe('/list preview input state', () => {
 
     first.unmount();
     const omitted = new URL(
-      buildShareLink({ box: 'word-count', pathname: '/list' }),
+      buildShareLink({ box: 'word-count', pathname: '/boxes' }),
     );
     renderPage([`${omitted.pathname}${omitted.search}`]);
     expect(await screen.findByRole('combobox', { name: 'Input' })).toHaveValue(
@@ -162,7 +162,7 @@ describe('/list preview input state', () => {
   });
 
   it('uses a matching shared input and clears it when switching tools', async () => {
-    renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
+    renderPage(['/boxes?box=Word%20Count&input=SHARED-INPUT']);
 
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
 
@@ -175,7 +175,7 @@ describe('/list preview input state', () => {
 
   it('hydrates a shared input after router back navigation', async () => {
     renderPage(
-      ['/list?box=Word%20Count&input=SHARED-INPUT', '/list?box=UUID'],
+      ['/boxes?box=Word%20Count&input=SHARED-INPUT', '/boxes?box=UUID'],
       1,
     );
 
@@ -188,8 +188,8 @@ describe('/list preview input state', () => {
   it('updates shared input after same-tool router back navigation', async () => {
     renderPage(
       [
-        '/list?box=Word%20Count&input=FIRST',
-        '/list?box=Word%20Count&input=SECOND',
+        '/boxes?box=Word%20Count&input=FIRST',
+        '/boxes?box=Word%20Count&input=SECOND',
       ],
       1,
     );
@@ -201,7 +201,7 @@ describe('/list preview input state', () => {
   });
 
   it('resets shared input when the same-tool route removes its input', async () => {
-    renderPage(['/list?box=Word%20Count&input=SHARED-INPUT']);
+    renderPage(['/boxes?box=Word%20Count&input=SHARED-INPUT']);
 
     expect(await screen.findByDisplayValue('SHARED-INPUT')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Open list' }));
@@ -213,7 +213,7 @@ describe('/list preview input state', () => {
   it('runs the selected source once after input settles', async () => {
     vi.useFakeTimers();
     const generateBoxes = vi.spyOn(WordCountBoxSource, 'generateBoxes');
-    renderPage(['/list?box=Word%20Count']);
+    renderPage(['/boxes?box=Word%20Count']);
 
     const input = screen.getByRole('combobox', { name: 'Input' });
     fireEvent.change(input, { target: { value: 'a' } });
@@ -252,7 +252,7 @@ describe('/list preview input state', () => {
     });
 
     try {
-      renderPage(['/list?box=Word%20Count']);
+      renderPage(['/boxes?box=Word%20Count']);
 
       expect(
         screen.getByRole('heading', { name: 'Word Count' }),
@@ -263,7 +263,6 @@ describe('/list preview input state', () => {
   });
 
   it('preserves stored list state when StrictMode mount reads fail', () => {
-    localStorage.setItem('mb:list:collapsed', '1');
     localStorage.setItem('mb:list:selected', 'Word Count');
     const storage = window.localStorage;
     const originalGetItem = storage.getItem.bind(storage);
@@ -272,7 +271,7 @@ describe('/list preview input state', () => {
     });
 
     try {
-      renderPage(['/list'], 0, true);
+      renderPage(['/boxes'], 0, true);
 
       expect(originalGetItem('mb:list:selected')).toBe('Word Count');
       fireEvent.click(screen.getByRole('button', { name: 'UUID' }));
@@ -288,7 +287,7 @@ describe('/list preview input state', () => {
       throw new DOMException('full', 'QuotaExceededError');
     });
 
-    renderPage(['/list?box=Word%20Count']);
+    renderPage(['/boxes?box=Word%20Count']);
     fireEvent.click(screen.getByRole('button', { name: 'UUID' }));
     expect(screen.getByTestId('router-box')).toHaveTextContent('uuid');
     expect(screen.getByRole('heading', { name: 'UUID' })).toBeInTheDocument();

@@ -57,7 +57,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
     setInput(initialInput ?? source.defaultInput ?? '');
   }, [initialInput, source.defaultInput]);
 
-  // restore the caret after a directive replacement; input is the deliberate trigger.
+  // restore the caret after a programmatic replacement; input is the deliberate trigger.
   // biome-ignore lint/correctness/useExhaustiveDependencies: input changes after programmatic replacement
   useLayoutEffect(() => {
     const caret = pendingCaretRef.current;
@@ -66,10 +66,23 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
     inputRef.current.setSelectionRange(caret, caret);
   }, [input]);
 
-  const replaceDirective = useCallback((value: string, caret: number): void => {
+  const replaceInputAt = useCallback((value: string, caret: number): void => {
     pendingCaretRef.current = caret;
     setInput(value);
   }, []);
+
+  const pasteInput = useCallback(
+    (value: string): void => {
+      const textarea = inputRef.current;
+      textarea?.focus();
+      if (value === input) {
+        textarea?.setSelectionRange(value.length, value.length);
+        return;
+      }
+      replaceInputAt(value, value.length);
+    },
+    [input, replaceInputAt],
+  );
 
   return (
     <div className="preview-stack">
@@ -86,7 +99,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
       <div className="preview-col-head">
         <span aria-hidden="true" className="dot" />
         <span>{t('toolsList.previewInput')}</span>
-        <DirectiveChips input={input} onReplace={replaceDirective} />
+        <DirectiveChips input={input} onReplace={replaceInputAt} />
         <ShareLinkButton
           data-testid="copy-tool-share-link"
           disabled={privateInput}
@@ -106,7 +119,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
           className="mono"
           data-magic-input="true"
           onChange={setInput}
-          onReplace={replaceDirective}
+          onReplace={replaceInputAt}
           rows={Math.min(8, Math.max(3, input.split('\n').length + 1))}
           spellCheck={false}
           textareaRef={inputRef}
@@ -127,7 +140,7 @@ const PreviewPane = ({ source }: PreviewPaneProps): React.JSX.Element => {
           <MagicBox
             input={magicIn}
             liveInput={input}
-            onPasteInput={setInput}
+            onPasteInput={pasteInput}
             sources={sources}
           />
         </BoxPreviewProvider>

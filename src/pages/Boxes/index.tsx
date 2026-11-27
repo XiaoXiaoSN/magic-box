@@ -1,4 +1,5 @@
 import { Select, Toggle } from '@components/Controls';
+import { retryableLazy } from '@components/ErrorBoundary';
 import {
   type Announcements,
   closestCenter,
@@ -21,7 +22,14 @@ import { CSS } from '@dnd-kit/utilities';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
 import { boxSources, getBoxSource } from '@modules/boxSources';
-import { lazy, Suspense, useMemo, useState } from 'react';
+import {
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useLocale } from '../../contexts/LocaleContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -29,7 +37,8 @@ import { getBoxSourceDisplay, getBoxSourceKind } from '../../i18n';
 import PreviewPane from './PreviewPane';
 import './boxes.css';
 
-const LocalAIBoxSettings = lazy(async () => import('./LocalAIBoxSettings'));
+const LocalAIBoxSettings = retryableLazy(() => import('./LocalAIBoxSettings'));
+const mobileBoxesQuery = '(max-width: 899px)';
 const kinds = [...new Set(boxSources.map((source) => source.kind))].sort();
 type Status = 'all' | 'enabled' | 'disabled';
 
@@ -164,6 +173,41 @@ export default function BoxesPage(): React.JSX.Element {
   const [mobileDetail, setMobileDetail] = useState(() =>
     searchParams.has('box'),
   );
+  const libraryRef = useRef<HTMLElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
+  const wasMobileDetail = useRef(false);
+
+  useLayoutEffect(() => {
+    if (window.matchMedia(mobileBoxesQuery).matches) {
+      if (mobileDetail) {
+        backRef.current?.focus({ preventScroll: true });
+      } else if (wasMobileDetail.current) {
+        const library = libraryRef.current;
+        const target =
+          library?.querySelector<HTMLElement>(
+            '.box-library-select[aria-pressed="true"]',
+          ) ?? library?.querySelector('input');
+        target?.focus({ preventScroll: true });
+      }
+    }
+    wasMobileDetail.current = mobileDetail;
+  }, [mobileDetail]);
+
+  useEffect(() => {
+    if (!mobileDetail) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === 'Escape' &&
+        !event.defaultPrevented &&
+        window.matchMedia(mobileBoxesQuery).matches
+      ) {
+        setMobileDetail(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileDetail]);
+
   const [rememberedName, setRememberedName] = useState(
     () =>
       getBoxSource(searchParams.get('box') ?? '')?.id ??
@@ -312,7 +356,11 @@ export default function BoxesPage(): React.JSX.Element {
   return (
     <div className="boxes-page" data-detail-open={mobileDetail}>
       <div className="boxes-workspace">
-        <section className="box-library" aria-label={t('boxes.library')}>
+        <section
+          aria-label={t('boxes.library')}
+          className="box-library"
+          ref={libraryRef}
+        >
           <div className="box-library-toolbar">
             <div className="box-library-summary">
               <strong>
@@ -481,6 +529,7 @@ export default function BoxesPage(): React.JSX.Element {
             className="btn-subtle box-detail-back"
             type="button"
             onClick={() => setMobileDetail(false)}
+            ref={backRef}
           >
             ← {t('boxes.back')}
           </button>

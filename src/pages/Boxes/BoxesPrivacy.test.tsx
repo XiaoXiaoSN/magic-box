@@ -15,14 +15,14 @@ const load = async (entry: string) => {
       import('../../contexts/SettingsContext'),
       import('react-router-dom'),
     ]);
-  const ToolsListPage = page.default;
+  const BoxesPage = page.default;
   const renderPage = () =>
     render(
       <locale.LocaleProvider>
         <preferences.PreferencesProvider>
           <settings.SettingsProvider>
             <router.MemoryRouter initialEntries={[entry]}>
-              <ToolsListPage />
+              <BoxesPage />
             </router.MemoryRouter>
           </settings.SettingsProvider>
         </preferences.PreferencesProvider>
@@ -43,10 +43,10 @@ beforeEach(() => {
   );
 });
 
-describe('/list preview privacy', () => {
+describe('/boxes preview privacy', () => {
   it('closes the sticky telemetry gate when a secret directive is typed', async () => {
     const { privacy, renderPage, runtimePrefs } = await load(
-      '/list?box=JWT%20Decode',
+      '/boxes?box=JWT%20Decode',
     );
     expect(privacy.isLocalAIPrivate()).toBe(false);
     renderPage();
@@ -67,11 +67,11 @@ describe('/list preview privacy', () => {
 
   it('keeps telemetry enabled when Local AI is only selected', async () => {
     const { privacy, renderPage, runtimePrefs } = await load(
-      '/list?box=Word%20Count',
+      '/boxes?box=Word%20Count',
     );
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Local AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Local AI' }));
     await screen.findByTestId('local-ai-panel', {}, { timeout: 3000 });
 
     expect(screen.getByTestId('copy-tool-share-link')).toBeDisabled();

@@ -6,7 +6,7 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
 import { PreferencesProvider } from '../../contexts/PreferencesContext';
@@ -56,6 +56,17 @@ function library() {
 function storedSettings() {
   return JSON.parse(localStorage.getItem('mb_settings') ?? '{}');
 }
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn(() => ({ matches: false })),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('Boxes management', () => {
   it('reorders and persists boxes through the keyboard sensor', async () => {
