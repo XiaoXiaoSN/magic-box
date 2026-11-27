@@ -236,6 +236,13 @@ const en = {
   'fileHash.cancel': 'Cancel hashing',
   'fileHash.download': 'Download checksum',
   'fileHash.clear': 'Clear checksum',
+  'fileHash.expected': 'Expected SHA-256',
+  'fileHash.expectedPlaceholder': 'Paste a SHA-256 digest or .sha256 file text',
+  'fileHash.match': 'Match: the file matches the expected SHA-256.',
+  'fileHash.mismatch':
+    'Mismatch: the file does not match the expected SHA-256.',
+  'fileHash.invalidExpected':
+    'Format error: enter a 64-character hexadecimal SHA-256 digest.',
   'savedInputs.title': 'Saved inputs',
   'savedInputs.name': 'Preset name',
   'savedInputs.save': 'Save input',
