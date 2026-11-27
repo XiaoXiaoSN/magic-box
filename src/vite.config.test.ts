@@ -73,17 +73,24 @@ describe('Vite build configuration', () => {
     const config = resolveConfig('build');
     const output = config.build?.rollupOptions?.output;
     expect(Array.isArray(output)).toBe(false);
-    const manualChunks = Array.isArray(output)
+    const codeSplitting = Array.isArray(output)
       ? undefined
-      : output?.manualChunks;
-    expect(typeof manualChunks).toBe('function');
+      : output?.codeSplitting;
+    const cronLocalePattern =
+      typeof codeSplitting === 'object'
+        ? codeSplitting.groups?.find(
+            (group) => group.name === 'cron-locales-fallback',
+          )?.test
+        : undefined;
 
-    const resolveChunk = manualChunks as (id: string) => string | undefined;
-    expect(resolveChunk('/repo/node_modules/cronstrue/locales/zh_TW.js')).toBe(
-      'cron-locales-fallback',
+    if (!(cronLocalePattern instanceof RegExp)) {
+      throw new Error('Expected a pattern for the client Cron locale fallback');
+    }
+    expect('/repo/node_modules/cronstrue/locales/zh_TW.js').toMatch(
+      cronLocalePattern,
     );
     expect(
-      resolveChunk('/repo/src/modules/boxSources/CronExpressionBoxSource.ts'),
-    ).toBeUndefined();
+      '/repo/src/modules/boxSources/CronExpressionBoxSource.ts',
+    ).not.toMatch(cronLocalePattern);
   });
 });

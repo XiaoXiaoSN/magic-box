@@ -1,6 +1,5 @@
 import { useLocale } from '../../contexts/LocaleContext';
 import type { WorkerPort } from './client';
-import './localAI.css';
 import LocalAIProgress from './LocalAIProgress';
 import { localAIMessages } from './messages';
 import { describePhase } from './setupStep';

@@ -5,10 +5,9 @@ import { useIsBoxPreview } from '../../contexts/BoxPreviewContext';
 import { useLocale } from '../../contexts/LocaleContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import type { WorkerPort } from './client';
-import { resolveAILanguage } from './labels';
-import './localAI.css';
 import LocalAIProgress from './LocalAIProgress';
 import LocalAISettingsDialog from './LocalAISettingsDialog';
+import { resolveAILanguage } from './labels';
 import { localAIMessages } from './messages';
 import {
   MAX_PROMPT_TOKENS,
