@@ -108,6 +108,88 @@ describe('MagicBox Page', () => {
     });
   });
 
+  describe('Tool preview copy and paste', () => {
+    const previewInput = 'textarea[data-magic-input="true"]';
+    const result = '[data-testid="magic-box-result"]';
+    const output = '[data-testid="magic-box-result-text"]';
+
+    function openPreview(copyMode: 'enter' | 'paste') {
+      cy.visit('/list?box=base64-encode&input=Hello');
+      if (copyMode === 'paste') {
+        cy.get('header a[href="/settings"]').click();
+        cy.findByRole('radio', { name: 'Copy & paste back' })
+          .check({ force: true })
+          .should('be.checked');
+        cy.go('back');
+      }
+
+      cy.get(previewInput).should('have.value', 'Hello').focus();
+      cy.get(result).find(output).should('have.text', 'SGVsbG8=');
+      cy.get(previewInput).trigger('keydown', {
+        eventConstructor: 'KeyboardEvent',
+        key: 'Home',
+        altKey: true,
+      });
+      cy.get(result).should('have.class', 'is-selected');
+    }
+
+    for (const shortcut of [
+      { label: 'Ctrl+Enter', copyMode: 'enter', ctrlKey: true },
+      { label: 'Cmd+Enter', copyMode: 'enter', metaKey: true },
+      { label: 'Enter in paste mode', copyMode: 'paste' },
+    ] as const) {
+      it(`copies and pastes the selected preview result with ${shortcut.label}`, () => {
+        openPreview(shortcut.copyMode);
+        cy.window().then((win) => {
+          cy.stub(win.navigator.clipboard, 'writeText')
+            .as('copyPreviewResult')
+            .resolves();
+        });
+
+        cy.get(previewInput).trigger('keydown', {
+          eventConstructor: 'KeyboardEvent',
+          key: 'Enter',
+          ctrlKey: 'ctrlKey' in shortcut,
+          metaKey: 'metaKey' in shortcut,
+        });
+
+        cy.get('@copyPreviewResult').should(
+          'have.been.calledOnceWithExactly',
+          'SGVsbG8=',
+        );
+        cy.get<HTMLTextAreaElement>(previewInput).should(([input]) => {
+          expect(input.value).to.equal('SGVsbG8=');
+          expect(input.ownerDocument.activeElement).to.equal(input);
+          expect(input.selectionStart).to.equal('SGVsbG8='.length);
+          expect(input.selectionEnd).to.equal('SGVsbG8='.length);
+        });
+        cy.get(result).find(output).should('have.text', 'U0dWc2JHOD0=');
+      });
+    }
+
+    it('keeps the preview input unchanged when both clipboard methods fail', () => {
+      openPreview('paste');
+      cy.window().then((win) => {
+        cy.stub(win.navigator.clipboard, 'writeText')
+          .as('copyPreviewResult')
+          .rejects(new Error('Clipboard blocked'));
+        cy.stub(win.document, 'execCommand').as('fallbackCopy').returns(false);
+      });
+      cy.get(previewInput).trigger('keydown', {
+        eventConstructor: 'KeyboardEvent',
+        key: 'Enter',
+      });
+
+      cy.get('@copyPreviewResult').should(
+        'have.been.calledOnceWithExactly',
+        'SGVsbG8=',
+      );
+      cy.get('@fallbackCopy').should('have.been.calledOnceWithExactly', 'copy');
+      cy.get(previewInput).should('have.value', 'Hello');
+      cy.get(result).find(output).should('have.text', 'SGVsbG8=');
+    });
+  });
+
   describe('MagicBox Input', () => {
     it('shows the worker limit for a valid JSON Pointer that is too long to transfer', () => {
       cy.window().then((win) => {
