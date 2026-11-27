@@ -53,6 +53,56 @@ describe('MagicBox Page', () => {
   });
 
   describe('MagicBox Input', () => {
+    it('shows the worker limit for a valid JSON Pointer that is too long to transfer', () => {
+      cy.window().then((win) => {
+        win.localStorage.setItem(
+          'mb_settings',
+          JSON.stringify({
+            version: 2,
+            boxes: { 'json-tools': { enabled: true } },
+          }),
+        );
+      });
+      cy.reload();
+
+      const input = 'textarea[name="magicInput"]';
+      const title = '[data-testid="magic-box-result-title"]';
+      const result = '[data-testid="magic-box-result"]';
+      const output = '[data-testid="magic-box-result-text"]';
+      cy.get(input).type('{"invoice":42}\n::jsonpointer=/invoice', {
+        parseSpecialCharSequences: false,
+      });
+      cy.contains(title, /^JSON Pointer$/)
+        .closest(result)
+        .find(output)
+        .should('have.text', '42');
+
+      const field = 'invoice'.padEnd(4097, '0');
+      const oversized = `${JSON.stringify({ [field]: 42 })}\n::jsonpointer=/${field}`;
+      cy.get<HTMLTextAreaElement>(input).then((elements) => {
+        const textarea = elements[0];
+        const win = textarea.ownerDocument.defaultView;
+        if (!win) throw new Error('The input has no browser window.');
+        const setValue = Object.getOwnPropertyDescriptor(
+          win.HTMLTextAreaElement.prototype,
+          'value',
+        )?.set;
+        if (!setValue) throw new Error('The textarea value setter is missing.');
+        setValue.call(textarea, oversized);
+        textarea.dispatchEvent(new win.Event('input', { bubbles: true }));
+      });
+
+      cy.contains(title, /^JSON Tools$/)
+        .closest(result)
+        .find(output)
+        .should(
+          'have.text',
+          'A worker option value exceeds the 4096-character limit.',
+        );
+      cy.contains(title, /^JSON Pointer$/).should('not.exist');
+      cy.get('[data-testid="magic-box-pending"]').should('not.exist');
+    });
+
     const testCases = [
       {
         testTitle: 'Base64 Encode',

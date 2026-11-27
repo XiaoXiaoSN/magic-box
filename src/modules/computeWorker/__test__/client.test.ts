@@ -68,6 +68,48 @@ describe('ComputeWorkerClient', () => {
     expect([...(await second.promise).results.keys()]).toEqual(['b']);
   });
 
+  it.each([
+    {
+      options: { unrelated: 'x'.repeat(4097) },
+      message: 'A worker option value exceeds the 4096-character limit.',
+    },
+    {
+      options: Object.fromEntries(
+        Array.from({ length: 129 }, (_, index) => [`option${index}`, true]),
+      ),
+      message: 'Worker requests support at most 128 options.',
+    },
+    {
+      options: { ['k'.repeat(129)]: true },
+      message: 'Worker option names must contain 1 to 128 characters.',
+    },
+  ])('reports $message without dispatching or disturbing an active run', async ({
+    options,
+    message,
+  }) => {
+    const worker = new FakeWorker();
+    const createWorker = vi.fn(() => worker);
+    const client = new ComputeWorkerClient({ createWorker });
+    const active = client.run(request('valid-run', ['a']));
+    const onFailure = vi.fn();
+
+    const invalid = client.run(
+      { ...request('invalid-run', ['a', 'b']), options },
+      { onFailure },
+    );
+    await expect(invalid.promise).rejects.toThrow(message);
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith('invalid-run', message);
+    expect(createWorker).toHaveBeenCalledTimes(1);
+    expect(worker.messages).toEqual([request('valid-run', ['a'])]);
+
+    invalid.cancel();
+    worker.emit({ type: 'source-start', runId: 'valid-run', sourceId: 'a' });
+    worker.emit(resultEvent('valid-run', 'a'));
+    worker.emit({ type: 'finished', runId: 'valid-run' });
+    await expect(active.promise).resolves.toMatchObject({ cancelled: false });
+    client.release();
+  });
+
   it('cancels a queued run before the next input gets its own worker', async () => {
     vi.useFakeTimers();
     try {

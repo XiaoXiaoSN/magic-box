@@ -185,6 +185,48 @@ describe('MagicBox source pipeline', () => {
     }
   });
 
+  it('replaces stale worker results with errors when a new batch fails validation', async () => {
+    vi.stubGlobal('Worker', FakeComputeWorker);
+    const main = sourceWithResult('main', Promise.resolve([box('Main')]));
+    const workerSource: BoxSource = {
+      ...sourceWithResult('Worker first', Promise.resolve([])),
+      id: 'first-worker',
+      workerSafe: true,
+    };
+    const sources = [
+      workerSource,
+      { ...workerSource, name: 'Worker second', id: 'second-worker' },
+      main,
+    ];
+
+    try {
+      const { rerender } = render(tree('input', sources));
+      expect(await screen.findByText('worker output')).toBeInTheDocument();
+      rerender(tree(`input\n::unrelated=${'x'.repeat(4097)}`, sources));
+
+      const errors = await screen.findAllByText(
+        'A worker option value exceeds the 4096-character limit.',
+      );
+      expect(errors).toHaveLength(2);
+      expect(screen.getByText('Worker first')).toBeInTheDocument();
+      expect(screen.getByText('Worker second')).toBeInTheDocument();
+      expect(screen.getByText('Main output')).toBeInTheDocument();
+      expect(screen.queryByText('worker output')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(
+          screen.queryByTestId('magic-box-pending'),
+        ).not.toBeInTheDocument(),
+      );
+      expect(FakeComputeWorker.requests).toHaveLength(1);
+
+      rerender(tree('new input', sources));
+      expect(await screen.findByText('worker output')).toBeInTheDocument();
+      expect(FakeComputeWorker.requests).toHaveLength(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('does not import an irrelevant lazy worker source', async () => {
     vi.stubGlobal('Worker', FakeComputeWorker);
     const load = vi.fn(async () =>
