@@ -1,4 +1,5 @@
 import { type ControlOption, Select, Toggle } from '@components/Controls';
+import { retryableLazy } from '@components/ErrorBoundary';
 import type {
   Announcements,
   DragEndEvent,
@@ -22,7 +23,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
@@ -43,8 +44,8 @@ import { boxSources } from '../modules/boxSources';
 
 // Lazy: the client and its worker-facing modules must not ride along in the
 // eager settings bundle. No worker is spawned until a setup button is clicked.
-const LocalAIModelSettings = lazy(
-  async () => import('../features/local-ai/LocalAIModelSettings'),
+const LocalAIModelSettings = retryableLazy(
+  () => import('../features/local-ai/LocalAIModelSettings'),
 );
 
 const primaryModifierLabel = (): string => {

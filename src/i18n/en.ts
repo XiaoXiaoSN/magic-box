@@ -197,7 +197,11 @@ const en = {
 
   'errorBoundary.boxTitle': 'This box could not be rendered',
   'errorBoundary.boxMessage': 'Try again or change the input.',
+  'errorBoundary.loadMessage':
+    'Check your connection and try again. Reload the page if the box still does not load.',
   'errorBoundary.retry': 'Try again',
+  'errorBoundary.reloadMessage': 'Check your connection, then reload the page.',
+  'errorBoundary.reload': 'Reload page',
 
   'toolsList.noBoxes': 'No boxes available',
   'toolsList.noBoxesHint': 'Enable some in Settings to get started.',

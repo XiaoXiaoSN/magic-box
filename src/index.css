@@ -1,4 +1,7 @@
 @import "./global/styles.css";
+/* Both the result and Settings need these styles. Load them with the shell
+   so a failed lazy preload in one feature cannot strand the other. */
+@import "./features/local-ai/localAI.css";
 
 @font-face {
   font-family: "Inter";

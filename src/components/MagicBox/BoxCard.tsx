@@ -353,7 +353,7 @@ const BoxCard = memo(
           </div>
           <div className="box-body">
             <ErrorBoundary
-              fallback={(retry) => <TemplateErrorFallback retry={retry} />}
+              fallback={(actions) => <TemplateErrorFallback {...actions} />}
               resetKey={box}
             >
               <Suspense fallback={null}>
