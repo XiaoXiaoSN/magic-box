@@ -33,6 +33,8 @@ interface InputDraftContextValue {
   shareEntryKey: string | null;
   applySharedInput: (entryKey: string, value: string) => boolean;
   updateDraft: (value: string, options?: { persist?: boolean }) => void;
+  rememberDraftHistoryEntry: (id: string) => void;
+  takeDraftHistoryEntries: () => string[];
 }
 
 const InputDraftContext = createContext<InputDraftContextValue>({
@@ -42,6 +44,8 @@ const InputDraftContext = createContext<InputDraftContextValue>({
   shareEntryKey: null,
   applySharedInput: () => true,
   updateDraft: () => undefined,
+  rememberDraftHistoryEntry: () => undefined,
+  takeDraftHistoryEntries: () => [],
 });
 
 const getSessionStorage = (): Storage | null => {
@@ -137,7 +141,19 @@ export const InputDraftProvider = ({
   const [shareEntryKey, setShareEntryKey] = useState<string | null>(null);
   const shareEntryKeyRef = useRef<string | null>(null);
   const draftRef = useRef(draft);
+  // Follow the draft across route changes for the lifetime of this document.
+  const draftHistoryEntries = useRef(new Set<string>());
   const writeTimerRef = useRef<number | null>(null);
+
+  const rememberDraftHistoryEntry = useCallback((id: string): void => {
+    draftHistoryEntries.current.add(id);
+  }, []);
+
+  const takeDraftHistoryEntries = useCallback((): string[] => {
+    const ids = Array.from(draftHistoryEntries.current);
+    draftHistoryEntries.current.clear();
+    return ids;
+  }, []);
 
   const cancelWrite = useCallback((): void => {
     if (writeTimerRef.current === null) return;
@@ -147,6 +163,7 @@ export const InputDraftProvider = ({
 
   const clearDraft = useCallback((): void => {
     cancelWrite();
+    draftHistoryEntries.current.clear();
     draftRef.current = '';
     setDraft('');
     removeStoredDraft();
@@ -217,6 +234,8 @@ export const InputDraftProvider = ({
       shareEntryKey,
       applySharedInput,
       updateDraft,
+      rememberDraftHistoryEntry,
+      takeDraftHistoryEntries,
     }),
     [
       applySharedInput,
@@ -225,6 +244,8 @@ export const InputDraftProvider = ({
       draft,
       shareEntryKey,
       updateDraft,
+      rememberDraftHistoryEntry,
+      takeDraftHistoryEntries,
     ],
   );
 

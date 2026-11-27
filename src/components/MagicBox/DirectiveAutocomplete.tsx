@@ -1,3 +1,4 @@
+import { shouldMaskDirectiveValue } from '@functions/localAIPrivacy';
 import { parseInput } from '@functions/parseOptions';
 import { TIMEZONE_DIRECTIVE_KEYS } from '@functions/timezone';
 import type { BoxSource } from '@modules/BoxSource';
@@ -436,7 +437,8 @@ export const DirectiveChips = ({
             key={chip.key}
           >
             <span className="opt-k">{chip.key}</span>
-            {chip.value !== true && !isPrivateDirective(chip.key) ? (
+            {chip.value !== true &&
+            !shouldMaskDirectiveValue(chip.key, chip.value) ? (
               <>
                 <span className="opt-eq">=</span>
                 <span className="opt-v">{String(chip.value)}</span>
@@ -489,9 +491,6 @@ export const DirectiveChips = ({
     </span>
   );
 };
-
-const isPrivateDirective = (key: string): boolean =>
-  key === 'ai' || key === 'localai' || key === 'secret';
 
 const DirectiveAutocomplete = ({
   textareaRef,
