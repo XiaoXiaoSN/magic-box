@@ -51,6 +51,61 @@ describe('UnitConverterBoxSource', () => {
       });
     });
 
+    it.each([
+      ['mm2', 'mm²', 'ha'],
+      ['cm2', 'cm²', 'ha'],
+      ['m2', 'm²', 'ha'],
+      ['km2', 'km²', 'ha'],
+      ['in2', 'in²', 'ha'],
+      ['ft2', 'ft²', 'ha'],
+      ['m3', 'm³', 'L'],
+    ])('treats %s and %s as the same source and target unit', async (ascii, superscript, other) => {
+      const superscriptSource = await UnitConverterBoxSource.generateBoxes(
+        `1 ${superscript}`,
+      );
+      const superscriptTarget = await UnitConverterBoxSource.generateBoxes(
+        `1 ${other} to ${superscript}`,
+      );
+      expect(superscriptSource).toHaveLength(1);
+      expect(superscriptTarget).toHaveLength(1);
+      const asciiSource = await UnitConverterBoxSource.generateBoxes(
+        `1 ${ascii}`,
+      );
+      const asciiTarget = await UnitConverterBoxSource.generateBoxes(
+        `1 ${other} to ${ascii}`,
+      );
+      expect(asciiSource[0]?.props.plaintextOutput).toBe(
+        superscriptSource[0].props.plaintextOutput,
+      );
+      expect(asciiTarget[0]?.props.plaintextOutput).toBe(
+        superscriptTarget[0].props.plaintextOutput,
+      );
+    });
+
+    it('distinguishes a compact quantity exponent from unit digits', async () => {
+      const boxes =
+        await UnitConverterBoxSource.generateBoxes('-1.25e2m2->cm2');
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Input: '-125 m²',
+        'Target (Square Centimeters)': '-1,250,000 cm²',
+      });
+    });
+
+    it('rejects unsupported numbered units and reports incompatible registered ones', async () => {
+      expect(await UnitConverterBoxSource.generateBoxes('1 m4')).toEqual([]);
+      const unknown = await UnitConverterBoxSource.generateBoxes('1 m² to m4');
+      expect(unknown[0]?.props.options).toMatchObject({
+        Error: 'Unknown target unit: "m4"',
+      });
+
+      const incompatible =
+        await UnitConverterBoxSource.generateBoxes('1 m² to m3');
+      expect(incompatible[0]?.props.options).toMatchObject({
+        Error: 'Target unit "m3" is incompatible with area',
+      });
+    });
+
     it('converts "37 C" (temperature)', async () => {
       const boxes = await UnitConverterBoxSource.generateBoxes('37 C', null);
       expect(boxes).toHaveLength(1);
@@ -148,6 +203,21 @@ describe('UnitConverterBoxSource', () => {
       });
       expect(boxes).toHaveLength(1);
       expect(boxes[0].props.name).toBe('Unit Converter (LENGTH)');
+    });
+
+    it.each([
+      '123',
+      '1e20',
+      '1E999',
+    ])('uses the option value when %s has no unit', async (input) => {
+      const boxes = await UnitConverterBoxSource.generateBoxes(input, {
+        unit: '2m3 in L',
+      });
+      expect(boxes).toHaveLength(1);
+      expect(boxes[0].props.options).toMatchObject({
+        Input: '2 m³',
+        'Target (Liters)': '2,000 L',
+      });
     });
   });
 
