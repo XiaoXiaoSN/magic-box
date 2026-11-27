@@ -7,7 +7,7 @@ import { JSON_TOOL_OPTION_KEYS } from '@functions/json/commands';
 import { parseJson, stringifyJson } from '@functions/json/shared';
 import type { Box, BoxOptions } from '@modules/Box';
 import { BoxBuilder, errorBox, hasOptionKeys } from '@modules/Box';
-import { isLosslessNumber, LosslessNumber } from 'lossless-json';
+import { isInteger, isLosslessNumber, LosslessNumber } from 'lossless-json';
 import {
   parse as parseToml,
   stringify as stringifyToml,
@@ -163,21 +163,23 @@ function yamlNumberKey(value: LosslessNumber): string {
   const previous = yamlNumberKeys.get(value);
   if (previous !== undefined) return previous;
 
-  const [mantissa, exponent = '0'] = value.toString().split(/[eE]/);
+  const key = decimalNumberKey(value.toString());
+  yamlNumberKeys.set(value, key);
+  return key;
+}
+
+function decimalNumberKey(raw: string): string {
+  const [mantissa, exponent = '0'] = raw.split(/[eE]/);
   const [whole, fraction = ''] = mantissa.replace(/^-/, '').split('.');
   const digits = (whole + fraction).replace(/^0+/, '');
   let length = digits.length;
   while (digits[length - 1] === '0') length -= 1;
 
-  let key = '0';
-  if (length > 0) {
-    const power =
-      BigInt(exponent) + BigInt(digits.length - length - fraction.length);
-    const sign = mantissa.startsWith('-') ? '-' : '';
-    key = `${sign}${digits.slice(0, length)}e${power}`;
-  }
-  yamlNumberKeys.set(value, key);
-  return key;
+  if (length === 0) return '0';
+  const power =
+    BigInt(exponent) + BigInt(digits.length - length - fraction.length);
+  const sign = mantissa.startsWith('-') ? '-' : '';
+  return `${sign}${digits.slice(0, length)}e${power}`;
 }
 
 function areYamlScalarValuesEqual(a: unknown, b: unknown): boolean {
@@ -266,14 +268,28 @@ function tomlNumberPlaceholder(
 function tomlCompatibleValue(
   value: unknown,
   placeholders: TomlNumberPlaceholders,
+  requireLosslessFloats: boolean,
 ): unknown {
   if (isLosslessNumber(value)) {
     const raw = value.toString();
+    if (requireLosslessFloats && !isInteger(raw)) {
+      const float = Number(raw);
+      // TOML's float reader uses binary64. Keep the source spelling only if
+      // reading it back preserves its decimal value.
+      if (
+        !Number.isFinite(float) ||
+        decimalNumberKey(raw) !== decimalNumberKey(String(float))
+      ) {
+        throw new Error(`TOML cannot represent the number ${raw} losslessly.`);
+      }
+    }
     return tomlNumberPlaceholder(raw, placeholders);
   }
   if (value === null) throw new Error('TOML cannot represent null values');
   if (Array.isArray(value)) {
-    return value.map((item) => tomlCompatibleValue(item, placeholders));
+    return value.map((item) =>
+      tomlCompatibleValue(item, placeholders, requireLosslessFloats),
+    );
   }
   if (value instanceof TomlDate) return value;
   if (typeof value === 'object') {
@@ -285,6 +301,7 @@ function tomlCompatibleValue(
       result[key] = tomlCompatibleValue(
         (value as Record<string, unknown>)[key],
         placeholders,
+        requireLosslessFloats,
       );
     }
     return result;
@@ -292,13 +309,20 @@ function tomlCompatibleValue(
   return value;
 }
 
-function stringifyTomlLossless(value: unknown): string {
+function stringifyTomlLossless(
+  value: unknown,
+  requireLosslessFloats: boolean,
+): string {
   const placeholders: TomlNumberPlaceholders = {
     values: new Map(),
     used: new Set(),
   };
   collectTomlStrings(value, placeholders.used);
-  const prepared = tomlCompatibleValue(value, placeholders);
+  const prepared = tomlCompatibleValue(
+    value,
+    placeholders,
+    requireLosslessFloats,
+  );
   let output = stringifyToml(prepared as Record<string, unknown>);
   for (const [placeholder, raw] of placeholders.values) {
     output = output.replaceAll(JSON.stringify(placeholder), raw);
@@ -459,7 +483,11 @@ interface OutputFormat {
   keys: string[];
   // Throws when the data cannot be represented; the caller turns that into a
   // visible error rather than an empty result.
-  stringify: (data: unknown, multiDocument: boolean) => string;
+  stringify: (
+    data: unknown,
+    multiDocument: boolean,
+    sourceFormat: DataFormat,
+  ) => string;
 }
 
 const FORMATS: readonly OutputFormat[] = [
@@ -492,7 +520,8 @@ const FORMATS: readonly OutputFormat[] = [
     id: DataFormat.TOML,
     name: 'TOML',
     keys: ['toml', 'totoml'],
-    stringify: (d) => stringifyTomlLossless(d),
+    stringify: (d, _multiDocument, sourceFormat) =>
+      stringifyTomlLossless(d, sourceFormat === DataFormat.YAML),
   },
   {
     id: DataFormat.XML,
@@ -601,7 +630,7 @@ export const DataConverterBoxSource = {
             ? xmlDocument.formatted
             : fmt.id === DataFormat.YAML && yamlDocuments
               ? stringifyYamlDocuments(yamlDocuments)
-              : fmt.stringify(data, multiDocument);
+              : fmt.stringify(data, multiDocument, srcFormat);
         if (output.trim() === '') {
           throw new Error(`${fmt.name} cannot represent this value`);
         }

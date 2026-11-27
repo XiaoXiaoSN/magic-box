@@ -739,6 +739,7 @@ dates=[1979-05-27,1979-05-28]`;
         '-1e-400',
         '1.7976931348623159e+308',
         '-1.25000000000000000001',
+        '-0.0',
       ];
       const input = `values:   [${values.join(',')}] # exact numbers`;
       const boxes = await DataConverterBoxSource.generateBoxes(input, {
@@ -773,6 +774,49 @@ dates=[1979-05-27,1979-05-28]`;
         { json: true },
       );
       expect(roundTrip.props.plaintextOutput).toBe(json);
+    });
+
+    it.each([
+      '1e-400',
+      '1.7976931348623159e+308',
+      '0.12345678901234567890',
+    ])('reports lossy TOML output for precise YAML number %s', async (number) => {
+      const input = `value: ${number}\n`;
+      const boxes = await DataConverterBoxSource.generateBoxes(input, {
+        json: true,
+        toml: true,
+        xml: true,
+      });
+
+      expect(
+        boxes.find((box) => box.props.name === 'JSON Output')?.props
+          .plaintextOutput,
+      ).toContain(`"value": ${number}`);
+      expect(
+        boxes.find((box) => box.props.name === 'XML Output')?.props
+          .plaintextOutput,
+      ).toContain(`<value>${number}</value>`);
+      expect(
+        boxes.find((box) => box.props.isError)?.props.plaintextOutput,
+      ).toMatch(/Cannot convert to TOML: .*losslessly/);
+      expect(boxes.some((box) => box.props.name === 'TOML Output')).toBe(false);
+    });
+
+    it('keeps existing TOML output for JSON numbers and representable YAML decimals', async () => {
+      const [jsonToToml] = await DataConverterBoxSource.generateBoxes(
+        '{"value": 0.12345678901234567890}',
+        { toml: true },
+      );
+      expect(jsonToToml.props.plaintextOutput).toContain(
+        'value = 0.12345678901234567890',
+      );
+
+      const [yamlToToml] = await DataConverterBoxSource.generateBoxes(
+        'price: 1.10\nzero: -0.0',
+        { toml: true },
+      );
+      expect(yamlToToml.props.plaintextOutput).toContain('price = 1.10');
+      expect(yamlToToml.props.plaintextOutput).toContain('zero = -0.0');
     });
 
     it('keeps exact YAML numeric values in anchors and YAML 1.1 forms', async () => {
