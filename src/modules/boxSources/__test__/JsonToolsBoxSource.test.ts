@@ -120,6 +120,16 @@ describe('JsonToolsBoxSource', () => {
       expect(box.plaintextOutput).toBe('{"a":1}\n{"a":2}');
     });
 
+    it('keeps Unicode-escaped keys and exact numbers when converting to JSONL', async () => {
+      const input = String.raw`[{"__proto__":9007199254740993,"\u0000\u006dagic-box-json-key-0":"note"}]`;
+      const box = await single(`${input}\n::tojsonl`);
+
+      expect(box.name).toBe('To JSONL');
+      expect(box.plaintextOutput).toBe(
+        String.raw`{"__proto__":9007199254740993,"\u0000magic-box-json-key-0":"note"}`,
+      );
+    });
+
     it('round-trips nested arrays through ::tojsonl and ::fromjsonl', async () => {
       const lines = (await single('[[1,2],[3,4]]\n::tojsonl')).plaintextOutput;
       const back = await single(`${lines}\n::fromjsonl`);
