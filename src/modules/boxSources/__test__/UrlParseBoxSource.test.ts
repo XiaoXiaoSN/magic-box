@@ -109,6 +109,40 @@ describe('UrlParseBoxSource', () => {
       expect(opts['Query · tag']).toBe('a\nb');
     });
 
+    it.each([
+      '=first&(empty%20key)=second',
+      '(empty%20key)=second&=first',
+    ])('keeps the empty and literal placeholder keys distinct in %s', async (query) => {
+      const [box] = await UrlParseBoxSource.generateBoxes(
+        `https://example.com/?${query}`,
+        { urlparse: true },
+      );
+
+      expect(box.props.options).toMatchObject({
+        Query: query,
+        'Query · (empty key)': 'first',
+        'Query · "(empty key)"': 'second',
+      });
+      expect(box.props.plaintextOutput).toContain('Query · (empty key): first');
+      expect(box.props.plaintextOutput).toContain(
+        'Query · "(empty key)": second',
+      );
+    });
+
+    it('keeps repeats and empty values for distinct query names that need quoting', async () => {
+      const [box] = await UrlParseBoxSource.generateBoxes(
+        'https://example.com/?=first&(empty+key)=second&=&(empty%20key)=&=third&%22(empty%20key)%22=quoted&tag=a&tag=&tag=b',
+        { urlparse: true },
+      );
+
+      expect(box.props.options).toMatchObject({
+        'Query · (empty key)': 'first\n\nthird',
+        'Query · "(empty key)"': 'second\n',
+        'Query · "\\"(empty key)\\""': 'quoted',
+        'Query · tag': 'a\n\nb',
+      });
+    });
+
     it('uses default port when url.port is empty', async () => {
       const boxes = await UrlParseBoxSource.generateBoxes(
         'https://example.com/path',
