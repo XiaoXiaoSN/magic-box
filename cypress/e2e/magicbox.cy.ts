@@ -680,6 +680,26 @@ describe('Interactive Text Diff', () => {
 });
 
 describe('Tool browser accessibility', () => {
+  it('filters boxes with the keyboard and returns focus to the category control', () => {
+    cy.visit('/boxes');
+    const category = () => cy.findByRole('combobox', { name: 'Box category' });
+
+    category().should('contain.text', 'All categories').focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.findByRole('option', { name: 'All categories' }).should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.DOWN);
+    cy.focused()
+      .invoke('text')
+      .then((label) => {
+        cy.press(Cypress.Keyboard.Keys.ENTER);
+        category().should('have.text', label).and('be.focused');
+      });
+
+    cy.findByRole('button', { name: 'Reorder' }).click();
+    cy.findByRole('button', { name: 'Done' }).click();
+    category().should('have.text', 'All categories');
+  });
+
   it('moves focus between the mobile library and detail and keeps desktop selection focused', () => {
     cy.viewport(390, 844);
     cy.visit('/boxes');
@@ -716,6 +736,21 @@ describe('Tool browser accessibility', () => {
 });
 
 describe('Shared dialog accessibility', () => {
+  it('focuses Cancel in the reset dialog and restores focus on Escape', () => {
+    cy.visit('/settings');
+    const reset = () =>
+      cy.findByRole('button', { name: 'Restore all defaults' });
+
+    reset().focus();
+    cy.press(Cypress.Keyboard.Keys.SPACE);
+    cy.findByRole('alertdialog', { name: 'Restore all defaults?' })
+      .findByRole('button', { name: 'Cancel' })
+      .should('be.focused');
+    cy.press(Cypress.Keyboard.Keys.ESC);
+    cy.findByRole('alertdialog').should('not.exist');
+    reset().should('be.focused');
+  });
+
   it('names the expanded result, traps focus, and restores it after Escape or a backdrop click', () => {
     cy.visit('/boxes?box=word-count&input=Hello');
     const expand = () => cy.findByRole('button', { name: 'Expand Word Count' });

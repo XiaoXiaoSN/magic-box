@@ -121,6 +121,11 @@ describe('Settings timezone and defaults', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Restore all defaults' }),
     );
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Restore defaults',
+      }),
+    );
     expect(mode).toHaveAttribute('aria-pressed', 'false');
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').collectFeedback,
@@ -130,16 +135,18 @@ describe('Settings timezone and defaults', () => {
   it('shows UTC+8 as default, saves fractional offsets, and follows the system', () => {
     mount();
     const select = screen.getByRole('combobox', { name: 'Default timezone' });
-    expect(select).toHaveValue('8');
+    expect(select).toHaveTextContent('UTC+8 (default)');
+    fireEvent.mouseDown(select);
     expect(
       screen.getByRole('option', { name: 'UTC+8 (default)' }),
     ).toBeTruthy();
     expect(screen.getByRole('option', { name: 'UTC+5:45' })).toBeTruthy();
-    fireEvent.change(select, { target: { value: '5.75' } });
+    fireEvent.click(screen.getByRole('option', { name: 'UTC+5:45' }));
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneOffset,
     ).toBe(5.75);
-    fireEvent.change(select, { target: { value: 'system' } });
+    fireEvent.mouseDown(select);
+    fireEvent.click(screen.getByRole('option', { name: /follow system/i }));
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}').timezoneMode,
     ).toBe('system');
@@ -168,8 +175,26 @@ describe('Settings timezone and defaults', () => {
     );
     localStorage.setItem('history-marker', 'keep');
     mount();
+    const reset = screen.getByRole('button', { name: 'Restore all defaults' });
+    fireEvent.click(reset);
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Restore all defaults?',
+    });
+    const cancel = within(dialog).getByRole('button', { name: 'Cancel' });
+    expect(cancel).toHaveFocus();
+    fireEvent.click(cancel);
+    expect(
+      JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}'),
+    ).toMatchObject({
+      theme: 'dark',
+      timezoneOffset: -5,
+    });
+
+    fireEvent.click(reset);
     fireEvent.click(
-      screen.getByRole('button', { name: 'Restore all defaults' }),
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Restore defaults',
+      }),
     );
     const prefs = JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}');
     expect(prefs).toMatchObject({

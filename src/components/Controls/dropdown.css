@@ -1,0 +1,71 @@
+.MuiInputBase-root.control-dropdown {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--bg-elev);
+  color: var(--ink);
+  font: 500 12px / 1.4 var(--sans);
+}
+
+.control-dropdown:hover,
+.control-dropdown.Mui-focused {
+  border-color: var(--line-2);
+}
+
+.control-dropdown .MuiSelect-select {
+  padding: 5px 30px 5px 10px;
+  min-height: 0;
+}
+
+.control-dropdown .MuiSelect-select:focus {
+  border-radius: inherit;
+  background: transparent;
+}
+
+.control-dropdown .MuiSelect-icon {
+  right: 7px;
+  color: var(--ink-3);
+  font-size: 16px;
+}
+
+.MuiPaper-root.control-dropdown-paper {
+  max-height: min(320px, calc(100dvh - 48px));
+  margin-top: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+
+.MuiList-root.control-dropdown-list {
+  padding: 4px;
+}
+
+.control-dropdown-list .MuiMenuItem-root {
+  min-height: 34px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font: 500 12px / 1.4 var(--sans);
+  white-space: normal;
+}
+
+.control-dropdown-list .MuiMenuItem-root:hover,
+.control-dropdown-list .MuiMenuItem-root.Mui-focusVisible {
+  background: var(--muted);
+}
+
+.control-dropdown-list .MuiMenuItem-root.Mui-selected {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.control-dropdown-list .MuiMenuItem-root:focus-visible {
+  outline-offset: -2px;
+}
+
+.control-dropdown-list .MuiSvgIcon-root {
+  font-size: 16px;
+}

@@ -72,6 +72,7 @@ interface FieldProps {
   label: string;
   hint?: string;
   controlId?: string;
+  labelId?: string;
   group?: boolean;
   children: React.ReactNode;
 }
@@ -80,6 +81,7 @@ export const Field = ({
   label,
   hint,
   controlId,
+  labelId,
   group = false,
   children,
 }: FieldProps): React.JSX.Element => {
@@ -90,7 +92,9 @@ export const Field = ({
           {label}
         </label>
       ) : (
-        <div className="field-label">{label}</div>
+        <div className="field-label" id={labelId}>
+          {label}
+        </div>
       )}
       {hint ? <div className="field-hint">{hint}</div> : null}
     </div>

@@ -129,6 +129,9 @@ const en = {
   'settings.timezoneSystem': 'Auto — follow system timezone',
   'settings.default': 'default',
   'settings.resetPreferences': 'Restore all defaults',
+  'settings.resetDefaultsTitle': 'Restore all defaults?',
+  'settings.cancelReset': 'Cancel',
+  'settings.confirmReset': 'Restore defaults',
   'settings.defaultsHint':
     'Reset preferences, box order and availability. Keep input and history.',
   'settings.section.server': 'Server',

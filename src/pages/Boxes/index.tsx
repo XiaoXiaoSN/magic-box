@@ -1,4 +1,5 @@
-import { Select, Toggle } from '@components/Controls';
+import { Toggle } from '@components/Controls';
+import Dropdown from '@components/Controls/Dropdown';
 import { retryableLazy } from '@components/ErrorBoundary';
 import {
   type Announcements,
@@ -22,6 +23,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { readStorageItem, writeStorageItem } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
 import { boxSources, getBoxSource } from '@modules/boxSources';
+import CheckIcon from '@mui/icons-material/Check';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
 import {
   Suspense,
   useEffect,
@@ -370,7 +373,7 @@ export default function BoxesPage(): React.JSX.Element {
               </strong>
               <div className="box-library-actions">
                 {!arranging ? (
-                  <Select
+                  <Dropdown
                     label={t('boxes.category')}
                     value={kind}
                     onChange={setKind}
@@ -385,7 +388,7 @@ export default function BoxesPage(): React.JSX.Element {
                 ) : null}
                 <button
                   type="button"
-                  className={`btn-subtle${arranging ? ' is-active' : ''}`}
+                  className={`btn-subtle btn-with-icon${arranging ? ' is-active' : ''}`}
                   title={t('boxes.orderHint')}
                   aria-pressed={arranging}
                   onClick={() => {
@@ -395,6 +398,7 @@ export default function BoxesPage(): React.JSX.Element {
                     setArranging(!arranging);
                   }}
                 >
+                  {arranging ? <CheckIcon /> : <SwapVertIcon />}
                   {t(arranging ? 'boxes.done' : 'boxes.reorder')}
                 </button>
               </div>
