@@ -84,12 +84,13 @@ describe('Settings timezone and defaults', () => {
     expect(screen.getByRole('radio', { name: 'Dark' })).toBeChecked();
     expect(
       screen.getByRole('combobox', { name: 'Default timezone' }),
-    ).toHaveValue('5.75');
+    ).toHaveTextContent('UTC+5:45');
     expect(
       JSON.parse(localStorage.getItem(LOCAL_PREFS_KEY) ?? '{}'),
     ).toMatchObject({
       collectFeedback: true,
       toolboxUrl: 'https://example.com',
+      timezoneOffset: 5.75,
     });
     expect(
       JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) ?? '{}').boxes.hash,

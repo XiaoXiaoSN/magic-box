@@ -55,6 +55,11 @@ SHA-256 from its original bytes. Files up to 32 MiB are processed locally in a
 worker. You can cancel before completion or download the checksum as a
 `.sha256` text file containing the digest and a newline.
 
+Download the optional pack under **Settings → Offline tools** to use JSON
+conversion, text hashing and math in a new tab without a connection. The app
+checks the current version's files before displaying Ready. After an update,
+the same panel can update or remove the pack.
+
 ## Tools 🧰
 
 Browse the [interactive tool list](https://mb.10oz.tw/list) or the
