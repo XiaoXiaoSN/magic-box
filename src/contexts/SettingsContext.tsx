@@ -23,7 +23,7 @@ export interface Settings {
 
 export const SETTINGS_VERSION = 2;
 
-const SETTINGS_STORAGE_KEY = 'mb_settings';
+export const SETTINGS_STORAGE_KEY = 'mb_settings';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

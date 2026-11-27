@@ -86,6 +86,21 @@ const en = {
     'Could not complete sign-in or sign-out. Check your connection and allow the Google sign-in window, then try again.',
   'cloud.error':
     'Could not access the settings backup. Check your connection and try again.',
+  'portable.title': 'Settings file',
+  'portable.export': 'Download settings',
+  'portable.import': 'Open settings file',
+  'portable.preview': 'Review the changes before applying this file.',
+  'portable.apply': 'Apply settings',
+  'portable.cancel': 'Cancel',
+  'portable.language': 'Language changes to {{language}}',
+  'portable.toolsChanged':
+    'Tools with changes to order or availability ({{count}})',
+  'portable.copyMode': 'Enter behavior',
+  'portable.timezoneOffset': 'UTC offset',
+  'portable.invalid':
+    'This settings file is invalid or uses an unsupported version.',
+  'portable.error': 'The settings could not be saved. Try again.',
+  'portable.applied': 'Settings applied.',
 
   'settings.title': 'Settings',
   'settings.section.boxOrder': 'Box order',

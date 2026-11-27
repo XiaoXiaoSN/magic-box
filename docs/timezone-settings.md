@@ -15,6 +15,13 @@ server overrides, privacy, Local AI options, box order, and each source's defaul
 enabled state. It preserves stored input and search history. Clear local data
 remains a separate action with its existing confirmation.
 
+Under **Settings → Settings file**, download a versioned backup of your tool
+order, availability, language, appearance, input behavior, timezone, and Local
+AI preferences. Open the file on another device and review the changes before
+applying it. Server overrides, privacy choices, inputs, and history stay on
+the device. Unsupported versions are rejected. Unknown tools are ignored and
+tools missing from the file use their defaults.
+
 ## IANA timezone architecture assessment
 
 This change retains numeric offsets and adds `timezoneMode: fixed | system`.
