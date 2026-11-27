@@ -71,6 +71,7 @@ export const BOX_SOURCE_IDS = [
   'words-to-number',
   'zodiac-sign',
   'word-count',
+  'workflow',
   'markdown-toc',
   'punycode',
   'radix-convert',
@@ -409,6 +410,11 @@ const en: Record<BoxSourceId, BoxSourceTranslation> = {
   'word-count': {
     name: 'Word Count',
     description: 'Count the lines, words and characters in any input.',
+  },
+  workflow: {
+    name: 'Workflow',
+    description:
+      'Replay a local sequence of Base64 decode, JSON Pointer and JSON formatting with ::workflow.',
   },
   'markdown-toc': {
     name: 'Markdown TOC',
@@ -834,6 +840,11 @@ const tw: Record<BoxSourceId, BoxSourceTranslation> = {
   'word-count': {
     name: '字數統計',
     description: '計算任何輸入的行數、單字數與字元數。',
+  },
+  workflow: {
+    name: '轉換流程',
+    description:
+      '用 ::workflow 依序重播本機 Base64 解碼、JSON Pointer 與 JSON 格式化。',
   },
   'markdown-toc': {
     name: 'Markdown 目錄',

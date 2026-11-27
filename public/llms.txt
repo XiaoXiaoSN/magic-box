@@ -862,6 +862,19 @@ i'mdifficult
 
 ~~~~
 
+### Workflow (workflow)
+
+Replay a local sequence of Base64 decode, JSON Pointer and JSON formatting with ::workflow.
+
+Category: Transform. Enabled by default on the web: true.
+Option keys: ::workflow.
+
+Example (each ::option starts a new line):
+~~~~text
+eyJwYXlsb2FkIjp7Im4iOjQyfX0=
+::workflow={"version":1,"steps":[{"tool":"base64-decode"},{"tool":"json-pointer","pointer":"/payload"},{"tool":"json-format"}]}
+~~~~
+
 ### Markdown TOC (markdown-toc)
 
 Generate a table of contents (nested bullet list with anchor links) from Markdown headings.
