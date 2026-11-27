@@ -2,10 +2,12 @@ import { decodeBase64 } from '@functions/base64';
 import { isString, trim } from '@functions/helper';
 import type { Box } from '@modules/Box';
 import { errorBox, keyValueBox } from '@modules/Box';
+import type { Document, visit } from 'yaml';
 
 const InvalidBase64 = '<invalid-base64>';
 const InvalidValue = '<invalid-value>';
 const UnreadableString = '<unreadable-string>';
+const maxAliasCount = 100;
 
 const yamlKindLine =
   /^[ \t]*(?:-[ \t]*)?(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?:[ \t]*(?:#.*)?\r?$)/m;
@@ -62,6 +64,7 @@ function decodeDataValue(value: unknown): string {
   if (typeof value !== 'string') {
     return InvalidBase64;
   }
+  if (value === '') return '';
 
   try {
     const { readableText } = decodeBase64(value.replace(/\s/g, ''), {
@@ -107,6 +110,29 @@ function isPlausibleSecretInput(input: string): boolean {
   );
 }
 
+function convertSecretDocument(
+  document: Document,
+  visitNodes: typeof visit,
+): unknown {
+  let repeatedMaps = 0;
+  // The YAML merge resolver converts its source map directly. Those repeated
+  // traversals bypass the alias limit in toJS, so bound them separately.
+  visitNodes(document, {
+    Map(_key, map) {
+      const convert = map.toJSON.bind(map);
+      let converted = false;
+      map.toJSON = (...args) => {
+        if (converted && ++repeatedMaps > maxAliasCount) {
+          throw new Error('YAML merge expansion limit exceeded');
+        }
+        converted = true;
+        return convert(...args);
+      };
+    },
+  });
+  return document.toJS({ maxAliasCount });
+}
+
 async function parseMatches(input: string): Promise<Match[]> {
   if (
     !isString(input) ||
@@ -117,15 +143,17 @@ async function parseMatches(input: string): Promise<Match[]> {
   }
 
   try {
-    const { parseAllDocuments } = await import('yaml');
-    const documents = parseAllDocuments(input);
+    const { parseAllDocuments, visit } = await import('yaml');
+    const documents = parseAllDocuments(input, { merge: true });
     const resources: UnknownRecord[] = [];
 
     for (const document of documents) {
       if (document.errors.length > 0) {
         return [];
       }
-      resources.push(...extractSecretResources(document.toJS()));
+      resources.push(
+        ...extractSecretResources(convertSecretDocument(document, visit)),
+      );
     }
 
     return resources.map(decodeSecret);
