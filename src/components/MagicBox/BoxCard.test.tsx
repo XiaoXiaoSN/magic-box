@@ -17,6 +17,7 @@ import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LocaleProvider } from '../../contexts/LocaleContext';
+import BoxCard from './BoxCard';
 import MagicBox from './index';
 
 const { noSources } = vi.hoisted(() => ({ noSources: [] }));
@@ -295,6 +296,88 @@ describe('BoxCard click handling', () => {
 
     fireEvent.click(await screen.findByTestId('change-output'));
     expect(copyButton).toHaveTextContent('Copy');
+  });
+});
+
+describe('BoxCard copy feedback across stale results', () => {
+  const original = new BoxBuilder('Test', 'same output').build();
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const setup = (
+    onCopy = vi
+      .fn<React.ComponentProps<typeof BoxCard>['onCopy']>()
+      .mockResolvedValue(true),
+  ) => {
+    const onInputCommit = vi.fn();
+    const resultId = Symbol();
+    const tree = (box: Box, stale: boolean) => (
+      <LocaleProvider>
+        <BoxCard
+          box={box}
+          index={0}
+          onCopy={onCopy}
+          onInputCommit={onInputCommit}
+          onSelect={() => {}}
+          resultId={resultId}
+          selected={false}
+          selectionTabIndex={0}
+          stale={stale}
+        />
+      </LocaleProvider>
+    );
+    const { rerender } = render(tree(original, false));
+    const button = screen.getByRole('button', { name: 'Copy Test output' });
+    return {
+      button,
+      onInputCommit,
+      update: (box: Box, stale: boolean) => rerender(tree(box, stale)),
+    };
+  };
+
+  it.each([
+    ['the same box', original],
+    [
+      'a new box with identical output',
+      new BoxBuilder('Test', 'same output').build(),
+    ],
+    [
+      'a new box with different output',
+      new BoxBuilder('Test', 'new output').build(),
+    ],
+  ])('clears copied feedback when refreshing %s', async (_description, fresh) => {
+    vi.useFakeTimers();
+    const { button, update } = setup();
+
+    await act(async () => fireEvent.click(button));
+    expect(button).toHaveTextContent('Copied');
+    act(() => vi.advanceTimersByTime(600));
+
+    update(original, true);
+    expect(button).toBeDisabled();
+    update(fresh, false);
+    expect(button).toHaveTextContent(/^Copy$/);
+
+    await act(async () => fireEvent.click(button));
+    act(() => vi.advanceTimersByTime(600));
+    expect(button).toHaveTextContent('Copied');
+    act(() => vi.advanceTimersByTime(600));
+    expect(button).toHaveTextContent(/^Copy$/);
+  });
+
+  it('ignores a copy that resolves after the card becomes fresh again', async () => {
+    const copy = Promise.withResolvers<boolean>();
+    const { button, onInputCommit, update } = setup(vi.fn(() => copy.promise));
+
+    fireEvent.click(button);
+    update(original, true);
+    update(original, false);
+    await act(async () => copy.resolve(true));
+
+    expect(button).toHaveTextContent(/^Copy$/);
+    expect(onInputCommit).not.toHaveBeenCalled();
   });
 });
 
