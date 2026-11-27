@@ -542,3 +542,97 @@ describe('MagicBox Page', () => {
     });
   });
 });
+
+describe('Interactive Text Diff', () => {
+  const card = '[data-testid="magic-box-result"]';
+  const cardTitle = '[data-testid="magic-box-result-title"]';
+
+  function openDiff(source: string) {
+    const input = source === '' ? '::diff' : `${source}\n::diff`;
+    cy.visit(`/?input=${encodeURIComponent(input)}`);
+    cy.contains(cardTitle, /^Text Diff$/)
+      .closest(card)
+      .as('diffCard');
+  }
+
+  function expectDiff(output: string) {
+    cy.findByText('Comparison result').should('be.visible');
+    cy.get('[data-testid="magic-box-result-text"]')
+      .last()
+      .should('have.text', output);
+  }
+
+  it('compares an empty target as a pure deletion', () => {
+    openDiff('x');
+    cy.get('@diffCard').within(() => {
+      cy.findByRole('textbox', { name: 'Paste the second text' }).should(
+        'have.value',
+        '',
+      );
+      cy.findByRole('button', { name: 'Compare' }).click();
+      expectDiff('@@ +0 -1 @@\n- x');
+    });
+  });
+
+  it('compares an empty source with empty and nonempty targets', () => {
+    openDiff('');
+    cy.get('@diffCard').within(() => {
+      cy.findByRole('button', { name: 'Compare' }).click();
+      expectDiff('@@ +0 -0 @@');
+      cy.findByRole('textbox', { name: 'Paste the second text' }).type('x');
+      cy.findByRole('button', { name: 'Compare' }).click();
+      expectDiff('@@ +1 -0 @@\n+ x');
+    });
+  });
+
+  it('keeps edits, output and copied plaintext in sync with the expanded view', () => {
+    const firstDiff = '@@ +1 -1 @@\n- old\n+ new';
+    const target = 'third\n\n';
+    const nextDiff = '@@ +3 -1 @@\n- old\n+ third\n+ \n+ ';
+    openDiff('old');
+    cy.window().then((win) => {
+      cy.stub(win.navigator.clipboard, 'writeText').as('copy').resolves();
+    });
+    cy.get('@diffCard').within(() => {
+      cy.findByRole('textbox', { name: 'Paste the second text' }).type('new');
+      cy.findByRole('button', { name: 'Compare' }).click();
+      expectDiff(firstDiff);
+      cy.findByRole('button', { name: 'Expand Text Diff' }).click();
+    });
+
+    cy.get('.box-modal-card')
+      .should('be.visible')
+      .within(() => {
+        expectDiff(firstDiff);
+        cy.findByRole('textbox', { name: 'Paste the second text' })
+          .should('have.value', 'new')
+          .clear()
+          .type(target);
+        cy.findByText('Comparison result').should('not.exist');
+        cy.findByRole('button', { name: 'Compare' }).click();
+        expectDiff(nextDiff);
+        cy.findByRole('button', { name: 'Close' }).click();
+      });
+
+    cy.get('@diffCard').within(() => {
+      cy.findByRole('textbox', { name: 'Paste the second text' }).should(
+        'have.value',
+        target,
+      );
+      expectDiff(nextDiff);
+      cy.findByRole('button', { name: 'Copy Text Diff output' }).click();
+      cy.findByRole('button', { name: 'Expand Text Diff' }).click();
+    });
+    cy.get('@copy').should('have.been.calledOnceWithExactly', nextDiff);
+
+    cy.get('.box-modal-card')
+      .should('be.visible')
+      .within(() => {
+        cy.findByRole('textbox', { name: 'Paste the second text' }).should(
+          'have.value',
+          target,
+        );
+        expectDiff(nextDiff);
+      });
+  });
+});
