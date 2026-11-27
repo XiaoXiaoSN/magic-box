@@ -1,12 +1,10 @@
-import {
-  type ControlOption,
-  Field,
-  Select,
-  Toggle,
-} from '@components/Controls';
+import { type ControlOption, Field, Toggle } from '@components/Controls';
+import Dropdown from '@components/Controls/Dropdown';
 import { buildVersion } from '@global/buildInfo';
 import env from '@global/env';
-import { useEffect, useState } from 'react';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import Dialog from '@mui/material/Dialog';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocale } from '../contexts/LocaleContext';
 import {
   isValidServerUrl,
@@ -161,6 +159,10 @@ const SettingsPage = (): React.JSX.Element => {
   const { t, locale, setLocale } = useLocale();
   const { resetSettings, updateSettings } = useSettings();
   const { prefs, setPref, resetPrefs } = usePreferences();
+  const [confirmReset, setConfirmReset] = useState(false);
+  const focusCancel = useCallback((button: HTMLButtonElement | null): void => {
+    button?.focus();
+  }, []);
   // draft strings let the user type intermediate/invalid values; we only
   // commit to prefs once the value parses/validates.
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
@@ -225,6 +227,7 @@ const SettingsPage = (): React.JSX.Element => {
   };
 
   const handleResetDefaults = () => {
+    setConfirmReset(false);
     resetPrefs();
     setLocale(DEFAULT_LOCALE);
     handleResetOrder();
@@ -238,14 +241,43 @@ const SettingsPage = (): React.JSX.Element => {
             <h1 className="page-title">{t('settings.title')}</h1>
           </div>
           <button
-            className="btn-subtle"
-            title={t('settings.defaultsHint')}
-            onClick={handleResetDefaults}
+            className="btn-subtle btn-with-icon"
+            onClick={() => setConfirmReset(true)}
             type="button"
           >
+            <RestartAltIcon />
             {t('settings.resetPreferences')}
           </button>
         </header>
+
+        <Dialog
+          aria-describedby="reset-defaults-description"
+          aria-labelledby="reset-defaults-title"
+          onClose={() => setConfirmReset(false)}
+          open={confirmReset}
+          role="alertdialog"
+          slotProps={{ paper: { className: 'settings-reset-dialog' } }}
+        >
+          <h2 id="reset-defaults-title">{t('settings.resetDefaultsTitle')}</h2>
+          <p id="reset-defaults-description">{t('settings.defaultsHint')}</p>
+          <div className="settings-reset-actions">
+            <button
+              ref={focusCancel}
+              className="btn-subtle"
+              onClick={() => setConfirmReset(false)}
+              type="button"
+            >
+              {t('settings.cancelReset')}
+            </button>
+            <button
+              className="btn-danger"
+              onClick={handleResetDefaults}
+              type="button"
+            >
+              {t('settings.confirmReset')}
+            </button>
+          </div>
+        </Dialog>
 
         <Section title={t('cloud.title')} subtitle={t('cloud.hint')}>
           {CloudSettings ? (
@@ -296,12 +328,12 @@ const SettingsPage = (): React.JSX.Element => {
 
         <Section title={t('settings.section.io')}>
           <Field
-            controlId="settings-language"
+            labelId="settings-language"
             hint={t('settings.languageHint')}
             label={t('settings.language')}
           >
-            <Select<Locale>
-              id="settings-language"
+            <Dropdown<Locale>
+              labelId="settings-language"
               onChange={setLocale}
               options={[
                 { value: 'en', label: t('settings.langEn') },
@@ -327,13 +359,12 @@ const SettingsPage = (): React.JSX.Element => {
             />
           </Field>
           <Field
-            controlId="settings-timezone"
+            labelId="settings-timezone"
             hint={t('settings.timezoneHint')}
             label={t('settings.timezone')}
           >
-            <Select
-              id="settings-timezone"
-              label={t('settings.timezone')}
+            <Dropdown
+              labelId="settings-timezone"
               options={timezoneOptions}
               value={
                 prefs.timezoneMode === 'system'

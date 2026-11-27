@@ -108,7 +108,7 @@
   gap: 8px;
   margin-left: auto;
 }
-.box-library-actions .select {
+.box-library-actions .control-dropdown {
   max-width: 140px;
 }
 .box-library-list {
