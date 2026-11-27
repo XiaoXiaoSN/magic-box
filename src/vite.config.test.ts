@@ -76,6 +76,17 @@ describe('Vite build configuration', () => {
     const codeSplitting = Array.isArray(output)
       ? undefined
       : output?.codeSplitting;
+    const shell =
+      typeof codeSplitting === 'object' &&
+      codeSplitting.groups?.find((group) => group.name === 'LocaleContext')
+        ?.test;
+    if (!(shell instanceof RegExp)) throw new Error('Missing shell chunk');
+    for (const name of ['Preferences', 'Settings', 'Locale', 'InputDraft']) {
+      expect(`/repo/src/contexts/${name}Context.tsx`).toMatch(shell);
+    }
+    expect('/repo/src/features/cloud-settings/CloudSettings.tsx').not.toMatch(
+      shell,
+    );
     const cronLocalePattern =
       typeof codeSplitting === 'object'
         ? codeSplitting.groups?.find(

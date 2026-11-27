@@ -332,6 +332,20 @@ const SettingsPage = (): React.JSX.Element => {
   // commit to prefs once the value parses/validates.
   const [toolboxDraft, setToolboxDraft] = useState(prefs.toolboxUrl);
   const [shortenDraft, setShortenDraft] = useState(prefs.shortenUrl);
+  const [CloudSettings, setCloudSettings] =
+    useState<React.ComponentType | null>(null);
+  const [cloudLoad, setCloudLoad] = useState<'idle' | 'loading' | 'error'>(
+    'idle',
+  );
+  const openCloud = async () => {
+    setCloudLoad('loading');
+    try {
+      const module = await import('../features/cloud-settings/CloudSettings');
+      setCloudSettings(() => module.default);
+    } catch {
+      setCloudLoad('error');
+    }
+  };
   const primaryModifier = primaryModifierLabel();
 
   // resync drafts when prefs change out of band (e.g. clear local data).
@@ -506,6 +520,24 @@ const SettingsPage = (): React.JSX.Element => {
             {t('settings.resetPreferences')}
           </button>
         </header>
+
+        <Section title={t('cloud.title')} subtitle={t('cloud.hint')}>
+          {CloudSettings ? (
+            <CloudSettings />
+          ) : (
+            <>
+              <button
+                className="btn-subtle"
+                disabled={cloudLoad === 'loading'}
+                onClick={openCloud}
+                type="button"
+              >
+                {t(cloudLoad === 'loading' ? 'cloud.loading' : 'cloud.open')}
+              </button>
+              {cloudLoad === 'error' && <p role="alert">{t('cloud.error')}</p>}
+            </>
+          )}
+        </Section>
 
         <Section
           subtitle={t('settings.section.boxOrderHint')}

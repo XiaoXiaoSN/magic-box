@@ -1,8 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only the callable's service account / authorized dataset operators use
-    // these collections. Admin SDK access is governed by IAM, not these rules.
+    match /userSettings/{uid} {
+      function owner() {
+        return request.auth != null && request.auth.uid == uid
+          && request.auth.token.firebase.sign_in_provider == 'google.com';
+      }
+
+      function validBackup() {
+        let data = request.resource.data;
+        return data.keys().hasOnly(['version', 'revision', 'prefs', 'locale', 'settings'])
+          && data.version == 1 && data.revision is int
+          && data.locale in ['en', 'tw'] && data.prefs is map
+          && data.prefs.keys().hasOnly(['theme', 'density', 'copyMode', 'timezoneOffset',
+            'timezoneMode', 'aiTask', 'aiLanguage', 'aiAutoCheck', 'aiAutoRun'])
+          && data.settings.keys().hasOnly(['version', 'boxes'])
+          && data.settings.version == 2 && data.settings.boxes is map;
+      }
+
+      allow get: if owner();
+      allow create: if owner() && validBackup() && request.resource.data.revision == 1;
+      allow update: if owner() && validBackup()
+        && request.resource.data.revision == resource.data.revision + 1;
+    }
+
+    // Feedback collections are accessible only to authorized IAM principals.
     match /{document=**} {
       allow read, write: if false;
     }

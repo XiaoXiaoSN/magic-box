@@ -129,3 +129,20 @@ firebase deploy --only hosting
 
 The repository already includes its Firebase configuration. `firebase init`
 is only needed when configuring a different project, not for normal setup.
+
+### Cloud settings
+
+In the Magic Box Firebase project, enable the Google provider in Authentication
+and add the site's hostname to Authorized domains. Deploy the owner-only backup
+rules with `firebase deploy --only firestore:rules` before releasing the UI.
+The Hosting workflow deploys the frontend separately.
+
+Under Settings → Cloud settings, sign in and save a backup. Open the same account
+in a second browser profile and apply the backup. To exercise conflict handling,
+open the backup in both profiles, change and save it in one, then attempt to
+replace it in the other. The second save should show the updated backup and
+require a new choice. Restoring defaults and clearing local data affect only the
+browser until the user explicitly saves again.
+
+Run the access-rule and concurrent-save test against a local emulator with
+`firebase emulators:exec --project demo-magic-box --only firestore 'bun run test --run src/features/cloud-settings/account.emulator.test.ts'`.

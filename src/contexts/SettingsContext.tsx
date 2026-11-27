@@ -1,10 +1,11 @@
-import { readJson, writeJson } from '@functions/storage';
+import { onStorageChange, readJson, writeJson } from '@functions/storage';
 import type { BoxSource } from '@modules/BoxSource';
 import { boxSources } from '@modules/boxSources';
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -60,7 +61,7 @@ const migrateBoxIds = (
   return migrated;
 };
 
-const normalizeSettings = (value: unknown): Settings => {
+export const normalizeSettings = (value: unknown): Settings => {
   const defaults = buildDefaultSettings();
   if (!isRecord(value)) return defaults;
 
@@ -136,6 +137,14 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   children,
 }) => {
   const [settings, setSettings] = useState<Settings>(SettingsStorage.get);
+
+  useEffect(
+    () =>
+      onStorageChange(SETTINGS_STORAGE_KEY, () =>
+        setSettings(SettingsStorage.get()),
+      ),
+    [],
+  );
 
   const resetSettings = useCallback(() => {
     setSettings(buildDefaultSettings());

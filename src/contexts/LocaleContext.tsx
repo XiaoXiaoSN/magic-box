@@ -1,4 +1,6 @@
+import { LOCAL_PREFS_KEY } from '@functions/localPrefs';
 import { setRuntimePrefs } from '@functions/runtimePrefs';
+import { onStorageChange } from '@functions/storage';
 import {
   createContext,
   useCallback,
@@ -52,6 +54,11 @@ export const LocaleProvider: React.FC<LocaleProviderProps> = ({ children }) => {
     // sources (e.g. cron) can emit localized output without an inline option.
     setRuntimePrefs({ locale: toRuntimeLocale(locale) });
   }, [locale]);
+
+  useEffect(
+    () => onStorageChange(LOCAL_PREFS_KEY, () => setLocaleState(loadLocale())),
+    [],
+  );
 
   const setLocale = useCallback((next: Locale) => {
     if (!isLocale(next)) return;

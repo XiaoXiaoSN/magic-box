@@ -70,7 +70,7 @@ provision Firebase resources or change production settings automatically.
    firebase deploy --project magic-box-b8bdc --only functions:feedback,firestore:rules,firestore:indexes
    ```
 
-   The rules deny all browser access. The index configuration exempts the raw
+   The rules deny browser access to the feedback collections. The index configuration exempts the raw
    `sample` map and its children from indexing; exports use document IDs. Only the Admin SDK / IAM-authorized
    operators can read or write the dataset. Review these rules before deploying
    into a project shared with other Firestore applications.
