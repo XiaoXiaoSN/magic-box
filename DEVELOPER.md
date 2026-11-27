@@ -117,6 +117,11 @@ The Firebase Hosting workflow deploys `main` after its quality jobs succeed.
 The hosting configuration is in `firebase.json`; `.firebaserc` selects the
 `magic-box-b8bdc` project.
 
+To publish a preview, open **Actions → Deploy Firebase preview → Run workflow**
+and select a branch that contains the preview workflow. It builds and tests the
+selected branch, then updates the shared `manual-preview` channel. The preview
+URL appears in the run summary and expires seven days after the last deployment.
+
 For a manual deployment with access to that project, build the site first,
 then use the Firebase CLI:
 
