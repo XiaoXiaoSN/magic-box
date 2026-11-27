@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EasterBoxSource } from '../EasterBoxSource';
 
@@ -111,12 +111,32 @@ describe('EasterBoxSource', () => {
       });
       expect(boxes[0].props.options).toMatchObject({ Month: 'March' });
     });
+  });
 
-    it('Lunar New Year 2025 → 2025-01-29', async () => {
-      const boxes = await EasterBoxSource.generateBoxes('2025', {
+  describe('generateBoxes — Lunar New Year', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it.each([
+      'UTC',
+      'Asia/Taipei',
+      'America/Los_Angeles',
+      'America/New_York',
+    ])('returns the same dates in %s', async (timeZone) => {
+      vi.stubEnv('TZ', timeZone);
+      expect(new Intl.DateTimeFormat().resolvedOptions().timeZone).toBe(
+        timeZone,
+      );
+
+      const [result2024] = await EasterBoxSource.generateBoxes('2024', {
         cny: true,
       });
-      expect(boxes[0].props.options).toMatchObject({
+      const [result2025] = await EasterBoxSource.generateBoxes('2025', {
+        cny: true,
+      });
+      expect(result2024.props.options).toMatchObject({
+        'Lunar New Year': '2024-02-10',
+      });
+      expect(result2025.props.options).toMatchObject({
         'Lunar New Year': '2025-01-29',
       });
     });
