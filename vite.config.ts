@@ -60,6 +60,7 @@ const normalizeBuildUrl = (value: string): string | null => {
 
 const criticalPrecacheTransform = (
   entries: WorkboxManifestEntry[],
+  outputDir: string,
 ): { manifest: WorkboxManifestEntry[]; warnings: string[] } => {
   const available = new Set(entries.map((entry) => entry.url));
   const critical = new Set<string>();
@@ -70,7 +71,6 @@ const criticalPrecacheTransform = (
   };
 
   addUrl('/index.html');
-  addUrl('/version.json');
   for (const entry of entries) {
     if (
       staticShellUrls.has(entry.url) ||
@@ -82,19 +82,13 @@ const criticalPrecacheTransform = (
   }
 
   try {
-    const html = readFileSync(
-      path.resolve(__dirname, 'build/index.html'),
-      'utf8',
-    );
+    const html = readFileSync(path.join(outputDir, 'index.html'), 'utf8');
     for (const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/g)) {
       addUrl(match[1]);
     }
 
     const rawBuildManifest = JSON.parse(
-      readFileSync(
-        path.resolve(__dirname, 'build/build-manifest.json'),
-        'utf8',
-      ),
+      readFileSync(path.join(outputDir, 'build-manifest.json'), 'utf8'),
     ) as Record<string, ViteManifestEntry>;
     const visited = new Set<string>();
     const addViteEntry = (key: string, includeDynamicImports = false): void => {
@@ -217,6 +211,17 @@ export default defineConfig(({ command }) => {
         filename: serviceWorkerFileName,
         injectRegister: false,
         registerType: 'prompt',
+        integration: {
+          configureOptions(config, options) {
+            const outputDir = path.resolve(config.root, config.build.outDir);
+            options.workbox = {
+              ...options.workbox,
+              manifestTransforms: [
+                (entries) => criticalPrecacheTransform(entries, outputDir),
+              ],
+            };
+          },
+        },
         manifest: {
           name: 'Magic Box',
           short_name: 'Magic Box',
@@ -249,11 +254,16 @@ export default defineConfig(({ command }) => {
           ],
         },
         workbox: {
-          globIgnores: ['sw.js', 'manifest.webmanifest', 'images/logo-*.png'],
+          // Version discovery needs a fresh network response on every check.
+          globIgnores: [
+            'sw.js',
+            'manifest.webmanifest',
+            'images/logo-*.png',
+            'version.json',
+          ],
           globPatterns: [
             '**/*.{js,css,html,ico,png,svg,wasm,woff2,webmanifest,json}',
           ],
-          manifestTransforms: [criticalPrecacheTransform],
           ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^recovery$/],
           maximumFileSizeToCacheInBytes: 2 * 1024 * 1024, // 2MB
           runtimeCaching: [
