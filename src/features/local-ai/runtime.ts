@@ -2,6 +2,7 @@ import {
   MODEL,
   MODEL_CACHE,
   RUNTIME_CACHE,
+  RUNTIME_FETCH_URL,
   RUNTIME_URL,
   RUNTIME_VERSION,
 } from './modelCatalog';
@@ -170,7 +171,7 @@ export async function loadRuntime(
   if (!response?.ok) {
     if (cacheOnly) throw new LocalAICacheMiss();
     const fetcher = options.fetch ?? browserFetch;
-    response = await fetcher(RUNTIME_URL);
+    response = await fetcher(RUNTIME_FETCH_URL);
     if (!response.ok) throw new LocalAIError('load');
     try {
       await cache?.put(RUNTIME_URL, response.clone());
@@ -224,10 +225,8 @@ export async function isRuntimeCacheComplete(
   if (!storage || typeof paths !== 'object' || !paths?.wasm || !paths?.mjs) {
     return false;
   }
-  const [runtimeCache, modelCache] = await Promise.all([
-    openCache(storage, RUNTIME_CACHE),
-    openCache(storage, MODEL_CACHE),
-  ]);
+  const runtimeCache = await openCache(storage, RUNTIME_CACHE);
+  const modelCache = await openCache(storage, MODEL_CACHE);
   if (!runtimeCache || !modelCache) return false;
   const responses = await Promise.all([
     runtimeCache.match(RUNTIME_URL),

@@ -300,7 +300,10 @@ describe('local AI client ownership', () => {
     client.prepare({ cacheOnly: true });
     await Promise.resolve();
 
-    expect(ownership.acquire).toHaveBeenCalledWith(undefined);
+    expect(ownership.acquire).toHaveBeenCalledWith({
+      wait: false,
+      signal: expect.any(AbortSignal),
+    });
     expect(client.getSnapshot()).toMatchObject({
       phase: 'error',
       error: 'busy',

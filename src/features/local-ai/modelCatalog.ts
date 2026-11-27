@@ -6,6 +6,9 @@
 export const RUNTIME_VERSION = '4.3.0';
 export const RUNTIME_URL =
   'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0/dist/transformers.min.js';
+// The previous Workbox route matches the exact URL and can save it after the
+// worker's fetch completes. Bypass that route while preserving the cache key.
+export const RUNTIME_FETCH_URL = `${RUNTIME_URL}?local-ai-worker`;
 
 export const MODEL = {
   id: 'onnx-community/Qwen2.5-0.5B-Instruct',

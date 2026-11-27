@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MODEL_CACHE,
   RUNTIME_CACHE,
+  RUNTIME_FETCH_URL,
   RUNTIME_URL,
   RUNTIME_VERSION,
 } from '../modelCatalog';
@@ -116,7 +117,7 @@ describe('local AI pinned runtime cache', () => {
 
     await loadRuntime(false, options);
 
-    expect(fetcher).toHaveBeenCalledExactlyOnceWith(RUNTIME_URL);
+    expect(fetcher).toHaveBeenCalledExactlyOnceWith(RUNTIME_FETCH_URL);
     expect((await cache.match(RUNTIME_URL))?.ok).toBe(true);
   });
 
@@ -172,7 +173,7 @@ describe('local AI pinned runtime cache', () => {
       revokeObjectURL: vi.fn(),
     });
 
-    expect(fetcher).toHaveBeenCalledWith(RUNTIME_URL);
+    expect(fetcher).toHaveBeenCalledWith(RUNTIME_FETCH_URL);
     expect(importer).toHaveBeenCalledOnce();
     expect(cache.put).toHaveBeenCalledWith(RUNTIME_URL, expect.any(Response));
   });

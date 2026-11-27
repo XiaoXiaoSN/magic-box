@@ -1,10 +1,11 @@
+import { CACHE_LOCK_NAME } from './cacheAccess';
 import { MODEL_CACHE, RUNTIME_CACHE } from './modelCatalog';
 
 export type OwnershipStatus = 'acquired' | 'busy' | 'unsupported';
 
 export interface OwnershipAcquireOptions {
   signal: AbortSignal;
-  wait: true;
+  wait: boolean;
 }
 
 export interface ModelOwnership {
@@ -59,6 +60,7 @@ export class LocalAIModelOwnership implements ModelOwnership {
   private async requestLease(
     type: 'model' | 'deletion',
     options?: OwnershipAcquireOptions,
+    deletionSignal?: AbortSignal,
   ): Promise<OwnershipStatus> {
     if (this.releaseLock) {
       return this.leaseType === type ? 'acquired' : 'busy';
@@ -77,28 +79,42 @@ export class LocalAIModelOwnership implements ModelOwnership {
       unlock = resolve;
     });
     const leaseId = Symbol(type);
-    const lockOptions: LockOptions = options
+    const lockOptions: LockOptions = options?.wait
       ? { mode: 'exclusive', signal: options.signal }
       : { mode: 'exclusive', ifAvailable: true };
+    const hold = async (lock: Lock | null): Promise<void> => {
+      if (!lock || options?.signal.aborted || deletionSignal?.aborted) {
+        resolveAcquired('busy');
+        return;
+      }
+      this.leaseId = leaseId;
+      this.leaseType = type;
+      this.releaseLock = unlock;
+      resolveAcquired('acquired');
+      await held;
+      if (this.leaseId === leaseId) {
+        this.releaseLock = null;
+        this.leaseType = null;
+        this.leaseId = null;
+      }
+    };
     const task = locks
-      .request(LOCK_NAME, lockOptions, async (lock) => {
-        if (!lock) {
-          resolveAcquired('busy');
-          return;
-        }
-        this.leaseId = leaseId;
-        this.leaseType = type;
-        this.releaseLock = unlock;
-        resolveAcquired('acquired');
-        await held;
-        if (this.leaseId === leaseId) {
-          this.releaseLock = null;
-          this.leaseType = null;
-          this.leaseId = null;
-        }
+      .request(LOCK_NAME, lockOptions, (lock) => {
+        if (!lock || !deletionSignal) return hold(lock);
+        // Prepare also takes the model lock first, then the worker's shared
+        // cache lock. Keep that order so deletion can't block its own handoff.
+        return locks.request(
+          CACHE_LOCK_NAME,
+          { mode: 'exclusive', signal: deletionSignal },
+          hold,
+        );
       })
       .catch(() =>
-        resolveAcquired(options?.signal.aborted ? 'busy' : 'unsupported'),
+        resolveAcquired(
+          options?.signal.aborted || deletionSignal?.aborted
+            ? 'busy'
+            : 'unsupported',
+        ),
       );
     this.lockTask = task;
     void task.then(() => {
@@ -129,14 +145,24 @@ export class LocalAIModelOwnership implements ModelOwnership {
       requestId: `${this.id}-${++this.requestSequence}`,
     } satisfies OwnershipMessage);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DELETE_WAIT_MS);
     const deadline = Date.now() + DELETE_WAIT_MS;
-    while (Date.now() < deadline) {
-      const status = await this.requestLease('deletion');
-      if (status === 'acquired') return true;
-      if (status === 'unsupported') return false;
-      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    try {
+      while (Date.now() < deadline) {
+        const status = await this.requestLease(
+          'deletion',
+          undefined,
+          controller.signal,
+        );
+        if (status === 'acquired') return true;
+        if (status === 'unsupported' || controller.signal.aborted) return false;
+        await new Promise<void>((resolve) => setTimeout(resolve, 100));
+      }
+      return false;
+    } finally {
+      clearTimeout(timeout);
     }
-    return false;
   }
 
   notifyCacheDeleted(): void {

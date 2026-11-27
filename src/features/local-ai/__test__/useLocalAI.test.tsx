@@ -4,85 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LocalAIClient, WorkerPort } from '../client';
 import { LocalAIModelOwnership } from '../ownership';
 import { useLocalAI } from '../useLocalAI';
+import { createLocks, TestBroadcastChannel } from './fakeWebLocks';
 import { FakeWorker } from './fakeWorker';
-
-class TestBroadcastChannel {
-  static channels = new Set<TestBroadcastChannel>();
-  onmessage: ((event: MessageEvent) => void) | null = null;
-
-  constructor(_name: string) {
-    TestBroadcastChannel.channels.add(this);
-  }
-
-  postMessage(data: unknown): void {
-    for (const channel of TestBroadcastChannel.channels) {
-      if (channel === this) continue;
-      queueMicrotask(() => channel.onmessage?.({ data } as MessageEvent));
-    }
-  }
-
-  close(): void {
-    TestBroadcastChannel.channels.delete(this);
-  }
-}
-
-interface WaitingLock {
-  callback: (lock: Lock | null) => Promise<void>;
-  reject: (error: Error) => void;
-  resolve: () => void;
-  signal: AbortSignal | null;
-}
-
-const createLocks = (): LockManager => {
-  let held = false;
-  const waiting: WaitingLock[] = [];
-
-  const run = (request: WaitingLock): void => {
-    held = true;
-    void request
-      .callback({} as Lock)
-      .then(request.resolve, request.reject)
-      .finally(() => {
-        held = false;
-        const next = waiting.shift();
-        if (next) run(next);
-      });
-  };
-
-  return {
-    request: (
-      _name: string,
-      options: LockOptions,
-      callback: (lock: Lock | null) => Promise<void>,
-    ): Promise<void> => {
-      if (options.ifAvailable && held) return callback(null);
-      return new Promise<void>((resolve, reject) => {
-        const request: WaitingLock = {
-          callback,
-          reject,
-          resolve,
-          signal: options.signal ?? null,
-        };
-        if (!held) {
-          run(request);
-          return;
-        }
-        const cancel = (): void => {
-          const index = waiting.indexOf(request);
-          if (index >= 0) waiting.splice(index, 1);
-          reject(new DOMException('Aborted', 'AbortError'));
-        };
-        if (request.signal?.aborted) {
-          cancel();
-          return;
-        }
-        request.signal?.addEventListener('abort', cancel, { once: true });
-        waiting.push(request);
-      });
-    },
-    query: async () => ({ held: [], pending: [] }),
-  } as unknown as LockManager;
-};
 
 interface HarnessProps {
   createWorker: () => WorkerPort;

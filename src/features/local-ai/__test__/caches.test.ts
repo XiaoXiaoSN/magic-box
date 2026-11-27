@@ -69,6 +69,27 @@ describe('deleting local AI downloads', () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it('waits for the remaining deletions before reporting a storage failure', async () => {
+    const finish = Promise.withResolvers<boolean>();
+    vi.stubGlobal('caches', {
+      keys: async () => [MODEL_CACHE, RUNTIME_CACHE],
+      delete: async (name: string) => {
+        if (name === MODEL_CACHE) throw new Error('private storage details');
+        return finish.promise;
+      },
+    });
+
+    const settled = vi.fn();
+    const removing = deleteLocalAIDownloads().catch(settled);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(settled).not.toHaveBeenCalled();
+    finish.resolve(true);
+    await removing;
+    expect(settled).toHaveBeenCalledExactlyOnceWith(
+      new LocalAIError('storage'),
+    );
+  });
+
   it.each([
     'keys',
     'delete',

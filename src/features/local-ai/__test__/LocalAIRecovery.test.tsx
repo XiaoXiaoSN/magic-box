@@ -16,6 +16,7 @@ import {
   MODEL,
   MODEL_CACHE,
   RUNTIME_CACHE,
+  RUNTIME_FETCH_URL,
   RUNTIME_URL,
   RUNTIME_VERSION,
 } from '../modelCatalog';
@@ -91,7 +92,7 @@ it('offers explicit download after a verified runtime cache entry disappears whi
     keys: async () => [...cacheNames.keys()],
   });
   const fetcher = vi.fn(async (url: RequestInfo | URL) => {
-    expect(url).toBe(RUNTIME_URL);
+    expect(url).toBe(RUNTIME_FETCH_URL);
     return new Response('runtime source');
   });
   vi.stubGlobal('fetch', fetcher);
@@ -203,7 +204,7 @@ it('offers explicit download after a verified runtime cache entry disappears whi
     cacheOnly: false,
   });
   await act(() => workers[1].settled);
-  expect(fetcher).toHaveBeenCalledExactlyOnceWith(RUNTIME_URL, undefined);
+  expect(fetcher).toHaveBeenCalledExactlyOnceWith(RUNTIME_FETCH_URL, undefined);
   expect(loadWeights.mock.calls).toEqual([[true], [false]]);
   expect(screen.getByRole('status')).toHaveTextContent('Model ready');
   expect(await runtimeCache.match(RUNTIME_URL)).toBeInstanceOf(Response);
