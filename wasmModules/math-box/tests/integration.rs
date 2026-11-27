@@ -490,6 +490,136 @@ fn modulo_uses_floored_division() {
     assert_eval("frac(7, 2) % 0", "7/2");
 }
 
+fn assert_float_eval(input: &str, expected: f64) {
+    let compiled = Compiled::new(input).expect("compile");
+    for result in [evaluate(input), compiled.evaluate()] {
+        let actual: f64 = result
+            .unwrap_or_else(|err| panic!("eval {input:?} failed: {err}"))
+            .parse()
+            .expect("numeric result");
+        let tolerance = expected.abs() * (8.0 * f64::EPSILON);
+        assert!(
+            actual.is_finite() && (actual - expected).abs() <= tolerance,
+            "{input}: expected {expected}, got {actual}"
+        );
+    }
+}
+
+#[test]
+fn floored_float_modulo_keeps_finite_remainders() {
+    // The literal and assignment forms exercise folding and runtime operands.
+    for (lhs, rhs, expected) in [
+        ("1e308", "0.1", 0.06093288384329992),
+        ("-1e308", "0.1", 0.03906711615670008),
+        ("1e308", "-0.1", -0.03906711615670008),
+        ("-1e308", "-0.1", -0.06093288384329992),
+        ("3.0", "1e-310", 5.2229528313e-312),
+    ] {
+        assert_float_eval(&format!("{lhs} % {rhs}"), expected);
+        assert_float_eval(&format!("x = {lhs}; y = {rhs}; x % y"), expected);
+    }
+    for (input, expected) in [
+        ("-7 % 3", "2"),
+        ("50 % -3", "-1"),
+        ("7 % 0", "7"),
+        ("Infinity % 1", "NaN"),
+        ("1 % Infinity", "NaN"),
+        ("Infinity % 0", "Infinity"),
+    ] {
+        assert_eval(input, expected);
+    }
+    #[cfg(feature = "unit")]
+    assert_eval("1e308 m % 0.1 m", "0.06093288384329992 m");
+    #[cfg(all(feature = "fraction", feature = "bigint"))]
+    assert_eval("frac(1e308,1) % 0.1", "0.06093288384329992");
+}
+
+#[cfg(feature = "complex")]
+#[test]
+fn complex_division_and_reciprocal_keep_representable_components() {
+    for (input, expected) in [
+        ("re(complex(1e200,0)/complex(1e200,0))", 1.0),
+        ("re(complex(1e-200,0)/complex(1e-200,0))", 1.0),
+        ("re(complex(1e308,1e308)/complex(1e308,1e308))", 1.0),
+        ("im(complex(1e308,1e308)/complex(1e308,1e308))", 0.0),
+        ("re(complex(1e200,1e-200)/complex(1e-100,1e200))", 1e-300),
+        ("im(complex(1e200,1e-200)/complex(1e-100,1e200))", -1.0),
+        ("re(1/complex(1e200,1e200))", 5e-201),
+        ("im(complex(1e-200,1e-200)^-1)", -5e199),
+        ("re(complex(1e200,1e200)^-2)", 0.0),
+        ("re(complex(2e-162,2e-162)*complex(1e-162,-1e-162))", 5e-324),
+        (
+            "re(complex(6.48e-155,-2.38e-155)^-2)",
+            1.5995737783336916e308,
+        ),
+        (
+            "im(complex(6.48e-155,-2.38e-155)^-2)",
+            1.3582154181012788e308,
+        ),
+        (
+            "arg(complex(-1,-0.0)/complex(1,-0.0))",
+            -core::f64::consts::PI,
+        ),
+    ] {
+        assert_float_eval(input, expected);
+    }
+    let input = "complex(1,1)/complex(0,0)";
+    assert!(evaluate(input).unwrap_err().contains("division by zero"));
+    assert!(
+        Compiled::new(input)
+            .and_then(|program| program.evaluate())
+            .unwrap_err()
+            .contains("division by zero")
+    );
+}
+
+#[test]
+fn hypot_scales_finite_components_and_preserves_nonfinite_behavior() {
+    for (input, expected) in [
+        ("hypot(1e200)", 1e200),
+        ("hypot(1e-200)", 1e-200),
+        ("hypot(3e200,4e200,1e-200)", 5e200),
+        ("hypot(3e-200,4e-200,0)", 5e-200),
+        ("hypot(3,4)", 5.0),
+        ("hypot(5e-324,5e-324,5e-324)", 1e-323),
+    ] {
+        assert_float_eval(input, expected);
+    }
+    assert_eval("hypot(1, Infinity)", "Infinity");
+    assert_eval("hypot(Infinity, NaN)", "NaN");
+}
+
+#[cfg(feature = "complex")]
+#[test]
+fn complex_norm_and_square_root_keep_representable_components() {
+    assert_float_eval("abs(complex(1e200,0))", 1e200);
+    assert_float_eval("abs(complex(1e-200,0))", 1e-200);
+    assert_float_eval("abs(complex(3,4))", 5.0);
+    assert_eval("abs(complex(Infinity,1))", "Infinity");
+    assert_eval("abs(complex(Infinity,NaN))", "NaN");
+    assert_eval("abs(re(complex(1e200,0)^0.5) / 1e100 - 1) < 1e-13", "true");
+    assert_eval(
+        "abs(re(complex(1e-200,0)^0.5) / 1e-100 - 1) < 1e-13",
+        "true",
+    );
+    for (input, expected) in [
+        ("im(sqrt(complex(1e16,1)))", 5e-9),
+        ("re(sqrt(complex(-1e16,1)))", 5e-9),
+        ("im(sqrt(complex(-1e16,-1)))", -1e8),
+        ("im(sqrt(complex(1e200,-1e-200)))", -5e-301),
+        ("re(sqrt(complex(1.7e308,1.7e308)))", 1.4325088230154573e154),
+        ("im(sqrt(complex(5e-324,5e-324)))", 1.0115549693666347e-162),
+        ("arg(sqrt(complex(-4,-0.0)))", -core::f64::consts::FRAC_PI_2),
+        ("z = sqrt(complex(-1e16,-1)); re(z*z)", -1e16),
+        ("z = sqrt(complex(-1e16,-1)); im(z*z)", -1.0),
+        ("z = sqrt(complex(1.7e308,1.7e308)); re(z*z)", 1.7e308),
+        ("z = sqrt(complex(1.7e308,1.7e308)); im(z*z)", 1.7e308),
+    ] {
+        assert_float_eval(input, expected);
+    }
+    assert_eval("sqrt(-4)", "2i");
+}
+
 #[test]
 fn negative_real_powers_use_principal_complex_values() {
     assert_eval("sqrt(-4)", "2i");
