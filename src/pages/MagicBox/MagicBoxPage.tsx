@@ -28,6 +28,7 @@ import {
   useSearchHistory,
 } from '../../hooks/useSearchHistory';
 import { type Locale, type Translations, toIntlLocale } from '../../i18n';
+import FileHasher from './FileHasher';
 
 const QRCodeReader = retryableLazy(() => import('@components/QRCodeReader'));
 
@@ -398,6 +399,7 @@ const MagicBoxPage = (): React.JSX.Element => {
               />
             </Suspense>
           </div>
+          <FileHasher />
         </div>
 
         <div className="home-col">
