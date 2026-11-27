@@ -1,5 +1,7 @@
 import { parseInput } from '@functions/parseOptions';
+import { parse as parseToml, TomlDate } from 'smol-toml';
 import { describe, expect, it } from 'vitest';
+import { parse as parseYaml } from 'yaml';
 
 import { DataConverterBoxSource } from '../DataConverterBoxSource';
 
@@ -297,6 +299,148 @@ path = "/health"`;
       expect(parsed.server.host).toBe('localhost');
       expect(parsed.server.limits['max-body']).toBe(100);
       expect(parsed.route).toEqual([{ path: '/health' }]);
+    });
+  });
+
+  describe('TOML value preservation', () => {
+    const tomlDateInput = `offset=1979-05-27T07:32:00.125-08:00
+local=1979-05-27T07:32:00.125
+birthday=1979-05-27
+time=07:32:00.125
+[nested]
+dates=[1979-05-27,1979-05-28]`;
+    const dateStrings = {
+      offset: '1979-05-27T07:32:00.125-08:00',
+      local: '1979-05-27T07:32:00.125',
+      birthday: '1979-05-27',
+      time: '07:32:00.125',
+      nested: { dates: ['1979-05-27', '1979-05-28'] },
+    };
+
+    it.each([
+      'automatic',
+      'explicit',
+    ])('keeps TOML date and time kinds during %s formatting', async (mode) => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        tomlDateInput,
+        mode === 'explicit' ? { toml: true } : {},
+      );
+      expect(box?.props.name).toBe('TOML Output');
+      const result = parseToml(box?.props.plaintextOutput ?? '');
+      expect(result.offset).toBeInstanceOf(TomlDate);
+      expect(result.local).toBeInstanceOf(TomlDate);
+      expect(result.birthday).toBeInstanceOf(TomlDate);
+      expect(result.time).toBeInstanceOf(TomlDate);
+      expect((result.offset as TomlDate).isDateTime()).toBe(true);
+      expect((result.offset as TomlDate).isLocal()).toBe(false);
+      expect((result.local as TomlDate).isDateTime()).toBe(true);
+      expect((result.local as TomlDate).isLocal()).toBe(true);
+      expect((result.birthday as TomlDate).isDate()).toBe(true);
+      expect((result.time as TomlDate).isTime()).toBe(true);
+      const { dates } = result.nested as { dates: TomlDate[] };
+      expect(dates.map((date) => date.isDate())).toEqual([true, true]);
+      expect(JSON.parse(JSON.stringify(result))).toEqual(dateStrings);
+    });
+
+    it('converts TOML dates to strings with their original local or offset times', async () => {
+      const boxes = await DataConverterBoxSource.generateBoxes(tomlDateInput, {
+        json: true,
+        yaml: true,
+        xml: true,
+      });
+      const output = Object.fromEntries(
+        boxes.map((box) => [box.props.name, box.props.plaintextOutput]),
+      );
+      expect(JSON.parse(output['JSON Output'] ?? '')).toEqual(dateStrings);
+      expect(
+        parseYaml(output['YAML Output'] ?? '', { version: '1.1' }),
+      ).toEqual(dateStrings);
+
+      const xml = new DOMParser().parseFromString(
+        output['XML Output'] ?? '',
+        'application/xml',
+      );
+      expect(xml.querySelector('offset')?.textContent).toBe(dateStrings.offset);
+      expect(xml.querySelector('local')?.textContent).toBe(dateStrings.local);
+      expect(xml.querySelector('birthday')?.textContent).toBe(
+        dateStrings.birthday,
+      );
+      expect(xml.querySelector('time')?.textContent).toBe(dateStrings.time);
+      expect(
+        Array.from(
+          xml.querySelectorAll('nested > dates'),
+          (node) => node.textContent,
+        ),
+      ).toEqual(dateStrings.nested.dates);
+    });
+
+    it('gives a standalone TOML date array one XML document root', async () => {
+      const [box] = await DataConverterBoxSource.generateBoxes(
+        'dates=[1979-05-27,1979-05-28]',
+        { xml: true },
+      );
+      expect(box?.props.name).toBe('XML Output');
+      const xml = new DOMParser().parseFromString(
+        box?.props.plaintextOutput ?? '',
+        'application/xml',
+      );
+      expect(xml.documentElement.tagName).toBe('root');
+      expect(
+        Array.from(xml.documentElement.children, (node) => [
+          node.tagName,
+          node.textContent,
+        ]),
+      ).toEqual([
+        ['dates', '1979-05-27'],
+        ['dates', '1979-05-28'],
+      ]);
+    });
+
+    it('round-trips signed int64 and integers around the JS safe range', async () => {
+      const values = [
+        -9223372036854775808n,
+        -9007199254740993n,
+        -9007199254740992n,
+        -9007199254740991n,
+        9007199254740991n,
+        9007199254740992n,
+        9007199254740993n,
+        9223372036854775807n,
+      ];
+      const jsonInput = `{"values":[${values.join(',')}],"label":"integers"}`;
+      const [toToml] = await DataConverterBoxSource.generateBoxes(jsonInput, {
+        toml: true,
+      });
+      expect(toToml?.props.name).toBe('TOML Output');
+      const toml = toToml?.props.plaintextOutput ?? '';
+      expect(parseToml(toml, { integersAsBigInt: true }).values).toEqual(
+        values,
+      );
+
+      const boxes = await DataConverterBoxSource.generateBoxes(toml, {
+        json: true,
+        yaml: true,
+        xml: true,
+      });
+      const output = Object.fromEntries(
+        boxes.map((box) => [box.props.name, box.props.plaintextOutput]),
+      );
+      expect(output['JSON Output']?.replace(/\s/g, '')).toBe(jsonInput);
+      expect(
+        parseYaml(output['YAML Output'] ?? '', { intAsBigInt: true }),
+      ).toEqual({ values, label: 'integers' });
+      const [reformatted] = await DataConverterBoxSource.generateBoxes(
+        toml.replace('values =', 'values='),
+        { toml: true },
+      );
+      expect(reformatted?.props.plaintextOutput).toBe(toml);
+      const xml = new DOMParser().parseFromString(
+        output['XML Output'] ?? '',
+        'application/xml',
+      );
+      expect(
+        Array.from(xml.querySelectorAll('values'), (node) => node.textContent),
+      ).toEqual(values.map(String));
     });
   });
 

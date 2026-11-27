@@ -14,7 +14,11 @@ import {
   isSafeNumber,
   LosslessNumber,
 } from 'lossless-json';
-import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
+import {
+  parse as parseToml,
+  stringify as stringifyToml,
+  TomlDate,
+} from 'smol-toml';
 import {
   type Document,
   isMap,
@@ -163,6 +167,12 @@ function stringifyYamlDocuments(documents: readonly Document[]): string {
 }
 
 function yamlCompatibleValue(value: unknown): unknown {
+  if (value instanceof TomlDate) {
+    // Quote dates so YAML 1.1 consumers also read them as strings.
+    const scalar = new Scalar(value.toISOString());
+    scalar.type = Scalar.QUOTE_DOUBLE;
+    return scalar;
+  }
   if (isLosslessNumber(value)) {
     const raw = value.toString();
     if (isInteger(raw)) return BigInt(raw);
@@ -239,7 +249,7 @@ function tomlCompatibleValue(
   if (Array.isArray(value)) {
     return value.map((item) => tomlCompatibleValue(item, placeholders));
   }
-  if (typeof value === 'bigint') return value;
+  if (value instanceof TomlDate) return value;
   if (typeof value === 'object') {
     const result: Record<string, unknown> = Object.create(null) as Record<
       string,
@@ -273,6 +283,7 @@ function stringifyTomlLossless(value: unknown): string {
 function xmlCompatibleValue(value: unknown): unknown {
   if (isLosslessNumber(value)) return value.toString();
   if (typeof value === 'bigint') return value.toString();
+  if (value instanceof TomlDate) return value.toISOString();
   if (value === null) throw new Error('XML cannot represent null values');
   if (Array.isArray(value)) return value.map(xmlCompatibleValue);
   if (typeof value === 'object') {
@@ -339,7 +350,7 @@ function detectFormat(
   // Try TOML
   if (hasTomlDocumentShape(trimmed)) {
     try {
-      const data = parseToml(trimmed);
+      const data = parseToml(trimmed, { integersAsBigInt: 'asNeeded' });
       if (data && typeof data === 'object' && Object.keys(data).length > 0) {
         return {
           ok: true,
@@ -452,12 +463,14 @@ const FORMATS: readonly OutputFormat[] = [
     keys: ['xml', 'toxml'],
     stringify: (d) => {
       const xmlData = xmlCompatibleValue(d);
-      const wrapData = Array.isArray(xmlData)
-        ? { root: { item: xmlData } }
-        : Object.keys(xmlData as object).length > 1
-          ? { root: xmlData }
-          : xmlData;
-      return xmlBuilder.build(wrapData);
+      if (Array.isArray(xmlData)) {
+        return xmlBuilder.build({ root: { item: xmlData } });
+      }
+      const values = Object.values(xmlData as Record<string, unknown>);
+      // The builder emits each array item as a sibling with the same name.
+      const needsRoot =
+        values.length > 1 || (Array.isArray(values[0]) && values[0].length > 1);
+      return xmlBuilder.build(needsRoot ? { root: xmlData } : xmlData);
     },
   },
 ];
