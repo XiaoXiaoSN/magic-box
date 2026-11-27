@@ -51,6 +51,9 @@ describe('private input detection', () => {
   it.each([
     'apiVersion: v1\nkind: Secret\ndata:\n  token: ZHVtbXk=',
     '{"apiVersion":"v1","kind":"Secret","stringData":{"token":"dummy"}}',
+    '{"apiVersion":"v1","kind":\n"Secret","stringData":{"token":"dummy"}}',
+    '{"apiVersion":"v1","ki\\u006ed":"\\u0053ecret","stringData":{"token":"dummy"}}',
+    'apiVersion: v1\nkind:\n  Secret\nstringData: { token: dummy }',
     'apiVersion: v1\nkind: List\nitems:\n  - apiVersion: v1\n    kind: Secret\n    stringData: { token: dummy }',
     'apiVersion: v1\nkind: ConfigMap\n---\napiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
     'apiVersion: v1\nkind: Secret\nstringData: { token: unfinished',

@@ -4,7 +4,6 @@ import CustomizedSnackbar, {
 } from '@components/Snackbar';
 import copyTextToClipboard from '@functions/clipboard';
 import { trim } from '@functions/helper';
-import { isKubernetesSecretInput } from '@functions/kubernetesSecret';
 import { isLocalAIPrivate, isPrivateInput } from '@functions/localAIPrivacy';
 import { parseInput } from '@functions/parseOptions';
 import { type Box as BoxType, errorBox } from '@modules/Box';
@@ -661,12 +660,12 @@ const MagicBox = ({
 
   const pasteAsInput = useCallback(
     (output: string, sourceInput: string): void => {
-      // The clipboard receives the exact output. Inside the app the private
-      // directive keeps pasted Kubernetes values out of subsequent stores.
-      const [payload] = parseInput(sourceInput);
-      const value = isKubernetesSecretInput(payload)
-        ? `${output}\n::secret`
-        : output;
+      // Prefix the marker before any potentially quoted text. A subsequent
+      // paste from the same private input must carry the marker forward.
+      const value =
+        isPrivateInput(sourceInput) && !isPrivateInput(output)
+          ? `::secret\n${output}`
+          : output;
       const callback = onPasteInputRef.current;
       if (callback) {
         callback(value);

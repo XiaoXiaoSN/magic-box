@@ -1,4 +1,5 @@
 import copyTextToClipboard from '@functions/clipboard';
+import { isPrivateInput } from '@functions/localAIPrivacy';
 import type { Box, BoxProps } from '@modules/Box';
 import { BoxBuilder } from '@modules/Box';
 import type { BoxSource } from '@modules/BoxSource';
@@ -611,9 +612,15 @@ describe('MagicBox source pipeline', () => {
     expect(screen.getByText('Earlier output')).toBeInTheDocument();
   });
 
-  it('marks a Kubernetes Secret result private when pasted back into the app', async () => {
-    const input = 'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }';
-    const source = sourceWithResult('Secret', Promise.resolve([box('Secret')]));
+  it.each([
+    'apiVersion: v1\nkind: Secret\nstringData: { token: dummy }',
+    '::secret\nprevious decoded output',
+  ])('preserves private output across paste-back %#', async (input) => {
+    const output = 'a,b\n1,"dummy';
+    const source = sourceWithResult(
+      'Secret',
+      Promise.resolve([new BoxBuilder('Secret', output).build()]),
+    );
     const onPasteInput = vi.fn();
     render(
       <LocaleProvider>
@@ -629,9 +636,10 @@ describe('MagicBox source pipeline', () => {
     );
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true });
     await waitFor(() =>
-      expect(onPasteInput).toHaveBeenCalledWith('Secret output\n::secret'),
+      expect(onPasteInput).toHaveBeenCalledWith(`::secret\n${output}`),
     );
-    expect(copyTextToClipboard).toHaveBeenCalledWith('Secret output');
+    expect(isPrivateInput(onPasteInput.mock.calls[0][0])).toBe(true);
+    expect(copyTextToClipboard).toHaveBeenCalledWith(output);
   });
 
   it('ignores a late keyboard copy after the selected source is removed', async () => {

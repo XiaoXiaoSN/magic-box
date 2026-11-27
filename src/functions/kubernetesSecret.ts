@@ -1,19 +1,18 @@
 import { type Document, parseAllDocuments, visit } from 'yaml';
+import { isKubernetesSecretCandidate } from './kubernetesSecretCandidate';
 
 const maxAliasCount = 100;
 
-const yamlKindLine =
-  /^[ \t]*(?:-[ \t]*)?(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?:[ \t]*(?:#.*)?\r?$)/m;
-const flowYamlKindProperty =
-  /(?:^|[,{}])[ \t]*(?:["']?kind["']?)[ \t]*:[ \t]*["']?(?:Secret|List)["']?(?=[ \t]*(?:[,}]|$))/m;
-const jsonKindProperty =
-  /["']kind["'][ \t]*:[ \t]*["'](?:Secret|List)["'](?=[ \t]*[,}])/;
-
 type UnknownRecord = Record<string, unknown>;
+export interface KubernetesSecret {
+  name?: string;
+  data?: UnknownRecord;
+  stringData?: UnknownRecord;
+}
 
 const MAX_PRIVATE_PARSE_LENGTH = 64 * 1024;
 
-export function isRecord(value: unknown): value is UnknownRecord {
+function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -38,19 +37,6 @@ function extractSecretResources(value: unknown): UnknownRecord[] {
   }
 
   return value.items.filter(isSecretResource);
-}
-
-function isPlausibleSecretInput(input: string): boolean {
-  if (
-    !input.includes('kind') ||
-    (!input.includes('Secret') && !input.includes('List'))
-  )
-    return false;
-  return (
-    yamlKindLine.test(input) ||
-    flowYamlKindProperty.test(input) ||
-    jsonKindProperty.test(input)
-  );
 }
 
 function convertSecretDocument(document: Document): unknown {
@@ -88,13 +74,28 @@ function parseCandidate(input: string): UnknownRecord[] | null {
   }
 }
 
-export function readKubernetesSecrets(input: string): UnknownRecord[] {
-  if (!isPlausibleSecretInput(input)) return [];
-  return parseCandidate(input) ?? [];
+export function readKubernetesSecrets(input: string): KubernetesSecret[] {
+  return (parseCandidate(input) ?? []).flatMap(
+    ({ metadata, data, stringData }) => {
+      if (
+        (metadata !== undefined && !isRecord(metadata)) ||
+        (data !== undefined && !isRecord(data)) ||
+        (stringData !== undefined && !isRecord(stringData))
+      )
+        return [];
+      return [
+        {
+          name: typeof metadata?.name === 'string' ? metadata.name : undefined,
+          data,
+          stringData,
+        },
+      ];
+    },
+  );
 }
 
 export function isKubernetesSecretInput(input: string): boolean {
-  if (!isPlausibleSecretInput(input)) return false;
+  if (!isKubernetesSecretCandidate(input)) return false;
   // Synchronous privacy checks run before telemetry and on every edit. Treat
   // a large or unfinished candidate as private until it can be classified.
   if (input.length > MAX_PRIVATE_PARSE_LENGTH) return true;

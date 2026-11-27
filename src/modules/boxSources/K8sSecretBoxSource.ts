@@ -1,6 +1,7 @@
 import { decodeBase64 } from '@functions/base64';
 import { isString } from '@functions/helper';
-import { isRecord, readKubernetesSecrets } from '@functions/kubernetesSecret';
+import type { KubernetesSecret } from '@functions/kubernetesSecret';
+import { isKubernetesSecretCandidate } from '@functions/kubernetesSecretCandidate';
 import type { Box } from '@modules/Box';
 import { errorBox, keyValueBox } from '@modules/Box';
 
@@ -30,40 +31,28 @@ function decodeDataValue(value: unknown): string {
   }
 }
 
-function decodeSecret(resource: Record<string, unknown>): Match {
+function decodeSecret(resource: KubernetesSecret): Match {
   const data = Object.create(null) as Record<string, string>;
 
-  if (isRecord(resource.data)) {
+  if (resource.data) {
     for (const [key, value] of Object.entries(resource.data)) {
       data[key] = decodeDataValue(value);
     }
   }
 
-  if (isRecord(resource.stringData)) {
+  if (resource.stringData) {
     for (const [key, value] of Object.entries(resource.stringData)) {
       data[key] = typeof value === 'string' ? value : InvalidValue;
     }
   }
 
-  const metadata = resource.metadata;
-  const name =
-    isRecord(metadata) && typeof metadata.name === 'string'
-      ? metadata.name
-      : undefined;
-
-  return { data, name };
+  return { data, name: resource.name };
 }
 
-function parseMatches(input: string): Match[] {
-  if (!isString(input)) return [];
-  return readKubernetesSecrets(input)
-    .filter(
-      ({ metadata, data, stringData }) =>
-        (metadata === undefined || isRecord(metadata)) &&
-        (data === undefined || isRecord(data)) &&
-        (stringData === undefined || isRecord(stringData)),
-    )
-    .map(decodeSecret);
+async function parseMatches(input: string): Promise<Match[]> {
+  if (!isString(input) || !isKubernetesSecretCandidate(input)) return [];
+  const { readKubernetesSecrets } = await import('@functions/kubernetesSecret');
+  return readKubernetesSecrets(input).map(decodeSecret);
 }
 
 export const K8sSecretBoxSource = {
@@ -81,12 +70,12 @@ data:
   password: cGFzc3dvcmQ=`,
 
   async checkMatch(input: string): Promise<Match | undefined> {
-    const matches = parseMatches(input);
+    const matches = await parseMatches(input);
     return matches[0];
   },
 
   async generateBoxes(input: string): Promise<Box[]> {
-    const matches = parseMatches(input);
+    const matches = await parseMatches(input);
     if (matches.length === 0) {
       return [];
     }
