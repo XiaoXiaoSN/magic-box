@@ -57,13 +57,11 @@ interface ProtectedJson {
 }
 
 function protectPrototypeKeys(text: string): ProtectedJson {
-  const replacements = new Map<string, string>();
-  let output = '';
-  let markerIndex = 0;
+  const reservedMarkers = new Set<string>();
+  const keysToProtect: { key: string; start: number; end: number }[] = [];
 
   for (let i = 0; i < text.length; ) {
     if (text[i] !== '"') {
-      output += text[i];
       i += 1;
       continue;
     }
@@ -82,38 +80,42 @@ function protectPrototypeKeys(text: string): ProtectedJson {
       i += 1;
     }
 
-    const token = text.slice(start, i);
     let next = i;
-    while (/\s/.test(text[next] ?? '')) next += 1;
+    while (/[ \t\r\n]/.test(text[next] ?? '')) next += 1;
+    if (text[next] !== ':') continue;
 
-    let key: unknown;
+    let key: string;
     try {
-      key = JSON.parse(token) as unknown;
+      key = JSON.parse(text.slice(start, i)) as string;
     } catch {
-      output += token;
+      // Leave malformed tokens for the parser to report.
       continue;
     }
 
-    if (
-      typeof key !== 'string' ||
-      !PROTOTYPE_KEYS.has(key) ||
-      text[next] !== ':'
-    ) {
-      output += token;
-      continue;
-    }
-
-    let marker = `${PROTECTED_KEY_PREFIX}${markerIndex}`;
-    while (text.includes(marker) || text.includes(JSON.stringify(marker))) {
-      markerIndex += 1;
-      marker = `${PROTECTED_KEY_PREFIX}${markerIndex}`;
-    }
-    markerIndex += 1;
-    replacements.set(marker, key);
-    output += JSON.stringify(marker);
+    if (key.startsWith(PROTECTED_KEY_PREFIX)) reservedMarkers.add(key);
+    if (PROTOTYPE_KEYS.has(key)) keysToProtect.push({ key, start, end: i });
   }
 
-  return { text: output, replacements };
+  // Reserve decoded names from the entire document before replacing any keys.
+  // Different Unicode escape spellings can represent the same marker.
+  const replacements = new Map<string, string>();
+  if (keysToProtect.length === 0) return { text, replacements };
+
+  const parts: string[] = [];
+  let lastEnd = 0;
+  let markerIndex = 0;
+  for (const { key, start, end } of keysToProtect) {
+    let marker: string;
+    do {
+      marker = PROTECTED_KEY_PREFIX + markerIndex;
+      markerIndex += 1;
+    } while (reservedMarkers.has(marker));
+    replacements.set(marker, key);
+    parts.push(text.slice(lastEnd, start), JSON.stringify(marker));
+    lastEnd = end;
+  }
+  parts.push(text.slice(lastEnd));
+  return { text: parts.join(''), replacements };
 }
 
 function parseNumber(value: string): JsonNumber {
