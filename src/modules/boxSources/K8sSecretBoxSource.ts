@@ -114,18 +114,17 @@ function convertSecretDocument(
   document: Document,
   visitNodes: typeof visit,
 ): unknown {
-  let repeatedMaps = 0;
-  // The YAML merge resolver converts its source map directly. Those repeated
-  // traversals bypass the alias limit in toJS, so bound them separately.
+  // The YAML merge resolver bypasses the alias limit by converting the
+  // source map directly. Limit repeated conversions for each source map.
   visitNodes(document, {
     Map(_key, map) {
       const convert = map.toJSON.bind(map);
-      let converted = false;
+      let conversions = 0;
       map.toJSON = (...args) => {
-        if (converted && ++repeatedMaps > maxAliasCount) {
+        conversions += 1;
+        if (conversions > maxAliasCount + 1) {
           throw new Error('YAML merge expansion limit exceeded');
         }
-        converted = true;
         return convert(...args);
       };
     },

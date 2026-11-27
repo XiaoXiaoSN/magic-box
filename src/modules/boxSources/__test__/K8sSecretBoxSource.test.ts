@@ -291,12 +291,26 @@ ${Array.from(
   () => '  - { apiVersion: v1, kind: Secret, data: { <<: *defaults } }',
 ).join('\n')}`;
 
-      const boxes = await K8sSecretBoxSource.generateBoxes(listWithMerges(2));
-      expect(boxes).toHaveLength(3);
-      expect(boxes[2].props.options).toEqual({ password: 'pass' });
+      const boxes = await K8sSecretBoxSource.generateBoxes(listWithMerges(100));
+      expect(boxes).toHaveLength(101);
+      expect(boxes.at(-1)?.props.options).toEqual({ password: 'pass' });
       await expect(
         K8sSecretBoxSource.generateBoxes(listWithMerges(101)),
       ).resolves.toEqual([]);
+    });
+
+    it('allows separate merge anchors to be reused within their own limits', async () => {
+      const items = Array.from({ length: 101 }, (_, index) => {
+        const name = `credentials${index}`;
+        return `  - { apiVersion: v1, kind: Secret, data: &${name} {password: cGFzcw==} }
+  - { apiVersion: v1, kind: Secret, data: { <<: *${name} } }`;
+      });
+      const boxes = await K8sSecretBoxSource.generateBoxes(
+        `apiVersion: v1\nkind: List\nitems:\n${items.join('\n')}`,
+      );
+
+      expect(boxes).toHaveLength(202);
+      expect(boxes.at(-1)?.props.options).toEqual({ password: 'pass' });
     });
 
     it('decodes exact empty bytes and preserves stringData overrides', async () => {
