@@ -15,7 +15,10 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 test('reads the complete ordered source manifest without loading implementations', () => {
   const sources = readSourceManifest();
   assert.equal(sources.length, 97);
-  assert.equal(new Set(sources.map((source) => source.id)).size, sources.length);
+  assert.equal(
+    new Set(sources.map((source) => source.id)).size,
+    sources.length,
+  );
   assert.deepEqual(
     sources.slice(0, 4).map((source) => source.id),
     ['color', 'color-contrast', 'escape-string', 'base64-decode'],
