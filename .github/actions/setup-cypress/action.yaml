@@ -1,0 +1,24 @@
+name: Setup Cypress
+description: Restore the cached Cypress binary or install it when the Cypress version changes
+
+runs:
+  using: composite
+  steps:
+    - name: Read installed Cypress version
+      id: cypress-version
+      shell: bash
+      run: |
+        version="$(node -p "require('./node_modules/cypress/package.json').version")"
+        echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Cypress binary
+      id: cypress-cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/Cypress
+        key: cypress-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.cypress-version.outputs.version }}
+
+    - name: Install Cypress binary
+      if: steps.cypress-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: bunx --no-install cypress install
