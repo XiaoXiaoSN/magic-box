@@ -9,6 +9,7 @@ on:
 env:
   NODE_VERSION: 22
   BUN_VERSION: 1.3.4
+  RUST_VERSION: 1.100.1
   WASM_PACK_VERSION: v0.15.0
 
 jobs:
@@ -52,6 +53,14 @@ jobs:
           echo "Changed files:"
           printf '%s\n' "$changed_files"
 
+          # run full suites when the test workflow itself changes
+          if printf '%s\n' "$changed_files" | grep -Eq '^\.github/workflows/test\.yaml$'; then
+            echo "rust_wasm=true" >> "$GITHUB_OUTPUT"
+            echo "functions=true" >> "$GITHUB_OUTPUT"
+            echo "Test workflow changed: running full Rust/WASM and functions suites."
+            exit 0
+          fi
+
           rust_wasm=false
           if printf '%s\n' "$changed_files" | grep -Eq '^(wasmModules/|\.github/workflows/wasm-profiles\.yaml$|scripts/build-wasm\.sh$)'; then
             rust_wasm=true
@@ -75,7 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # exact match only: never restore stale pkg/ outputs when Rust sources change
+      # exact match only: never restore stale pkg/ outputs when Rust sources or toolchain change
       - name: Cache compiled WASM packages
         id: wasm-pkg-cache
         uses: actions/cache@v6
@@ -83,20 +92,14 @@ jobs:
           path: |
             wasmModules/base64-box/pkg
             wasmModules/math-box/pkg
-          key: wasm-pkg-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
+          key: wasm-pkg-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
 
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
           target: wasm32-unknown-unknown
           cache: false
-
-      - name: Read Rust toolchain
-        id: toolchain
-        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: echo "version=$(rustc -Vv | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Cache Cargo and wasm-pack build artifacts
         if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
@@ -108,10 +111,10 @@ jobs:
             ~/.cache/.wasm-pack
             wasmModules/base64-box/target
             wasmModules/math-box/target
-          key: wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
+          key: wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
           restore-keys: |
-            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-${{ env.WASM_PACK_VERSION }}-
-            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-
+            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ env.WASM_PACK_VERSION }}-
+            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-
 
       - name: Install wasm-pack
         if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
@@ -554,7 +557,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
           cache: false
 
       - uses: actions/cache@v6
@@ -564,8 +567,8 @@ jobs:
             ~/.cargo/git
             wasmModules/base64-box/target
             wasmModules/math-box/target
-          key: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'wasmModules/**/tests/**') }}
-          restore-keys: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-
+          key: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'wasmModules/**/tests/**') }}
+          restore-keys: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-
 
       - name: Run all native Rust tests
         shell: bash
@@ -591,7 +594,7 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_VERSION }}
           target: wasm32-unknown-unknown
           cache: false
 
@@ -602,10 +605,10 @@ jobs:
             ~/.cargo/git
             ~/.cache/.wasm-pack
             wasmModules/${{ matrix.module }}/target
-          key: wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles(format('wasmModules/{0}/Cargo.lock', matrix.module), format('wasmModules/{0}/Cargo.toml', matrix.module), format('wasmModules/{0}/src/**', matrix.module), format('wasmModules/{0}/tests/**', matrix.module)) }}
+          key: wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles(format('wasmModules/{0}/Cargo.lock', matrix.module), format('wasmModules/{0}/Cargo.toml', matrix.module), format('wasmModules/{0}/src/**', matrix.module), format('wasmModules/{0}/tests/**', matrix.module)) }}
           restore-keys: |
-            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-
-            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-
+            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-
+            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-rust-${{ env.RUST_VERSION }}-${{ matrix.module }}-
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
