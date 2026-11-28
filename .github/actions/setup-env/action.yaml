@@ -10,17 +10,20 @@ runs:
         bun-version: ${{ env.BUN_VERSION }}
 
     - name: Cache Bun packages
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.bun/install/cache
-        key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-        restore-keys: bun-${{ runner.os }}-
+        key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+        restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ env.NODE_VERSION }}
 
     - name: Install dependencies
       shell: bash
+      env:
+        # cypress jobs restore or install the binary via setup-cypress
+        CYPRESS_INSTALL_BINARY: '0'
       run: bun install --frozen-lockfile

@@ -9,42 +9,118 @@ on:
 env:
   NODE_VERSION: 22
   BUN_VERSION: 1.3.4
+  WASM_PACK_VERSION: v0.15.0
 
 jobs:
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      rust_wasm: ${{ steps.detect.outputs.rust_wasm }}
+      functions: ${{ steps.detect.outputs.functions }}
+    steps:
+      - name: Check out PR merge commit
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed areas
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo "rust_wasm=true" >> "$GITHUB_OUTPUT"
+            echo "functions=true" >> "$GITHUB_OUTPUT"
+            echo "Non-PR event (${EVENT_NAME}): running full Rust/WASM and functions suites."
+            exit 0
+          fi
+
+          # fail open if the checkout is not a synthetic PR merge commit
+          if ! git rev-parse --verify HEAD^2 >/dev/null 2>&1; then
+            echo "rust_wasm=true" >> "$GITHUB_OUTPUT"
+            echo "functions=true" >> "$GITHUB_OUTPUT"
+            echo "Checkout is not a PR merge commit; failing open to full suites."
+            exit 0
+          fi
+
+          changed_files="$(git -c core.quotePath=false diff --name-only --no-renames HEAD^1 HEAD)"
+          echo "Changed files:"
+          printf '%s\n' "$changed_files"
+
+          rust_wasm=false
+          if printf '%s\n' "$changed_files" | grep -Eq '^(wasmModules/|\.github/workflows/wasm-profiles\.yaml$|scripts/build-wasm\.sh$)'; then
+            rust_wasm=true
+          fi
+
+          functions=false
+          if printf '%s\n' "$changed_files" | grep -Eq '^(functions/|firestore\.rules$)'; then
+            functions=true
+          fi
+
+          echo "rust_wasm=${rust_wasm}" >> "$GITHUB_OUTPUT"
+          echo "functions=${functions}" >> "$GITHUB_OUTPUT"
+          echo "Detected: rust_wasm=${rust_wasm}, functions=${functions}"
+
   wasm-build:
     name: wasm-build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v7
 
+      # exact match only: never restore stale pkg/ outputs when Rust sources change
+      - name: Cache compiled WASM packages
+        id: wasm-pkg-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            wasmModules/base64-box/pkg
+            wasmModules/math-box/pkg
+          key: wasm-pkg-v1-${{ runner.os }}-${{ runner.arch }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
+
       - uses: actions-rust-lang/setup-rust-toolchain@v2
+        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
+          cache: false
 
       - name: Read Rust toolchain
         id: toolchain
+        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
         shell: bash
         run: echo "version=$(rustc -Vv | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v6
+      - name: Cache Cargo and wasm-pack build artifacts
+        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cache/.wasm-pack
             wasmModules/base64-box/target
             wasmModules/math-box/target
-          key: wasm-${{ runner.os }}-${{ steps.toolchain.outputs.version }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
+          key: wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'scripts/build-wasm.sh') }}
           restore-keys: |
-            wasm-${{ runner.os }}-${{ steps.toolchain.outputs.version }}-
+            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-${{ env.WASM_PACK_VERSION }}-
+            wasm-build-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.version }}-
 
       - name: Install wasm-pack
+        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.15.0
+          version: ${{ env.WASM_PACK_VERSION }}
 
       - name: Build WASM packages
+        if: steps.wasm-pkg-cache.outputs.cache-hit != 'true'
         run: bash scripts/build-wasm.sh
 
       - name: Package WASM artifacts
@@ -57,11 +133,13 @@ jobs:
           name: wasm-modules
           path: wasm-modules.tar.gz
           if-no-files-found: error
+          retention-days: 1
 
   build:
     name: build
     needs: wasm-build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       artifact-digest: ${{ steps.upload.outputs.artifact-digest }}
     steps:
@@ -94,10 +172,14 @@ jobs:
           name: shipping-build
           path: build
           if-no-files-found: error
+          retention-days: 1
 
   feedback-tests:
     name: feedback-tests
+    needs: changes
+    if: needs.changes.outputs.functions == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -111,9 +193,14 @@ jobs:
         run: npm test --prefix functions
 
   unit-tests:
-    name: unit-tests
+    name: unit-tests (${{ matrix.shard }}/3)
     needs: wasm-build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
 
@@ -129,10 +216,11 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - name: Run unit tests
-        run: bun run test --run
+      - name: Run unit tests (shard ${{ matrix.shard }}/3)
+        run: bun run test --run --shard=${{ matrix.shard }}/3
 
       - name: Run date and timezone tests in Los Angeles
+        if: matrix.shard == 1
         run: >
           bunx --no-install vitest run
           src/functions/__test__/timezone.test.ts
@@ -150,37 +238,14 @@ jobs:
           TZ: America/Los_Angeles
 
       - name: Test bundle budget fixtures
+        if: matrix.shard == 1
         run: bun run test:bundle-budget
 
-  typecheck:
-    name: typecheck
+  static-checks:
+    name: static-checks
     needs: wasm-build
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download WASM artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: wasm-modules
-          path: .
-
-      - name: Restore WASM packages
-        run: tar -xzf wasm-modules.tar.gz
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-env
-
-      - name: Type-check application
-        run: bun run typecheck
-
-      - name: Type-check Cypress
-        run: bun run typecheck:cypress
-
-  quality:
-    name: quality
-    needs: wasm-build
-    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -199,31 +264,18 @@ jobs:
       - name: Run Biome checks
         run: bunx --no-install biome ci src cypress -- *.config.ts scripts/check-bundle-budget.mjs scripts/check-bundle-budget.test.mjs
 
-  docs:
-    name: docs
-    needs: wasm-build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download WASM artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: wasm-modules
-          path: .
-
-      - name: Restore WASM packages
-        run: tar -xzf wasm-modules.tar.gz
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-env
-
       - name: Check documentation generator formatting
         run: >-
           bunx --no-install biome ci scripts/generate-tool-docs.mjs
           scripts/generate-tool-docs.test.mjs
           wasmModules/math-box/bench/compare.mjs
           wasmModules/math-box/bench/compare.test.mjs
+
+      - name: Type-check application
+        run: bun run typecheck
+
+      - name: Type-check Cypress
+        run: bun run typecheck:cypress
 
       - name: Check generated documentation
         run: bun run docs:check
@@ -234,12 +286,11 @@ jobs:
   codespell:
     name: codespell
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
       - uses: codespell-project/codespell-problem-matcher@v1
 
@@ -252,6 +303,7 @@ jobs:
     name: cypress-component
     needs: wasm-build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -267,14 +319,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: cypress-${{ runner.os }}-
-
-      - name: Install Cypress
-        run: bunx cypress install
+      - name: Setup Cypress
+        uses: ./.github/actions/setup-cypress
 
       - name: Run Cypress component tests
         uses: cypress-io/github-action@v7
@@ -292,11 +338,21 @@ jobs:
             cypress/screenshots
             cypress/videos
           if-no-files-found: ignore
+          retention-days: 7
 
   cypress-e2e:
-    name: cypress-e2e
+    name: cypress-e2e (${{ matrix.name }})
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: inputs
+            spec: cypress/e2e/magicbox.cy.ts
+          - name: ui
+            spec: cypress/e2e/magicbox-ui.cy.ts
     steps:
       - uses: actions/checkout@v7
 
@@ -318,14 +374,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: cypress-${{ runner.os }}-
-
-      - name: Install Cypress
-        run: bunx cypress install
+      - name: Setup Cypress
+        uses: ./.github/actions/setup-cypress
 
       - name: Run Cypress E2E tests against the shipping artifact
         uses: cypress-io/github-action@v7
@@ -335,23 +385,25 @@ jobs:
         with:
           install: false
           browser: chrome
-          spec: cypress/e2e/magicbox.cy.ts
+          spec: ${{ matrix.spec }}
           start: bun run preview -- --host 0.0.0.0
           wait-on: http://localhost:4173
 
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: cypress-e2e-failures
+          name: cypress-e2e-${{ matrix.name }}-failures
           path: |
             cypress/screenshots
             cypress/videos
           if-no-files-found: ignore
+          retention-days: 7
 
   offline-smoke:
     name: offline-smoke
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -373,14 +425,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: cypress-${{ runner.os }}-
-
-      - name: Install Cypress
-        run: bunx cypress install
+      - name: Setup Cypress
+        uses: ./.github/actions/setup-cypress
 
       - name: Run offline smoke test against the shipping artifact
         uses: cypress-io/github-action@v7
@@ -402,11 +448,13 @@ jobs:
             cypress/screenshots
             cypress/videos
           if-no-files-found: ignore
+          retention-days: 7
 
   math-offline-smoke:
     name: math-offline-smoke
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -428,14 +476,8 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-env
 
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: cypress-${{ runner.os }}-
-
-      - name: Install Cypress
-        run: bunx cypress install
+      - name: Setup Cypress
+        uses: ./.github/actions/setup-cypress
 
       - name: Run math WASM offline recovery test
         run: bun run test:e2e:offline-math -- --browser chrome
@@ -451,11 +493,13 @@ jobs:
             cypress/screenshots
             cypress/videos
           if-no-files-found: ignore
+          retention-days: 7
 
   bundle-budget:
     name: bundle-budget
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       actions: read
       contents: read
@@ -501,13 +545,17 @@ jobs:
 
   rust-tests:
     name: rust-tests
+    needs: changes
+    if: needs.changes.outputs.rust_wasm == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           toolchain: stable
+          cache: false
 
       - uses: actions/cache@v6
         with:
@@ -516,8 +564,8 @@ jobs:
             ~/.cargo/git
             wasmModules/base64-box/target
             wasmModules/math-box/target
-          key: rust-tests-${{ runner.os }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**') }}
-          restore-keys: rust-tests-${{ runner.os }}-
+          key: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('wasmModules/**/Cargo.lock', 'wasmModules/**/Cargo.toml', 'wasmModules/**/src/**', 'wasmModules/**/tests/**') }}
+          restore-keys: rust-tests-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Run all native Rust tests
         shell: bash
@@ -529,8 +577,10 @@ jobs:
 
   wasm-browser-tests:
     name: wasm-browser-tests (${{ matrix.module }}, ${{ matrix.browser }})
-    needs: wasm-build
+    needs: changes
+    if: needs.changes.outputs.rust_wasm == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -542,20 +592,25 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v2
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
+          cache: false
 
       - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cache/.wasm-pack
             wasmModules/${{ matrix.module }}/target
-          key: wasm-browser-${{ runner.os }}-${{ matrix.module }}-${{ matrix.browser }}-${{ hashFiles(format('wasmModules/{0}/Cargo.lock', matrix.module), format('wasmModules/{0}/src/**', matrix.module)) }}
-          restore-keys: wasm-browser-${{ runner.os }}-${{ matrix.module }}-${{ matrix.browser }}-
+          key: wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-${{ hashFiles(format('wasmModules/{0}/Cargo.lock', matrix.module), format('wasmModules/{0}/Cargo.toml', matrix.module), format('wasmModules/{0}/src/**', matrix.module), format('wasmModules/{0}/tests/**', matrix.module)) }}
+          restore-keys: |
+            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-${{ env.WASM_PACK_VERSION }}-
+            wasm-browser-v1-${{ runner.os }}-${{ runner.arch }}-${{ matrix.module }}-
 
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
         with:
-          version: v0.15.0
+          version: ${{ env.WASM_PACK_VERSION }}
 
       - name: Setup Firefox
         if: matrix.browser == 'firefox'

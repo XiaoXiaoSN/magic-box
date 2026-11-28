@@ -90,7 +90,7 @@ bun run docs:check
 ```
 
 Commit `docs/tools.md` and `public/llms.txt` with the source change. The
-`docs` CI job checks both outputs on every PR without rewriting them.
+`static-checks` CI job checks both outputs on every PR without rewriting them.
 The README stays hand-edited: add useful screenshots or usage tips inside a
 matching `<details>` block, and link to the reference for the full inventory.
 
