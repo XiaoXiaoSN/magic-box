@@ -53,7 +53,9 @@ explicit option (such as `::sha256`).
 Use **Hash a file** below the input, or drop one file in that area, to compute
 SHA-256 from its original bytes. Files up to 32 MiB are processed locally in a
 worker. You can cancel before completion or download the checksum as a
-`.sha256` text file containing the digest and a newline.
+`.sha256` text file containing the digest and a newline. Paste a published
+digest, or the text of a downloaded `.sha256` file, into **Expected SHA-256** to
+see whether it matches; case and surrounding whitespace are ignored.
 
 Download the optional pack under **Settings → Offline tools** to use JSON
 conversion, text hashing and math in a new tab without a connection. The app

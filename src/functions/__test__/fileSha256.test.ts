@@ -2,7 +2,11 @@
 
 import { createHash, webcrypto } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { hashFileSha256, MAX_HASH_FILE_BYTES } from '../fileSha256';
+import {
+  compareSha256,
+  hashFileSha256,
+  MAX_HASH_FILE_BYTES,
+} from '../fileSha256';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -23,5 +27,21 @@ describe('file SHA-256', () => {
       'File is too large',
     );
     expect(file.arrayBuffer).not.toHaveBeenCalled();
+  });
+
+  it('compares an expected digest ignoring case and surrounding whitespace', () => {
+    const digest = 'ab'.repeat(32);
+    expect(compareSha256(digest, digest)).toBe('match');
+    expect(compareSha256(`  ${digest.toUpperCase()}\r\n`, digest)).toBe(
+      'match',
+    );
+    // The text of a `.sha256` file downloaded from the file hasher.
+    expect(compareSha256(`${digest}\n`, digest)).toBe('match');
+    expect(compareSha256('cd'.repeat(32), digest)).toBe('mismatch');
+    expect(compareSha256('ab'.repeat(31), digest)).toBe('invalid');
+    expect(compareSha256(`${digest}0`, digest)).toBe('invalid');
+    expect(compareSha256('zz'.repeat(32), digest)).toBe('invalid');
+    expect(compareSha256(`${digest}  file.bin`, digest)).toBe('invalid');
+    expect(compareSha256('', digest)).toBe('invalid');
   });
 });
